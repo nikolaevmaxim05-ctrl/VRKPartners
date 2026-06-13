@@ -1,0 +1,7 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VRK">
+  <rect width="64" height="64" rx="14" fill="#0B0B0E"/>
+  <!-- стилізована літера V / стрілка зростання -->
+  <path d="M14 18 L26 46 L32 46 L20 18 Z" fill="#F6F740"/>
+  <path d="M50 18 L38 46 L32 46 L44 18 Z" fill="#F6F740"/>
+  <path d="M32 33 L41 18 L47 18 L35 42 Z" fill="#0B0B0E"/>
+</svg>
