@@ -22,7 +22,13 @@ import { track, analyticsEvents } from "@/lib/analytics";
 import { services } from "@/config/site";
 import { cn } from "@/lib/utils";
 
-type ServiceItem = (typeof services.items)[number];
+type ServiceItem = {
+  key: string;
+  name: string;
+  desc: string;
+  mockup?: string;
+  mockupAlt?: string;
+};
 
 const icons: Record<string, LucideIcon> = {
   search: Search,
