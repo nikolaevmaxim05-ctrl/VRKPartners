@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { BadgeCheck, Check, Quote, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
@@ -17,6 +18,16 @@ export function Trust() {
 
   const group = trust.caseGroups[nicheIdx] ?? trust.caseGroups[0];
   const current = group?.cases[caseIdx] ?? group?.cases[0];
+  // Кейси мають різні набори полів (task/approach/image — опційні)
+  const cur = current as unknown as {
+    id: string;
+    client: string;
+    title: string;
+    task?: string;
+    image?: string;
+    metrics: readonly { value: string; label: string }[];
+    approach?: readonly string[];
+  };
 
   const selectNiche = (i: number) => {
     setNicheIdx(i);
@@ -50,15 +61,7 @@ export function Trust() {
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           {/* Ліва колонка: довіра */}
           <div className="reveal min-w-0">
-            <span className="eyebrow">{trust.eyebrow}</span>
-            <h2 className="h2 mt-4">{trust.title}</h2>
-
-            <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-brand/30 bg-brand/5 px-4 py-3">
-              <BadgeCheck className="h-7 w-7 text-brand" />
-              <span className="text-sm font-semibold text-white">
-                Офіційний Google Partner
-              </span>
-            </div>
+            <h2 className="h2">{trust.title}</h2>
 
             <ul className="mt-6 space-y-3">
               {trust.facts.map((f) => (
@@ -68,6 +71,13 @@ export function Trust() {
                 </li>
               ))}
             </ul>
+
+            <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-brand/30 bg-brand/5 px-4 py-3">
+              <BadgeCheck className="h-7 w-7 text-brand" />
+              <span className="text-sm font-semibold text-white">
+                Офіційний Google Partner
+              </span>
+            </div>
 
             {/* хайлайти-цифри: рядки на мобільному, колонки на десктопі */}
             <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -186,22 +196,24 @@ export function Trust() {
 
             {/* Крок 3 — контент кейсу */}
             <div
-              key={`${group.id}-${current.id}`}
+              key={`${group.id}-${cur.id}`}
               role="tabpanel"
               className="mt-6 animate-fade-up border-t border-bg-line pt-6"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h4 className="text-xl font-bold text-white">{current.client}</h4>
-                <span className="text-sm text-white/45">{current.title}</span>
+                <h4 className="text-xl font-bold text-white">{cur.client}</h4>
+                <span className="text-sm text-white/45">{cur.title}</span>
               </div>
-              <p className="mt-2 text-sm leading-relaxed text-white/65">
-                <span className="font-semibold text-white/80">Завдання: </span>
-                {current.task}
-              </p>
+              {cur.task && (
+                <p className="mt-2 text-sm leading-relaxed text-white/65">
+                  <span className="font-semibold text-white/80">Завдання: </span>
+                  {cur.task}
+                </p>
+              )}
 
               {/* метрики */}
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {current.metrics.map((m) => (
+                {cur.metrics.map((m) => (
                   <div
                     key={m.label}
                     className="rounded-xl border border-bg-line bg-bg-soft p-3 text-center"
@@ -216,13 +228,27 @@ export function Trust() {
                 ))}
               </div>
 
+              {/* скрін результатів */}
+              {cur.image && (
+                <div className="mt-5 overflow-hidden rounded-xl border border-bg-line bg-white">
+                  <Image
+                    src={cur.image}
+                    alt={`Результати реклами — ${cur.client}`}
+                    width={1400}
+                    height={285}
+                    className="h-auto w-full"
+                  />
+                </div>
+              )}
+
               {/* підходи */}
+              {cur.approach && cur.approach.length > 0 && (
               <div className="mt-6">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
                   Підходи до результату
                 </p>
                 <ul className="mt-3 space-y-2">
-                  {current.approach.map((a) => (
+                  {cur.approach.map((a) => (
                     <li key={a} className="flex items-start gap-2 text-sm text-white/70">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                       <span>{a}</span>
@@ -230,6 +256,7 @@ export function Trust() {
                   ))}
                 </ul>
               </div>
+              )}
             </div>
           </div>
         </div>

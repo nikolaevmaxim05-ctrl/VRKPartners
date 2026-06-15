@@ -101,7 +101,7 @@ export function Header() {
           <a
             href={site.phoneHref}
             onClick={() => track(analyticsEvents.ctaClick, { source: "header_phone" })}
-            className="btn-focus inline-flex items-center gap-2 rounded-lg text-[15px] font-semibold tracking-wide text-white transition-all duration-300 hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
+            className="btn-focus inline-flex items-center gap-2 rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 ring-1 ring-brand/30">
               <Phone className="h-4 w-4 text-brand" />
@@ -124,8 +124,16 @@ export function Header() {
         </button>
       </div>
 
-      {open && (
-        <div className="border-t border-bg-line bg-bg/95 backdrop-blur-md md:hidden">
+      <div
+        aria-hidden={!open}
+        className={cn(
+          "grid overflow-hidden border-t bg-bg/95 backdrop-blur-md transition-all duration-300 ease-in-out md:hidden",
+          open
+            ? "grid-rows-[1fr] border-bg-line opacity-100"
+            : "grid-rows-[0fr] border-transparent opacity-0"
+        )}
+      >
+        <div className="overflow-hidden">
           <nav className="container-x flex flex-col gap-1 py-4" aria-label="Мобільна навігація">
             {nav.map((item) => {
               const isActive = active === item.href.replace("#", "");
@@ -170,7 +178,7 @@ export function Header() {
             </Button>
           </nav>
         </div>
-      )}
+      </div>
     </header>
   );
 }

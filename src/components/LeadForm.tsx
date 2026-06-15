@@ -215,10 +215,6 @@ export function LeadForm({
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {submitLabel}
       </Button>
-
-      <p className="text-center text-xs text-white/40">
-        Натискаючи кнопку, ви погоджуєтесь на обробку даних для зв'язку.
-      </p>
     </form>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { Gift } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track, analyticsEvents } from "@/lib/analytics";
@@ -23,8 +22,7 @@ export function Process() {
     <section id="process" className="section bg-bg-soft/40">
       <div className="container-x">
         <div className="reveal max-w-3xl">
-          <span className="eyebrow">{workflow.eyebrow}</span>
-          <h2 className="h2 mt-4">{workflow.title}</h2>
+          <h2 className="h2">{workflow.title}</h2>
         </div>
 
         {/* Мобільний: компактний вертикальний таймлайн */}
@@ -61,11 +59,7 @@ export function Process() {
         <div className="reveal mt-12 overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 sm:p-8">
           <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-brand">
-                <Gift className="h-3.5 w-3.5" />
-                {workflow.bonus.badge}
-              </span>
-              <h3 className="mt-3 text-2xl font-bold text-white">{workflow.bonus.title}</h3>
+              <h3 className="text-2xl font-bold text-white">{workflow.bonus.title}</h3>
               <p className="mt-2 max-w-2xl text-sm text-white/65">{workflow.bonus.desc}</p>
 
               <dl className="mt-5 grid gap-3 sm:grid-cols-3">

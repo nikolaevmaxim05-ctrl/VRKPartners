@@ -1,15 +1,25 @@
 "use client";
 
-import { BadgeCheck, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { LeadForm } from "@/components/LeadForm";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track, analyticsEvents } from "@/lib/analytics";
-import { hero, site } from "@/config/site";
+import { hero } from "@/config/site";
 
 export function Hero() {
   const { openLead } = useLeadModal();
+
+  const handleConsult = () => {
+    track(analyticsEvents.ctaClick, { source: "hero_consult" });
+    openLead({
+      title: hero.primaryCta,
+      description: hero.formNote,
+      source: "hero",
+      submitLabel: "Надіслати заявку",
+    });
+  };
 
   const handleAudit = () => {
     track(analyticsEvents.ctaClick, { source: "hero_audit" });
@@ -34,14 +44,9 @@ export function Hero() {
         <div className="absolute inset-0 bg-grid-faint [background-size:64px_64px] opacity-40 [mask-image:radial-gradient(70%_50%_at_50%_0%,black,transparent)]" />
       </div>
 
-      <div className="container-x relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+      <div className="container-x relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-end lg:gap-12">
         <div className="min-w-0 animate-fade-up">
-          <span className="eyebrow">
-            <BadgeCheck className="h-3.5 w-3.5" />
-            {hero.badge}
-          </span>
-
-          <h1 className="mt-4 text-[1.7rem] font-bold leading-[1.15] sm:mt-5 sm:text-5xl sm:leading-[1.08] lg:text-[3.4rem]">
+          <h1 className="text-[1.7rem] font-bold leading-[1.15] sm:text-5xl sm:leading-[1.08] lg:text-[3.4rem]">
             {hero.title}
           </h1>
 
@@ -55,13 +60,7 @@ export function Hero() {
           </p>
 
           <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row">
-            <Button
-              size="lg"
-              onClick={() => {
-                track(analyticsEvents.ctaClick, { source: "hero_consult" });
-                document.getElementById("lead")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
+            <Button size="lg" onClick={handleConsult}>
               {hero.primaryCta}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -70,46 +69,21 @@ export function Hero() {
             </Button>
           </div>
 
-          {/* партнери — слайдер логотипів */}
-          <div className="mt-7 sm:mt-10">
-            <p className="text-xs uppercase tracking-widest text-white/35">
-              Працюємо з інструментами
-            </p>
-            <PartnersMarquee className="mt-3 sm:mt-4" />
-          </div>
         </div>
 
         {/* форма + анімований візуал */}
         <div id="lead" className="relative min-w-0 animate-fade-up [animation-delay:120ms]">
-          {/* обертовий ореол за формою */}
-          <div className="pointer-events-none absolute -inset-8 hidden lg:block" aria-hidden="true">
-            <div className="anim-spin-slow absolute inset-0 rounded-[2.5rem] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(246,247,64,0.22)_70deg,transparent_150deg,transparent_360deg)] blur-2xl" />
+          {/* партнери — слайдер логотипів над формою */}
+          <div className="relative z-10 mb-6">
+            <p className="text-xs uppercase tracking-widest text-white/35">
+              Наші партнери
+            </p>
+            <PartnersMarquee className="mt-3" />
           </div>
 
-          {/* плаваючі напівпрозорі KPI-бейджі — над формою, рознесені, рух вразнобій */}
-          <div className="animate-float pointer-events-none absolute -top-16 right-2 z-20 hidden items-center gap-2.5 rounded-xl border border-white/10 bg-bg-card/55 px-3.5 py-2.5 shadow-card backdrop-blur-md lg:flex [animation-delay:0s] [animation-duration:6.5s]">
-            <span className="text-xl font-bold text-brand">3014%</span>
-            <span className="text-[11px] leading-tight text-white/55">
-              ROAS
-              <br />
-              eCommerce
-            </span>
-          </div>
-          <div className="animate-float pointer-events-none absolute -top-32 right-28 z-20 hidden items-center gap-2.5 rounded-xl border border-white/10 bg-bg-card/55 px-3.5 py-2.5 shadow-card backdrop-blur-md lg:flex [animation-delay:1s] [animation-duration:8s]">
-            <span className="text-xl font-bold text-brand">5,20$</span>
-            <span className="text-[11px] leading-tight text-white/55">
-              вартість
-              <br />
-              ліда
-            </span>
-          </div>
-          <div className="animate-float pointer-events-none absolute -top-24 right-56 z-20 hidden items-center gap-2.5 rounded-xl border border-white/10 bg-bg-card/55 px-3.5 py-2.5 shadow-card backdrop-blur-md lg:flex [animation-delay:1.9s] [animation-duration:5.5s]">
-            <span className="text-xl font-bold text-brand">125 грн</span>
-            <span className="text-[11px] leading-tight text-white/55">
-              за
-              <br />
-              реєстрацію
-            </span>
+          {/* обертовий ореол за формою */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 top-24 hidden lg:block" aria-hidden="true">
+            <div className="anim-spin-slow absolute inset-0 rounded-[2.5rem] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(246,247,64,0.22)_70deg,transparent_150deg,transparent_360deg)] blur-2xl" />
           </div>
 
           <div className="relative z-10 rounded-2xl border border-bg-line bg-bg-card/90 p-6 shadow-card backdrop-blur sm:p-7">
@@ -122,17 +96,6 @@ export function Hero() {
                 inlineSuccess
               />
             </div>
-            <p className="mt-4 text-center text-xs text-white/40">
-              Або напишіть нам у{" "}
-              <a
-                href={site.telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-brand hover:underline"
-              >
-                Telegram
-              </a>
-            </p>
           </div>
         </div>
       </div>

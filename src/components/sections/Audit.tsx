@@ -21,12 +21,21 @@ export function Audit() {
     });
   };
 
+  const openCalc = () => {
+    track(analyticsEvents.ctaClick, { source: "audit_calc" });
+    openLead({
+      title: audit.ctaSecondary,
+      description: "Прогноз бюджету, вартості заявок і GEO під цілі бізнесу.",
+      source: "audit_calc",
+      submitLabel: audit.ctaSecondary,
+    });
+  };
+
   return (
     <section id="audit" className="section bg-bg-soft/40">
       <div className="container-x">
         <div className="reveal max-w-2xl">
-          <span className="eyebrow">{audit.eyebrow}</span>
-          <h2 className="h2 mt-4">{audit.title}</h2>
+          <h2 className="h2">{audit.title}</h2>
         </div>
 
         <div className="reveal-stagger mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
@@ -60,9 +69,12 @@ export function Audit() {
           })}
         </div>
 
-        <div className="mt-10 flex justify-center">
+        <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
           <Button size="lg" onClick={openAudit}>
             {audit.cta}
+          </Button>
+          <Button size="lg" variant="secondary" onClick={openCalc}>
+            {audit.ctaSecondary}
           </Button>
         </div>
       </div>
