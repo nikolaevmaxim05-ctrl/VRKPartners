@@ -192,30 +192,20 @@
   transition-delay: 480ms;
 }
 
-/* Стилізований скролбар сторінки під темну тему (тонкий, акуратний).
-   Firefox */
+/* Ховаємо скролбар сторінки (прокрутка лишається — колесо, тачпад, клавіші,
+   свайп). Firefox + WebKit/Chromium. */
 html {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* старі Edge/IE */
 }
-/* WebKit / Chromium */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #0b0b0e;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
-  border: 2px solid #0b0b0e;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(246, 247, 64, 0.5);
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome/Safari */
 }
 
-/* Горизонтальні слайдери без видимого скролбару (перекриває стиль вище) */
+/* Горизонтальні слайдери без видимого скролбару */
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
