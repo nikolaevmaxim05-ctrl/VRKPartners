@@ -339,7 +339,8 @@ export const trust = {
       cases: [
         {
           id: "parktrans",
-          client: "ParkTrans",
+          client: "parktrans.com.ua",
+          href: "https://parktrans.com.ua/",
           title: "Логістична компанія",
           task: "Дати максимум якісних лідів із мінімумом малих перевезень і коротких відстаней.",
           image: "/cases/parktrans.png",

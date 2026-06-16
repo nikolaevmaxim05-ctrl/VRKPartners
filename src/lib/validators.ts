@@ -46,6 +46,8 @@ export const leadSchema = z.object({
   service: z.string().max(60).optional(),
   goal: z.string().max(60).optional(),
   company: honeypot, // honeypot
+  // Токен Cloudflare Turnstile (перевіряється на сервері, якщо налаштовано)
+  turnstileToken: z.string().max(4096).optional().or(z.literal("")),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;
@@ -61,4 +63,5 @@ export const leadDefaults: LeadInput = {
   service: "",
   goal: "",
   company: "",
+  turnstileToken: "",
 };
