@@ -61,7 +61,7 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -78,10 +78,10 @@ export function Dialog({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "relative z-10 w-full max-w-md rounded-t-2xl border border-bg-line bg-bg-card p-6 shadow-card outline-none transition-all duration-200 ease-out sm:rounded-2xl",
+          "relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-bg-line bg-bg-card p-6 shadow-card outline-none transition-all duration-200 ease-out",
           visible
             ? "translate-y-0 scale-100 opacity-100"
-            : "translate-y-6 scale-95 opacity-0 sm:translate-y-2",
+            : "translate-y-4 scale-95 opacity-0",
           className
         )}
       >
