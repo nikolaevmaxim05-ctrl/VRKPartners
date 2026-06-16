@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { BadgeCheck, Check, Quote, ChevronRight } from "lucide-react";
+import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track, analyticsEvents } from "@/lib/analytics";
@@ -22,6 +22,7 @@ export function Trust() {
   const cur = current as unknown as {
     id: string;
     client: string;
+    href?: string;
     title: string;
     task?: string;
     image?: string;
@@ -95,7 +96,7 @@ export function Trust() {
             {/* ніші */}
             <div className="mt-8">
               <p className="text-xs uppercase tracking-widest text-white/35">Ніші</p>
-              <ul className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible lg:pb-0">
+              <ul className="mt-3 flex flex-wrap gap-2">
                 {trust.niches.map((n) => (
                   <li
                     key={n}
@@ -128,7 +129,7 @@ export function Trust() {
               <div
                 role="tablist"
                 aria-label="Ніші кейсів"
-                className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-wrap lg:overflow-x-visible lg:px-0 lg:pb-0"
+                className="flex flex-wrap gap-2"
               >
                 {trust.caseGroups.map((g, i) => (
                   <button
@@ -167,7 +168,7 @@ export function Trust() {
               <div
                 role="tablist"
                 aria-label="Кейси ніші"
-                className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-wrap lg:overflow-x-visible lg:px-0 lg:pb-0"
+                className="flex flex-wrap gap-2"
               >
                 {group.cases.map((c, i) => (
                   <button
@@ -200,9 +201,26 @@ export function Trust() {
               role="tabpanel"
               className="mt-6 animate-fade-up border-t border-bg-line pt-6"
             >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h4 className="text-xl font-bold text-white">{cur.client}</h4>
-                <span className="text-sm text-white/45">{cur.title}</span>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                {cur.href ? (
+                  <a
+                    href={cur.href}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    onClick={() =>
+                      track("case_site_click", { client: cur.client, href: cur.href })
+                    }
+                    className="btn-focus group inline-flex items-center gap-1.5 rounded text-xl font-bold text-sky-400 underline decoration-sky-400/40 decoration-2 underline-offset-4 transition-colors hover:text-sky-300 hover:decoration-sky-300"
+                  >
+                    {cur.client}
+                    <ExternalLink className="h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100" />
+                  </a>
+                ) : (
+                  <h4 className="text-xl font-bold text-white">{cur.client}</h4>
+                )}
+                <span className="rounded-md bg-brand/10 px-2 py-0.5 text-sm font-semibold text-brand ring-1 ring-brand/25">
+                  {cur.title}
+                </span>
               </div>
               {cur.task && (
                 <p className="mt-2 text-sm leading-relaxed text-white/65">

@@ -1,14 +1,21 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
 /**
  * Плавна поява елементів при скролі.
  * Спостерігає за елементами з класами .reveal / .reveal-stagger і додає
  * .is-visible, коли вони потрапляють у в'юпорт. Анімація вмикається лише за
  * наявності JS (клас .js-reveal на <html>), тож без JS контент видимий одразу.
+ *
+ * Пересканування на зміну маршруту: компонент живе в layout і не демонтується
+ * при клієнтській навігації, тож без залежності від pathname нові елементи
+ * сторінки лишались би прихованими (порожня сторінка після переходу).
  */
 export function RevealObserver() {
+  const pathname = usePathname();
+
   React.useEffect(() => {
     const root = document.documentElement;
     root.classList.add("js-reveal");
@@ -49,7 +56,7 @@ export function RevealObserver() {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [pathname]);
 
   return null;
 }

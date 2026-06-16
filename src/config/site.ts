@@ -259,6 +259,7 @@ export const trust = {
         {
           id: "global-electro",
           client: "global-electro.com.ua",
+          href: "https://global-electro.com.ua/",
           title: "Інтернет-магазин товарів для освітлення",
           metrics: [
             { value: "4 654%", label: "ROAS" },
@@ -279,6 +280,7 @@ export const trust = {
         {
           id: "turbokitchen",
           client: "TurboKitchen",
+          href: "https://pull.sokany.kiev.ua/",
           title: "Товарні односторінкові лендинги",
           task: "Продавати товари через односторінкові лендинги без товарної реклами: 50–70 лідів на день, ROAS 250–300%.",
           image: "/cases/turbokitchen.png",
@@ -299,6 +301,7 @@ export const trust = {
         {
           id: "healthtree",
           client: "healthtree.ca",
+          href: "https://healthtree.ca/",
           title: "eCommerce · Канада",
           metrics: [
             { value: "400%", label: "ROAS (останній місяць)" },
@@ -320,6 +323,7 @@ export const trust = {
         {
           id: "prof1group",
           client: "prof1group.ua",
+          href: "https://prof1group.ua/",
           title: "Інтернет-магазин військового одягу",
           metrics: [
             { value: "3 014%", label: "ROAS" },
@@ -368,6 +372,7 @@ export const trust = {
         {
           id: "ub-tech",
           client: "ub-tech.com.ua",
+          href: "https://ub-tech.com.ua/",
           title: "Розробка сайтів",
           task: "Ціль: 5 і більше клієнтів на місяць.",
           metrics: [
@@ -379,7 +384,8 @@ export const trust = {
         },
         {
           id: "czu",
-          client: "czu",
+          client: "czu.com.ua",
+          href: "https://czu.com.ua/",
           title: "Товари для військових · оптові запити",
           task: "Отримувати максимум оптових запитів (чек від 100 000 грн), ціна клієнта 1–3 % від реалізованої угоди.",
           image: "/cases/czu.png",
@@ -416,6 +422,7 @@ export const trust = {
         {
           id: "helyos",
           client: "helyos.com.ua",
+          href: "https://helyos.com.ua/",
           title: "Медична клініка «Геліос»",
           task: "За 2,5 місяці збільшили кількість звернень із реклами у 8 разів.",
           image: "/cases/helyos.png",
@@ -428,6 +435,7 @@ export const trust = {
         {
           id: "medicasano",
           client: "medicasano.com.ua",
+          href: "https://medicasano.com.ua/",
           title: "Медична клініка",
           metrics: [
             { value: "172", label: "ліда" },
@@ -438,6 +446,7 @@ export const trust = {
         {
           id: "vidnova",
           client: "vidnova.dental",
+          href: "https://vidnova.dental/ua",
           title: "Стоматологія у Львові",
           metrics: [
             { value: "177", label: "лідів" },
@@ -447,7 +456,8 @@ export const trust = {
         },
         {
           id: "bloomnails",
-          client: "Bloomnails",
+          client: "bloomnails.com.ua",
+          href: "https://bloomnails.com.ua/ua",
           title: "Салон краси",
           metrics: [
             { value: "5 330", label: "лідів" },
@@ -458,6 +468,7 @@ export const trust = {
         {
           id: "europeservice",
           client: "europeservice.org",
+          href: "https://europeservice.org/",
           title: "Робота для українців у Європі",
           task: "Масштабувати витрати ефективніше та втримати ціну за лід у межах 40–50 грн.",
           image: "/cases/europeservice.png",
@@ -545,6 +556,7 @@ export const trust = {
         {
           id: "jayjay",
           client: "jayjay.co",
+          href: "https://jayjay.co/",
           title: "Онлайн-курси IT в Індонезії",
           task: "Курси IT: QA, SMM, UI/UX, Web Dev — лише онлайн, без вебінарів.",
           image: "/cases/jayjay.png",
@@ -563,6 +575,7 @@ export const trust = {
         {
           id: "digigreet",
           client: "digigreet.com",
+          href: "https://www.digigreet.com/",
           title: "SaaS · United Kingdom",
           task: "Системи керування відвідувачами для бізнесу.",
           metrics: [
@@ -587,25 +600,6 @@ export const trust = {
   ],
 } as const;
 
-/* ── Блок переваг: УТП з кейсів (авто-слайдер) ──────────────────────── */
-export const usps = {
-  eyebrow: "Чому ми",
-  title: "Підходи, які дають результат у різних нішах",
-  items: [
-    { niche: "eCommerce", text: "ROAS 292% на товарних односторінкових лендингах" },
-    { niche: "eCommerce", text: "Структура акаунту 1 кампанія = 1 товар = 1 лендинг" },
-    { niche: "B2B / Опт", text: "Оптові запити з чеком від 100 000 грн" },
-    { niche: "Логістика", text: "14 000+ звернень за вартістю ~199 грн" },
-    { niche: "Логістика", text: "Окремі кампанії на вихідні, коли аукціон конкурентів порожній" },
-    { niche: "EdTech", text: "1 887 грн за пробний урок із мінімумом спаму" },
-    { niche: "EdTech", text: "ROAS 300%+ на платний курс трейдингу" },
-    { niche: "SaaS", text: "Вартість підписки знижено до 14,69 €" },
-    { niche: "Працевлаштування", text: "Ліди по 32,52 грн з подальшим масштабуванням" },
-    { niche: "Усі ніші", text: "Офлайн-конверсії з CRM: навчання лише на якісних лідах" },
-    { niche: "Усі ніші", text: "Прозорий ROI через UTM і наскрізну аналітику" },
-  ],
-} as const;
-
 /* ── Блок 5. Як проходить робота + бонус Google ─────────────────────── */
 export const workflow = {
   eyebrow: "Як проходить робота",
@@ -625,9 +619,9 @@ export const workflow = {
     title: "Отримання бонусу від Google Ads для наших клієнтів",
     desc: "Як офіційний Google Partner підключаємо нові акаунти через наш MCC і допомагаємо отримати бонусні кошти на рекламу від Google.",
     terms: [
-      { label: "Розмір бонусу", value: "До 6 000 $ на рекламу" },
+      { label: "Розмір бонусу", value: "До 6 000 бонусних $ на рекламу", highlight: "6 000 бонусних $" },
       { label: "Кому", value: "Новим акаунтам через наш Google Partner MCC" },
-      { label: "Активація", value: "Кошти зараховуються після перших витрат" },
+      { label: "Активація", value: "Кошти зараховуються майже одразу після виконання умов" },
     ],
     cta: "Отримати бонус",
   },

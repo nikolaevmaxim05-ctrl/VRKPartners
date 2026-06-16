@@ -13,6 +13,8 @@ interface DialogProps {
   className?: string;
 }
 
+const EXIT_MS = 220;
+
 export function Dialog({
   open,
   onClose,
@@ -22,25 +24,40 @@ export function Dialog({
   className,
 }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null);
+  // mounted — чи рендеримо в DOM; visible — стан для CSS-переходу (плавна поява/зникнення)
+  const [mounted, setMounted] = React.useState(open);
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setMounted(true);
+      // увімкнути видимий стан на наступному кадрі, щоб запустився transition
+      const raf = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    // закриття: програти анімацію виходу, потім демонтувати
+    setVisible(false);
+    const t = setTimeout(() => setMounted(false), EXIT_MS);
+    return () => clearTimeout(t);
+  }, [open]);
 
   // Escape + блокування скролу body
   React.useEffect(() => {
-    if (!open) return;
+    if (!mounted) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    // фокус на панель
     panelRef.current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [mounted, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
     <div
@@ -50,7 +67,10 @@ export function Dialog({
       aria-label={title}
     >
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-up"
+        className={cn(
+          "absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-200",
+          visible ? "opacity-100" : "opacity-0"
+        )}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -58,7 +78,10 @@ export function Dialog({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "relative z-10 w-full max-w-md animate-fade-up rounded-t-2xl border border-bg-line bg-bg-card p-6 shadow-card outline-none sm:rounded-2xl",
+          "relative z-10 w-full max-w-md rounded-t-2xl border border-bg-line bg-bg-card p-6 shadow-card outline-none transition-all duration-200 ease-out sm:rounded-2xl",
+          visible
+            ? "translate-y-0 scale-100 opacity-100"
+            : "translate-y-6 scale-95 opacity-0 sm:translate-y-2",
           className
         )}
       >

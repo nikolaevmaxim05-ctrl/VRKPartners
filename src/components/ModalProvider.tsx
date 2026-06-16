@@ -28,9 +28,12 @@ export function useLeadModal() {
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = React.useState<LeadModalConfig | null>(null);
+  // Останній конфіг лишається під час анімації закриття, щоб контент не зникав різко.
+  const [shown, setShown] = React.useState<LeadModalConfig | null>(null);
 
   const openLead = React.useCallback((c: LeadModalConfig) => {
     setConfig(c);
+    setShown(c);
     track(analyticsEvents.formOpen, { source: c.source });
   }, []);
 
@@ -42,14 +45,15 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       <Dialog
         open={config !== null}
         onClose={closeLead}
-        title={config?.title}
-        description={config?.description}
+        title={shown?.title}
+        description={shown?.description}
       >
-        {config && (
+        {shown && (
           <LeadForm
-            source={config.source}
-            fields={config.fields}
-            submitLabel={config.submitLabel}
+            source={shown.source}
+            fields={shown.fields}
+            submitLabel={shown.submitLabel}
+            onSuccess={closeLead}
           />
         )}
       </Dialog>

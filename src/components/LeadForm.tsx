@@ -11,6 +11,27 @@ import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/ui/Field";
 import { adFormats, budgetRanges, goals, audit } from "@/config/site";
 
+/** Маска телефону: +380 (XX) XXX-XX-XX. Лишає тільки цифри й форматує. */
+function formatUaPhone(input: string): string {
+  let d = input.replace(/\D/g, "");
+  if (d.startsWith("380")) d = d.slice(3);
+  else if (d.startsWith("80")) d = d.slice(2);
+  else if (d.startsWith("0")) d = d.slice(1);
+  d = d.slice(0, 9);
+  if (d.length === 0) return "";
+  let out = "+380 (" + d.slice(0, 2);
+  if (d.length >= 2) out += ")";
+  if (d.length > 2) out += " " + d.slice(2, 5);
+  if (d.length > 5) out += "-" + d.slice(5, 7);
+  if (d.length > 7) out += "-" + d.slice(7, 9);
+  return out;
+}
+
+/** Маска імені: лише літери, пробіл, дефіс і апостроф (без цифр і символів). */
+function cleanName(input: string): string {
+  return input.replace(/[^A-Za-zА-Яа-яЁёЇїІіЄєҐґ'’\s-]/g, "");
+}
+
 /** Які додаткові поля показати в конкретній формі. */
 export interface LeadFormFields {
   website?: boolean;
@@ -27,6 +48,8 @@ interface LeadFormProps {
   submitLabel?: string;
   /** Якщо true — показати інлайн-успіх замість переходу на /thanks. */
   inlineSuccess?: boolean;
+  /** Викликається після успішної відправки (напр. щоб закрити модалку). */
+  onSuccess?: () => void;
 }
 
 export function LeadForm({
@@ -34,6 +57,7 @@ export function LeadForm({
   fields = {},
   submitLabel = "Надіслати заявку",
   inlineSuccess = false,
+  onSuccess,
 }: LeadFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = React.useState<string | null>(null);
@@ -47,6 +71,9 @@ export function LeadForm({
     resolver: zodResolver(leadSchema),
     defaultValues: { ...leadDefaults, source },
   });
+
+  const nameReg = register("name");
+  const phoneReg = register("phone");
 
   const onSubmit = async (data: LeadInput) => {
     setServerError(null);
@@ -62,6 +89,7 @@ export function LeadForm({
       if (inlineSuccess) {
         setDone(true);
       } else {
+        onSuccess?.(); // закрити модалку (з анімацією) перед переходом
         router.push("/thanks");
       }
     } catch {
@@ -90,7 +118,11 @@ export function LeadForm({
           id={`${source}-name`}
           autoComplete="name"
           placeholder="Ваше ім'я"
-          {...register("name")}
+          {...nameReg}
+          onChange={(e) => {
+            e.target.value = cleanName(e.target.value);
+            nameReg.onChange(e);
+          }}
         />
       </Field>
 
@@ -105,8 +137,13 @@ export function LeadForm({
           type="tel"
           inputMode="tel"
           autoComplete="tel"
-          placeholder="+38 (0__) ___-__-__"
-          {...register("phone")}
+          maxLength={19}
+          placeholder="+380 (__) ___-__-__"
+          {...phoneReg}
+          onChange={(e) => {
+            e.target.value = formatUaPhone(e.target.value);
+            phoneReg.onChange(e);
+          }}
         />
       </Field>
 

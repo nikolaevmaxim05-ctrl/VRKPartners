@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Button } from "@/components/ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track, analyticsEvents } from "@/lib/analytics";
@@ -63,12 +64,29 @@ export function Process() {
               <p className="mt-2 max-w-2xl text-sm text-white/65">{workflow.bonus.desc}</p>
 
               <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-                {workflow.bonus.terms.map((t) => (
-                  <div key={t.label} className="rounded-xl border border-bg-line bg-bg-soft p-3">
-                    <dt className="text-xs uppercase tracking-wide text-white/40">{t.label}</dt>
-                    <dd className="mt-1 text-sm font-medium text-white/85">{t.value}</dd>
-                  </div>
-                ))}
+                {workflow.bonus.terms.map((term) => {
+                  const t = term as { label: string; value: string; highlight?: string };
+                  const parts = t.highlight ? t.value.split(t.highlight) : [t.value];
+                  return (
+                    <div key={t.label} className="rounded-xl border border-bg-line bg-bg-soft p-3">
+                      <dt className="text-xs uppercase tracking-wide text-white/40">{t.label}</dt>
+                      <dd className="mt-1 text-sm font-medium text-white/85">
+                        {t.highlight ? (
+                          parts.map((part, i) => (
+                            <React.Fragment key={i}>
+                              {part}
+                              {i < parts.length - 1 && (
+                                <span className="font-bold text-brand">{t.highlight}</span>
+                              )}
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          t.value
+                        )}
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
             </div>
 

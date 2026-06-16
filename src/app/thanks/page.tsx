@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { site } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Дякуємо за заявку",
@@ -21,14 +20,9 @@ export default function ThanksPage() {
           <h1 className="mt-6 text-3xl font-bold sm:text-4xl">Дякуємо за заявку!</h1>
           <p className="mt-4 text-lg text-white/60">
             Команда VRK Partners отримала ваш запит і зв'яжеться з вами протягом
-            робочого дня. Поки що можете написати нам напряму в Telegram.
+            робочого дня.
           </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <a href={site.telegram} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="w-full sm:w-auto">
-                Написати в Telegram
-              </Button>
-            </a>
+          <div className="mt-8 flex justify-center">
             <Link href="/">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto">
                 На головну
