@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/landing-ui/Button";
 
 export const metadata: Metadata = {
   title: "Дякуємо за заявку",

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track, analyticsEvents } from "@/lib/analytics";
 import { trust } from "@/config/site";

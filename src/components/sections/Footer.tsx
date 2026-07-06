@@ -1,5 +1,5 @@
 import { Check, Send, Mail, Phone } from "lucide-react";
-import { Logo } from "@/components/ui/Logo";
+import { Logo } from "@/components/landing-ui/Logo";
 import { nav, site } from "@/config/site";
 
 const approach = [

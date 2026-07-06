@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog } from "@/components/landing-ui/Dialog";
 import { LeadForm, type LeadFormFields } from "@/components/LeadForm";
 import { track, analyticsEvents } from "@/lib/analytics";
 

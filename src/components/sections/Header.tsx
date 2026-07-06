@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { Menu, X, Phone } from "lucide-react";
-import { Logo } from "@/components/ui/Logo";
-import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/landing-ui/Logo";
+import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track, analyticsEvents } from "@/lib/analytics";
 import { nav, site } from "@/config/site";

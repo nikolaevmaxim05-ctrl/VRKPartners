@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { leadSchema, leadDefaults, type LeadInput } from "@/lib/validators";
 import { track, analyticsEvents } from "@/lib/analytics";
-import { Button } from "@/components/ui/Button";
-import { Field, Input, Textarea, Select } from "@/components/ui/Field";
+import { Button } from "@/components/landing-ui/Button";
+import { Field, Input, Textarea, Select } from "@/components/landing-ui/Field";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { adFormats, budgetRanges, goals, audit } from "@/config/site";
 
