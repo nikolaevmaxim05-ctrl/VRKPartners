@@ -3,7 +3,7 @@
 import { Check, FileSearch, Gauge, Route, Calculator, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { audit } from "@/config/site";
 
 const cardIcons: LucideIcon[] = [FileSearch, Gauge, Route, Calculator];
@@ -12,7 +12,7 @@ export function Audit() {
   const { openLead } = useLeadModal();
 
   const openAudit = () => {
-    track(analyticsEvents.ctaClick, { source: "audit_audit" });
+    track("audit_request_click", { source: "audit_audit" });
     openLead({
       title: audit.cta,
       description: "Знайдемо втрати бюджету та точки масштабування.",
@@ -22,7 +22,7 @@ export function Audit() {
   };
 
   const openCalc = () => {
-    track(analyticsEvents.ctaClick, { source: "audit_calc" });
+    track("audit_calc_click", { source: "audit_calc" });
     openLead({
       title: audit.ctaSecondary,
       description: "Прогноз бюджету, вартості заявок і GEO під цілі бізнесу.",

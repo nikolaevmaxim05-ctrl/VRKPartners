@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { services } from "@/config/site";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +133,7 @@ export function Services() {
   };
 
   const handleCta = () => {
-    track(analyticsEvents.ctaClick, { source: "services" });
+    track("services_cta_click", { source: "services" });
     openLead({
       title: services.popup.title,
       description: services.popup.note,

@@ -3,14 +3,14 @@
 import * as React from "react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { workflow } from "@/config/site";
 
 export function Process() {
   const { openLead } = useLeadModal();
 
   const handleBonus = () => {
-    track(analyticsEvents.ctaClick, { source: "google_bonus" });
+    track("google_bonus_cta_click", { source: "google_bonus" });
     openLead({
       title: workflow.bonus.cta,
       description: workflow.bonus.desc,

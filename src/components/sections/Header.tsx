@@ -5,7 +5,7 @@ import { Menu, X, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { nav, site } from "@/config/site";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +49,7 @@ export function Header() {
   }, []);
 
   const handleConsult = () => {
-    track(analyticsEvents.ctaClick, { source: "header" });
+    track("header_cta_click", { source: "header" });
     openLead({
       title: "Отримати консультацію",
       description: "Залиште контакти — зв'яжемося та підкажемо наступний крок.",
@@ -100,7 +100,7 @@ export function Header() {
         <div className="hidden items-center gap-4 md:flex">
           <a
             href={site.phoneHref}
-            onClick={() => track(analyticsEvents.ctaClick, { source: "header_phone" })}
+            onClick={() => track("header_phone_click", { source: "header_phone" })}
             className="btn-focus inline-flex items-center gap-2 rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 ring-1 ring-brand/30">
@@ -157,7 +157,7 @@ export function Header() {
             <a
               href={site.phoneHref}
               onClick={() => {
-                track(analyticsEvents.ctaClick, { source: "header_phone" });
+                track("header_phone_click", { source: "header_phone" });
                 setOpen(false);
               }}
               className="btn-focus mt-1 inline-flex items-center gap-2 rounded-lg px-2 py-2.5 text-base font-semibold text-white transition-all duration-300 hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"

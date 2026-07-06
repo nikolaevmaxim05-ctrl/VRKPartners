@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Dialog } from "@/components/landing-ui/Dialog";
 import { LeadForm, type LeadFormFields } from "@/components/LeadForm";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface LeadModalConfig {
   title: string;
@@ -34,7 +34,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
   const openLead = React.useCallback((c: LeadModalConfig) => {
     setConfig(c);
     setShown(c);
-    track(analyticsEvents.formOpen, { source: c.source });
+    track("form_open", { source: c.source });
   }, []);
 
   const closeLead = React.useCallback(() => setConfig(null), []);

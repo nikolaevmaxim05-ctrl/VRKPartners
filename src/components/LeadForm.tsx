@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { leadSchema, leadDefaults, type LeadInput } from "@/lib/validators";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
+import { getStoredUtm } from "@/lib/utm";
 import { Button } from "@/components/landing-ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/landing-ui/Field";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
@@ -85,15 +86,18 @@ export function LeadForm({
       setServerError("Підтвердьте, що ви не робот.");
       return;
     }
-    track(analyticsEvents.formSubmit, { source });
+    track("form_submit_attempt", { source });
+    // Атрибуція: UTM-мітки із sessionStorage + URL поточної сторінки
+    const utm = getStoredUtm();
+    const page = typeof window !== "undefined" ? window.location.href : undefined;
     try {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, turnstileToken }),
+        body: JSON.stringify({ ...data, turnstileToken, utm, page }),
       });
       if (!res.ok) throw new Error("bad_status");
-      track(analyticsEvents.formSuccess, { source });
+      track("form_submit_success", { source });
       if (inlineSuccess) {
         setDone(true);
       } else {
@@ -101,7 +105,7 @@ export function LeadForm({
         router.push("/thanks");
       }
     } catch {
-      track(analyticsEvents.formError, { source });
+      track("form_submit_error", { source });
       setServerError(
         "Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram."
       );

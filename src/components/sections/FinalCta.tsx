@@ -4,7 +4,7 @@ import * as React from "react";
 import { Plus, Minus, Send, Mail, Phone, Globe, ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { finalCta, faq, site } from "@/config/site";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +43,7 @@ export function FinalCta() {
   const { openLead } = useLeadModal();
 
   const openForm = () => {
-    track(analyticsEvents.ctaClick, { source: "final" });
+    track("final_cta_click", { source: "final" });
     openLead({
       title: finalCta.primaryCta,
       description: "Проаналізуємо вашу задачу та підкажемо, з чого почати.",
@@ -77,7 +77,7 @@ export function FinalCta() {
             href={site.telegram}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => track(analyticsEvents.ctaClick, { source: "contacts_telegram" })}
+            onClick={() => track("contacts_telegram_click", { source: "contacts_telegram" })}
             className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
           >
             <Send className="h-5 w-5 shrink-0 text-brand" />

@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Raleway } from "next/font/google";
 import "./globals.css";
-import { ModalProvider } from "@/components/ModalProvider";
-import { RevealObserver } from "@/components/RevealObserver";
-import { Header } from "@/components/sections/Header";
-import { Footer } from "@/components/sections/Footer";
 import { site, siteUrl } from "@/config/site";
 
 const raleway = Raleway({
@@ -55,24 +51,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: site.name,
-  url: siteUrl,
-  description: site.description,
-  email: site.email,
-  sameAs: [site.telegram],
-  areaServed: ["UA", "EU", "US"],
-  knowsAbout: [
-    "Google Ads",
-    "Performance Max",
-    "YouTube Ads",
-    "Demand Gen",
-    "PPC",
-  ],
-};
-
+// Кореневий layout — лише скелет (html/body/шрифт). Обгортка лендінгу
+// (Header/Footer/модалки/трекінг) — у (marketing)/layout.tsx; адмінка має
+// власну обгортку в admin/layout.tsx.
 export default function RootLayout({
   children,
 }: {
@@ -80,18 +61,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uk" className={raleway.variable}>
-      <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-        <ModalProvider>
-          <RevealObserver />
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </ModalProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

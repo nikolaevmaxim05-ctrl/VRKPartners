@@ -1,0 +1,9 @@
+{
+  "regions": ["fra1"],
+  "crons": [
+    {
+      "path": "/api/cron/keepalive",
+      "schedule": "0 9 */5 * *"
+    }
+  ]
+}

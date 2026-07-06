@@ -5,14 +5,14 @@ import { Button } from "@/components/landing-ui/Button";
 import { LeadForm } from "@/components/LeadForm";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { hero } from "@/config/site";
 
 export function Hero() {
   const { openLead } = useLeadModal();
 
   const handleConsult = () => {
-    track(analyticsEvents.ctaClick, { source: "hero_consult" });
+    track("hero_consult_cta_click", { source: "hero_consult" });
     openLead({
       title: hero.primaryCta,
       description: hero.formNote,
@@ -22,7 +22,7 @@ export function Hero() {
   };
 
   const handleAudit = () => {
-    track(analyticsEvents.ctaClick, { source: "hero_audit" });
+    track("hero_audit_cta_click", { source: "hero_audit" });
     openLead({
       title: "Замовити аудит Google Ads",
       description: "Знайдемо втрати бюджету та точки росту.",

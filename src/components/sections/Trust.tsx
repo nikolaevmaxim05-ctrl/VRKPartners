@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
-import { track, analyticsEvents } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { trust } from "@/config/site";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export function Trust() {
   const selectNiche = (i: number) => {
     setNicheIdx(i);
     setCaseIdx(0); // скидаємо вибір кейсу при зміні ніші
-    track("case_niche", { niche: trust.caseGroups[i]?.niche });
+    track("case_niche_click", { niche: trust.caseGroups[i]?.niche });
   };
 
   const selectCase = (i: number) => {
@@ -45,7 +45,7 @@ export function Trust() {
   };
 
   const handleConsult = () => {
-    track(analyticsEvents.ctaClick, { source: "trust" });
+    track("trust_cta_click", { source: "trust" });
     openLead({
       title: "Отримати консультацію",
       description: "Розкажемо, як отримати схожий результат у вашій ніші.",
