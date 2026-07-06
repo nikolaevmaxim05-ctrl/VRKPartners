@@ -22,18 +22,15 @@ export async function verifyTurnstileToken(
 ): Promise<TurnstileVerifyResult> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
 
-  // Если ключ не задан — в dev пропускаем, в prod блокируем
+  // Якщо ключ не задано — капча вимкнена свідомо (політика VRK, див. .env.example:
+  // «Якщо не задані — форми працюють без капчі»). Клієнтський віджет без site key
+  // теж не рендериться і токен не шле. Захист лишається: honeypot + rate limit.
+  // ВІДМІННІСТЬ ВІД ДОНОРА: усмішка в prod блокувала заявки без секрета.
   if (!secretKey) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "[turnstile] TURNSTILE_SECRET_KEY not set — skipping verification in development"
-      );
-      return { ok: true };
-    }
-    console.error(
-      "[turnstile] TURNSTILE_SECRET_KEY is not set in production — blocking request"
+    console.warn(
+      "[turnstile] TURNSTILE_SECRET_KEY not set — verification skipped (captcha disabled)"
     );
-    return { ok: false, errorCodes: ["missing-secret"] };
+    return { ok: true };
   }
 
   // Пустой токен — сразу блокируем
