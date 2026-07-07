@@ -14,7 +14,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     <div className="rounded-xl border border-bg-line bg-bg-card">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          // трекаємо лише розкриття (не згортання)
+          if (!open) track("faq_open", { question: q });
+          setOpen((v) => !v);
+        }}
         aria-expanded={open}
         className="btn-focus flex w-full items-center justify-between gap-4 rounded-xl px-5 py-4 text-left"
       >
@@ -88,6 +92,7 @@ export function FinalCta() {
           </a>
           <a
             href={`mailto:${site.email}`}
+            onClick={() => track("contacts_email_click", { source: "contacts_email" })}
             className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
           >
             <Mail className="h-5 w-5 shrink-0 text-brand" />
@@ -98,6 +103,7 @@ export function FinalCta() {
           </a>
           <a
             href={site.phoneHref}
+            onClick={() => track("contacts_phone_click", { source: "contacts_phone" })}
             className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
           >
             <Phone className="h-5 w-5 shrink-0 text-brand" />

@@ -67,9 +67,14 @@ export const ANALYTICS_REGISTRY: readonly AnalyticsRegistryEntry[] = [
   // ── Процес (бонус Google Ads) ─────────────────────────────────────────────
   { key: 'google_bonus_cta_click',  blockLabel: 'Процес',              interactionLabel: 'Клік по CTA бонуса Google Ads',           description: 'Користувач натиснув кнопку отримання бонуса Google Ads у блоці «Процес».',                                      defaultEventNames: ['cta_click'] },
 
+  // ── FAQ ───────────────────────────────────────────────────────────────────
+  { key: 'faq_open',                blockLabel: 'FAQ',                 interactionLabel: 'Відкриття питання FAQ',                   description: 'Користувач розгорнув відповідь на питання у блоці поширених запитань (FAQ).',                                   defaultEventNames: ['faq_open'] },
+
   // ── Фінальний CTA / Контакти ──────────────────────────────────────────────
   { key: 'final_cta_click',         blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по CTA у фінальному блоці',          description: 'Користувач натиснув кнопку заявки у фінальному блоці внизу сторінки.',                                          defaultEventNames: ['cta_click'] },
-  { key: 'contacts_telegram_click', blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по посиланню на Telegram',           description: 'Користувач натиснув посилання Telegram у блоці контактів фінального CTA.',                                      defaultEventNames: ['telegram_click'] },
+  { key: 'contacts_telegram_click', blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по посиланню на Telegram',           description: 'Користувач натиснув посилання Telegram у блоці контактів (фінальний CTA або футер).',                           defaultEventNames: ['telegram_click'] },
+  { key: 'contacts_phone_click',    blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по номеру телефону в контактах',     description: 'Користувач натиснув номер телефону у блоці контактів (фінальний CTA або футер).',                              defaultEventNames: ['phone_click'] },
+  { key: 'contacts_email_click',    blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по email в контактах',               description: 'Користувач натиснув email у блоці контактів (фінальний CTA або футер).',                                        defaultEventNames: ['email_click'] },
 
   // ── Форми ─────────────────────────────────────────────────────────────────
   // Одна форма (LeadForm) рендериться у кількох місцях — параметр source

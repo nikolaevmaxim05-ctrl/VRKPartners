@@ -1,5 +1,8 @@
+"use client";
+
 import { Check, Send, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
+import { track } from "@/lib/analytics";
 import { nav, site } from "@/config/site";
 
 const approach = [
@@ -64,6 +67,7 @@ export function Footer() {
                 href={site.telegram}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => track("contacts_telegram_click", { source: "footer_telegram" })}
                 className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/70 transition-colors hover:text-brand"
               >
                 <Send className="h-4 w-4 shrink-0 text-brand" />
@@ -71,6 +75,7 @@ export function Footer() {
               </a>
               <a
                 href={`mailto:${site.email}`}
+                onClick={() => track("contacts_email_click", { source: "footer_email" })}
                 className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/70 transition-colors hover:text-brand"
               >
                 <Mail className="h-4 w-4 shrink-0 text-brand" />
@@ -78,6 +83,7 @@ export function Footer() {
               </a>
               <a
                 href={site.phoneHref}
+                onClick={() => track("contacts_phone_click", { source: "footer_phone" })}
                 className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/70 transition-colors hover:text-brand"
               >
                 <Phone className="h-4 w-4 shrink-0 text-brand" />
