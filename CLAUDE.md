@@ -127,8 +127,12 @@ Google Ads клієнта, задається з `/admin/settings` (валіда
 
 ### Supabase
 Project: `vrk-partners`, ref `bgwxvxcwvbujvntzcvlr` (region eu-central-1,
-org evznahrqwasprzciupgj). Міграції — ТІЛЬКИ через MCP `apply_migration`,
-строго по порядку. ⚠️ НЕ чіпати `rkcnfwoakzldrpdiehel` (usmishka — донор).
+org evznahrqwasprzciupgj — «H0sly's Org»). URL: `https://bgwxvxcwvbujvntzcvlr.supabase.co`.
+Міграції 001–021 застосовано (створено 2026-07-06). Нові міграції — ТІЛЬКИ через
+MCP, строго по порядку. Конектор має бути залогінений у «H0sly's Org».
+⚠️ Тимчасовий дубль `lsbabnvtsfsbwszkuadw` (org ongmpzhqrzpdnelkeywn) створювався
+помилково під час перемикання акаунтів — видалити. ⚠️ НЕ чіпати
+`rkcnfwoakzldrpdiehel` (usmishka — донор).
 
 ### Vercel
 Проект `vrk-partners` → vrk-partners.vercel.app. Прод збирається з гілки
