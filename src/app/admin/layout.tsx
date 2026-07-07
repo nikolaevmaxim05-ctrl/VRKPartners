@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 // успадковує білий колір лендінгу на білому фоні.
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className="admin-scope min-h-svh bg-background text-foreground">
       {children}
     </div>
   )
