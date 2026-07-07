@@ -262,7 +262,7 @@ export function RolesManager({
                         )
                       }
                     />
-                    <span className="text-sm">{label}</span>
+                    <span className="text-sm text-foreground">{label}</span>
                     {description && <InfoHint text={description} label={label} />}
                   </div>
                 ))}
