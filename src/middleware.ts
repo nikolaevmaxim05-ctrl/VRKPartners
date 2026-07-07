@@ -96,8 +96,10 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     const isLoginPage = url.pathname === "/login";
+    // set-password доступний без сесії: токен приходить у hash (не на сервер)
+    const isPublicAdminPage = isLoginPage || url.pathname === "/set-password";
 
-    if (!user && !isLoginPage) {
+    if (!user && !isPublicAdminPage) {
       return applySecurityHeaders(
         NextResponse.redirect(new URL("/login", request.url))
       );
@@ -140,7 +142,8 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user && url.pathname !== "/admin/login") {
+    const publicAdminPaths = ["/admin/login", "/admin/set-password"];
+    if (!user && !publicAdminPaths.includes(url.pathname)) {
       return applySecurityHeaders(
         NextResponse.redirect(new URL("/admin/login", request.url))
       );

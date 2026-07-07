@@ -93,7 +93,14 @@ export async function POST(request: NextRequest) {
   }
 
   const service = createServiceClient()
-  const { data, error } = await service.auth.admin.inviteUserByEmail(email)
+  // Посилання із листа-запрошення має вести на сторінку встановлення пароля.
+  const origin =
+    request.headers.get('origin') ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    new URL(request.url).origin
+  const { data, error } = await service.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${origin}/admin/set-password`,
+  })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Якщо обрано роль — одразу призначаємо її новому користувачу.
