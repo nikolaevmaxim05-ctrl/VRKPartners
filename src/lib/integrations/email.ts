@@ -1,8 +1,14 @@
-﻿// Відправка email через Resend (GDPR-compliant)
-// Лист адміністратору з усіма даними заявки
-// SDK resend вже є в залежностях (package.json)
+﻿// Відправка email через Gmail SMTP (nodemailer).
+// Лист адміністратору з усіма даними заявки.
+//
+// Налаштування (з БД integrations, з фолбеком на env):
+//   smtp_user     — Gmail-адреса відправника (напр. team@gmail.com);
+//   smtp_password — App Password Google (НЕ звичайний пароль акаунта!);
+//   smtp_from     — відображуваний From (напр. "VRK Partners <team@gmail.com>"),
+//                   якщо не задано — використовуємо smtp_user.
+// NOTIFICATION_EMAIL — адресат (не секрет), тримаємо в env; фолбек — site.email.
 
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import type { LeadFormData } from "@/lib/validators";
 import { getServiceLabel } from "@/lib/services";
 import { site } from "@/config/site";
@@ -16,46 +22,46 @@ interface IntegrationResult {
   error?: string;
 }
 
+/** Створює SMTP-транспорт Gmail. */
+export function createGmailTransport(user: string, pass: string) {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // SSL
+    auth: { user, pass },
+  });
+}
+
 export async function sendLeadEmail(data: LeadData): Promise<IntegrationResult> {
-  // resend_api_key і resend_from — з БД (з фолбеком на env)
-  // NOTIFICATION_EMAIL — це адресат, не секрет, тримаємо в env
-  const [apiKey, fromEmail] = await Promise.all([
-    getIntegration("resend_api_key"),
-    getIntegration("resend_from"),
+  const [smtpUser, smtpPassword, smtpFrom] = await Promise.all([
+    getIntegration("smtp_user"),
+    getIntegration("smtp_password"),
+    getIntegration("smtp_from"),
   ]);
   const toEmail = process.env.NOTIFICATION_EMAIL ?? site.email;
 
-  if (!apiKey) {
-    console.warn("[email] resend_api_key is not set (DB + env) — skipping");
+  if (!smtpUser || !smtpPassword) {
+    console.warn("[email] smtp_user/smtp_password не задані (БД + env) — пропускаємо");
     return { ok: false, error: "not configured" };
   }
 
-  if (!fromEmail) {
-    console.warn("[email] resend_from is not set (DB + env) — skipping");
-    return { ok: false, error: "not configured" };
-  }
-
+  const fromEmail = smtpFrom || smtpUser;
   const serviceLabel = getServiceLabel(data.service);
-  const resend = new Resend(apiKey);
 
   try {
-    const { error } = await resend.emails.send({
+    const transport = createGmailTransport(smtpUser, smtpPassword);
+    await transport.sendMail({
       from: fromEmail,
       to: toEmail,
       subject: `Нова заявка з сайту — ${data.name}`,
       html: buildAdminEmailHtml(data, serviceLabel),
     });
 
-    if (error) {
-      console.error("[email] Resend error:", error.message);
-      return { ok: false, error: error.message };
-    }
-
-    console.log("[email] admin notification sent successfully");
+    console.log("[email] admin notification sent successfully (Gmail SMTP)");
     return { ok: true };
   } catch (err) {
     console.error("[email] send error:", err instanceof Error ? err.message : String(err));
-    return { ok: false, error: "send error" };
+    return { ok: false, error: err instanceof Error ? err.message : "send error" };
   }
 }
 

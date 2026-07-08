@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { decrypt } from '@/lib/encryption'
 import { hasAnyPermission } from '@/lib/permissions'
+import { createGmailTransport } from '@/lib/integrations/email'
 
 export const runtime = 'nodejs'
 
@@ -71,45 +72,44 @@ export async function POST(
     }
   }
 
-  // Тест Resend API Key — відправляємо реальний тестовий email
-  if (key === 'resend_api_key') {
+  // Тест Gmail SMTP — перевіряємо зʼєднання і відправляємо реальний тестовий email.
+  // value = App Password (ключ smtp_password). Gmail-адресу і From беремо з БД.
+  if (key === 'smtp_password') {
     try {
-      // Читаємо From-адресу з БД (або дефолт)
-      const { data: fromRow } = await service
-        .from('integrations')
-        .select('encrypted_value, iv, auth_tag')
-        .eq('key', 'resend_from')
-        .maybeSingle()
-
-      let fromEmail = 'onboarding@resend.dev'
-      if (fromRow) {
-        try { fromEmail = decrypt(fromRow.encrypted_value, fromRow.iv, fromRow.auth_tag) } catch {}
+      const readKey = async (k: string): Promise<string | null> => {
+        const { data: row } = await service
+          .from('integrations')
+          .select('encrypted_value, iv, auth_tag')
+          .eq('key', k)
+          .maybeSingle()
+        if (!row) return null
+        try { return decrypt(row.encrypted_value, row.iv, row.auth_tag) } catch { return null }
       }
 
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${value}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [(process.env.NOTIFICATION_EMAIL ?? user.email ?? '').trim() || 'noreply@resend.dev'],
-          subject: 'Тест Resend — VRK Partners',
-          html: '<p>Інтеграція Resend працює коректно ✓</p>',
-        }),
-        signal: AbortSignal.timeout(8000),
+      const smtpUser = await readKey('smtp_user')
+      if (!smtpUser) {
+        return NextResponse.json({ ok: false, message: 'Спочатку збережіть Gmail-адресу (поле «Gmail-адреса»).' })
+      }
+      const fromEmail = (await readKey('smtp_from')) || smtpUser
+      const toAddr = (process.env.NOTIFICATION_EMAIL ?? user.email ?? '').trim() || smtpUser
+
+      const transport = createGmailTransport(smtpUser, value)
+      await transport.verify()
+      await transport.sendMail({
+        from: fromEmail,
+        to: toAddr,
+        subject: 'Тест Gmail SMTP — VRK Partners',
+        html: '<p>Інтеграція Gmail SMTP працює коректно ✓</p>',
       })
 
-      const toAddr = (process.env.NOTIFICATION_EMAIL ?? user.email ?? '').trim() || 'noreply@resend.dev'
-      if (res.ok) {
-        return NextResponse.json({ ok: true, message: `Resend: тестовий лист відправлено на ${toAddr}` })
-      }
-      const errJson = await res.json().catch(() => ({}))
-      const errMsg = errJson?.message ?? res.status
-      return NextResponse.json({ ok: false, message: `Resend: помилка — ${errMsg}` })
-    } catch {
-      return NextResponse.json({ ok: false, message: 'Не вдалось зʼєднатися з Resend' })
+      return NextResponse.json({ ok: true, message: `Gmail SMTP: тестовий лист відправлено на ${toAddr}` })
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : 'помилка'
+      // Часта причина — використали звичайний пароль замість App Password
+      const hint = /invalid login|username and password|BadCredentials/i.test(raw)
+        ? ' (перевірте: потрібен App Password, а не звичайний пароль; і увімкнена 2-етапна автентифікація)'
+        : ''
+      return NextResponse.json({ ok: false, message: `Gmail SMTP: ${raw}${hint}` })
     }
   }
 

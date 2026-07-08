@@ -1,36 +1,30 @@
-// Unit-тесты для sendLeadEmail() через Resend SDK
-// Мокируем весь модуль resend — не делаем реальных HTTP-запросов
+// Unit-тести для sendLeadEmail() через Gmail SMTP (nodemailer).
+// Мокуємо nodemailer — жодних реальних SMTP-зʼєднань.
+// getIntegration читає smtp_* з БД, а без БД — фолбек на env (SMTP_USER/PASSWORD/FROM).
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Мок Resend SDK — мокируем до импорта тестируемого модуля
-// Resend — класс (конструктор), тому використовуємо function-форму
-const mockSend = vi.fn();
+const mockSendMail = vi.fn();
+const mockVerify = vi.fn().mockResolvedValue(true);
 
-vi.mock("resend", () => {
-  // Повертаємо клас (function-based constructor) — vi.fn().mockImplementation
-  // не підходить для `new`, тому використовуємо звичайну функцію-конструктор
-  function ResendMock() {
-    return {
-      emails: {
-        send: mockSend,
-      },
-    };
-  }
+// email.ts робить `import nodemailer from "nodemailer"` → мокуємо default-export
+vi.mock("nodemailer", () => ({
+  default: {
+    createTransport: vi.fn(() => ({
+      sendMail: mockSendMail,
+      verify: mockVerify,
+    })),
+  },
+}));
 
-  return {
-    Resend: ResendMock,
-  };
-});
-
-// Импортируем ПОСЛЕ мока
+// Імпортуємо ПІСЛЯ моку
 import { sendLeadEmail } from "@/lib/integrations/email";
 
 const VALID_LEAD = {
   name: "Петро Сидоренко",
   phone: "+380441234567",
   service: "Аудит Google Ads",
-  comment: "Болить зуб мудрості",
+  comment: "Потрібен аудит реклами",
 };
 
 const VALID_LEAD_NO_COMMENT = {
@@ -39,158 +33,117 @@ const VALID_LEAD_NO_COMMENT = {
   service: "children",
 };
 
-describe("sendLeadEmail", () => {
+describe("sendLeadEmail (Gmail SMTP)", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    mockSend.mockReset();
+    // Прибираємо Supabase-env, щоб getIntegration гарантовано пішов у env-фолбек
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    mockSendMail.mockReset();
+    mockSendMail.mockResolvedValue({ messageId: "test-id" });
   });
 
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it("повертає ok:false і console.warn якщо немає RESEND_API_KEY", async () => {
-    delete process.env.RESEND_API_KEY;
+  it("повертає ok:false і console.warn якщо немає smtp_user/smtp_password", async () => {
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASSWORD;
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
     const result = await sendLeadEmail(VALID_LEAD);
 
     expect(result.ok).toBe(false);
     expect(result.error).toBe("not configured");
     expect(warnSpy).toHaveBeenCalledOnce();
     expect(warnSpy.mock.calls[0][0]).toContain("[email]");
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(mockSendMail).not.toHaveBeenCalled();
 
     warnSpy.mockRestore();
   });
 
-  it("успішно відправляє email якщо Resend повертає { error: null }", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
-
-    mockSend.mockResolvedValue({ error: null, data: { id: "email-id-123" } });
+  it("успішно відправляє email при заданих SMTP-налаштуваннях", async () => {
+    process.env.SMTP_USER = "team@gmail.com";
+    process.env.SMTP_PASSWORD = "app-password";
+    process.env.SMTP_FROM = "VRK Partners <team@gmail.com>";
+    process.env.NOTIFICATION_EMAIL = "admin@vrkpartners.com";
 
     const result = await sendLeadEmail(VALID_LEAD);
 
     expect(result.ok).toBe(true);
-    expect(mockSend).toHaveBeenCalledOnce();
+    expect(mockSendMail).toHaveBeenCalledOnce();
   });
 
-  it("передає правильні поля в resend.emails.send", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
-
-    mockSend.mockResolvedValue({ error: null });
+  it("передає правильні поля у sendMail", async () => {
+    process.env.SMTP_USER = "team@gmail.com";
+    process.env.SMTP_PASSWORD = "app-password";
+    process.env.SMTP_FROM = "VRK Partners <team@gmail.com>";
+    process.env.NOTIFICATION_EMAIL = "admin@vrkpartners.com";
 
     await sendLeadEmail(VALID_LEAD);
 
-    const callArgs = mockSend.mock.calls[0][0];
-
-    expect(callArgs.from).toBe("noreply@usmishka.com.ua");
-    expect(callArgs.to).toBe("admin@usmishka.com.ua");
-    // Тема листа містить ім'я пацієнта
+    const callArgs = mockSendMail.mock.calls[0][0];
+    expect(callArgs.from).toBe("VRK Partners <team@gmail.com>");
+    expect(callArgs.to).toBe("admin@vrkpartners.com");
     expect(callArgs.subject).toContain("Петро Сидоренко");
-    // HTML — не порожній рядок
     expect(typeof callArgs.html).toBe("string");
     expect(callArgs.html.length).toBeGreaterThan(100);
   });
 
-  it("HTML листа містить ім'я, телефон та послугу", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
-
-    mockSend.mockResolvedValue({ error: null });
+  it("From за замовчуванням = smtp_user, якщо smtp_from не задано", async () => {
+    process.env.SMTP_USER = "team@gmail.com";
+    process.env.SMTP_PASSWORD = "app-password";
+    delete process.env.SMTP_FROM;
+    process.env.NOTIFICATION_EMAIL = "admin@vrkpartners.com";
 
     await sendLeadEmail(VALID_LEAD);
 
-    const html = mockSend.mock.calls[0][0].html as string;
+    expect(mockSendMail.mock.calls[0][0].from).toBe("team@gmail.com");
+  });
+
+  it("HTML листа містить ім'я, телефон, послугу та коментар", async () => {
+    process.env.SMTP_USER = "team@gmail.com";
+    process.env.SMTP_PASSWORD = "app-password";
+    process.env.NOTIFICATION_EMAIL = "admin@vrkpartners.com";
+
+    await sendLeadEmail(VALID_LEAD);
+
+    const html = mockSendMail.mock.calls[0][0].html as string;
     expect(html).toContain("Петро Сидоренко");
     expect(html).toContain("+380441234567");
     expect(html).toContain("Аудит Google Ads");
-    expect(html).toContain("Болить зуб мудрості");
+    expect(html).toContain("Потрібен аудит реклами");
+    expect(html).toContain('lang="uk"');
   });
 
-  it("HTML листа не містить коментар якщо він не передано", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
-
-    mockSend.mockResolvedValue({ error: null });
+  it("HTML не містить рядок коментаря, якщо його не передано", async () => {
+    process.env.SMTP_USER = "team@gmail.com";
+    process.env.SMTP_PASSWORD = "app-password";
+    process.env.NOTIFICATION_EMAIL = "admin@vrkpartners.com";
 
     await sendLeadEmail(VALID_LEAD_NO_COMMENT);
 
-    const html = mockSend.mock.calls[0][0].html as string;
+    const html = mockSendMail.mock.calls[0][0].html as string;
     expect(html).toContain("Наталія Мельник");
-    // Рядок коментаря НЕ має бути в HTML
     expect(html).not.toMatch(/Коментар.*<\/td>/);
   });
 
-  it("повертає ok:false якщо Resend повертає об'єкт error", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
+  it("повертає ok:false якщо sendMail кидає виняток", async () => {
+    process.env.SMTP_USER = "team@gmail.com";
+    process.env.SMTP_PASSWORD = "app-password";
+    process.env.NOTIFICATION_EMAIL = "admin@vrkpartners.com";
 
-    mockSend.mockResolvedValue({
-      error: { message: "Invalid API Key", name: "validation_error" },
-    });
-
+    mockSendMail.mockRejectedValue(new Error("Invalid login: 535"));
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await sendLeadEmail(VALID_LEAD);
 
     expect(result.ok).toBe(false);
-    expect(result.error).toBe("Invalid API Key");
+    expect(result.error).toContain("Invalid login");
 
     errorSpy.mockRestore();
-  });
-
-  it("повертає ok:false якщо resend.emails.send кидає виняток", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
-
-    mockSend.mockRejectedValue(new Error("Resend internal error"));
-
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const result = await sendLeadEmail(VALID_LEAD);
-
-    expect(result.ok).toBe(false);
-    expect(result.error).toBe("send error");
-
-    errorSpy.mockRestore();
-  });
-
-  it("використовує NOTIFICATION_EMAIL або siteConfig.contacts.email як отримувача", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    // Явно вказуємо admin email
-    process.env.NOTIFICATION_EMAIL = "custom-admin@hospital.ua";
-
-    mockSend.mockResolvedValue({ error: null });
-
-    await sendLeadEmail(VALID_LEAD_NO_COMMENT);
-
-    const callArgs = mockSend.mock.calls[0][0];
-    expect(callArgs.to).toBe("custom-admin@hospital.ua");
-  });
-
-  it("HTML містить lang='uk' (лист на українській мові)", async () => {
-    process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM = "noreply@usmishka.com.ua";
-    process.env.NOTIFICATION_EMAIL = "admin@usmishka.com.ua";
-
-    mockSend.mockResolvedValue({ error: null });
-
-    await sendLeadEmail(VALID_LEAD);
-
-    const html = mockSend.mock.calls[0][0].html as string;
-    expect(html).toContain('lang="uk"');
   });
 });

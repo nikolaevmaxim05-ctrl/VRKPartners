@@ -9,7 +9,13 @@ export const runtime = 'nodejs'
 
 // Несекретні ключі — Spreadsheet ID не є секретом, віддаємо plaintext для prefill.
 // Усі інші (SA JSON, telegram/keycrm/resend/turnstile тощо) — masked-only.
-const PLAINTEXT_KEYS = new Set(['google_spreadsheet_id', 'google_adjustments_spreadsheet_id'])
+const PLAINTEXT_KEYS = new Set([
+  'google_spreadsheet_id',
+  'google_adjustments_spreadsheet_id',
+  // Gmail SMTP: адреса й From — не секрети, віддаємо для prefill (пароль лишається masked)
+  'smtp_user',
+  'smtp_from',
+])
 
 export async function GET(_request: NextRequest) {
   const supabase = await createClient()

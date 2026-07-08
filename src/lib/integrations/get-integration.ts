@@ -9,8 +9,10 @@ import { decrypt } from '@/lib/encryption'
 const ENV_FALLBACK_VARS: Record<string, string> = {
   telegram_bot_token: 'TELEGRAM_BOT_TOKEN',
   telegram_chat_id:   'TELEGRAM_CHAT_ID',
-  resend_api_key:     'RESEND_API_KEY',
-  resend_from:        'RESEND_FROM',
+  // Gmail SMTP (email-нотифікації)
+  smtp_user:          'SMTP_USER',
+  smtp_password:      'SMTP_PASSWORD',
+  smtp_from:          'SMTP_FROM',
   keycrm_api_key:     'KEYCRM_API_KEY',
   // Google Sheets — DB-first з env-фолбеком
   google_sheets_service_account_json:  'GOOGLE_SERVICE_ACCOUNT_JSON',

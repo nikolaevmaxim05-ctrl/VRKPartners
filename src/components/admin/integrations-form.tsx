@@ -34,11 +34,15 @@ const GROUPS = [
     ],
   },
   {
-    title: 'Resend (Email)',
-    description: 'Відправка email-нотифікацій адміністратору та клієнту',
+    title: 'Email (Gmail SMTP)',
+    description:
+      'Email-нотифікації про заявки через Gmail. Потрібен App Password Google ' +
+      '(Акаунт Google → Безпека → Двоетапна автентифікація → Паролі додатків), ' +
+      'а НЕ звичайний пароль.',
     keys: [
-      { key: 'resend_api_key', label: 'API Key',                    testable: true,  placeholder: 're_...' },
-      { key: 'resend_from',    label: 'From (відправник)',           testable: false, placeholder: 'Клініка <noreply@clinic.com.ua>' },
+      { key: 'smtp_user',     label: 'Gmail-адреса',        testable: false, placeholder: 'team@gmail.com' },
+      { key: 'smtp_password', label: 'App Password',        testable: true,  placeholder: 'xxxx xxxx xxxx xxxx' },
+      { key: 'smtp_from',     label: 'From (відправник)',   testable: false, placeholder: 'VRK Partners <team@gmail.com>' },
     ],
   },
   {
