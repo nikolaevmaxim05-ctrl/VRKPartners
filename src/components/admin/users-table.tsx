@@ -101,6 +101,17 @@ export function UsersTable({
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
       if (json.warning) toast(json.warning)
+      // Додаємо запрошеного користувача у список без перезавантаження сторінки.
+      if (json.user) {
+        const roleName =
+          adminRoles.find((r) => r.id === json.user.role_id)?.name ?? null
+        const newUser: AdminUser = { ...json.user, role_name: roleName }
+        setUsers((prev) =>
+          prev.some((u) => u.id === newUser.id)
+            ? prev.map((u) => (u.id === newUser.id ? newUser : u))
+            : [newUser, ...prev]
+        )
+      }
       setInviteSuccess(true)
       setInviteEmail('')
       setInviteRoleId('')

@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
 
   // Якщо обрано роль — одразу призначаємо її новому користувачу.
   const roleId = body.role_id?.trim()
+  let roleAssigned = false
   if (roleId && data?.user?.id) {
     const { error: roleErr } = await service
       .from('user_roles')
@@ -112,9 +113,30 @@ export async function POST(request: NextRequest) {
     if (roleErr) {
       console.error('[admin/users] assign_role_on_invite_failed', roleErr.message)
       // Запрошення вже відправлено — не валимо запит, лише попереджаємо.
-      return NextResponse.json({ ok: true, warning: 'Запрошення відправлено, але роль не призначилась' })
+    } else {
+      roleAssigned = true
     }
   }
 
-  return NextResponse.json({ ok: true })
+  // Повертаємо створеного користувача, щоб таблиця додала його без перезавантаження.
+  const invited = data?.user
+    ? {
+        id: data.user.id,
+        email: data.user.email ?? email,
+        created_at: data.user.created_at ?? new Date().toISOString(),
+        last_sign_in_at: null,
+        email_confirmed: Boolean(data.user.email_confirmed_at),
+        display_name: null,
+        role_id: roleAssigned ? roleId! : null,
+        is_active: true,
+      }
+    : null
+
+  return NextResponse.json({
+    ok: true,
+    user: invited,
+    ...(roleId && !roleAssigned
+      ? { warning: 'Запрошення відправлено, але роль не призначилась' }
+      : {}),
+  })
 }
