@@ -5,11 +5,12 @@ import { Button } from "@/components/landing-ui/Button";
 import { LeadForm } from "@/components/LeadForm";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { useLeadModal } from "@/components/ModalProvider";
+import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
-import { hero } from "@/config/site";
 
 export function Hero() {
   const { openLead } = useLeadModal();
+  const { hero } = useContent();
 
   const handleConsult = () => {
     track("hero_consult_cta_click", { source: "hero_consult" });

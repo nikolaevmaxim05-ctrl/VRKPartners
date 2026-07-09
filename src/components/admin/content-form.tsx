@@ -1,0 +1,194 @@
+'use client'
+
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Loader2, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+
+type SiteFields = {
+  phone: string; phoneHref: string; email: string
+  telegram: string; telegramHandle: string; geo: string
+}
+type HeroFields = {
+  title: string; subtitle: string; trust: string
+  primaryCta: string; secondaryCta: string; formTitle: string; formNote: string
+}
+type FinalCtaFields = { title: string; text: string; primaryCta: string }
+type FaqItem = { q: string; a: string }
+
+type Initial = {
+  site: SiteFields
+  hero: HeroFields
+  finalCta: FinalCtaFields
+  faq: FaqItem[]
+}
+
+function Field({
+  label, value, onChange, textarea, placeholder,
+}: {
+  label: string; value: string; onChange: (v: string) => void
+  textarea?: boolean; placeholder?: string
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm">{label}</Label>
+      {textarea ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={3}
+          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      ) : (
+        <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      )}
+    </div>
+  )
+}
+
+export function ContentForm({ initial }: { initial: Initial }) {
+  const [site, setSite] = useState<SiteFields>(initial.site)
+  const [hero, setHero] = useState<HeroFields>(initial.hero)
+  const [finalCta, setFinalCta] = useState<FinalCtaFields>(initial.finalCta)
+  const [faq, setFaq] = useState<FaqItem[]>(initial.faq)
+  const [saving, setSaving] = useState(false)
+
+  const setSiteField = (k: keyof SiteFields) => (v: string) => setSite((s) => ({ ...s, [k]: v }))
+  const setHeroField = (k: keyof HeroFields) => (v: string) => setHero((s) => ({ ...s, [k]: v }))
+  const setCtaField = (k: keyof FinalCtaFields) => (v: string) => setFinalCta((s) => ({ ...s, [k]: v }))
+
+  function updateFaq(i: number, key: keyof FaqItem, v: string) {
+    setFaq((prev) => prev.map((f, idx) => (idx === i ? { ...f, [key]: v } : f)))
+  }
+  function addFaq() { setFaq((prev) => [...prev, { q: '', a: '' }]) }
+  function removeFaq(i: number) { setFaq((prev) => prev.filter((_, idx) => idx !== i)) }
+  function moveFaq(i: number, dir: -1 | 1) {
+    setFaq((prev) => {
+      const j = i + dir
+      if (j < 0 || j >= prev.length) return prev
+      const next = [...prev]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const overrides = {
+        site, hero, finalCta,
+        faq: faq.filter((f) => f.q.trim().length > 0),
+      }
+      const res = await fetch('/api/admin/content', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overrides }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      toast.success('Збережено. Лендинг оновлено.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Помилка збереження')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Контакти */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Контакти</CardTitle>
+          <CardDescription>Використовуються в шапці, футері та блоці контактів.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label="Телефон (відображення)" value={site.phone} onChange={setSiteField('phone')} placeholder="+38 (097) 000-00-00" />
+          <Field label="Телефон (href, tel:)" value={site.phoneHref} onChange={setSiteField('phoneHref')} placeholder="tel:+380970000000" />
+          <Field label="Email" value={site.email} onChange={setSiteField('email')} placeholder="hello@vrkpartners.com" />
+          <Field label="Telegram (посилання)" value={site.telegram} onChange={setSiteField('telegram')} placeholder="https://t.me/vrkpartners" />
+          <Field label="Telegram (нік)" value={site.telegramHandle} onChange={setSiteField('telegramHandle')} placeholder="@vrkpartners" />
+          <Field label="Гео / формат роботи" value={site.geo} onChange={setSiteField('geo')} placeholder="Україна · Європа · США" />
+        </CardContent>
+      </Card>
+
+      {/* Перший екран */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Перший екран (Hero)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="Заголовок" value={hero.title} onChange={setHeroField('title')} textarea />
+          <Field label="Підзаголовок" value={hero.subtitle} onChange={setHeroField('subtitle')} textarea />
+          <Field label="Рядок довіри" value={hero.trust} onChange={setHeroField('trust')} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Кнопка 1 (консультація)" value={hero.primaryCta} onChange={setHeroField('primaryCta')} />
+            <Field label="Кнопка 2 (аудит)" value={hero.secondaryCta} onChange={setHeroField('secondaryCta')} />
+            <Field label="Заголовок форми" value={hero.formTitle} onChange={setHeroField('formTitle')} />
+            <Field label="Підпис під формою" value={hero.formNote} onChange={setHeroField('formNote')} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Фінальний CTA */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Фінальний блок (CTA)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="Заголовок" value={finalCta.title} onChange={setCtaField('title')} textarea />
+          <Field label="Текст" value={finalCta.text} onChange={setCtaField('text')} textarea />
+          <Field label="Кнопка" value={finalCta.primaryCta} onChange={setCtaField('primaryCta')} />
+        </CardContent>
+      </Card>
+
+      {/* FAQ */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">FAQ</CardTitle>
+          <CardDescription>Питання та відповіді у блоці поширених запитань.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {faq.length === 0 && (
+            <p className="text-sm text-muted-foreground">Ще немає питань. Додайте перше.</p>
+          )}
+          {faq.map((item, i) => (
+            <div key={i} className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Питання {i + 1}</span>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, -1)} disabled={i === 0} title="Вгору">
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, 1)} disabled={i === faq.length - 1} title="Вниз">
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeFaq(i)} title="Видалити">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <Field label="Питання" value={item.q} onChange={(v) => updateFaq(i, 'q', v)} />
+              <Field label="Відповідь" value={item.a} onChange={(v) => updateFaq(i, 'a', v)} textarea />
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={addFaq}>
+            <Plus className="h-4 w-4 mr-1" /> Додати питання
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Збереження */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+          Зберегти зміни
+        </Button>
+      </div>
+    </div>
+  )
+}

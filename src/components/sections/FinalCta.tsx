@@ -4,8 +4,8 @@ import * as React from "react";
 import { Plus, Minus, Send, Mail, Phone, Globe, ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
+import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
-import { finalCta, faq, site } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -45,6 +45,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export function FinalCta() {
   const { openLead } = useLeadModal();
+  const { finalCta, faq, site } = useContent();
 
   const openForm = () => {
     track("final_cta_click", { source: "final" });

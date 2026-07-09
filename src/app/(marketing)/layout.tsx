@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { ModalProvider } from "@/components/ModalProvider";
+import { ContentProvider } from "@/components/ContentProvider";
 import { RevealObserver } from "@/components/RevealObserver";
 import { UtmTracker } from "@/components/UtmTracker";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { site, siteUrl } from "@/config/site";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getLandingContentOverrides, mergeLandingContent } from "@/lib/content";
 import { TAG_ID_PATTERNS, type TrackingTagType } from "@/lib/tracking-tags";
 import {
   ANALYTICS_EVENTS_SETTING_KEY,
@@ -210,10 +212,12 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [tags, analyticsEvents] = await Promise.all([
+  const [tags, analyticsEvents, contentOverrides] = await Promise.all([
     getEnabledTrackingTags(),
     getAnalyticsEventsConfig(),
+    getLandingContentOverrides(),
   ]);
+  const content = mergeLandingContent(contentOverrides);
 
   // Фолбэк на NEXT_PUBLIC_GTM_ID — тільки якщо немає жодного включеного тегу в БД.
   const gtmIds =
@@ -283,12 +287,14 @@ export default async function MarketingLayout({
       {/* Збір UTM-міток у sessionStorage (атрибуція заявок) */}
       <UtmTracker />
 
-      <ModalProvider>
-        <RevealObserver />
-        <Header />
-        <main>{children}</main>
-        <Footer />
-      </ModalProvider>
+      <ContentProvider content={content}>
+        <ModalProvider>
+          <RevealObserver />
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </ModalProvider>
+      </ContentProvider>
     </>
   );
 }

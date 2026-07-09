@@ -2,8 +2,9 @@
 
 import { Check, Send, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
+import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
-import { nav, site } from "@/config/site";
+import { nav } from "@/config/site";
 
 const approach = [
   "Чесна комунікація",
@@ -14,6 +15,7 @@ const approach = [
 ];
 
 export function Footer() {
+  const { site } = useContent();
   const year = new Date().getFullYear();
   return (
     <footer className="border-t border-bg-line bg-bg-soft/50">

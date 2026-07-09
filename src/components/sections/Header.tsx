@@ -5,12 +5,14 @@ import { Menu, X, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
+import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
-import { nav, site } from "@/config/site";
+import { nav } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 export function Header() {
   const { openLead } = useLeadModal();
+  const { site } = useContent();
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [active, setActive] = React.useState("");
