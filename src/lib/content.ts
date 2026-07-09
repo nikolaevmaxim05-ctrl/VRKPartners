@@ -83,9 +83,7 @@ export function mergeLandingContent(
 }
 
 /** Лишає тільки непорожні рядкові значення (щоб порожнє поле не затирало дефолт). */
-function cleanStrings<T extends Record<string, unknown> | undefined>(
-  obj: T
-): Partial<Record<string, string>> {
+function cleanStrings(obj: Record<string, unknown> | undefined): Record<string, string> {
   const out: Record<string, string> = {}
   if (!obj) return out
   for (const [k, v] of Object.entries(obj)) {
