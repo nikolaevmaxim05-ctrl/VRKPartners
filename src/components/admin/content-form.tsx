@@ -5,8 +5,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Loader2, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
 import { ServicesEditor } from '@/components/admin/content-services-editor'
 import { CasesEditor } from '@/components/admin/content-cases-editor'
 import type { ServicesContent, TrustContent } from '@/lib/content'
@@ -60,7 +60,19 @@ export function ContentForm({ initial }: { initial: Initial }) {
   const [hero, setHero] = useState<HeroFields>(initial.hero)
   const [finalCta, setFinalCta] = useState<FinalCtaFields>(initial.finalCta)
   const [faq, setFaq] = useState<FaqItem[]>(initial.faq)
+  const [services, setServices] = useState<ServicesContent>(initial.services)
+  const [trust, setTrust] = useState<TrustContent>(initial.trust)
   const [saving, setSaving] = useState(false)
+
+  // Базовий знімок для відстеження змін. Кнопка збереження зʼявляється лише коли є зміни.
+  const [baseline, setBaseline] = useState(() =>
+    JSON.stringify({
+      site: initial.site, hero: initial.hero, finalCta: initial.finalCta,
+      faq: initial.faq, services: initial.services, trust: initial.trust,
+    })
+  )
+  const current = JSON.stringify({ site, hero, finalCta, faq, services, trust })
+  const dirty = current !== baseline
 
   const setSiteField = (k: keyof SiteFields) => (v: string) => setSite((s) => ({ ...s, [k]: v }))
   const setHeroField = (k: keyof HeroFields) => (v: string) => setHero((s) => ({ ...s, [k]: v }))
@@ -87,6 +99,13 @@ export function ContentForm({ initial }: { initial: Initial }) {
       const overrides = {
         site, hero, finalCta,
         faq: faq.filter((f) => f.q.trim().length > 0),
+        services: { ...services, items: services.items.filter((it) => it.name.trim().length > 0) },
+        trust: {
+          ...trust,
+          caseGroups: trust.caseGroups
+            .filter((g) => g.niche.trim().length > 0)
+            .map((g) => ({ ...g, cases: g.cases.filter((c) => c.client.trim().length > 0) })),
+        },
       }
       const res = await fetch('/api/admin/content', {
         method: 'PUT',
@@ -95,6 +114,7 @@ export function ContentForm({ initial }: { initial: Initial }) {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
+      setBaseline(current) // фіксуємо новий «збережений» стан
       toast.success('Збережено. Лендинг оновлено.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Помилка збереження')
@@ -104,29 +124,10 @@ export function ContentForm({ initial }: { initial: Initial }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Контакти */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Контакти</CardTitle>
-          <CardDescription>Використовуються в шапці, футері та блоці контактів.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Телефон (відображення)" value={site.phone} onChange={setSiteField('phone')} placeholder="+38 (097) 000-00-00" />
-          <Field label="Телефон (href, tel:)" value={site.phoneHref} onChange={setSiteField('phoneHref')} placeholder="tel:+380970000000" />
-          <Field label="Email" value={site.email} onChange={setSiteField('email')} placeholder="hello@vrkpartners.com" />
-          <Field label="Telegram (посилання)" value={site.telegram} onChange={setSiteField('telegram')} placeholder="https://t.me/vrkpartners" />
-          <Field label="Telegram (нік)" value={site.telegramHandle} onChange={setSiteField('telegramHandle')} placeholder="@vrkpartners" />
-          <Field label="Гео / формат роботи" value={site.geo} onChange={setSiteField('geo')} placeholder="Україна · Європа · США" />
-        </CardContent>
-      </Card>
-
-      {/* Перший екран */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Перший екран (Hero)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <>
+      <div className="space-y-4 pb-24">
+        {/* 1. Перший екран */}
+        <CollapsibleCard title="Перший екран (Hero)">
           <Field label="Заголовок" value={hero.title} onChange={setHeroField('title')} textarea />
           <Field label="Підзаголовок" value={hero.subtitle} onChange={setHeroField('subtitle')} textarea />
           <Field label="Рядок довіри" value={hero.trust} onChange={setHeroField('trust')} />
@@ -136,68 +137,72 @@ export function ContentForm({ initial }: { initial: Initial }) {
             <Field label="Заголовок форми" value={hero.formTitle} onChange={setHeroField('formTitle')} />
             <Field label="Підпис під формою" value={hero.formNote} onChange={setHeroField('formNote')} />
           </div>
-        </CardContent>
-      </Card>
+        </CollapsibleCard>
 
-      {/* Фінальний CTA */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Фінальний блок (CTA)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        {/* 2. Послуги */}
+        <ServicesEditor value={services} onChange={setServices} />
+
+        {/* 3. Кейси */}
+        <CasesEditor value={trust} onChange={setTrust} />
+
+        {/* 4. Фінальний блок */}
+        <CollapsibleCard title="Фінальний блок (CTA)">
           <Field label="Заголовок" value={finalCta.title} onChange={setCtaField('title')} textarea />
           <Field label="Текст" value={finalCta.text} onChange={setCtaField('text')} textarea />
           <Field label="Кнопка" value={finalCta.primaryCta} onChange={setCtaField('primaryCta')} />
-        </CardContent>
-      </Card>
+        </CollapsibleCard>
 
-      {/* FAQ */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">FAQ</CardTitle>
-          <CardDescription>Питання та відповіді у блоці поширених запитань.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        {/* 5. FAQ */}
+        <CollapsibleCard title="FAQ" description="Питання та відповіді у блоці поширених запитань.">
           {faq.length === 0 && (
             <p className="text-sm text-muted-foreground">Ще немає питань. Додайте перше.</p>
           )}
           {faq.map((item, i) => (
-            <div key={i} className="rounded-lg border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Питання {i + 1}</span>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, -1)} disabled={i === 0} title="Вгору">
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, 1)} disabled={i === faq.length - 1} title="Вниз">
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeFaq(i)} title="Видалити">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
+            <CollapsibleItem
+              key={i}
+              title={item.q.trim() || `Питання ${i + 1}`}
+              right={
+                <>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, -1)} disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, 1)} disabled={i === faq.length - 1}><ArrowDown className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeFaq(i)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </>
+              }
+            >
               <Field label="Питання" value={item.q} onChange={(v) => updateFaq(i, 'q', v)} />
               <Field label="Відповідь" value={item.a} onChange={(v) => updateFaq(i, 'a', v)} textarea />
-            </div>
+            </CollapsibleItem>
           ))}
           <Button variant="outline" size="sm" onClick={addFaq}>
             <Plus className="h-4 w-4 mr-1" /> Додати питання
           </Button>
-        </CardContent>
-      </Card>
+        </CollapsibleCard>
 
-      {/* Збереження текстів/контактів/FAQ */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-          Зберегти тексти, контакти і FAQ
-        </Button>
+        {/* 6. Контакти */}
+        <CollapsibleCard title="Контакти" description="Шапка, футер та блок контактів.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Телефон (відображення)" value={site.phone} onChange={setSiteField('phone')} placeholder="+38 (097) 000-00-00" />
+            <Field label="Телефон (href, tel:)" value={site.phoneHref} onChange={setSiteField('phoneHref')} placeholder="tel:+380970000000" />
+            <Field label="Email" value={site.email} onChange={setSiteField('email')} placeholder="hello@vrkpartners.com" />
+            <Field label="Telegram (посилання)" value={site.telegram} onChange={setSiteField('telegram')} placeholder="https://t.me/vrkpartners" />
+            <Field label="Telegram (нік)" value={site.telegramHandle} onChange={setSiteField('telegramHandle')} placeholder="@vrkpartners" />
+            <Field label="Гео / формат роботи" value={site.geo} onChange={setSiteField('geo')} placeholder="Україна · Європа · США" />
+          </div>
+        </CollapsibleCard>
       </div>
 
-      {/* Послуги та Кейси — окремі блоки з власним збереженням */}
-      <ServicesEditor initial={initial.services} />
-      <CasesEditor initial={initial.trust} />
-    </div>
+      {/* Плавуча кнопка збереження — зʼявляється лише за наявності змін */}
+      {dirty && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+          <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">
+            <span className="text-sm text-muted-foreground">Є незбережені зміни</span>
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Зберегти зміни
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
