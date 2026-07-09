@@ -1,5 +1,5 @@
 import { requireSectionAccess } from '@/lib/admin-guard'
-import { getLandingContentOverrides, mergeLandingContent } from '@/lib/content'
+import { getLandingContentOverrides, mergeLandingContent, getDefaultLandingContent } from '@/lib/content'
 import { ContentForm } from '@/components/admin/content-form'
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +10,7 @@ export default async function ContentPage() {
 
   const overrides = await getLandingContentOverrides()
   const content = mergeLandingContent(overrides)
+  const defaults = getDefaultLandingContent()
 
   const initial = {
     site: {
@@ -48,7 +49,11 @@ export default async function ContentPage() {
           Зміни застосовуються на сайті одразу, без деплою.
         </p>
       </div>
-      <ContentForm initial={initial} />
+      <ContentForm
+        initial={initial}
+        defaultServices={defaults.services}
+        defaultTrust={defaults.trust}
+      />
     </div>
   )
 }

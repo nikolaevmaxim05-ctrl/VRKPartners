@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
+import { ImageField } from '@/components/admin/content-image-field'
 import type { ServicesContent, ServiceItem } from '@/lib/content'
 
 function TextField({
@@ -29,13 +30,17 @@ function TextField({
 }
 
 export function ServicesEditor({
-  value, onChange,
+  value, onChange, defaultServices,
 }: {
   value: ServicesContent
   onChange: (v: ServicesContent) => void
+  defaultServices: ServicesContent
 }) {
   const setField = (k: 'eyebrow' | 'title' | 'text' | 'cta') => (v: string) =>
     onChange({ ...value, [k]: v })
+
+  // Дефолтні зображення за ключем послуги — для кнопки «До дефолту».
+  const defaultByKey = new Map((defaultServices.items ?? []).map((it) => [it.key, it]))
 
   const items = value.items ?? []
   function patchItem(i: number, patch: Partial<ServiceItem>) {
@@ -84,8 +89,8 @@ export function ServicesEditor({
             <TextField label="Назва" value={it.name} onChange={(v) => patchItem(i, { name: v })} />
             <TextField label="Опис" value={it.desc} onChange={(v) => patchItem(i, { desc: v })} textarea />
             <div className="grid gap-3 sm:grid-cols-2">
-              <TextField label="Зображення (мала)" value={it.mockup ?? ''} onChange={(v) => patchItem(i, { mockup: v })} placeholder="/mockups/search-ad.png" />
-              <TextField label="Зображення (велике)" value={it.mockupFull ?? ''} onChange={(v) => patchItem(i, { mockupFull: v })} placeholder="/mockups/search-full.png" />
+              <ImageField label="Зображення (мала)" value={it.mockup ?? ''} defaultValue={defaultByKey.get(it.key)?.mockup} onChange={(v) => patchItem(i, { mockup: v })} />
+              <ImageField label="Зображення (велике)" value={it.mockupFull ?? ''} defaultValue={defaultByKey.get(it.key)?.mockupFull} onChange={(v) => patchItem(i, { mockupFull: v })} />
               <TextField label="Alt зображення" value={it.mockupAlt ?? ''} onChange={(v) => patchItem(i, { mockupAlt: v })} />
               <label className="mt-6 flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={!!it.previewWide} onChange={(e) => patchItem(i, { previewWide: e.target.checked })} />

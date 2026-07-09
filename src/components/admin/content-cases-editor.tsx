@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
+import { ImageField } from '@/components/admin/content-image-field'
 import type { TrustContent, CaseGroup, CaseItem, CaseMetric } from '@/lib/content'
 
 function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
@@ -89,13 +90,20 @@ function TextFieldLike({ label, value, onChange, textarea, placeholder }: {
 }
 
 export function CasesEditor({
-  value, onChange,
+  value, onChange, defaultTrust,
 }: {
   value: TrustContent
   onChange: (v: TrustContent) => void
+  defaultTrust: TrustContent
 }) {
   const setField = (k: 'title' | 'caseHint' | 'ctaSecondary') => (v: string) =>
     onChange({ ...value, [k]: v })
+
+  // Дефолтне зображення кейса за id — для кнопки «До дефолту».
+  const defaultImgById = new Map<string, string | undefined>()
+  for (const g of defaultTrust.caseGroups ?? []) {
+    for (const c of g.cases ?? []) defaultImgById.set(c.id, c.image)
+  }
 
   const groups = value.caseGroups ?? []
   function patchGroup(gi: number, patch: Partial<CaseGroup>) {
@@ -157,7 +165,7 @@ export function CasesEditor({
                   <TextFieldLike label="Назва клієнта" value={c.client} onChange={(v) => patchCase(gi, ci, { client: v })} />
                   <TextFieldLike label="Посилання (href)" value={c.href ?? ''} onChange={(v) => patchCase(gi, ci, { href: v })} placeholder="https://client.com/" />
                   <TextFieldLike label="Підпис (ніша/опис)" value={c.title} onChange={(v) => patchCase(gi, ci, { title: v })} />
-                  <TextFieldLike label="Зображення" value={c.image ?? ''} onChange={(v) => patchCase(gi, ci, { image: v })} placeholder="/cases/turbokitchen.png" />
+                  <ImageField label="Зображення" value={c.image ?? ''} defaultValue={defaultImgById.get(c.id)} onChange={(v) => patchCase(gi, ci, { image: v })} />
                 </div>
                 <TextFieldLike label="Завдання (task)" value={c.task ?? ''} onChange={(v) => patchCase(gi, ci, { task: v })} textarea />
                 <MetricList label="Метрики" values={c.metrics ?? []} onChange={(v) => patchCase(gi, ci, { metrics: v })} />

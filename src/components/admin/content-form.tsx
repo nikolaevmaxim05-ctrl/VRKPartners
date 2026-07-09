@@ -55,7 +55,13 @@ function Field({
   )
 }
 
-export function ContentForm({ initial }: { initial: Initial }) {
+export function ContentForm({
+  initial, defaultServices, defaultTrust,
+}: {
+  initial: Initial
+  defaultServices: ServicesContent
+  defaultTrust: TrustContent
+}) {
   const [site, setSite] = useState<SiteFields>(initial.site)
   const [hero, setHero] = useState<HeroFields>(initial.hero)
   const [finalCta, setFinalCta] = useState<FinalCtaFields>(initial.finalCta)
@@ -140,10 +146,10 @@ export function ContentForm({ initial }: { initial: Initial }) {
         </CollapsibleCard>
 
         {/* 2. Послуги */}
-        <ServicesEditor value={services} onChange={setServices} />
+        <ServicesEditor value={services} onChange={setServices} defaultServices={defaultServices} />
 
         {/* 3. Кейси */}
-        <CasesEditor value={trust} onChange={setTrust} />
+        <CasesEditor value={trust} onChange={setTrust} defaultTrust={defaultTrust} />
 
         {/* 4. Фінальний блок */}
         <CollapsibleCard title="Фінальний блок (CTA)">
