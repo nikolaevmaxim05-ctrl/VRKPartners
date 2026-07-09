@@ -5,12 +5,13 @@ import Image from "next/image";
 import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
+import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
-import { trust } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 export function Trust() {
   const { openLead } = useLeadModal();
+  const { trust } = useContent();
 
   // Рівень 1 — ніша, Рівень 2 — кейс усередині ніші.
   const [nicheIdx, setNicheIdx] = React.useState(0);

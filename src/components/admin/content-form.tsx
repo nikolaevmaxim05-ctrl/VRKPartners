@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Loader2, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { ServicesEditor } from '@/components/admin/content-services-editor'
+import { CasesEditor } from '@/components/admin/content-cases-editor'
+import type { ServicesContent, TrustContent } from '@/lib/content'
 
 type SiteFields = {
   phone: string; phoneHref: string; email: string
@@ -24,6 +27,8 @@ type Initial = {
   hero: HeroFields
   finalCta: FinalCtaFields
   faq: FaqItem[]
+  services: ServicesContent
+  trust: TrustContent
 }
 
 function Field({
@@ -182,13 +187,17 @@ export function ContentForm({ initial }: { initial: Initial }) {
         </CardContent>
       </Card>
 
-      {/* Збереження */}
+      {/* Збереження текстів/контактів/FAQ */}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>
           {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-          Зберегти зміни
+          Зберегти тексти, контакти і FAQ
         </Button>
       </div>
+
+      {/* Послуги та Кейси — окремі блоки з власним збереженням */}
+      <ServicesEditor initial={initial.services} />
+      <CasesEditor initial={initial.trust} />
     </div>
   )
 }

@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
+import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
-import { services } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 type ServiceItem = {
@@ -48,6 +48,7 @@ const SERVICES_PREVIEW = 3;
 
 export function Services() {
   const { openLead } = useLeadModal();
+  const { services } = useContent();
   const [showAll, setShowAll] = React.useState(false);
   // Після завершення анімації розгортання знімаємо overflow-hidden,
   // щоб збільшене превью карток не обрізалося контейнером.
@@ -135,8 +136,8 @@ export function Services() {
   const handleCta = () => {
     track("services_cta_click", { source: "services" });
     openLead({
-      title: services.popup.title,
-      description: services.popup.note,
+      title: services.popup?.title ?? services.cta,
+      description: services.popup?.note ?? services.text,
       source: "services",
       submitLabel: "Отримати консультацію",
     });

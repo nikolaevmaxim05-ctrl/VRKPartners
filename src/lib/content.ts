@@ -6,11 +6,56 @@
 // містить лише ЗМІНЕНІ поля (partial override), напр.:
 //   { "hero": { "title": "..." }, "faq": [ { "q": "...", "a": "..." } ] }
 
-import { site, hero, finalCta, faq } from '@/config/site'
+import { site, hero, finalCta, faq, services, trust } from '@/config/site'
 
 export const LANDING_CONTENT_ID = 'landing'
 
 export type FaqItem = { q: string; a: string }
+
+// ── Послуги (блок 2) ─────────────────────────────────────────────────────────
+export type ServiceItem = {
+  key: string
+  name: string
+  desc: string
+  mockup?: string
+  mockupFull?: string
+  mockupAlt?: string
+  previewWide?: boolean
+}
+export type ServicesContent = {
+  eyebrow: string
+  title: string
+  text: string
+  cta: string
+  items: ServiceItem[]
+  // popup — тексти модалки; не редагуються у формі, лишаються з дефолтів
+  popup?: { title: string; note: string }
+}
+
+// ── Кейси (блок 4) ───────────────────────────────────────────────────────────
+export type CaseMetric = { value: string; label: string }
+export type CaseItem = {
+  id: string
+  client: string
+  href?: string
+  title: string
+  task?: string
+  image?: string
+  metrics: CaseMetric[]
+  approach?: string[]
+}
+export type CaseGroup = { id: string; niche: string; cases: CaseItem[] }
+export type TrustContent = {
+  eyebrow: string
+  title: string
+  facts: string[]
+  highlights: CaseMetric[]
+  niches: string[]
+  cta: string
+  ctaSecondary: string
+  caseHint: string
+  caseGroups: CaseGroup[]
+}
 
 /** Форма оверрайдів (усі поля опційні — редагуємо лише те, що треба). */
 export type LandingContentOverrides = {
@@ -37,6 +82,8 @@ export type LandingContentOverrides = {
     primaryCta: string
   }>
   faq?: FaqItem[]
+  services?: Partial<ServicesContent>
+  trust?: Partial<TrustContent>
 }
 
 /** Повний контент лендингу після мержу дефолтів з оверрайдами.
@@ -47,6 +94,13 @@ export type LandingContent = {
   hero: Record<string, string>
   finalCta: Record<string, string>
   faq: readonly FaqItem[]
+  services: ServicesContent
+  trust: TrustContent
+}
+
+/** Глибока копія (знімає readonly/літеральні типи `as const`). */
+function clone<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T
 }
 
 /** Дефолти з config/site.ts у мутабельному вигляді. */
@@ -56,6 +110,8 @@ export function getDefaultLandingContent(): LandingContent {
     hero: { ...hero },
     finalCta: { ...finalCta },
     faq: [...faq],
+    services: clone(services) as ServicesContent,
+    trust: clone(trust) as TrustContent,
   }
 }
 
@@ -79,7 +135,79 @@ export function mergeLandingContent(
             )
             .map((f) => ({ q: f.q, a: f.a }))
         : base.faq,
+    services: mergeServices(base.services, overrides.services),
+    trust: mergeTrust(base.trust, overrides.trust),
   }
+}
+
+/** Мерж послуг: рядкові поля — якщо непорожні; items — якщо є непорожній масив. */
+function mergeServices(base: ServicesContent, ov?: Partial<ServicesContent>): ServicesContent {
+  if (!ov || typeof ov !== 'object') return base
+  const out: ServicesContent = { ...base }
+  const s = cleanStrings(ov as Record<string, unknown>)
+  if (s.eyebrow) out.eyebrow = s.eyebrow
+  if (s.title) out.title = s.title
+  if (s.text) out.text = s.text
+  if (s.cta) out.cta = s.cta
+  if (Array.isArray(ov.items) && ov.items.length > 0) {
+    out.items = ov.items
+      .filter((it) => it && typeof it.name === 'string')
+      .map((it, i) => ({
+        key: typeof it.key === 'string' && it.key ? it.key : `svc-${i}`,
+        name: String(it.name ?? ''),
+        desc: String(it.desc ?? ''),
+        mockup: it.mockup ? String(it.mockup) : undefined,
+        mockupFull: it.mockupFull ? String(it.mockupFull) : undefined,
+        mockupAlt: it.mockupAlt ? String(it.mockupAlt) : undefined,
+        previewWide: Boolean(it.previewWide),
+      }))
+  }
+  return out
+}
+
+/** Мерж блоку кейсів: рядкові поля + масиви (facts/highlights/niches/caseGroups). */
+function mergeTrust(base: TrustContent, ov?: Partial<TrustContent>): TrustContent {
+  if (!ov || typeof ov !== 'object') return base
+  const out: TrustContent = { ...base }
+  const s = cleanStrings(ov as Record<string, unknown>)
+  if (s.eyebrow) out.eyebrow = s.eyebrow
+  if (s.title) out.title = s.title
+  if (s.cta) out.cta = s.cta
+  if (s.ctaSecondary) out.ctaSecondary = s.ctaSecondary
+  if (s.caseHint) out.caseHint = s.caseHint
+  if (Array.isArray(ov.facts) && ov.facts.length > 0) out.facts = ov.facts.map(String)
+  if (Array.isArray(ov.niches) && ov.niches.length > 0) out.niches = ov.niches.map(String)
+  if (Array.isArray(ov.highlights) && ov.highlights.length > 0) {
+    out.highlights = ov.highlights
+      .filter((h) => h && typeof h.value === 'string')
+      .map((h) => ({ value: String(h.value ?? ''), label: String(h.label ?? '') }))
+  }
+  if (Array.isArray(ov.caseGroups) && ov.caseGroups.length > 0) {
+    out.caseGroups = ov.caseGroups
+      .filter((g) => g && typeof g.niche === 'string')
+      .map((g, gi) => ({
+        id: typeof g.id === 'string' && g.id ? g.id : `niche-${gi}`,
+        niche: String(g.niche ?? ''),
+        cases: (Array.isArray(g.cases) ? g.cases : [])
+          .filter((c) => c && typeof c.client === 'string')
+          .map((c, ci) => ({
+            id: typeof c.id === 'string' && c.id ? c.id : `case-${gi}-${ci}`,
+            client: String(c.client ?? ''),
+            href: c.href ? String(c.href) : undefined,
+            title: String(c.title ?? ''),
+            task: c.task ? String(c.task) : undefined,
+            image: c.image ? String(c.image) : undefined,
+            metrics: (Array.isArray(c.metrics) ? c.metrics : [])
+              .filter((m) => m && typeof m.value === 'string')
+              .map((m) => ({ value: String(m.value ?? ''), label: String(m.label ?? '') })),
+            approach:
+              Array.isArray(c.approach) && c.approach.length > 0
+                ? c.approach.map(String)
+                : undefined,
+          })),
+      }))
+  }
+  return out
 }
 
 /** Лишає тільки непорожні рядкові значення (щоб порожнє поле не затирало дефолт). */

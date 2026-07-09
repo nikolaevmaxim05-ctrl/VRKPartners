@@ -57,10 +57,14 @@ export async function PUT(request: NextRequest) {
       .map((f) => ({ q: String(f.q).slice(0, 300), a: String(f.a).slice(0, 2000) }))
   }
 
+  // Частковий мерж: редактор одного блоку (напр. послуги) не затирає інші (контакти/FAQ).
+  const existing = await getLandingContentOverrides()
+  const merged: LandingContentOverrides = { ...existing, ...overrides }
+
   const service = createServiceClient()
   const { error } = await service.from('site_content').upsert({
     id: LANDING_CONTENT_ID,
-    data: overrides,
+    data: merged,
     updated_at: new Date().toISOString(),
     updated_by: guard.userId,
   })
