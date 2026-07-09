@@ -4,12 +4,13 @@ import { Check, FileSearch, Gauge, Route, Calculator, type LucideIcon } from "lu
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track } from "@/lib/analytics";
-import { audit } from "@/config/site";
+import { useContent } from "@/components/ContentProvider";
 
 const cardIcons: LucideIcon[] = [FileSearch, Gauge, Route, Calculator];
 
 export function Audit() {
   const { openLead } = useLeadModal();
+  const { audit } = useContent();
 
   const openAudit = () => {
     track("audit_request_click", { source: "audit_audit" });

@@ -6,11 +6,41 @@
 // містить лише ЗМІНЕНІ поля (partial override), напр.:
 //   { "hero": { "title": "..." }, "faq": [ { "q": "...", "a": "..." } ] }
 
-import { site, hero, finalCta, faq, services, trust } from '@/config/site'
+import { site, hero, finalCta, faq, services, trust, audit, workflow } from '@/config/site'
 
 export const LANDING_CONTENT_ID = 'landing'
 
 export type FaqItem = { q: string; a: string }
+
+// ── Аудит (блок 3) ───────────────────────────────────────────────────────────
+export type AuditItem = { name: string; desc: string; points: string[] }
+export type AuditContent = {
+  eyebrow: string
+  title: string
+  cta: string
+  ctaSecondary: string
+  items: AuditItem[]
+  formTitle: string
+  services: string[]
+}
+
+// ── Процес (блок 5) ──────────────────────────────────────────────────────────
+export type WorkflowStep = { n: number; title: string }
+export type WorkflowTerm = { label: string; value: string; highlight?: string }
+export type WorkflowBonus = {
+  badge: string
+  title: string
+  desc: string
+  terms: WorkflowTerm[]
+  cta: string
+}
+export type WorkflowContent = {
+  eyebrow: string
+  title: string
+  cta: string
+  steps: WorkflowStep[]
+  bonus: WorkflowBonus
+}
 
 // ── Послуги (блок 2) ─────────────────────────────────────────────────────────
 export type ServiceItem = {
@@ -84,6 +114,8 @@ export type LandingContentOverrides = {
   faq?: FaqItem[]
   services?: Partial<ServicesContent>
   trust?: Partial<TrustContent>
+  audit?: Partial<AuditContent>
+  workflow?: Partial<WorkflowContent>
 }
 
 /** Повний контент лендингу після мержу дефолтів з оверрайдами.
@@ -96,6 +128,8 @@ export type LandingContent = {
   faq: readonly FaqItem[]
   services: ServicesContent
   trust: TrustContent
+  audit: AuditContent
+  workflow: WorkflowContent
 }
 
 /** Глибока копія (знімає readonly/літеральні типи `as const`). Повертає unknown,
@@ -113,6 +147,8 @@ export function getDefaultLandingContent(): LandingContent {
     faq: [...faq],
     services: clone(services) as ServicesContent,
     trust: clone(trust) as TrustContent,
+    audit: clone(audit) as AuditContent,
+    workflow: clone(workflow) as WorkflowContent,
   }
 }
 
@@ -138,7 +174,72 @@ export function mergeLandingContent(
         : base.faq,
     services: mergeServices(base.services, overrides.services),
     trust: mergeTrust(base.trust, overrides.trust),
+    audit: mergeAudit(base.audit, overrides.audit),
+    workflow: mergeWorkflow(base.workflow, overrides.workflow),
   }
+}
+
+/** Мерж блоку «Аудит»: рядкові поля + items (name/desc/points) + services. */
+function mergeAudit(base: AuditContent, ov?: Partial<AuditContent>): AuditContent {
+  if (!ov || typeof ov !== 'object') return base
+  const out: AuditContent = { ...base }
+  const s = cleanStrings(ov as Record<string, unknown>)
+  if (s.eyebrow) out.eyebrow = s.eyebrow
+  if (s.title) out.title = s.title
+  if (s.cta) out.cta = s.cta
+  if (s.ctaSecondary) out.ctaSecondary = s.ctaSecondary
+  if (s.formTitle) out.formTitle = s.formTitle
+  if (Array.isArray(ov.items) && ov.items.length > 0) {
+    out.items = ov.items
+      .filter((it) => it && typeof it.name === 'string')
+      .map((it) => ({
+        name: String(it.name ?? ''),
+        desc: String(it.desc ?? ''),
+        points: Array.isArray(it.points) ? it.points.map(String) : [],
+      }))
+  }
+  if (Array.isArray(ov.services) && ov.services.length > 0) out.services = ov.services.map(String)
+  return out
+}
+
+/** Мерж блоку «Процес»: title/steps + бонус Google (title/desc/terms/cta). */
+function mergeWorkflow(base: WorkflowContent, ov?: Partial<WorkflowContent>): WorkflowContent {
+  if (!ov || typeof ov !== 'object') return base
+  const out: WorkflowContent = { ...base }
+  const s = cleanStrings(ov as Record<string, unknown>)
+  if (s.eyebrow) out.eyebrow = s.eyebrow
+  if (s.title) out.title = s.title
+  if (s.cta) out.cta = s.cta
+  if (Array.isArray(ov.steps) && ov.steps.length > 0) {
+    out.steps = ov.steps
+      .filter((st) => st && typeof st.title === 'string')
+      .map((st, i) => ({
+        n: typeof st.n === 'number' ? st.n : i + 1,
+        title: String(st.title ?? ''),
+      }))
+  }
+  if (ov.bonus && typeof ov.bonus === 'object') {
+    const b = ov.bonus
+    out.bonus = {
+      ...base.bonus,
+      ...(typeof b.badge === 'string' && b.badge ? { badge: b.badge } : {}),
+      ...(typeof b.title === 'string' && b.title ? { title: b.title } : {}),
+      ...(typeof b.desc === 'string' && b.desc ? { desc: b.desc } : {}),
+      ...(typeof b.cta === 'string' && b.cta ? { cta: b.cta } : {}),
+      ...(Array.isArray(b.terms) && b.terms.length > 0
+        ? {
+            terms: b.terms
+              .filter((t) => t && typeof t.label === 'string')
+              .map((t) => ({
+                label: String(t.label ?? ''),
+                value: String(t.value ?? ''),
+                highlight: t.highlight ? String(t.highlight) : undefined,
+              })),
+          }
+        : {}),
+    }
+  }
+  return out
 }
 
 /** Мерж послуг: рядкові поля — якщо непорожні; items — якщо є непорожній масив. */

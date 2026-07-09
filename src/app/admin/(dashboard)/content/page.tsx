@@ -38,6 +38,8 @@ export default async function ContentPage() {
     faq: content.faq.map((f) => ({ q: f.q, a: f.a })),
     services: content.services,
     trust: content.trust,
+    audit: content.audit,
+    workflow: content.workflow,
   }
 
   return (

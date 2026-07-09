@@ -9,7 +9,9 @@ import { Loader2, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
 import { ServicesEditor } from '@/components/admin/content-services-editor'
 import { CasesEditor } from '@/components/admin/content-cases-editor'
-import type { ServicesContent, TrustContent } from '@/lib/content'
+import { AuditEditor } from '@/components/admin/content-audit-editor'
+import { WorkflowEditor } from '@/components/admin/content-workflow-editor'
+import type { ServicesContent, TrustContent, AuditContent, WorkflowContent } from '@/lib/content'
 
 type SiteFields = {
   phone: string; phoneHref: string; email: string
@@ -29,6 +31,8 @@ type Initial = {
   faq: FaqItem[]
   services: ServicesContent
   trust: TrustContent
+  audit: AuditContent
+  workflow: WorkflowContent
 }
 
 function Field({
@@ -68,6 +72,8 @@ export function ContentForm({
   const [faq, setFaq] = useState<FaqItem[]>(initial.faq)
   const [services, setServices] = useState<ServicesContent>(initial.services)
   const [trust, setTrust] = useState<TrustContent>(initial.trust)
+  const [audit, setAudit] = useState<AuditContent>(initial.audit)
+  const [workflow, setWorkflow] = useState<WorkflowContent>(initial.workflow)
   const [saving, setSaving] = useState(false)
 
   // Базовий знімок для відстеження змін. Кнопка збереження зʼявляється лише коли є зміни.
@@ -75,9 +81,10 @@ export function ContentForm({
     JSON.stringify({
       site: initial.site, hero: initial.hero, finalCta: initial.finalCta,
       faq: initial.faq, services: initial.services, trust: initial.trust,
+      audit: initial.audit, workflow: initial.workflow,
     })
   )
-  const current = JSON.stringify({ site, hero, finalCta, faq, services, trust })
+  const current = JSON.stringify({ site, hero, finalCta, faq, services, trust, audit, workflow })
   const dirty = current !== baseline
 
   const setSiteField = (k: keyof SiteFields) => (v: string) => setSite((s) => ({ ...s, [k]: v }))
@@ -111,6 +118,12 @@ export function ContentForm({
           caseGroups: trust.caseGroups
             .filter((g) => g.niche.trim().length > 0)
             .map((g) => ({ ...g, cases: g.cases.filter((c) => c.client.trim().length > 0) })),
+        },
+        audit: { ...audit, items: audit.items.filter((it) => it.name.trim().length > 0) },
+        workflow: {
+          ...workflow,
+          steps: workflow.steps.filter((s) => s.title.trim().length > 0),
+          bonus: { ...workflow.bonus, terms: workflow.bonus.terms.filter((t) => t.label.trim().length > 0) },
         },
       }
       const res = await fetch('/api/admin/content', {
@@ -148,10 +161,16 @@ export function ContentForm({
         {/* 2. Послуги */}
         <ServicesEditor value={services} onChange={setServices} defaultServices={defaultServices} />
 
-        {/* 3. Кейси */}
+        {/* 3. Аудит */}
+        <AuditEditor value={audit} onChange={setAudit} />
+
+        {/* 4. Кейси */}
         <CasesEditor value={trust} onChange={setTrust} defaultTrust={defaultTrust} />
 
-        {/* 4. Фінальний блок */}
+        {/* 5. Процес */}
+        <WorkflowEditor value={workflow} onChange={setWorkflow} />
+
+        {/* 6. Фінальний блок */}
         <CollapsibleCard title="Фінальний блок (CTA)">
           <Field label="Заголовок" value={finalCta.title} onChange={setCtaField('title')} textarea />
           <Field label="Текст" value={finalCta.text} onChange={setCtaField('text')} textarea />

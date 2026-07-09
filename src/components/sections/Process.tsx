@@ -4,10 +4,11 @@ import * as React from "react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track } from "@/lib/analytics";
-import { workflow } from "@/config/site";
+import { useContent } from "@/components/ContentProvider";
 
 export function Process() {
   const { openLead } = useLeadModal();
+  const { workflow } = useContent();
 
   const handleBonus = () => {
     track("google_bonus_cta_click", { source: "google_bonus" });
