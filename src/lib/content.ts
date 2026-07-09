@@ -98,9 +98,10 @@ export type LandingContent = {
   trust: TrustContent
 }
 
-/** Глибока копія (знімає readonly/літеральні типи `as const`). */
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v)) as T
+/** Глибока копія (знімає readonly/літеральні типи `as const`). Повертає unknown,
+ * щоб результат можна було привести до мутабельного типу без конфлікту readonly. */
+function clone(v: unknown): unknown {
+  return JSON.parse(JSON.stringify(v))
 }
 
 /** Дефолти з config/site.ts у мутабельному вигляді. */
