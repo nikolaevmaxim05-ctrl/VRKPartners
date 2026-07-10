@@ -19,7 +19,7 @@ type SiteFields = {
   telegram: string; telegramHandle: string
 }
 type HeroFields = {
-  title: string; subtitle: string; trust: string
+  title: string; subtitle: string; trust: string; trustHref: string
   primaryCta: string; secondaryCta: string; formTitle: string; formNote: string
 }
 type FinalCtaFields = { title: string; text: string; primaryCta: string }
@@ -155,6 +155,7 @@ export function ContentForm({
           <Field label="Заголовок" value={hero.title} onChange={setHeroField('title')} textarea />
           <Field label="Підзаголовок" value={hero.subtitle} onChange={setHeroField('subtitle')} textarea />
           <Field label="Рядок довіри" value={hero.trust} onChange={setHeroField('trust')} />
+          <Field label="Посилання рядка довіри (URL, необовʼязково)" value={hero.trustHref} onChange={setHeroField('trustHref')} placeholder="https://partnersdirectory.withgoogle.com/…" />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Кнопка 1 (консультація)" value={hero.primaryCta} onChange={setHeroField('primaryCta')} />
             <Field label="Кнопка 2 (аудит)" value={hero.secondaryCta} onChange={setHeroField('secondaryCta')} />

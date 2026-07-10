@@ -72,6 +72,7 @@ export const hero = {
   subtitle:
     "VRK Partners допомагає eCommerce, B2B, медичним проєктам, онлайн-школам, SaaS та локальному бізнесу отримувати стабільні ліди, продажі та прозорий ROI реклами.",
   trust: "Офіційний Google Partner · понад 500 000 $ рекламних бюджетів",
+  trustHref: "https://partnersdirectory.withgoogle.com/intl/ru/partners/8023128461",
   primaryCta: "Отримати консультацію",
   secondaryCta: "Замовити аудит Google Ads",
   formTitle: "Залиште заявку",

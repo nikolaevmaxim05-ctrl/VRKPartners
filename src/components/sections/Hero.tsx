@@ -55,10 +55,22 @@ export function Hero() {
             {hero.subtitle}
           </p>
 
-          <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-bg-line bg-bg-soft/60 px-3.5 py-1.5 text-xs text-white/80 sm:mt-6 sm:px-4 sm:py-2 sm:text-sm">
-            <span className="h-2 w-2 animate-pulse-glow rounded-full bg-brand" />
-            {hero.trust}
-          </p>
+          {hero.trustHref ? (
+            <a
+              href={hero.trustHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-bg-line bg-bg-soft/60 px-3.5 py-1.5 text-xs font-semibold text-white/90 transition-colors hover:border-brand/50 hover:text-white sm:mt-6 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              <span className="h-2 w-2 animate-pulse-glow rounded-full bg-brand" />
+              {hero.trust}
+            </a>
+          ) : (
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-bg-line bg-bg-soft/60 px-3.5 py-1.5 text-xs font-semibold text-white/90 sm:mt-6 sm:px-4 sm:py-2 sm:text-sm">
+              <span className="h-2 w-2 animate-pulse-glow rounded-full bg-brand" />
+              {hero.trust}
+            </p>
+          )}
 
           <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row">
             <Button size="lg" onClick={handleConsult}>

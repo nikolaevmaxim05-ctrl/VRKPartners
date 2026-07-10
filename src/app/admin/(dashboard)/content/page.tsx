@@ -24,6 +24,7 @@ export default async function ContentPage() {
       title: content.hero.title,
       subtitle: content.hero.subtitle,
       trust: content.hero.trust,
+      trustHref: content.hero.trustHref ?? '',
       primaryCta: content.hero.primaryCta,
       secondaryCta: content.hero.secondaryCta,
       formTitle: content.hero.formTitle,
