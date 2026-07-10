@@ -86,7 +86,7 @@ export function Services() {
                 fill
                 sizes="(max-width: 768px) 100vw, 380px"
                 className={cn(
-                  "transition-transform duration-500 group-hover:scale-[1.03]",
+                  "transition-transform duration-500 delay-0 group-hover:scale-[1.03] group-hover:delay-[450ms]",
                   contain ? "object-contain p-2" : "object-cover object-top"
                 )}
               />
@@ -94,7 +94,9 @@ export function Services() {
             {/* Велике читабельне превью при наведенні (біля картки, з урахуванням колонки) */}
             <div
               className={cn(
-                "pointer-events-none absolute top-1/2 z-50 max-w-[92vw] -translate-y-1/2 scale-95 opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100",
+                // Затримка лише при наведенні: превью зʼявляється, коли курсор трохи затримався;
+                // при відведенні зникає одразу (delay-0).
+                "pointer-events-none absolute top-1/2 z-50 max-w-[92vw] -translate-y-1/2 scale-95 opacity-0 transition-all duration-300 delay-0 group-hover:scale-100 group-hover:opacity-100 group-hover:delay-[450ms]",
                 previewPos,
                 s.previewWide ? "w-[40rem]" : "w-[22rem]"
               )}
