@@ -1,8 +1,20 @@
 "use client";
 
 import * as React from "react";
+import {
+  Database,
+  Target,
+  Handshake,
+  Rocket,
+  TrendingUp,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { useContent } from "@/components/ContentProvider";
 import { cn } from "@/lib/utils";
+
+// Іконки за позицією пункту (як у блоці «Аудит»). Понад список — запасна.
+const uspIcons: LucideIcon[] = [Database, Target, Handshake, Rocket, TrendingUp];
 
 export function Usp() {
   const { usp } = useContent();
@@ -71,6 +83,7 @@ export function Usp() {
         <div className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4">
           {usp.items.map((it, i) => {
             const activeNow = i === active;
+            const Icon = uspIcons[i] ?? Sparkles;
             return (
               <div
                 key={i}
@@ -94,20 +107,9 @@ export function Usp() {
                     activeNow && "-translate-y-1"
                   )}
                 >
-                  {/* великий напівпрозорий номер для дизайнерського акценту */}
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "pointer-events-none absolute -right-1 -top-5 select-none text-7xl font-black text-white/5 transition-colors duration-500 ease-out group-hover:text-brand/10",
-                      activeNow && "text-brand/10"
-                    )}
-                  >
-                    {i + 1}
-                  </span>
-
                   <div className="relative">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-ink ring-4 ring-brand/15">
-                      {i + 1}
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30">
+                      <Icon className="h-5 w-5 text-brand" />
                     </div>
                     <h3 className="mt-4 text-lg font-bold leading-snug text-white">
                       {it.title}
