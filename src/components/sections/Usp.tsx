@@ -24,8 +24,14 @@ export function Usp() {
           {usp.items.map((it, i) => (
             <article
               key={i}
-              className="group relative w-full overflow-hidden rounded-2xl border border-bg-line bg-bg-card p-6 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-brand/40 hover:shadow-card sm:w-[calc(50%_-_0.5rem)] lg:w-[calc(33.333%_-_0.667rem)]"
+              className="group relative w-full overflow-hidden rounded-2xl border border-bg-line bg-bg-card p-6 transition-transform duration-500 ease-out hover:-translate-y-1 sm:w-[calc(50%_-_0.5rem)] lg:w-[calc(33.333%_-_0.667rem)]"
             >
+              {/* плавна підсвітка рамки через opacity (завжди м'яко) */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 shadow-card ring-1 ring-inset ring-brand/40 transition-opacity duration-500 ease-out group-hover:opacity-100"
+              />
+
               {/* великий напівпрозорий номер для дизайнерського акценту */}
               <span
                 aria-hidden="true"
