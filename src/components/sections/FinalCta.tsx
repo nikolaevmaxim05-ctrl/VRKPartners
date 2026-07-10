@@ -11,32 +11,42 @@ import { cn } from "@/lib/utils";
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="rounded-xl border border-bg-line bg-bg-card">
-      <button
-        type="button"
-        onClick={() => {
-          // трекаємо лише розкриття (не згортання)
-          if (!open) track("faq_open", { question: q });
-          setOpen((v) => !v);
-        }}
-        aria-expanded={open}
-        className="btn-focus flex w-full items-center justify-between gap-4 rounded-xl px-5 py-4 text-left"
-      >
-        <span className="font-medium text-white">{q}</span>
-        {open ? (
-          <Minus className="h-5 w-5 shrink-0 text-brand" />
-        ) : (
-          <Plus className="h-5 w-5 shrink-0 text-brand" />
-        )}
-      </button>
+    <div className="relative">
+      {/* м'яке свічення ПОЗАДУ питання — плавно з'являється при відкритті */}
       <div
+        aria-hidden="true"
         className={cn(
-          "grid overflow-hidden transition-all duration-300",
-          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          "pointer-events-none absolute -inset-1 rounded-2xl bg-brand/15 blur-2xl transition-opacity duration-300 ease-out",
+          open ? "opacity-100" : "opacity-0"
         )}
-      >
-        <div className="overflow-hidden">
-          <p className="px-5 pb-4 text-sm leading-relaxed text-white/60">{a}</p>
+      />
+      <div className="relative rounded-xl border border-bg-line bg-bg-card transition-colors duration-300">
+        <button
+          type="button"
+          onClick={() => {
+            // трекаємо лише розкриття (не згортання)
+            if (!open) track("faq_open", { question: q });
+            setOpen((v) => !v);
+          }}
+          aria-expanded={open}
+          className="btn-focus flex w-full items-center justify-between gap-4 rounded-xl px-5 py-4 text-left"
+        >
+          <span className="font-medium text-white">{q}</span>
+          {open ? (
+            <Minus className="h-5 w-5 shrink-0 text-brand" />
+          ) : (
+            <Plus className="h-5 w-5 shrink-0 text-brand" />
+          )}
+        </button>
+        <div
+          className={cn(
+            "grid overflow-hidden transition-all duration-300",
+            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="overflow-hidden">
+            <p className="px-5 pb-4 text-sm leading-relaxed text-white/60">{a}</p>
+          </div>
         </div>
       </div>
     </div>
