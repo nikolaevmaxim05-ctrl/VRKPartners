@@ -159,23 +159,55 @@
   animation-play-state: paused;
 }
 
-/* Анімовані ефекти першого екрана (Hero) */
+/* Анімовані «аврора»-плями фону — жвавіший рух + легке «дихання» opacity */
 @keyframes drift {
-  0%,
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.85;
+  }
+  33% {
+    transform: translate(60px, -46px) scale(1.18);
+    opacity: 1;
+  }
+  66% {
+    transform: translate(-38px, 34px) scale(0.94);
+    opacity: 0.8;
+  }
   100% {
     transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(34px, -26px) scale(1.12);
+    opacity: 0.85;
   }
 }
 @keyframes drift2 {
-  0%,
-  100% {
+  0% {
     transform: translate(0, 0) scale(1);
+    opacity: 0.8;
   }
   50% {
-    transform: translate(-28px, 22px) scale(1.1);
+    transform: translate(-54px, 44px) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+}
+@keyframes drift3 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.85;
+  }
+  40% {
+    transform: translate(46px, 40px) scale(1.14);
+    opacity: 1;
+  }
+  75% {
+    transform: translate(-34px, -30px) scale(0.96);
+    opacity: 0.82;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.85;
   }
 }
 @keyframes spin-slow {
@@ -184,10 +216,13 @@
   }
 }
 .anim-drift {
-  animation: drift 15s ease-in-out infinite;
+  animation: drift 12s ease-in-out infinite;
 }
 .anim-drift2 {
-  animation: drift2 19s ease-in-out infinite;
+  animation: drift2 15s ease-in-out infinite;
+}
+.anim-drift3 {
+  animation: drift3 18s ease-in-out infinite;
 }
 .anim-spin-slow {
   animation: spin-slow 24s linear infinite;
