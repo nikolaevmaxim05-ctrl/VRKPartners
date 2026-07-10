@@ -85,11 +85,6 @@ export function Hero() {
             <PartnersMarquee className="mt-3" />
           </div>
 
-          {/* обертовий ореол за формою */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 top-24 hidden lg:block" aria-hidden="true">
-            <div className="anim-spin-slow absolute inset-0 rounded-[2.5rem] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(246,247,64,0.22)_70deg,transparent_150deg,transparent_360deg)] blur-2xl" />
-          </div>
-
           <div className="relative z-10 overflow-hidden rounded-2xl border border-bg-line bg-bg-card/90 p-6 shadow-card backdrop-blur sm:p-8">
             <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
               {hero.partnerBadge && (
