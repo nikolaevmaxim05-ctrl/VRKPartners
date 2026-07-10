@@ -14,11 +14,16 @@ export function PartnersMarquee({ className }: { className?: string }) {
   const loop = [...partners, ...partners];
 
   return (
-    <div className={cn("partners-marquee relative w-full min-w-0 max-w-full overflow-hidden", className)}>
-      {/* розмиті краї */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-bg to-transparent sm:w-20" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-bg to-transparent sm:w-20" />
-
+    <div
+      className={cn(
+        "partners-marquee relative w-full min-w-0 max-w-full overflow-hidden",
+        // Плавне згасання логотипів до прозорого на краях (маска), а не темна
+        // накладка — щоб не було «обрізаного чорного» на анімованому фоні.
+        "[mask-image:linear-gradient(to_right,transparent,black_2.5rem,black_calc(100%_-_2.5rem),transparent)]",
+        "[-webkit-mask-image:linear-gradient(to_right,transparent,black_2.5rem,black_calc(100%_-_2.5rem),transparent)]",
+        className
+      )}
+    >
       <ul className="partners-track flex w-max items-center gap-4">
         {loop.map((p, i) => (
           <li key={`${p.name}-${i}`} className="shrink-0">
