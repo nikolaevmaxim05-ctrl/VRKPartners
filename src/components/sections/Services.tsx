@@ -46,7 +46,7 @@ const icons: Record<string, LucideIcon> = {
 
 const SERVICES_PREVIEW = 3;
 // Час, який курсор має затриматись на картці, перш ніж зʼявиться збільшене превью.
-const PREVIEW_HOVER_DELAY_MS = 1500;
+const PREVIEW_HOVER_DELAY_MS = 1000;
 
 function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
   // Показ великого превью керуємо станом: вмикаємо через таймер, вимикаємо одразу.
