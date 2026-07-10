@@ -6,11 +6,20 @@
 // містить лише ЗМІНЕНІ поля (partial override), напр.:
 //   { "hero": { "title": "..." }, "faq": [ { "q": "...", "a": "..." } ] }
 
-import { site, hero, about, finalCta, faq, services, trust, audit, workflow } from '@/config/site'
+import { site, hero, usp, about, finalCta, faq, services, trust, audit, workflow } from '@/config/site'
 
 export const LANDING_CONTENT_ID = 'landing'
 
 export type FaqItem = { q: string; a: string }
+
+// ── Унікальні переваги (USP) ─────────────────────────────────────────────────
+export type UspItem = { title: string; text: string }
+export type UspContent = {
+  eyebrow: string
+  title: string
+  text: string
+  items: UspItem[]
+}
 
 // ── Про нас (команда) ────────────────────────────────────────────────────────
 export type AboutMember = {
@@ -127,6 +136,7 @@ export type LandingContentOverrides = {
     text: string
     primaryCta: string
   }>
+  usp?: Partial<UspContent>
   about?: Partial<AboutContent>
   faq?: FaqItem[]
   services?: Partial<ServicesContent>
@@ -141,6 +151,7 @@ export type LandingContentOverrides = {
 export type LandingContent = {
   site: Record<string, string>
   hero: Record<string, string>
+  usp: UspContent
   about: AboutContent
   finalCta: Record<string, string>
   faq: readonly FaqItem[]
@@ -161,6 +172,7 @@ export function getDefaultLandingContent(): LandingContent {
   return {
     site: { ...site },
     hero: { ...hero },
+    usp: clone(usp) as UspContent,
     about: clone(about) as AboutContent,
     finalCta: { ...finalCta },
     faq: [...faq],
@@ -181,6 +193,7 @@ export function mergeLandingContent(
   return {
     site: { ...base.site, ...cleanStrings(overrides.site) },
     hero: { ...base.hero, ...cleanStrings(overrides.hero) },
+    usp: mergeUsp(base.usp, overrides.usp),
     about: mergeAbout(base.about, overrides.about),
     finalCta: { ...base.finalCta, ...cleanStrings(overrides.finalCta) },
     faq:
@@ -197,6 +210,22 @@ export function mergeLandingContent(
     audit: mergeAudit(base.audit, overrides.audit),
     workflow: mergeWorkflow(base.workflow, overrides.workflow),
   }
+}
+
+/** Мерж блоку «Унікальні переваги»: заголовкові рядки + пункти (title/text). */
+function mergeUsp(base: UspContent, ov?: Partial<UspContent>): UspContent {
+  if (!ov || typeof ov !== 'object') return base
+  const out: UspContent = { ...base }
+  const s = cleanStrings(ov as Record<string, unknown>)
+  if (s.eyebrow) out.eyebrow = s.eyebrow
+  if (s.title) out.title = s.title
+  if (typeof ov.text === 'string') out.text = ov.text
+  if (Array.isArray(ov.items) && ov.items.length > 0) {
+    out.items = ov.items
+      .filter((it) => it && typeof it.title === 'string')
+      .map((it) => ({ title: String(it.title ?? ''), text: String(it.text ?? '') }))
+  }
+  return out
 }
 
 /** Мерж блоку «Про нас»: заголовкові рядки + учасники (фото/досвід/роль/навички). */

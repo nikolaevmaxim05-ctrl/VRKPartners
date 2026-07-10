@@ -39,6 +39,7 @@ export default async function ContentPage() {
       primaryCta: content.finalCta.primaryCta,
     },
     faq: content.faq.map((f) => ({ q: f.q, a: f.a })),
+    usp: content.usp,
     about: content.about,
     services: content.services,
     trust: content.trust,
