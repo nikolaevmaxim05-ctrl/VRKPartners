@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Google Partner">
+  <rect x="0" y="0" width="240" height="240" rx="28" fill="#ffffff"/>
+  <g fill="none" stroke-width="16" stroke-linecap="round">
+    <path d="M 120,40 A 44,44 0 0 1 164,84" stroke="#4285F4"/>
+    <path d="M 164,84 A 44,44 0 0 1 120,128" stroke="#EA4335"/>
+    <path d="M 120,128 A 44,44 0 0 1 76,84" stroke="#FBBC05"/>
+    <path d="M 76,84 A 44,44 0 0 1 120,40" stroke="#34A853"/>
+  </g>
+  <text x="120" y="172" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" fill="#5f6368">Google</text>
+  <text x="120" y="204" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#3c4043">Partner</text>
+</svg>

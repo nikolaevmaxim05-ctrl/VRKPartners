@@ -2,7 +2,6 @@
 
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
-import { LeadForm } from "@/components/LeadForm";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
@@ -99,15 +98,32 @@ export function Hero() {
             <div className="anim-spin-slow absolute inset-0 rounded-[2.5rem] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(246,247,64,0.22)_70deg,transparent_150deg,transparent_360deg)] blur-2xl" />
           </div>
 
-          <div className="relative z-10 rounded-2xl border border-bg-line bg-bg-card/90 p-6 shadow-card backdrop-blur sm:p-7">
-            <h2 className="text-xl font-bold text-white">{hero.formTitle}</h2>
-            <p className="mt-1 text-sm text-white/55">{hero.formNote}</p>
-            <div className="mt-5">
-              <LeadForm
-                source="hero"
-                submitLabel="Надіслати заявку"
-                inlineSuccess
-              />
+          <div className="relative z-10 overflow-hidden rounded-2xl border border-bg-line bg-bg-card/90 p-6 shadow-card backdrop-blur sm:p-8">
+            <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+              {hero.partnerBadge && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={hero.partnerBadge}
+                  alt="Google Partner"
+                  className="h-24 w-24 shrink-0 rounded-2xl bg-white object-contain p-1 sm:h-28 sm:w-28"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-snug text-white sm:text-xl">
+                  {hero.partnerTitle}
+                </p>
+                {hero.trustHref && (
+                  <a
+                    href={hero.trustHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline decoration-brand/40 underline-offset-4 transition-colors hover:decoration-brand"
+                  >
+                    {hero.partnerLinkText}
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>

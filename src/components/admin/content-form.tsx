@@ -12,6 +12,7 @@ import { CasesEditor } from '@/components/admin/content-cases-editor'
 import { AuditEditor } from '@/components/admin/content-audit-editor'
 import { WorkflowEditor } from '@/components/admin/content-workflow-editor'
 import { AboutEditor } from '@/components/admin/content-about-editor'
+import { ImageField } from '@/components/admin/content-image-field'
 import type { ServicesContent, TrustContent, AuditContent, WorkflowContent, AboutContent } from '@/lib/content'
 
 type SiteFields = {
@@ -20,6 +21,7 @@ type SiteFields = {
 }
 type HeroFields = {
   title: string; subtitle: string; trust: string; trustHref: string
+  partnerBadge: string; partnerTitle: string; partnerLinkText: string
   primaryCta: string; secondaryCta: string; formTitle: string; formNote: string
 }
 type FinalCtaFields = { title: string; text: string; primaryCta: string }
@@ -159,8 +161,20 @@ export function ContentForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Кнопка 1 (консультація)" value={hero.primaryCta} onChange={setHeroField('primaryCta')} />
             <Field label="Кнопка 2 (аудит)" value={hero.secondaryCta} onChange={setHeroField('secondaryCta')} />
-            <Field label="Заголовок форми" value={hero.formTitle} onChange={setHeroField('formTitle')} />
-            <Field label="Підпис під формою" value={hero.formNote} onChange={setHeroField('formNote')} />
+          </div>
+          <Field label="Підпис у модалці заявки" value={hero.formNote} onChange={setHeroField('formNote')} />
+
+          <div className="space-y-3 rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm font-medium">Блок «Google Partner» (праворуч)</p>
+            <ImageField
+              label="Бейдж (зображення)"
+              value={hero.partnerBadge}
+              defaultValue="/partner/google-partner.svg"
+              onChange={setHeroField('partnerBadge')}
+            />
+            <Field label="Текст блоку" value={hero.partnerTitle} onChange={setHeroField('partnerTitle')} textarea />
+            <Field label="Текст посилання" value={hero.partnerLinkText} onChange={setHeroField('partnerLinkText')} placeholder="VRK у каталозі партнерів Google" />
+            <p className="text-xs text-muted-foreground">Посилання веде на URL з поля «Посилання рядка довіри».</p>
           </div>
         </CollapsibleCard>
 
