@@ -15,7 +15,7 @@ import { site } from "@/config/site";
 import { formatUtmSummary } from "@/lib/utm";
 import { getIntegration } from "@/lib/integrations/get-integration";
 
-type LeadData = Omit<LeadFormData, "turnstileToken" | "website" | "consent">;
+type LeadData = Omit<LeadFormData, "website" | "consent">;
 
 interface IntegrationResult {
   ok: boolean;
@@ -146,7 +146,7 @@ function buildAdminEmailHtml(data: LeadData, serviceLabel: string): string {
           <tr>
             <td style="background:#f9fafb;padding:16px 32px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                © ${new Date().getFullYear()} ${escapeHtml(site.name)} · ${escapeHtml(site.geo)}
+                © ${new Date().getFullYear()} ${escapeHtml(site.name)}
               </p>
             </td>
           </tr>

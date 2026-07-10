@@ -19,7 +19,6 @@ export default async function ContentPage() {
       email: content.site.email,
       telegram: content.site.telegram,
       telegramHandle: content.site.telegramHandle,
-      geo: content.site.geo,
     },
     hero: {
       title: content.hero.title,

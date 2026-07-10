@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Minus, Send, Mail, Phone, Globe, ArrowRight } from "lucide-react";
+import { Plus, Minus, Send, Mail, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
@@ -77,7 +77,7 @@ export function FinalCta() {
         </div>
 
         {/* Контакти */}
-        <div className="reveal mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="reveal mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <a
             href={site.telegram}
             target="_blank"
@@ -113,13 +113,6 @@ export function FinalCta() {
               <span className="font-medium text-white">{site.phone}</span>
             </span>
           </a>
-          <div className="flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4">
-            <Globe className="h-5 w-5 shrink-0 text-brand" />
-            <span className="text-sm">
-              <span className="block text-white/45">Формат роботи</span>
-              <span className="font-medium text-white">{site.geo}</span>
-            </span>
-          </div>
         </div>
 
         {/* Нижній CTA */}

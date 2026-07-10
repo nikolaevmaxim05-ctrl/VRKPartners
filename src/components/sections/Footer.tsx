@@ -91,7 +91,6 @@ export function Footer() {
                 <Phone className="h-4 w-4 shrink-0 text-brand" />
                 {site.phone}
               </a>
-              <p className="pt-1 text-sm text-white/40">{site.geo}</p>
             </div>
           </div>
         </div>

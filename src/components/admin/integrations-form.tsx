@@ -45,14 +45,6 @@ const GROUPS = [
       { key: 'smtp_from',     label: 'From (відправник)',   testable: false, placeholder: 'VRK Partners <team@gmail.com>' },
     ],
   },
-  {
-    title: 'Cloudflare Turnstile',
-    description: 'Захист форми від ботів та спаму',
-    keys: [
-      { key: 'turnstile_site_key',   label: 'Site Key (публічний)', testable: false, placeholder: '0x4AAAAAAA...' },
-      { key: 'turnstile_secret_key', label: 'Secret Key',           testable: false, placeholder: '0x4AAAAAAA...' },
-    ],
-  },
 ]
 
 export function IntegrationsForm() {

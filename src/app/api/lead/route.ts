@@ -1,5 +1,5 @@
 // POST /api/lead — приймає заявки з лендингу
-// Архітектура: rate limit → honeypot → валідація → Turnstile → дедуп → доставка в канали
+// Архітектура: rate limit → honeypot → валідація → дедуп → доставка в канали
 // Принцип: НЕ блокувати юзера через зовнішні API — Promise.allSettled
 //
 // Відмінності від донора (усмішка):
@@ -11,7 +11,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { leadSchema, type LeadInput } from "@/lib/validators";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { verifyTurnstileToken } from "@/lib/integrations/turnstile";
 import { sendLeadToTelegram } from "@/lib/integrations/telegram";
 import { createKeyCRMLead } from "@/lib/integrations/keycrm";
 import { sendLeadEmail } from "@/lib/integrations/email";
@@ -90,15 +89,6 @@ export async function POST(request: NextRequest) {
   }
 
   const lead = parsed.data;
-
-  // 5. Turnstile server-side verify
-  const turnstileResult = await verifyTurnstileToken(lead.turnstileToken ?? "", ip);
-  if (!turnstileResult.ok) {
-    return NextResponse.json(
-      { error: "Перевірка не пройдена. Оновіть сторінку." },
-      { status: 403 }
-    );
-  }
 
   // Підготовка даних для інтеграцій: комбінований message з усіма полями VRK,
   // page (URL сторінки) — у полі source (так його друкують Telegram/Email/CRM).

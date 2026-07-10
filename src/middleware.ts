@@ -18,22 +18,22 @@ const supabaseHost = supabaseUrl
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  // Скрипты: GTM, GA4, Google Ads, Cloudflare Turnstile, Plausible, Meta Pixel, TikTok Pixel
+  // Скрипты: GTM, GA4, Google Ads, Plausible, Meta Pixel, TikTok Pixel
   // GA4/Ads грузят код не только с googletagmanager.com, но и с google-analytics.com,
   // googleadservices.com и google.com — иначе CSP блокирует gtag/конверсии.
   // В dev — 'unsafe-eval' нужен для Next.js hot module replacement
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://www.google.com https://challenges.cloudflare.com https://plausible.io https://connect.facebook.net https://analytics.tiktok.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://www.google.com https://plausible.io https://connect.facebook.net https://analytics.tiktok.com`,
   // style-src: + Google Fonts (CSS-файл шрифтов с fonts.googleapis.com)
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https: blob:",
   // font-src: + Google Fonts (сами файлы шрифтов .woff2 с fonts.gstatic.com)
   "font-src 'self' data: https://fonts.gstatic.com",
-  // connect-src: GA4, Plausible, Upstash, Telegram, Turnstile, Resend, KeyCRM, Supabase
+  // connect-src: GA4, Plausible, Upstash, Telegram, Resend, KeyCRM, Supabase
   // + Google Ads конверсии (прямой AW-тег через gtag.js, промпт 015)
   // + *.analytics.google.com и *.googletagmanager.com — серверные хиты GA4 и GTM preview
-  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://*.upstash.io https://api.telegram.org https://challenges.cloudflare.com https://api.resend.com https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, "")}` : ""}`,
-  // frame-src: Turnstile + td.doubleclick.net (GA4/AW инжектят iframe для cross-domain linker)
-  "frame-src https://challenges.cloudflare.com https://td.doubleclick.net https://www.googletagmanager.com",
+  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://*.upstash.io https://api.telegram.org https://api.resend.com https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, "")}` : ""}`,
+  // frame-src: td.doubleclick.net (GA4/AW инжектят iframe для cross-domain linker)
+  "frame-src https://td.doubleclick.net https://www.googletagmanager.com",
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",

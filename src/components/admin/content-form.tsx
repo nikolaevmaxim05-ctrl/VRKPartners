@@ -15,7 +15,7 @@ import type { ServicesContent, TrustContent, AuditContent, WorkflowContent } fro
 
 type SiteFields = {
   phone: string; phoneHref: string; email: string
-  telegram: string; telegramHandle: string; geo: string
+  telegram: string; telegramHandle: string
 }
 type HeroFields = {
   title: string; subtitle: string; trust: string
@@ -211,7 +211,6 @@ export function ContentForm({
             <Field label="Email" value={site.email} onChange={setSiteField('email')} placeholder="hello@vrkpartners.com" />
             <Field label="Telegram (посилання)" value={site.telegram} onChange={setSiteField('telegram')} placeholder="https://t.me/vrkpartners" />
             <Field label="Telegram (нік)" value={site.telegramHandle} onChange={setSiteField('telegramHandle')} placeholder="@vrkpartners" />
-            <Field label="Гео / формат роботи" value={site.geo} onChange={setSiteField('geo')} placeholder="Україна · Європа · США" />
           </div>
         </CollapsibleCard>
       </div>

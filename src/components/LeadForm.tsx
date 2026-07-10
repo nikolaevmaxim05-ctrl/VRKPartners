@@ -10,7 +10,6 @@ import { track } from "@/lib/analytics";
 import { getStoredUtm } from "@/lib/utm";
 import { Button } from "@/components/landing-ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/landing-ui/Field";
-import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { adFormats, budgetRanges, goals, audit } from "@/config/site";
 
 /** Маска телефону: +380 (XX) XXX-XX-XX. Лишає тільки цифри й форматує. */
@@ -64,8 +63,6 @@ export function LeadForm({
   const router = useRouter();
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState(false);
-  // Токен Cloudflare Turnstile (порожній, доки користувач не пройде перевірку)
-  const [turnstileToken, setTurnstileToken] = React.useState("");
 
   const {
     register,
@@ -81,11 +78,6 @@ export function LeadForm({
 
   const onSubmit = async (data: LeadInput) => {
     setServerError(null);
-    // Якщо капча налаштована, але токена немає — не відправляємо.
-    if (turnstileEnabled && !turnstileToken) {
-      setServerError("Підтвердьте, що ви не робот.");
-      return;
-    }
     track("form_submit_attempt", { source });
     // Атрибуція: UTM-мітки із sessionStorage + URL поточної сторінки
     const utm = getStoredUtm();
@@ -94,7 +86,7 @@ export function LeadForm({
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, turnstileToken, utm, page }),
+        body: JSON.stringify({ ...data, utm, page }),
       });
       if (!res.ok) throw new Error("bad_status");
       track("form_submit_success", { source });
@@ -254,15 +246,6 @@ export function LeadForm({
         />
       </div>
 
-      {/* Cloudflare Turnstile — показується лише якщо заданий site key */}
-      <Turnstile
-        onVerify={(token) => {
-          setTurnstileToken(token);
-          setServerError(null);
-        }}
-        onExpire={() => setTurnstileToken("")}
-      />
-
       {serverError && (
         <p className="text-sm text-red-400" role="alert">
           {serverError}
@@ -273,7 +256,7 @@ export function LeadForm({
         type="submit"
         size="lg"
         className="w-full"
-        disabled={isSubmitting || (turnstileEnabled && !turnstileToken)}
+        disabled={isSubmitting}
       >
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {submitLabel}

@@ -63,8 +63,6 @@ export const leadSchema = z.object({
   service: z.string().max(60).optional(),
   goal: z.string().max(60).optional(),
   company: honeypot, // honeypot
-  // Токен Cloudflare Turnstile (перевіряється на сервері, якщо налаштовано)
-  turnstileToken: z.string().max(4096).optional().or(z.literal("")),
   // UTM-мітки / click-id / referrer — з sessionStorage клієнта (необов'язкові).
   // Невідомі ключі Zod відкине, довжину обмежуємо — захист від роздутого payload.
   utm: z
@@ -103,5 +101,4 @@ export const leadDefaults: LeadInput = {
   service: "",
   goal: "",
   company: "",
-  turnstileToken: "",
 };

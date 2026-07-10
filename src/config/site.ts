@@ -18,7 +18,6 @@ export const site = {
   phoneHref: "tel:+380970000000",
   telegram: "https://t.me/vrkpartners",
   telegramHandle: "@vrkpartners",
-  geo: "Україна · Європа · США та інші країни",
   format: "Онлайн",
 } as const;
 

@@ -8,7 +8,6 @@ import { leadSchema } from "@/lib/validators";
 const validLead = {
   name: "Іван Петренко",
   phone: "+380 (99) 123-45-67",
-  turnstileToken: "cf-turnstile-token-abc123",
 };
 
 describe("leadSchema (VRK)", () => {
