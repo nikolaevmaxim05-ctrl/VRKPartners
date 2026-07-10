@@ -36,7 +36,9 @@ export function CollapsibleCard({
           />
         </div>
       </CardHeader>
-      {open && <CardContent className="space-y-4">{children}</CardContent>}
+      {open && (
+        <CardContent className="space-y-4 rounded-b-lg bg-muted/30 pt-4">{children}</CardContent>
+      )}
     </Card>
   )
 }
@@ -54,8 +56,8 @@ export function CollapsibleItem({
   children: ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
-  // Рівень 1 — легкий сірий поверх картки; рівень 2 — трохи темніший, для подвійної вкладеності.
-  const toneClass = level === 2 ? 'bg-muted/70' : 'bg-muted/40'
+  // Чим глибша вкладеність — тим насиченіший фон (картка bg-muted/30 → рівень 1 → рівень 2).
+  const toneClass = level === 2 ? 'bg-muted/90' : 'bg-muted/60'
   return (
     <div className={cn('rounded-lg border', toneClass)}>
       <div className="flex items-center justify-between gap-2 p-2.5">
