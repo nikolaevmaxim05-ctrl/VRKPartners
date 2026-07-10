@@ -35,6 +35,7 @@ export default async function ContentPage() {
       primaryCta: content.finalCta.primaryCta,
     },
     faq: content.faq.map((f) => ({ q: f.q, a: f.a })),
+    about: content.about,
     services: content.services,
     trust: content.trust,
     audit: content.audit,
@@ -54,6 +55,7 @@ export default async function ContentPage() {
         initial={initial}
         defaultServices={defaults.services}
         defaultTrust={defaults.trust}
+        defaultAbout={defaults.about}
       />
     </div>
   )

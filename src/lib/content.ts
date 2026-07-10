@@ -6,11 +6,27 @@
 // містить лише ЗМІНЕНІ поля (partial override), напр.:
 //   { "hero": { "title": "..." }, "faq": [ { "q": "...", "a": "..." } ] }
 
-import { site, hero, finalCta, faq, services, trust, audit, workflow } from '@/config/site'
+import { site, hero, about, finalCta, faq, services, trust, audit, workflow } from '@/config/site'
 
 export const LANDING_CONTENT_ID = 'landing'
 
 export type FaqItem = { q: string; a: string }
+
+// ── Про нас (команда) ────────────────────────────────────────────────────────
+export type AboutMember = {
+  key: string
+  name: string
+  photo: string
+  experience: string
+  role: string
+  skills: string
+}
+export type AboutContent = {
+  eyebrow: string
+  title: string
+  text: string
+  members: AboutMember[]
+}
 
 // ── Аудит (блок 3) ───────────────────────────────────────────────────────────
 export type AuditItem = { name: string; desc: string; points: string[] }
@@ -111,6 +127,7 @@ export type LandingContentOverrides = {
     text: string
     primaryCta: string
   }>
+  about?: Partial<AboutContent>
   faq?: FaqItem[]
   services?: Partial<ServicesContent>
   trust?: Partial<TrustContent>
@@ -124,6 +141,7 @@ export type LandingContentOverrides = {
 export type LandingContent = {
   site: Record<string, string>
   hero: Record<string, string>
+  about: AboutContent
   finalCta: Record<string, string>
   faq: readonly FaqItem[]
   services: ServicesContent
@@ -143,6 +161,7 @@ export function getDefaultLandingContent(): LandingContent {
   return {
     site: { ...site },
     hero: { ...hero },
+    about: clone(about) as AboutContent,
     finalCta: { ...finalCta },
     faq: [...faq],
     services: clone(services) as ServicesContent,
@@ -162,6 +181,7 @@ export function mergeLandingContent(
   return {
     site: { ...base.site, ...cleanStrings(overrides.site) },
     hero: { ...base.hero, ...cleanStrings(overrides.hero) },
+    about: mergeAbout(base.about, overrides.about),
     finalCta: { ...base.finalCta, ...cleanStrings(overrides.finalCta) },
     faq:
       Array.isArray(overrides.faq) && overrides.faq.length > 0
@@ -177,6 +197,29 @@ export function mergeLandingContent(
     audit: mergeAudit(base.audit, overrides.audit),
     workflow: mergeWorkflow(base.workflow, overrides.workflow),
   }
+}
+
+/** Мерж блоку «Про нас»: заголовкові рядки + учасники (фото/досвід/роль/навички). */
+function mergeAbout(base: AboutContent, ov?: Partial<AboutContent>): AboutContent {
+  if (!ov || typeof ov !== 'object') return base
+  const out: AboutContent = { ...base }
+  const s = cleanStrings(ov as Record<string, unknown>)
+  if (s.eyebrow) out.eyebrow = s.eyebrow
+  if (s.title) out.title = s.title
+  if (typeof ov.text === 'string') out.text = ov.text
+  if (Array.isArray(ov.members) && ov.members.length > 0) {
+    out.members = ov.members
+      .filter((m) => m && typeof m.name === 'string')
+      .map((m, i) => ({
+        key: typeof m.key === 'string' && m.key ? m.key : `member-${i + 1}`,
+        name: String(m.name ?? ''),
+        photo: String(m.photo ?? ''),
+        experience: String(m.experience ?? ''),
+        role: String(m.role ?? ''),
+        skills: String(m.skills ?? ''),
+      }))
+  }
+  return out
 }
 
 /** Мерж блоку «Аудит»: рядкові поля + items (name/desc/points) + services. */

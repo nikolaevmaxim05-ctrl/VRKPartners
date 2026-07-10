@@ -22,6 +22,7 @@ export const site = {
 } as const;
 
 export const nav = [
+  { label: "Про нас", href: "#about" },
   { label: "Послуги", href: "#services" },
   { label: "Аудит", href: "#audit" },
   { label: "Кейси", href: "#cases" },
@@ -75,6 +76,33 @@ export const hero = {
   secondaryCta: "Замовити аудит Google Ads",
   formTitle: "Залиште заявку",
   formNote: "Відповімо протягом робочого дня. Без спаму та нав'язування.",
+} as const;
+
+/* ── Блок «Про нас» (команда) ───────────────────────────────────────── */
+export const about = {
+  eyebrow: "Про нас",
+  title: "Команда, яка веде ваш Google Ads",
+  text: "Двоє співзасновників із практичним досвідом у PPC та управлінні проєктами — працюємо з вами напряму, без прошарку менеджерів.",
+  members: [
+    {
+      key: "vladyslav",
+      name: "Владислав Рахманін",
+      photo: "/team/vladyslav.jpg",
+      experience: "4 роки",
+      role: "Co-Founder, Team Lead",
+      skills:
+        "Senior PPC Google Ads, Розробка стратегії, Налаштування рекламних кампаній, Налаштування Аналітики, Google Partner",
+    },
+    {
+      key: "kostiantyn",
+      name: "Костянтин Чуєв",
+      photo: "/team/kostiantyn.jpg",
+      experience: "7 років",
+      role: "Co-Founder, Керівник Проектів",
+      skills:
+        "Маркетолог, Ведення бізнес-процесів, Комунікація, Розробка Стратегії",
+    },
+  ],
 } as const;
 
 /* ── Блок 2. Послуги Google Ads ─────────────────────────────────────── */

@@ -11,7 +11,8 @@ import { ServicesEditor } from '@/components/admin/content-services-editor'
 import { CasesEditor } from '@/components/admin/content-cases-editor'
 import { AuditEditor } from '@/components/admin/content-audit-editor'
 import { WorkflowEditor } from '@/components/admin/content-workflow-editor'
-import type { ServicesContent, TrustContent, AuditContent, WorkflowContent } from '@/lib/content'
+import { AboutEditor } from '@/components/admin/content-about-editor'
+import type { ServicesContent, TrustContent, AuditContent, WorkflowContent, AboutContent } from '@/lib/content'
 
 type SiteFields = {
   phone: string; phoneHref: string; email: string
@@ -29,6 +30,7 @@ type Initial = {
   hero: HeroFields
   finalCta: FinalCtaFields
   faq: FaqItem[]
+  about: AboutContent
   services: ServicesContent
   trust: TrustContent
   audit: AuditContent
@@ -60,14 +62,16 @@ function Field({
 }
 
 export function ContentForm({
-  initial, defaultServices, defaultTrust,
+  initial, defaultServices, defaultTrust, defaultAbout,
 }: {
   initial: Initial
   defaultServices: ServicesContent
   defaultTrust: TrustContent
+  defaultAbout: AboutContent
 }) {
   const [site, setSite] = useState<SiteFields>(initial.site)
   const [hero, setHero] = useState<HeroFields>(initial.hero)
+  const [about, setAbout] = useState<AboutContent>(initial.about)
   const [finalCta, setFinalCta] = useState<FinalCtaFields>(initial.finalCta)
   const [faq, setFaq] = useState<FaqItem[]>(initial.faq)
   const [services, setServices] = useState<ServicesContent>(initial.services)
@@ -79,12 +83,12 @@ export function ContentForm({
   // Базовий знімок для відстеження змін. Кнопка збереження зʼявляється лише коли є зміни.
   const [baseline, setBaseline] = useState(() =>
     JSON.stringify({
-      site: initial.site, hero: initial.hero, finalCta: initial.finalCta,
+      site: initial.site, hero: initial.hero, about: initial.about, finalCta: initial.finalCta,
       faq: initial.faq, services: initial.services, trust: initial.trust,
       audit: initial.audit, workflow: initial.workflow,
     })
   )
-  const current = JSON.stringify({ site, hero, finalCta, faq, services, trust, audit, workflow })
+  const current = JSON.stringify({ site, hero, about, finalCta, faq, services, trust, audit, workflow })
   const dirty = current !== baseline
 
   const setSiteField = (k: keyof SiteFields) => (v: string) => setSite((s) => ({ ...s, [k]: v }))
@@ -111,6 +115,7 @@ export function ContentForm({
     try {
       const overrides = {
         site, hero, finalCta,
+        about: { ...about, members: about.members.filter((m) => m.name.trim().length > 0) },
         faq: faq.filter((f) => f.q.trim().length > 0),
         services: { ...services, items: services.items.filter((it) => it.name.trim().length > 0) },
         trust: {
@@ -158,7 +163,10 @@ export function ContentForm({
           </div>
         </CollapsibleCard>
 
-        {/* 2. Послуги */}
+        {/* 2. Про нас */}
+        <AboutEditor value={about} onChange={setAbout} defaultAbout={defaultAbout} />
+
+        {/* 3. Послуги */}
         <ServicesEditor value={services} onChange={setServices} defaultServices={defaultServices} />
 
         {/* 3. Аудит */}
