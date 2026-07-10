@@ -24,7 +24,7 @@ function MemberCard({ m }: { m: Member }) {
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5; // -0.5..0.5
     const py = (e.clientY - r.top) / r.height - 0.5;
-    const MAX = 7; // максимальний кут нахилу, градуси
+    const MAX = 3.5; // максимальний кут нахилу, градуси
     setTilt({ rx: -py * 2 * MAX, ry: px * 2 * MAX, active: true });
   };
   const handleLeave = () => setTilt({ rx: 0, ry: 0, active: false });
@@ -39,9 +39,9 @@ function MemberCard({ m }: { m: Member }) {
           transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) scale(${tilt.active ? 1.02 : 1})`,
           transition: tilt.active ? "transform 80ms ease-out" : "transform 300ms ease-out",
         }}
-        className="flex flex-col items-center rounded-2xl border border-bg-line bg-bg-card p-6 text-center shadow-card [transform-style:preserve-3d] will-change-transform hover:border-brand/40 sm:p-8"
+        className="flex flex-col items-center rounded-2xl border border-bg-line bg-bg-card p-6 text-center shadow-card [transform-style:preserve-3d] will-change-transform sm:p-8"
       >
-        <div className="h-40 w-40 shrink-0 overflow-hidden rounded-full ring-2 ring-brand/40 sm:h-48 sm:w-48">
+        <div className="h-40 w-40 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10 sm:h-48 sm:w-48">
           {m.photo ? (
             <Image
               src={m.photo}
