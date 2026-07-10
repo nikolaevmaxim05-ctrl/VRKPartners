@@ -290,11 +290,13 @@ export default async function MarketingLayout({
 
       <ContentProvider content={content}>
         <ModalProvider>
-          <SiteBackground />
-          <RevealObserver />
-          <Header />
-          <main>{children}</main>
-          <Footer />
+          <div className="relative">
+            <SiteBackground />
+            <RevealObserver />
+            <Header />
+            <main>{children}</main>
+            <Footer />
+          </div>
         </ModalProvider>
       </ContentProvider>
     </>
