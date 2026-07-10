@@ -1,26 +1,28 @@
 // Єдиний монолітний анімований фон усього лендингу.
 // Absolute-шар на всю висоту сторінки: плями «аврора» рухаються РАЗОМ зі скролом.
-// Плями притиснуті до лівого/правого краю і йдуть щільно (кожні ~6% висоти),
-// тож у будь-який момент у в'юпорті видно 2–3 плями. Батьківський контейнер у
-// layout має position: relative.
+// Плями притиснуті до лівого/правого краю (чергування), кольори — жовтий/фіолетовий.
+// Батьківський контейнер у layout має position: relative.
+//
+// ВАЖЛИВО: класи прозорості мають бути зі стандартної шкали Tailwind (кратні 5),
+// інакше клас не згенерується і пляма буде без фону (напр. /18 — НЕ працює).
 
 type Blob = {
   top: string;
   side: "l" | "r";
-  color: "brand" | "violet";
+  cls: string; // bg-* клас з валідною прозорістю
   anim: "anim-drift" | "anim-drift2" | "anim-drift3";
   size: string;
 };
 
-// Щільний рядок плям згори донизу, з чергуванням боку/кольору/анімації.
-const TOPS = [1, 7, 13, 19, 25, 31, 37, 43, 49, 55, 61, 67, 73, 79, 85, 91];
+const TOPS = [3, 14, 25, 36, 47, 58, 69, 80, 91];
 const ANIMS = ["anim-drift", "anim-drift2", "anim-drift3"] as const;
 const SIZES = ["36rem", "32rem", "34rem", "38rem"];
 
 const BLOBS: Blob[] = TOPS.map((top, i) => ({
   top: `${top}%`,
   side: i % 2 === 0 ? "r" : "l",
-  color: i % 2 === 0 ? "brand" : "violet",
+  // праворуч — жовті, ліворуч — фіолетові (обидва боки видно)
+  cls: i % 2 === 0 ? "bg-brand/20" : "bg-violet-500/25",
   anim: ANIMS[i % ANIMS.length],
   size: SIZES[i % SIZES.length],
 }));
@@ -34,9 +36,7 @@ export function SiteBackground() {
       {BLOBS.map((b, i) => (
         <div
           key={i}
-          className={`${b.anim} absolute rounded-full blur-[140px] ${
-            b.color === "brand" ? "bg-brand/20" : "bg-violet-500/18"
-          }`}
+          className={`${b.anim} ${b.cls} absolute rounded-full blur-[140px]`}
           style={{
             top: b.top,
             [b.side === "r" ? "right" : "left"]: "-11%",
