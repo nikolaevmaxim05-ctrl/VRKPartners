@@ -42,18 +42,22 @@ export function CollapsibleCard({
 }
 
 /** Внутрішній згортуваний елемент (напр. картка послуги / кейс). Згорнутий за замовчуванням.
- * `right` — дії (сортування/видалення) у заголовку, клік по них не згортає. */
+ * `right` — дії (сортування/видалення) у заголовку, клік по них не згортає.
+ * `level` — глибина вкладеності: різний відтінок фону, щоб око розрізняло рівні. */
 export function CollapsibleItem({
-  title, right, defaultOpen = false, children,
+  title, right, defaultOpen = false, level = 1, children,
 }: {
   title: string
   right?: ReactNode
   defaultOpen?: boolean
+  level?: 1 | 2
   children: ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  // Рівень 1 — легкий сірий поверх картки; рівень 2 — трохи темніший, для подвійної вкладеності.
+  const toneClass = level === 2 ? 'bg-muted/70' : 'bg-muted/40'
   return (
-    <div className="rounded-lg border">
+    <div className={cn('rounded-lg border', toneClass)}>
       <div className="flex items-center justify-between gap-2 p-2.5">
         <button
           type="button"

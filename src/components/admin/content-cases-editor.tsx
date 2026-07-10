@@ -152,6 +152,7 @@ export function CasesEditor({
             {g.cases.map((c, ci) => (
               <CollapsibleItem
                 key={ci}
+                level={2}
                 title={c.client.trim() || `Кейс ${ci + 1}`}
                 right={
                   <>
