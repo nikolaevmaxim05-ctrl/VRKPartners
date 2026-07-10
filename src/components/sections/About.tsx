@@ -88,7 +88,7 @@ export function About() {
   const { about } = useContent();
 
   return (
-    <section id="about" className="section bg-bg-soft/40">
+    <section id="about" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           {about.eyebrow && (

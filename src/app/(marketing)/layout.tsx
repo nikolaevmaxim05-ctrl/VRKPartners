@@ -3,6 +3,7 @@ import Script from "next/script";
 import { ModalProvider } from "@/components/ModalProvider";
 import { ContentProvider } from "@/components/ContentProvider";
 import { RevealObserver } from "@/components/RevealObserver";
+import { SiteBackground } from "@/components/SiteBackground";
 import { UtmTracker } from "@/components/UtmTracker";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
@@ -289,6 +290,7 @@ export default async function MarketingLayout({
 
       <ContentProvider content={content}>
         <ModalProvider>
+          <SiteBackground />
           <RevealObserver />
           <Header />
           <main>{children}</main>

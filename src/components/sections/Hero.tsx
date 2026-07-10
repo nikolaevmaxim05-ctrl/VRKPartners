@@ -36,14 +36,6 @@ export function Hero() {
       id="top"
       className="relative overflow-hidden pt-24 pb-14 sm:pt-32 lg:pt-36 lg:pb-24"
     >
-      {/* фонові ефекти: рухливі «аврора»-плями + сітка */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -top-40 right-[-12%] h-[30rem] w-[30rem] rounded-full bg-brand/20 blur-[130px] anim-drift" />
-        <div className="absolute bottom-[-25%] left-[-12%] h-[28rem] w-[28rem] rounded-full bg-violet-500/15 blur-[130px] anim-drift2" />
-        <div className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-brand/10 blur-[120px] anim-drift" />
-        <div className="absolute inset-0 bg-grid-faint [background-size:64px_64px] opacity-40 [mask-image:radial-gradient(70%_50%_at_50%_0%,black,transparent)]" />
-      </div>
-
       <div className="container-x relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-end lg:gap-12">
         <div className="min-w-0 animate-fade-up">
           <h1 className="text-[1.7rem] font-bold leading-[1.15] sm:text-5xl sm:leading-[1.08] lg:text-[3.4rem]">

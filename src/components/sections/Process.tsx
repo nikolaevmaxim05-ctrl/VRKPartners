@@ -21,7 +21,7 @@ export function Process() {
   };
 
   return (
-    <section id="process" className="section bg-bg-soft/40">
+    <section id="process" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           <h2 className="h2">{workflow.title}</h2>

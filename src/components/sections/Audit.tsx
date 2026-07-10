@@ -33,7 +33,7 @@ export function Audit() {
   };
 
   return (
-    <section id="audit" className="section bg-bg-soft/40">
+    <section id="audit" className="section">
       <div className="container-x">
         <div className="reveal max-w-2xl">
           <h2 className="h2">{audit.title}</h2>
