@@ -27,13 +27,13 @@ export function About() {
               key={m.key}
               className="flex flex-col items-center rounded-2xl border border-bg-line bg-bg-card p-6 text-center shadow-card sm:p-8"
             >
-              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full ring-2 ring-brand/40 sm:h-32 sm:w-32">
+              <div className="h-40 w-40 shrink-0 overflow-hidden rounded-full ring-2 ring-brand/40 sm:h-48 sm:w-48">
                 {m.photo ? (
                   <Image
                     src={m.photo}
                     alt={m.name}
-                    width={160}
-                    height={160}
+                    width={224}
+                    height={224}
                     className="h-full w-full object-cover"
                   />
                 ) : (
