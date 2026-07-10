@@ -16,7 +16,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       <div
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute -inset-1 rounded-2xl bg-brand/15 blur-2xl transition-opacity duration-300 ease-out",
+          "pointer-events-none absolute -inset-1 rounded-2xl bg-white/15 blur-2xl transition-opacity duration-300 ease-out",
           open ? "opacity-100" : "opacity-0"
         )}
       />
