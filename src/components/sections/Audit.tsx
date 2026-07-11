@@ -45,7 +45,7 @@ export function Audit() {
             return (
               <article
                 key={item.name}
-                className="rounded-2xl border border-bg-line bg-bg-card p-4 shadow-card transition-transform duration-150 ease-out will-change-transform hover:!scale-[1.03] sm:p-6"
+                className="rounded-2xl border border-bg-line bg-bg-card p-4 shadow-card transition-transform duration-75 ease-out will-change-transform hover:!scale-[1.03] sm:p-6"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30 sm:h-11 sm:w-11">
                   <Icon className="h-4 w-4 text-brand sm:h-5 sm:w-5" />
