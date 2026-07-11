@@ -175,6 +175,11 @@ export async function POST() {
     })
   }
 
+  // Type guard: тут усі чотири присутні (missing порожній) — звужуємо типи до string.
+  if (!measurementId || !apiSecret || !propertyId || !saRaw) {
+    return NextResponse.json({ configured: false })
+  }
+
   // Точки з реєстру під поточним конфігом.
   const config = await loadConfig()
   const points = ANALYTICS_REGISTRY.map((entry) => {
