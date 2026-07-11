@@ -116,7 +116,7 @@ export const usp = {
 export const about = {
   eyebrow: "",
   title: "Команда, яка веде ваш Google Ads",
-  text: "Двоє співзасновників із практичним досвідом у PPC та управлінні проєктами — працюємо з вами напряму, без прошарку менеджерів.",
+  text: "",
   members: [
     {
       key: "vladyslav",

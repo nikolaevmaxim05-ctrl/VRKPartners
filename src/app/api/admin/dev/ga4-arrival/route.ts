@@ -152,9 +152,27 @@ export async function POST() {
   const propertyId = process.env.GA4_PROPERTY_ID
   const saRaw = process.env.GA4_SA_JSON
 
-  // Не налаштовано — UI покаже інструкцію (не помилка).
-  if (!measurementId || !apiSecret || !propertyId || !saRaw) {
+  // Діагностика: рахуємо, яких саме змінних не бачить середовище.
+  const required: Record<string, string | undefined> = {
+    GA4_MEASUREMENT_ID: measurementId,
+    GA4_API_SECRET: apiSecret,
+    GA4_PROPERTY_ID: propertyId,
+    GA4_SA_JSON: saRaw,
+  }
+  const missing = Object.entries(required)
+    .filter(([, v]) => !v || !String(v).trim())
+    .map(([k]) => k)
+
+  // Жодної немає — вважаємо «не налаштовано» (UI покаже інструкцію, без помилки).
+  if (missing.length === Object.keys(required).length) {
     return NextResponse.json({ configured: false })
+  }
+  // Частина задана, частини бракує — це майже завжди помилка в назві/оточенні.
+  if (missing.length > 0) {
+    return NextResponse.json({
+      configured: true,
+      error: `Середовище не бачить: ${missing.join(', ')}. Перевірте точні назви, оточення Production і зробіть свіжий redeploy (не з кешу старого білда).`,
+    })
   }
 
   // Точки з реєстру під поточним конфігом.
