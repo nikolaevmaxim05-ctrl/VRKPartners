@@ -98,10 +98,7 @@ export function WorkflowEditor({
         <p className="text-sm font-medium">Бонус від Google</p>
         <TextField label="Заголовок бонусу" value={value.bonus?.title ?? ''} onChange={setBonus('title')} />
         <TextField label="Опис бонусу" value={value.bonus?.desc ?? ''} onChange={setBonus('desc')} textarea />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="Бейдж" value={value.bonus?.badge ?? ''} onChange={setBonus('badge')} />
-          <TextField label="Кнопка" value={value.bonus?.cta ?? ''} onChange={setBonus('cta')} />
-        </div>
+        <TextField label="Кнопка" value={value.bonus?.cta ?? ''} onChange={setBonus('cta')} />
 
         <div className="space-y-2">
           <p className="text-sm font-medium">Умови ({terms.length})</p>
