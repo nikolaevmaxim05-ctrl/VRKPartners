@@ -191,6 +191,39 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ? statusInfoById.get(update.status_id as string)?.conversion_type ?? null
       : null
 
+    // ── Обовʼязкові кастомні поля: не даємо перейти у стадію-конверсію
+    //    (target_lead / deal / deal_adjustment), поки не заповнені всі required-поля.
+    const REQUIRE_FIELDS_TYPES: readonly string[] = ['target_lead', 'deal', 'deal_adjustment']
+    if (newConversionType && REQUIRE_FIELDS_TYPES.includes(newConversionType)) {
+      const { data: reqFields } = await service
+        .from('lead_custom_fields')
+        .select('id, name')
+        .eq('required', true)
+      if (reqFields && reqFields.length > 0) {
+        const { data: vals } = await service
+          .from('lead_custom_field_values')
+          .select('field_id, value')
+          .eq('lead_id', id)
+        const valueByField = new Map<string, string | null>()
+        for (const v of vals ?? []) valueByField.set(v.field_id, v.value)
+        const missing = reqFields
+          .filter((f) => {
+            const val = valueByField.get(f.id)
+            return val == null || String(val).trim() === ''
+          })
+          .map((f) => f.name)
+        if (missing.length > 0) {
+          return NextResponse.json(
+            {
+              error: `Заповніть обовʼязкові поля перед переходом на цю стадію: ${missing.join(', ')}`,
+              missingFields: missing,
+            },
+            { status: 400 },
+          )
+        }
+      }
+    }
+
     const wasDeal = oldConversionType !== null && AMOUNT_TYPES.includes(oldConversionType)
     const willBeDeal = newConversionType !== null && AMOUNT_TYPES.includes(newConversionType)
 
