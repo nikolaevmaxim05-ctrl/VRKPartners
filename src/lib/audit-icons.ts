@@ -54,6 +54,11 @@ export const AUDIT_ICON_KEYS = Object.keys(AUDIT_ICONS)
 export const DEFAULT_AUDIT_ICON_ORDER = ['file-search', 'gauge', 'route', 'calculator'] as const
 export const DEFAULT_USP_ICON_ORDER = ['database', 'target', 'handshake', 'rocket', 'trending-up'] as const
 
+/** Значення icon — це завантажене зображення (шлях/URL), а не ключ пресета. */
+export function isImageIcon(icon: string | undefined): boolean {
+  return !!icon && (icon.startsWith('/') || icon.startsWith('http'))
+}
+
 /** Іконка за ключем → за позицією (з переданого порядку) → перша з реєстру. */
 export function resolveIcon(
   icon: string | undefined,

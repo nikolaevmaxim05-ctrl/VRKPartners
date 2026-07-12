@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useContent } from "@/components/ContentProvider";
 import { cn } from "@/lib/utils";
-import { resolveIcon, DEFAULT_USP_ICON_ORDER } from "@/lib/audit-icons";
+import { ContentIcon } from "@/components/ContentIcon";
+import { DEFAULT_USP_ICON_ORDER } from "@/lib/audit-icons";
 
 export function Usp() {
   const { usp } = useContent();
@@ -72,7 +73,6 @@ export function Usp() {
         <div className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4">
           {usp.items.map((it, i) => {
             const activeNow = i === active;
-            const Icon = resolveIcon(it.icon, i, DEFAULT_USP_ICON_ORDER);
             return (
               <div
                 key={i}
@@ -98,7 +98,7 @@ export function Usp() {
                 >
                   <div className="relative">
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30">
-                      <Icon className="h-5 w-5 text-brand" />
+                      <ContentIcon icon={it.icon} index={i} order={DEFAULT_USP_ICON_ORDER} className="h-5 w-5 text-brand" />
                     </div>
                     <h3 className="mt-4 text-lg font-bold leading-snug text-white">
                       {it.title}

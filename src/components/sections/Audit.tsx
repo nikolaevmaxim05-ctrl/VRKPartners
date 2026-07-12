@@ -5,7 +5,8 @@ import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track } from "@/lib/analytics";
 import { useContent } from "@/components/ContentProvider";
-import { resolveAuditIcon } from "@/lib/audit-icons";
+import { ContentIcon } from "@/components/ContentIcon";
+import { DEFAULT_AUDIT_ICON_ORDER } from "@/lib/audit-icons";
 
 export function Audit() {
   const { openLead } = useLeadModal();
@@ -40,14 +41,13 @@ export function Audit() {
 
         <div className="reveal-stagger mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
           {audit.items.map((item, i) => {
-            const Icon = resolveAuditIcon(item.icon, i);
             return (
               <article
                 key={item.name}
                 className="rounded-2xl border border-bg-line bg-bg-card p-4 shadow-card transition-transform duration-75 ease-out will-change-transform hover:!scale-[1.03] sm:p-6"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30 sm:h-11 sm:w-11">
-                  <Icon className="h-4 w-4 text-brand sm:h-5 sm:w-5" />
+                  <ContentIcon icon={item.icon} index={i} order={DEFAULT_AUDIT_ICON_ORDER} className="h-4 w-4 text-brand sm:h-5 sm:w-5" />
                 </div>
                 <h3 className="mt-3 text-sm font-semibold leading-snug text-white sm:mt-4 sm:text-lg">
                   {item.name}
