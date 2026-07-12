@@ -200,37 +200,40 @@ export function ContentForm({
         {/* 5. Процес */}
         <WorkflowEditor value={workflow} onChange={setWorkflow} />
 
-        {/* 6. Фінальний блок */}
-        <CollapsibleCard title="Фінальний блок (CTA)">
+        {/* 6. Фінальний блок (CTA + FAQ) — на сайті це одна секція */}
+        <CollapsibleCard
+          title="Фінальний блок (CTA + FAQ)"
+          description="Заголовок, текст, кнопка та блок поширених запитань (FAQ) — це один блок на сайті."
+        >
           <Field label="Заголовок" value={finalCta.title} onChange={setCtaField('title')} textarea />
           <Field label="Текст" value={finalCta.text} onChange={setCtaField('text')} textarea />
           <Field label="Кнопка" value={finalCta.primaryCta} onChange={setCtaField('primaryCta')} />
-        </CollapsibleCard>
 
-        {/* 5. FAQ */}
-        <CollapsibleCard title="FAQ" description="Питання та відповіді у блоці поширених запитань.">
-          {faq.length === 0 && (
-            <p className="text-sm text-muted-foreground">Ще немає питань. Додайте перше.</p>
-          )}
-          {faq.map((item, i) => (
-            <CollapsibleItem
-              key={i}
-              title={item.q.trim() || `Питання ${i + 1}`}
-              right={
-                <>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, -1)} disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, 1)} disabled={i === faq.length - 1}><ArrowDown className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeFaq(i)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </>
-              }
-            >
-              <Field label="Питання" value={item.q} onChange={(v) => updateFaq(i, 'q', v)} />
-              <Field label="Відповідь" value={item.a} onChange={(v) => updateFaq(i, 'a', v)} textarea />
-            </CollapsibleItem>
-          ))}
-          <Button variant="outline" size="sm" onClick={addFaq}>
-            <Plus className="h-4 w-4 mr-1" /> Додати питання
-          </Button>
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium">FAQ (питання та відповіді)</p>
+            {faq.length === 0 && (
+              <p className="text-sm text-muted-foreground">Ще немає питань. Додайте перше.</p>
+            )}
+            {faq.map((item, i) => (
+              <CollapsibleItem
+                key={i}
+                title={item.q.trim() || `Питання ${i + 1}`}
+                right={
+                  <>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, -1)} disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveFaq(i, 1)} disabled={i === faq.length - 1}><ArrowDown className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeFaq(i)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </>
+                }
+              >
+                <Field label="Питання" value={item.q} onChange={(v) => updateFaq(i, 'q', v)} />
+                <Field label="Відповідь" value={item.a} onChange={(v) => updateFaq(i, 'a', v)} textarea />
+              </CollapsibleItem>
+            ))}
+            <Button variant="outline" size="sm" onClick={addFaq}>
+              <Plus className="h-4 w-4 mr-1" /> Додати питання
+            </Button>
+          </div>
         </CollapsibleCard>
 
         {/* 6. Контакти */}
