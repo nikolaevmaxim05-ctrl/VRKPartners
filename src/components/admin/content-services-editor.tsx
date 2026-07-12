@@ -85,6 +85,12 @@ export function ServicesEditor({
           >
             <TextField label="Назва" value={it.name} onChange={(v) => patchItem(i, { name: v })} />
             <TextField label="Опис" value={it.desc} onChange={(v) => patchItem(i, { desc: v })} textarea />
+            <p className="rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              Потрібні дві версії зображення: <strong>«мала»</strong> — мініатюра прямо на картці,
+              а <strong>«велике»</strong> — детальніше превʼю, що зʼявляється при наведенні.
+              Радимо завантажувати саме дві окремі картинки: якщо додати одну й обрізати її під
+              маленький формат, превʼю зазвичай виходить нечитабельним і невдало обрізаним.
+            </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <ImageField label="Зображення (мала)" value={it.mockup ?? ''} defaultValue={defaultByKey.get(it.key)?.mockup} onChange={(v) => patchItem(i, { mockup: v })} />
               <ImageField label="Зображення (велике)" value={it.mockupFull ?? ''} defaultValue={defaultByKey.get(it.key)?.mockupFull} onChange={(v) => patchItem(i, { mockupFull: v })} />
