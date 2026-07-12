@@ -38,7 +38,7 @@ export type AboutContent = {
 }
 
 // ── Аудит (блок 3) ───────────────────────────────────────────────────────────
-export type AuditItem = { name: string; desc: string; points: string[] }
+export type AuditItem = { name: string; icon?: string; desc: string; points: string[] }
 export type AuditContent = {
   eyebrow: string
   title: string
@@ -266,6 +266,7 @@ function mergeAudit(base: AuditContent, ov?: Partial<AuditContent>): AuditConten
       .filter((it) => it && typeof it.name === 'string')
       .map((it) => ({
         name: String(it.name ?? ''),
+        icon: typeof it.icon === 'string' && it.icon ? it.icon : undefined,
         desc: String(it.desc ?? ''),
         points: Array.isArray(it.points) ? it.points.map(String) : [],
       }))

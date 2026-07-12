@@ -1,0 +1,62 @@
+// Реєстр іконок для карток блоку «Аудит».
+// Спільний для лендингу (Audit.tsx) і редактора контенту (content-audit-editor.tsx),
+// щоб набір і ключі були однакові. У контенті зберігається лише рядок-ключ.
+import {
+  FileSearch,
+  Gauge,
+  Route,
+  Calculator,
+  Target,
+  Search,
+  Settings,
+  ShieldCheck,
+  TrendingUp,
+  Database,
+  BarChart3,
+  LineChart,
+  MousePointerClick,
+  Megaphone,
+  Users,
+  Wrench,
+  Rocket,
+  Handshake,
+  PieChart,
+  Globe,
+  type LucideIcon,
+} from 'lucide-react'
+
+export const AUDIT_ICONS: Record<string, LucideIcon> = {
+  'file-search': FileSearch,
+  gauge: Gauge,
+  route: Route,
+  calculator: Calculator,
+  target: Target,
+  search: Search,
+  settings: Settings,
+  shield: ShieldCheck,
+  'trending-up': TrendingUp,
+  database: Database,
+  'bar-chart': BarChart3,
+  'line-chart': LineChart,
+  click: MousePointerClick,
+  megaphone: Megaphone,
+  users: Users,
+  wrench: Wrench,
+  rocket: Rocket,
+  handshake: Handshake,
+  'pie-chart': PieChart,
+  globe: Globe,
+}
+
+export const AUDIT_ICON_KEYS = Object.keys(AUDIT_ICONS)
+
+// Дефолтні іконки за позицією картки (фолбек, якщо icon не задано).
+export const DEFAULT_AUDIT_ICON_ORDER = ['file-search', 'gauge', 'route', 'calculator'] as const
+
+/** Іконка картки: за ключем → за позицією → перша з реєстру. */
+export function resolveAuditIcon(icon: string | undefined, index: number): LucideIcon {
+  if (icon && AUDIT_ICONS[icon]) return AUDIT_ICONS[icon]
+  const byIndex = DEFAULT_AUDIT_ICON_ORDER[index]
+  if (byIndex && AUDIT_ICONS[byIndex]) return AUDIT_ICONS[byIndex]
+  return FileSearch
+}

@@ -1,12 +1,11 @@
 "use client";
 
-import { Check, FileSearch, Gauge, Route, Calculator, type LucideIcon } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track } from "@/lib/analytics";
 import { useContent } from "@/components/ContentProvider";
-
-const cardIcons: LucideIcon[] = [FileSearch, Gauge, Route, Calculator];
+import { resolveAuditIcon } from "@/lib/audit-icons";
 
 export function Audit() {
   const { openLead } = useLeadModal();
@@ -41,7 +40,7 @@ export function Audit() {
 
         <div className="reveal-stagger mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
           {audit.items.map((item, i) => {
-            const Icon = cardIcons[i] ?? FileSearch;
+            const Icon = resolveAuditIcon(item.icon, i);
             return (
               <article
                 key={item.name}
