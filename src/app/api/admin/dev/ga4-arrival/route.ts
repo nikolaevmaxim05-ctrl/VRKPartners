@@ -137,6 +137,11 @@ async function sendMeasurementProtocol(
 }
 
 export async function POST() {
+  // Dev tools приховано за env-прапором: без нього — 404 навіть за прямого запиту.
+  if (process.env.NEXT_PUBLIC_DEV_TOOLS !== '1') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   // Auth: доступ як у налаштувань аналітики
   const supabase = await createClient()
   const {

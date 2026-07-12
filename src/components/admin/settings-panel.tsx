@@ -88,6 +88,10 @@ type CustomField = {
 
 type Tab = 'general' | 'dedup' | 'statuses' | 'fields' | 'telephony' | 'gsheets' | 'analytics' | 'devtools'
 
+// Dev tools — приховано за env-прапором. Клієнт (навіть Власник) вкладки не бачить
+// і не має до неї доступу. Розробник вмикає у своєму оточенні: NEXT_PUBLIC_DEV_TOOLS=1.
+const DEV_TOOLS_ENABLED = process.env.NEXT_PUBLIC_DEV_TOOLS === '1'
+
 const TABS: { id: Tab; label: string }[] = [
   { id: 'general', label: 'Загальні' },
   { id: 'dedup', label: 'Дедуплікація' },
@@ -96,7 +100,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'telephony', label: 'Телефонія' },
   { id: 'gsheets', label: 'Google Sheets' },
   { id: 'analytics', label: 'Події аналітики' },
-  { id: 'devtools', label: 'Dev tools' },
+  ...(DEV_TOOLS_ENABLED ? [{ id: 'devtools' as Tab, label: 'Dev tools' }] : []),
 ]
 
 // ── Кореневий компонент ─────────────────────────────────────────────────────
@@ -130,7 +134,7 @@ export function SettingsPanel() {
         {activeTab === 'telephony' && <TelephonySection />}
         {activeTab === 'gsheets' && <GoogleSheetsSection />}
         {activeTab === 'analytics' && <AnalyticsEventsSection />}
-        {activeTab === 'devtools' && <DevToolsSection />}
+        {DEV_TOOLS_ENABLED && activeTab === 'devtools' && <DevToolsSection />}
       </div>
     </div>
   )
