@@ -88,7 +88,6 @@ export function ServicesEditor({
             <div className="grid gap-3 sm:grid-cols-2">
               <ImageField label="Зображення (мала)" value={it.mockup ?? ''} defaultValue={defaultByKey.get(it.key)?.mockup} onChange={(v) => patchItem(i, { mockup: v })} />
               <ImageField label="Зображення (велике)" value={it.mockupFull ?? ''} defaultValue={defaultByKey.get(it.key)?.mockupFull} onChange={(v) => patchItem(i, { mockupFull: v })} />
-              <TextField label="Alt зображення" value={it.mockupAlt ?? ''} onChange={(v) => patchItem(i, { mockupAlt: v })} />
               <label className="mt-6 flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={!!it.previewWide} onChange={(e) => patchItem(i, { previewWide: e.target.checked })} />
                 Широке прев'ю

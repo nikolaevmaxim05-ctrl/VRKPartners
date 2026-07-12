@@ -124,7 +124,7 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
             >
               <Image
                 src={previewSrc as string}
-                alt={s.mockupAlt ?? s.name}
+                alt={s.name}
                 fill
                 sizes={s.previewWide ? "672px" : "352px"}
                 className="object-contain p-3"
