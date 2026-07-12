@@ -67,10 +67,7 @@ export function ServicesEditor({
     >
       <TextField label="Заголовок блоку" value={value.title} onChange={setField('title')} textarea />
       <TextField label="Опис блоку" value={value.text} onChange={setField('text')} textarea />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="Надзаголовок (eyebrow)" value={value.eyebrow} onChange={setField('eyebrow')} />
-        <TextField label="Кнопка блоку" value={value.cta} onChange={setField('cta')} />
-      </div>
+      <TextField label="Кнопка блоку" value={value.cta} onChange={setField('cta')} />
 
       <div className="space-y-2 pt-2">
         <p className="text-sm font-medium">Картки послуг ({items.length})</p>
