@@ -89,21 +89,28 @@ export function Process() {
               {/* Вьюпорт із плавним горизонтальним слайдом між сторінками */}
               <div className="relative flex-1 overflow-hidden">
                 <div
-                  className="flex transition-transform duration-500 ease-out"
+                  className="flex transition-transform duration-700 ease-in-out"
                   style={{ transform: `translateX(-${safePage * 100}%)` }}
                 >
                   {Array.from({ length: pageCount }).map((_, p) => {
                     const pageSteps = steps.slice(p * DESKTOP_PAGE_SIZE, p * DESKTOP_PAGE_SIZE + DESKTOP_PAGE_SIZE);
                     const pcols = Math.max(pageSteps.length, 1);
+                    const isFirst = p === 0;
+                    const isLast = p === pageCount - 1;
                     return (
                       <ol
                         key={p}
                         className="relative grid w-full shrink-0"
                         style={{ gridTemplateColumns: `repeat(${pcols}, minmax(0, 1fr))` }}
                       >
+                        {/* На неостанній сторінці лінія тягнеться до краю (натяк, що є продовження),
+                            і навпаки — щоб під час слайду лінія лишалась суцільною між сторінками. */}
                         <div
                           className="absolute top-5 h-0.5 bg-bg-line"
-                          style={{ left: `${50 / pcols}%`, right: `${50 / pcols}%` }}
+                          style={{
+                            left: isFirst ? `${50 / pcols}%` : '0',
+                            right: isLast ? `${50 / pcols}%` : '0',
+                          }}
                           aria-hidden="true"
                         />
                         {pageSteps.map(renderStep)}
