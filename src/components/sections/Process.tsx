@@ -39,10 +39,20 @@ export function Process() {
           ))}
         </ol>
 
-        {/* Десктоп: горизонтальний таймлайн */}
-        <ol className="reveal-stagger relative mt-14 hidden grid-cols-7 lg:grid">
+        {/* Десктоп: горизонтальний таймлайн (кількість колонок і лінія — під к-сть кроків) */}
+        <ol
+          className="reveal-stagger relative mt-14 hidden lg:grid"
+          style={{
+            gridTemplateColumns: `repeat(${Math.max(workflow.steps.length, 1)}, minmax(0, 1fr))`,
+          }}
+        >
+          {/* лінія від центру першого до центру останнього кроку */}
           <div
-            className="absolute left-[7%] right-[7%] top-5 h-0.5 bg-bg-line"
+            className="absolute top-5 h-0.5 bg-bg-line"
+            style={{
+              left: `${50 / Math.max(workflow.steps.length, 1)}%`,
+              right: `${50 / Math.max(workflow.steps.length, 1)}%`,
+            }}
             aria-hidden="true"
           />
           {workflow.steps.map((step) => (
