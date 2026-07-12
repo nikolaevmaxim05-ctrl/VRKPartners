@@ -13,7 +13,7 @@ export const LANDING_CONTENT_ID = 'landing'
 export type FaqItem = { q: string; a: string }
 
 // ── Унікальні переваги (USP) ─────────────────────────────────────────────────
-export type UspItem = { title: string; text: string }
+export type UspItem = { title: string; icon?: string; text: string }
 export type UspContent = {
   eyebrow: string
   title: string
@@ -223,7 +223,11 @@ function mergeUsp(base: UspContent, ov?: Partial<UspContent>): UspContent {
   if (Array.isArray(ov.items) && ov.items.length > 0) {
     out.items = ov.items
       .filter((it) => it && typeof it.title === 'string')
-      .map((it) => ({ title: String(it.title ?? ''), text: String(it.text ?? '') }))
+      .map((it) => ({
+        title: String(it.title ?? ''),
+        icon: typeof it.icon === 'string' && it.icon ? it.icon : undefined,
+        text: String(it.text ?? ''),
+      }))
   }
   return out
 }

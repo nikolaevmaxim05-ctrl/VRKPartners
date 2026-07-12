@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
+import { IconPicker } from '@/components/admin/content-icon-picker'
+import { DEFAULT_USP_ICON_ORDER } from '@/lib/audit-icons'
 import type { UspContent, UspItem } from '@/lib/content'
 
 function TextField({
@@ -81,6 +83,7 @@ export function UspEditor({
             }
           >
             <TextField label="Заголовок" value={it.title} onChange={(v) => patchItem(i, { title: v })} />
+            <IconPicker value={it.icon} index={i} order={DEFAULT_USP_ICON_ORDER} onChange={(v) => patchItem(i, { icon: v })} />
             <TextField label="Опис" value={it.text} onChange={(v) => patchItem(i, { text: v })} textarea />
           </CollapsibleItem>
         ))}

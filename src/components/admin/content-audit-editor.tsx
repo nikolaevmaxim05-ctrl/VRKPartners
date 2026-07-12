@@ -5,43 +5,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
-import { AUDIT_ICONS, AUDIT_ICON_KEYS, resolveAuditIcon } from '@/lib/audit-icons'
-import { cn } from '@/lib/utils'
+import { IconPicker } from '@/components/admin/content-icon-picker'
+import { DEFAULT_AUDIT_ICON_ORDER } from '@/lib/audit-icons'
 import type { AuditContent, AuditItem } from '@/lib/content'
-
-/** Вибір іконки картки — сітка кнопок; підсвічує обрану. */
-function IconPicker({
-  value, index, onChange,
-}: { value: string | undefined; index: number; onChange: (v: string) => void }) {
-  const ActiveIcon = resolveAuditIcon(value, index)
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-sm">Іконка</Label>
-      <div className="flex flex-wrap gap-1.5">
-        {AUDIT_ICON_KEYS.map((key) => {
-          const Icon = AUDIT_ICONS[key]
-          const active = (value ?? '') === key || (!value && ActiveIcon === Icon)
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onChange(key)}
-              title={key}
-              className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-md border transition-colors',
-                active
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-input bg-background text-muted-foreground hover:bg-muted'
-              )}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
 
 function TextField({
   label, value, onChange, textarea, placeholder,
@@ -136,7 +102,7 @@ export function AuditEditor({
             }
           >
             <TextField label="Назва" value={it.name} onChange={(v) => patchItem(i, { name: v })} />
-            <IconPicker value={it.icon} index={i} onChange={(v) => patchItem(i, { icon: v })} />
+            <IconPicker value={it.icon} index={i} order={DEFAULT_AUDIT_ICON_ORDER} onChange={(v) => patchItem(i, { icon: v })} />
             <TextField label="Опис" value={it.desc} onChange={(v) => patchItem(i, { desc: v })} textarea />
             <PointsList value={it.points ?? []} onChange={(v) => patchItem(i, { points: v })} />
           </CollapsibleItem>

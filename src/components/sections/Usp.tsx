@@ -1,20 +1,9 @@
 "use client";
 
 import * as React from "react";
-import {
-  Database,
-  Target,
-  Handshake,
-  Rocket,
-  TrendingUp,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
 import { useContent } from "@/components/ContentProvider";
 import { cn } from "@/lib/utils";
-
-// Іконки за позицією пункту (як у блоці «Аудит»). Понад список — запасна.
-const uspIcons: LucideIcon[] = [Database, Target, Handshake, Rocket, TrendingUp];
+import { resolveIcon, DEFAULT_USP_ICON_ORDER } from "@/lib/audit-icons";
 
 export function Usp() {
   const { usp } = useContent();
@@ -83,7 +72,7 @@ export function Usp() {
         <div className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4">
           {usp.items.map((it, i) => {
             const activeNow = i === active;
-            const Icon = uspIcons[i] ?? Sparkles;
+            const Icon = resolveIcon(it.icon, i, DEFAULT_USP_ICON_ORDER);
             return (
               <div
                 key={i}

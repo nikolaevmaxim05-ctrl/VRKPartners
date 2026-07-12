@@ -52,11 +52,21 @@ export const AUDIT_ICON_KEYS = Object.keys(AUDIT_ICONS)
 
 // Дефолтні іконки за позицією картки (фолбек, якщо icon не задано).
 export const DEFAULT_AUDIT_ICON_ORDER = ['file-search', 'gauge', 'route', 'calculator'] as const
+export const DEFAULT_USP_ICON_ORDER = ['database', 'target', 'handshake', 'rocket', 'trending-up'] as const
 
-/** Іконка картки: за ключем → за позицією → перша з реєстру. */
-export function resolveAuditIcon(icon: string | undefined, index: number): LucideIcon {
+/** Іконка за ключем → за позицією (з переданого порядку) → перша з реєстру. */
+export function resolveIcon(
+  icon: string | undefined,
+  index: number,
+  order: readonly string[],
+): LucideIcon {
   if (icon && AUDIT_ICONS[icon]) return AUDIT_ICONS[icon]
-  const byIndex = DEFAULT_AUDIT_ICON_ORDER[index]
+  const byIndex = order[index]
   if (byIndex && AUDIT_ICONS[byIndex]) return AUDIT_ICONS[byIndex]
   return FileSearch
+}
+
+/** Іконка картки «Аудит» (фолбек за позицією). */
+export function resolveAuditIcon(icon: string | undefined, index: number): LucideIcon {
+  return resolveIcon(icon, index, DEFAULT_AUDIT_ICON_ORDER)
 }
