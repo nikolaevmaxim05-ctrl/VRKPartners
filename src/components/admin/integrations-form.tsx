@@ -5,8 +5,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { CheckCircle2, XCircle, Loader2, FlaskConical } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CheckCircle2, XCircle, Loader2, FlaskConical, Info } from 'lucide-react'
+
+/** Значок «i» з підказкою, що зʼявляється при наведенні (CSS-тултіп). */
+function InfoHint({ text }: { text: string }) {
+  return (
+    <span className="group/hint relative inline-flex shrink-0">
+      <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground transition-colors hover:text-foreground" />
+      <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-72 max-w-[80vw] -translate-x-1/2 rounded-md border bg-popover px-3 py-2 text-xs leading-relaxed text-popover-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/hint:opacity-100">
+        {text}
+      </span>
+    </span>
+  )
+}
 
 type IntegrationStatus = {
   key: string
@@ -20,17 +32,29 @@ type TestResult = { ok: boolean; message: string }
 const GROUPS = [
   {
     title: 'Telegram',
-    description: 'Сповіщення про нові заявки в Telegram-чат або канал',
+    description:
+      'Надсилає повідомлення про кожну нову заявку у ваш Telegram — зручно бачити ліди одразу в телефоні. ' +
+      'Потрібні бот (створюється у @BotFather) і чат/канал, куди він писатиме.',
     keys: [
-      { key: 'telegram_bot_token', label: 'Bot Token', testable: true,  placeholder: '1234567890:ABCdefGHIjkl...' },
-      { key: 'telegram_chat_id',   label: 'Chat ID',   testable: false, placeholder: '-1001234567890' },
+      {
+        key: 'telegram_bot_token', label: 'Bot Token', testable: true, placeholder: '1234567890:ABCdefGHIjkl...',
+        hint: 'Токен вашого Telegram-бота. Створіть бота в @BotFather → він видасть рядок виду 1234567890:ABC… — це і є токен.',
+      },
+      {
+        key: 'telegram_chat_id', label: 'Chat ID', testable: false, placeholder: '-1001234567890',
+        hint: 'ID чату або каналу, куди приходитимуть заявки. Дізнатись можна через ботів @userinfobot (особистий чат) або @getidsbot (канал/група).',
+      },
     ],
   },
   {
     title: 'KeyCRM',
-    description: 'Автоматичне створення лідів у KeyCRM після відправки форми',
+    description:
+      'Після кожної заявки автоматично створює ліда у вашій CRM-системі KeyCRM — щоб не переносити контакти вручну.',
     keys: [
-      { key: 'keycrm_api_key', label: 'API Key', testable: true, placeholder: 'sk-...' },
+      {
+        key: 'keycrm_api_key', label: 'API Key', testable: true, placeholder: 'sk-...',
+        hint: 'Ключ доступу до API вашого акаунта KeyCRM. Знайти: KeyCRM → Налаштування → Публічний API → створити ключ.',
+      },
     ],
   },
   {
@@ -43,9 +67,18 @@ const GROUPS = [
       'який видає Google (Акаунт Google → Безпека → Паролі додатків; має бути увімкнена двоетапна ' +
       'автентифікація). Звичайний пароль від пошти тут не підійде.',
     keys: [
-      { key: 'smtp_user',     label: 'Gmail-адреса',        testable: false, placeholder: 'team@gmail.com' },
-      { key: 'smtp_password', label: 'App Password',        testable: true,  placeholder: 'xxxx xxxx xxxx xxxx' },
-      { key: 'smtp_from',     label: 'From (відправник)',   testable: false, placeholder: 'VRK Partners <team@gmail.com>' },
+      {
+        key: 'smtp_user', label: 'Gmail-адреса', testable: false, placeholder: 'team@gmail.com',
+        hint: 'Адреса Gmail, з якої надсилатимуться листи-сповіщення (вона ж — логін до пошти).',
+      },
+      {
+        key: 'smtp_password', label: 'App Password', testable: true, placeholder: 'xxxx xxxx xxxx xxxx',
+        hint: '16-значний «пароль додатку» від Google (НЕ звичайний пароль від пошти). Створюється в Акаунт Google → Безпека → Паролі додатків за умови увімкненої двоетапної автентифікації.',
+      },
+      {
+        key: 'smtp_from', label: 'From (відправник)', testable: false, placeholder: 'VRK Partners <team@gmail.com>',
+        hint: 'Імʼя та адреса відправника, які бачить отримувач листа. Напр.: VRK Partners <team@gmail.com>. Якщо лишити порожнім — візьметься Gmail-адреса.',
+      },
     ],
   },
 ]
@@ -125,11 +158,13 @@ export function IntegrationsForm() {
       {GROUPS.map(group => (
         <Card key={group.title}>
           <CardHeader>
-            <CardTitle className="text-lg">{group.title}</CardTitle>
-            <CardDescription>{group.description}</CardDescription>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">{group.title}</CardTitle>
+              <InfoHint text={group.description} />
+            </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            {group.keys.map(({ key, label, testable, placeholder }) => {
+            {group.keys.map(({ key, label, testable, placeholder, hint }) => {
               const status   = getStatus(key)
               const isSaving = saving[key]
               const isTesting = testing[key]
@@ -140,6 +175,7 @@ export function IntegrationsForm() {
                 <div key={key} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">{label}</Label>
+                    {hint && <InfoHint text={hint} />}
                     {status?.is_set ? (
                       <Badge variant="default" className="text-xs font-normal">
                         <CheckCircle2 className="h-3 w-3 mr-1" />

@@ -1306,7 +1306,9 @@ function StatusesSection() {
                   />
                   Без конверсії
                 </label>
-                {(Object.entries(CONVERSION_TYPE_LABELS) as [NonNullable<ConversionType>, string][]).map(
+                {(Object.entries(CONVERSION_TYPE_LABELS) as [NonNullable<ConversionType>, string][])
+                  .filter(([val]) => val !== 'deal_adjustment')
+                  .map(
                   ([val, label]) => (
                     <label key={val} className="flex items-center gap-2 text-sm cursor-pointer">
                       <input
