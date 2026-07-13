@@ -346,8 +346,11 @@ export type LeadInput = {
   gclid: string | null
   gbraid: string | null
   wbraid: string | null
-  deal_amount: number | null
-  deal_profit: number | null
+  // Готове значення конверсії, розраховане ВИКЛИКАЧЕМ за логікою стадії
+  // (deal → amount, deal_adjustment → profit, стадія без суми → null).
+  // C2: google-sheets більше НЕ перераховує його за глобальним deal_amount_type —
+  // інакше фід Google Ads розходився б з offline_conversions.
+  conversionValue: number | null
   // Якщо передано — використовуємо замість site_settings.google_ads_conversion_action.
   // Береться зі статусу ліда (lead_statuses.conversion_action).
   conversionAction?: string | null
@@ -358,8 +361,7 @@ export type LeadInput = {
 export async function sendConversionToSheets(lead: LeadInput): Promise<boolean> {
   console.log('[google-sheets] sendConversionToSheets called', {
     lead_id: lead.lead_id,
-    deal_amount: lead.deal_amount,
-    deal_profit: lead.deal_profit,
+    conversionValue: lead.conversionValue,
     conversionAction: lead.conversionAction,
   })
 
@@ -367,7 +369,7 @@ export async function sendConversionToSheets(lead: LeadInput): Promise<boolean> 
   const { data: settings, error: settErr } = await supabase
     .from('site_settings')
     .select('key, value')
-    .in('key', ['google_ads_conversion_action', 'internal_currency', 'deal_amount_type'])
+    .in('key', ['google_ads_conversion_action', 'internal_currency'])
 
   if (settErr) {
     console.error('[google-sheets] settings_fetch_failed', settErr.message)
@@ -379,15 +381,12 @@ export async function sendConversionToSheets(lead: LeadInput): Promise<boolean> 
   // Пріоритет: параметр зі статусу → site_settings → 'Lead'
   const conversionAction = lead.conversionAction?.trim() || get('google_ads_conversion_action', 'Lead')
   const currency = get('internal_currency', 'UAH')
-  const dealType = get('deal_amount_type', 'amount')
 
-  const conversionValue = dealType === 'profit' ? lead.deal_profit : lead.deal_amount
+  // C2: значення приходить ГОТОВИМ від викликача (за логікою стадії) — не перераховуємо.
+  const conversionValue = lead.conversionValue
 
   console.log('[google-sheets] row params', {
-    conversionAction, currency, dealType,
-    deal_amount: lead.deal_amount,
-    deal_profit: lead.deal_profit,
-    conversionValue,
+    conversionAction, currency, conversionValue,
   })
 
   const row = buildConversionRow({

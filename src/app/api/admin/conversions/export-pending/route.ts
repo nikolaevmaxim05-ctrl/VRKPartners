@@ -35,10 +35,9 @@ export async function POST() {
   const { data: rows, error } = await service
     .from('offline_conversions')
     .select(`
-      id, lead_id,
+      id, lead_id, conversion_value,
       lead:leads(
         id, order_no, email, phone, gclid, gbraid, wbraid,
-        deal_amount, deal_profit,
         status:lead_statuses(conversion_action)
       )
     `)
@@ -50,7 +49,8 @@ export async function POST() {
   let failed = 0
   let skipped = 0
   for (const row of rows ?? []) {
-    const lead = (row as { lead: unknown }).lead as LeadJoin | null
+    const typedRow = row as { lead: unknown; conversion_value: number | string | null }
+    const lead = typedRow.lead as LeadJoin | null
     if (!lead) { failed++; continue }
     try {
       const ok = await sendConversionToSheets({
@@ -61,8 +61,8 @@ export async function POST() {
         gclid: lead.gclid,
         gbraid: lead.gbraid,
         wbraid: lead.wbraid,
-        deal_amount: lead.deal_amount != null ? Number(lead.deal_amount) : null,
-        deal_profit: lead.deal_profit != null ? Number(lead.deal_profit) : null,
+        // C2: відправляємо ЗБЕРЕЖЕНЕ значення конверсії (фід = offline_conversions).
+        conversionValue: typedRow.conversion_value != null ? Number(typedRow.conversion_value) : null,
         conversionAction: lead.status?.conversion_action ?? null,
       })
       if (ok) {
