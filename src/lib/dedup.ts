@@ -8,6 +8,7 @@
 //    в lead_comments додається system-комментар з даними повторного звернення.
 
 import { createServiceClient } from "@/lib/supabase/service";
+import { normalizePhone } from "@/lib/phone";
 
 // ── Налаштування ────────────────────────────────────────────────────────────
 export type DedupSettings = {
@@ -43,18 +44,8 @@ export async function getDedupSettings(): Promise<DedupSettings> {
   };
 }
 
-// ── Нормалізація телефону ────────────────────────────────────────────────────
-// Zod вже гарантує формат "+380XXXXXXXXX" на вході; функція нижче — універсальна
-// (стане в нагоді для Блоку 5 — телефонії, де формати різні).
-export function normalizePhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 0) return "";
-  if (digits.startsWith("380")) return `+${digits}`;
-  if (digits.startsWith("0") && digits.length === 10) return `+38${digits}`;
-  if (digits.length === 9) return `+380${digits}`;
-  // інший формат — повертаємо як є (з +)
-  return `+${digits}`;
-}
+// Нормалізація телефону — у спільному модулі @/lib/phone (реекспорт для сумісності).
+export { normalizePhone } from "@/lib/phone";
 
 // ── Пошук дубля ──────────────────────────────────────────────────────────────
 export type DedupResult =

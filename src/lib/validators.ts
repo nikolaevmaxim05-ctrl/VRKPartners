@@ -3,6 +3,7 @@
 // (email, utm/click-ids, page) — за схемою донора-адмінки.
 
 import { z } from "zod";
+import { normalizePhone } from "@/lib/phone";
 
 const name = z
   .string()
@@ -14,7 +15,8 @@ const name = z
     "Ім'я може містити лише літери"
   );
 
-/** Телефон у форматі +380 (XX) XXX-XX-XX — рівно 12 цифр (380 + 9). */
+/** Телефон: приймаємо маску +380 (XX) XXX-XX-XX (12 цифр), нормалізуємо в E.164.
+ * Транзформ гарантує єдиний формат у БД і в дедупі (див. C1). */
 const phone = z
   .string()
   .trim()
@@ -22,7 +24,8 @@ const phone = z
   .refine(
     (v) => v.replace(/\D/g, "").length === 12,
     "Введіть повний номер телефону"
-  );
+  )
+  .transform(normalizePhone);
 
 const optionalUrl = z
   .string()
