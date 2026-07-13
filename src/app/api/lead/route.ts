@@ -14,16 +14,25 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { sendLeadToTelegram } from "@/lib/integrations/telegram";
 import { createKeyCRMLead } from "@/lib/integrations/keycrm";
 import { sendLeadEmail } from "@/lib/integrations/email";
+import { prefetchIntegrations } from "@/lib/integrations/get-integration";
 import { createServiceClient } from "@/lib/supabase/service";
 import { deduplicateLead, markAsRepeat } from "@/lib/dedup";
 
 export const runtime = "nodejs";
 
 function getClientIp(req: NextRequest): string {
-  // x-forwarded-for може бути ланцюжком "client, proxy1, proxy2" — беремо перший
+  // S5: ЛІВИЙ сегмент x-forwarded-for контролюється клієнтом (ротацією XFF можна
+  // обійти rate-limit / dedup-by-ip). На Vercel довіряємо x-real-ip — його виставляє
+  // платформа справжнім IP клієнта. Фолбек поза Vercel — ПРАВИЙ сегмент XFF
+  // (найближчий до сервера проксі), а не лівий.
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  if (xff) {
+    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+  return "unknown";
 }
 
 /** Збирає коментар + додаткові поля форми VRK в один структурований текст. */
@@ -89,6 +98,17 @@ export async function POST(request: NextRequest) {
   }
 
   const lead = parsed.data;
+
+  // C12: одним запитом підтягуємо ключі всіх каналів доставки у кеш — далі
+  // getIntegration бере з кешу (замість 6+ послідовних читань на кожен сабміт).
+  await prefetchIntegrations([
+    "telegram_bot_token",
+    "telegram_chat_id",
+    "keycrm_api_key",
+    "smtp_user",
+    "smtp_password",
+    "smtp_from",
+  ]);
 
   // Підготовка даних для інтеграцій: комбінований message з усіма полями VRK,
   // page (URL сторінки) — у полі source (так його друкують Telegram/Email/CRM).
