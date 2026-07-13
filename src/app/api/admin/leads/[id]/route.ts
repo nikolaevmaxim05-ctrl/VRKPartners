@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasPermission, hasAnyPermission } from '@/lib/permissions'
+import { requireApiAccess } from '@/lib/api-guard'
 import {
   recordConversion,
   markConversionExportedByLead,
@@ -24,9 +25,11 @@ type RouteParams = { params: Promise<{ id: string }> }
 // ─────────────────────────────────────────────────────────────────────────────
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params
+  // Деталь ліда містить PII та кастомні поля — той самий клас доступу, що і список.
+  const guard = await requireApiAccess(['manage_leads', 'view_reports', 'export_data', 'manage_conversions'])
+  if (!guard.ok) return guard.response
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: lead, error } = await supabase
     .from('leads')
@@ -444,8 +447,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             gclid: u.gclid ?? null,
             gbraid: u.gbraid ?? null,
             wbraid: u.wbraid ?? null,
-            deal_amount: u.deal_amount != null ? Number(u.deal_amount) : null,
-            deal_profit: u.deal_profit != null ? Number(u.deal_profit) : null,
+            // C2: передаємо ГОТОВЕ значення, розраховане вище за логікою стадії.
+            conversionValue,
             conversionAction: statusConversionAction,
           })
           if (sent) await markConversionExportedByLead(id)

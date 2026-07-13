@@ -2,17 +2,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireApiAccess } from '@/lib/api-guard'
 
 export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient()
+  // Список лідів містить PII (телефон, email, IP, UA, UTM) — доступ лише тим,
+  // хто має право працювати з лідами/звітами, і лише активним користувачам.
+  const guard = await requireApiAccess(['manage_leads', 'view_reports', 'export_data', 'manage_conversions'])
+  if (!guard.ok) return guard.response
 
-  // Перевірка авторизації
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const supabase = await createClient()
 
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
