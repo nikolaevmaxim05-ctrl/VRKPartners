@@ -2,8 +2,8 @@
 // Body: { field_id: string, value: string | null }
 // Унікальна пара: (lead_id, field_id) у lead_custom_field_values.
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireApiAccess } from '@/lib/api-guard'
 
 export const runtime = 'nodejs'
 
@@ -16,9 +16,9 @@ type PatchBody = {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id: leadId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Мутація кастомних полів ліда — право manage_leads (+ активний користувач).
+  const guard = await requireApiAccess(['manage_leads'])
+  if (!guard.ok) return guard.response
 
   let body: PatchBody
   try {
