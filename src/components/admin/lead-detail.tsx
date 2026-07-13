@@ -222,20 +222,6 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     const target = statuses.find((s) => s.id === newId)
     if (!target) return
 
-    // Обовʼязкові кастомні поля: блокуємо перехід у стадію-конверсію
-    // (target_lead / deal / deal_adjustment), поки не заповнені всі required-поля.
-    const REQUIRE_FIELDS_TYPES: readonly string[] = ['target_lead', 'deal', 'deal_adjustment']
-    if (target.conversion_type && REQUIRE_FIELDS_TYPES.includes(target.conversion_type)) {
-      const missing = lead.custom_fields
-        .filter((f) => f.required && (f.value == null || f.value.trim() === ''))
-        .map((f) => f.name)
-      if (missing.length > 0) {
-        toast.error(`Заповніть обовʼязкові поля перед переходом: ${missing.join(', ')}`)
-        setLead((prev) => (prev ? { ...prev } : prev)) // відкат селекта на поточну стадію
-        return
-      }
-    }
-
     // Якщо requires_amount = false — PATCH одразу
     if (!target.requires_amount) {
       patchLead({ status_id: newId })
@@ -957,10 +943,7 @@ function CustomFieldRow({
   return (
     <div className="min-w-0">
       <dt className="text-xs text-muted-foreground flex items-center justify-between gap-2">
-        <span>
-          {field.name}
-          {field.required && <span className="text-destructive" title="Обовʼязкове поле">&nbsp;*</span>}
-        </span>
+        <span>{field.name}</span>
         {!editing && (
           <button
             type="button"

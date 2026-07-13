@@ -1443,7 +1443,6 @@ function CustomFieldsSection() {
   const [fKey, setFKey] = useState('')
   const [fType, setFType] = useState<CustomField['type']>('text')
   const [fOptionsRaw, setFOptionsRaw] = useState('')
-  const [fRequired, setFRequired] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1497,7 +1496,6 @@ function CustomFieldsSection() {
     setFKey('')
     setFType('text')
     setFOptionsRaw('')
-    setFRequired(false)
   }
 
   const create = async () => {
@@ -1526,7 +1524,6 @@ function CustomFieldsSection() {
           field_key: fKey.trim(),
           type: fType,
           options,
-          required: fRequired,
         }),
       })
       if (!res.ok) {
@@ -1583,7 +1580,6 @@ function CustomFieldsSection() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{f.name}</span>
-                  {f.required && <span className="text-xs text-red-600">обовʼязкове</span>}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
                   <code className="bg-muted px-1.5 py-0.5 rounded">{f.field_key}</code>
@@ -1663,13 +1659,6 @@ function CustomFieldsSection() {
                 />
               </div>
             )}
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <Checkbox
-                checked={fRequired}
-                onCheckedChange={(v) => setFRequired(v === true)}
-              />
-              Обовʼязкове поле
-            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
