@@ -88,7 +88,20 @@ export function LeadForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, utm, page }),
       });
-      if (!res.ok) throw new Error("bad_status");
+      if (!res.ok) {
+        // Розрізняємо типи помилок сервера, щоб не втрачати ліди мовчазним «щось пішло не так».
+        track("form_submit_error", { source });
+        if (res.status === 429) {
+          setServerError(
+            "Забагато спроб поспіль. Зачекайте трохи й спробуйте ще раз."
+          );
+        } else {
+          setServerError(
+            "Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram."
+          );
+        }
+        return;
+      }
       track("form_submit_success", { source });
       if (inlineSuccess) {
         setDone(true);
@@ -97,9 +110,10 @@ export function LeadForm({
         router.push("/thanks");
       }
     } catch {
+      // Мережна помилка (fetch кинув) — окреме повідомлення.
       track("form_submit_error", { source });
       setServerError(
-        "Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram."
+        "Проблема зі зʼєднанням. Перевірте інтернет і спробуйте ще раз."
       );
     }
   };
