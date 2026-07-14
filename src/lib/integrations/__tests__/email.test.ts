@@ -19,6 +19,7 @@ vi.mock("nodemailer", () => ({
 
 // Імпортуємо ПІСЛЯ моку
 import { sendLeadEmail } from "@/lib/integrations/email";
+import { clearIntegrationCache } from "@/lib/integrations/get-integration";
 
 const VALID_LEAD = {
   name: "Петро Сидоренко",
@@ -37,6 +38,8 @@ describe("sendLeadEmail (Gmail SMTP)", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    // Скидаємо TTL-кеш get-integration, щоб конфіг одного тесту не «залипав» у наступному
+    clearIntegrationCache();
     process.env = { ...originalEnv };
     // Прибираємо Supabase-env, щоб getIntegration гарантовано пішов у env-фолбек
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;

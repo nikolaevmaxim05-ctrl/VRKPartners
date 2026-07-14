@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { sendLeadToTelegram } from "@/lib/integrations/telegram";
+import { clearIntegrationCache } from "@/lib/integrations/get-integration";
 
 const VALID_LEAD = {
   name: "Тест Тестенко",
@@ -22,8 +23,13 @@ describe("sendLeadToTelegram", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    // Скидаємо TTL-кеш get-integration, щоб конфіг одного тесту не «залипав» у наступному
+    clearIntegrationCache();
     // Сбрасываем env перед каждым тестом
     process.env = { ...originalEnv };
+    // getIntegration має гарантовано піти в env-фолбек (без Supabase-env)
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     // Мокируем глобальный fetch
     vi.stubGlobal("fetch", vi.fn());
   });

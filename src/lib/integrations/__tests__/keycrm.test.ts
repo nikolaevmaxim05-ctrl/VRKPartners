@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createKeyCRMLead } from "@/lib/integrations/keycrm";
+import { clearIntegrationCache } from "@/lib/integrations/get-integration";
 
 const VALID_LEAD = {
   name: "Олена Іванова",
@@ -21,7 +22,12 @@ describe("createKeyCRMLead", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    // Скидаємо TTL-кеш get-integration, щоб конфіг одного тесту не «залипав» у наступному
+    clearIntegrationCache();
     process.env = { ...originalEnv };
+    // getIntegration має гарантовано піти в env-фолбек (без Supabase-env)
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     vi.stubGlobal("fetch", vi.fn());
   });
 
