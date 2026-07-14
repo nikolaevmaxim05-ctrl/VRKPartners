@@ -1,15 +1,19 @@
 'use client'
 
 // Універсальна контакт-посилання: телефон/email.
-// Клік ОДНОЧАСНО: (1) копіює чисте значення в буфер + toast «Скопійовано»,
-// (2) НЕ скасовує перехід — лишається <a href="tel:..."/"mailto:...">,
-// preventDefault НЕ викликається (на мобільному відкриється звонилка/пошта).
-// Немає user-agent-детекту: різницю дає сам браузер через tel:/mailto:.
+// Поведінка лівого кліку (визначається в МОМЕНТ кліку, без user-agent-снифінгу):
+//   • Email (будь-де): лише копіювання + toast «Скопійовано». preventDefault
+//     завжди — mailto:/Outlook НЕ відкривається.
+//   • Телефон на ПК (не тач): лише копіювання + toast. tel: НЕ відкривається.
+//   • Телефон на тач-пристрої: нативний перехід tel: (звонилка з номером);
+//     копіювання/toast НЕ робимо, щоб не заважати.
+// href (tel:/mailto:) лишається в розмітці — для семантики, доступності та
+// правого кліку «копіювати адресу»; блокуємо тільки лівий клік за правилами вище.
 
 import { forwardRef, type AnchorHTMLAttributes, type MouseEvent } from 'react'
 import { copyText } from '@/lib/copy-to-clipboard'
 import { showCopyToast } from '@/lib/copy-toast'
-import { normalizeContactValue, type ContactType } from '@/lib/contact'
+import { normalizeContactValue, resolveContactClick, type ContactType } from '@/lib/contact'
 
 type Props = {
   /** Значення, яке показане користувачу (може бути з маскою). */
@@ -26,6 +30,15 @@ function buildHref(normalized: string, type: ContactType): string {
   return type === 'phone' ? `tel:${normalized}` : `mailto:${normalized}`
 }
 
+/** Тач-пристрій (телефон/планшет) — перевіряється в момент кліку, не при рендері. */
+function isTouchDevice(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  )
+}
+
 export const CopyContactLink = forwardRef<HTMLAnchorElement, Props>(
   function CopyContactLink(
     { value, type, href, showValueInToast = true, children, onClick, title, ...rest },
@@ -35,8 +48,15 @@ export const CopyContactLink = forwardRef<HTMLAnchorElement, Props>(
     const finalHref = href ?? buildHref(normalized, type)
 
     async function handleClick(e: MouseEvent<HTMLAnchorElement>) {
-      // ВАЖЛИВО: preventDefault НЕ викликаємо — перехід tel:/mailto: має спрацювати.
-      onClick?.(e) // зберігаємо існуючі обробники (напр. track())
+      const { preventDefault, copy } = resolveContactClick(type, isTouchDevice())
+
+      // Блокуємо перехід СИНХРОННО (до await), інакше браузер встигне піти по tel:/mailto:.
+      if (preventDefault) e.preventDefault()
+
+      // Існуючі обробники (напр. track(), stopPropagation) — у ОБОХ гілках.
+      onClick?.(e)
+
+      if (!copy) return // телефон на таче: нативний tel:, без копіювання/toast
 
       const ok = await copyText(normalized)
       // Помилку копіювання не показуємо як збій — просто без toast.

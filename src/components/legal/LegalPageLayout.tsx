@@ -1,4 +1,5 @@
-// Спільний лейаут легальної сторінки (server component, без клієнтських залежностей).
+// Спільний лейаут легальної сторінки (server component; контакти — через
+// клієнтський острівець CopyContactLink для єдиної поведінки копіювання).
 // Рендерить шапку (лого + «← На головну»), заголовок і АБО повний текст із sections,
 // АБО ввічливу заглушку з контактами, поки текст не переданий клієнтом.
 //
@@ -8,6 +9,7 @@
 import Link from 'next/link'
 import { Mail, Phone } from 'lucide-react'
 import { Logo } from '@/components/landing-ui/Logo'
+import { CopyContactLink } from '@/components/CopyContactLink'
 import { getLandingContentOverrides, mergeLandingContent } from '@/lib/content'
 import type { LegalDocument } from '@/content/legal/types'
 
@@ -68,20 +70,24 @@ export async function LegalPage({ doc }: { doc: LegalDocument }) {
                 Документ готується до публікації. Якщо у вас є питання, зв&apos;яжіться з нами:
               </p>
               <div className="mt-5 space-y-3">
-                <a
+                <CopyContactLink
+                  value={phone}
+                  type="phone"
                   href={phoneHref}
                   className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/80 transition-colors hover:text-brand"
                 >
                   <Phone className="h-4 w-4 shrink-0 text-brand" />
                   {phone}
-                </a>
-                <a
+                </CopyContactLink>
+                <CopyContactLink
+                  value={email}
+                  type="email"
                   href={`mailto:${email}`}
                   className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/80 transition-colors hover:text-brand"
                 >
                   <Mail className="h-4 w-4 shrink-0 text-brand" />
                   {email}
-                </a>
+                </CopyContactLink>
               </div>
             </div>
           )}
