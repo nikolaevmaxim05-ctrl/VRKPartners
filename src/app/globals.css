@@ -86,6 +86,11 @@
   body {
     @apply bg-bg text-white/90 font-sans antialiased;
     text-rendering: optimizeLegibility;
+    /* Уніфіковані цифри в усіх браузерах: рівна базова лінія (lining) та однакова
+       ширина (tabular). Інакше в частини браузерів Raleway рендерить old-style
+       цифри — номер телефону/статистика «стрибають» по вертикалі. */
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
   }
   ::selection {
     background: var(--brand);
