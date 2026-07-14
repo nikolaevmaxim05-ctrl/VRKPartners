@@ -5,6 +5,7 @@ import { Plus, Minus, Send, Mail, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
+import { CopyContactLink } from "@/components/CopyContactLink";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +102,9 @@ export function FinalCta() {
               <span className="font-medium text-white">{site.telegramHandle}</span>
             </span>
           </a>
-          <a
+          <CopyContactLink
+            value={site.email}
+            type="email"
             href={`mailto:${site.email}`}
             onClick={() => track("contacts_email_click", { source: "contacts_email" })}
             className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
@@ -111,8 +114,10 @@ export function FinalCta() {
               <span className="block text-white/45">Email</span>
               <span className="font-medium text-white">{site.email}</span>
             </span>
-          </a>
-          <a
+          </CopyContactLink>
+          <CopyContactLink
+            value={site.phone}
+            type="phone"
             href={site.phoneHref}
             onClick={() => track("contacts_phone_click", { source: "contacts_phone" })}
             className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
@@ -122,7 +127,7 @@ export function FinalCta() {
               <span className="block text-white/45">Телефон</span>
               <span className="font-medium text-white">{site.phone}</span>
             </span>
-          </a>
+          </CopyContactLink>
         </div>
 
         {/* Нижній CTA */}

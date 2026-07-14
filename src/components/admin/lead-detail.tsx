@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { StatusBadge } from './status-badge'
 import { getServiceLabel } from '@/lib/services'
+import { CopyContactLink } from '@/components/CopyContactLink'
 
 // ── Типи ─────────────────────────────────────────────────────────────────────
 type Status = {
@@ -423,12 +424,12 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <Field label="Ім'я" value={lead.name} />
               <Field label="Телефон">
-                <a href={`tel:${lead.phone}`} className="hover:underline">
+                <CopyContactLink value={lead.phone} type="phone" className="hover:underline">
                   {lead.phone}
-                </a>
+                </CopyContactLink>
               </Field>
               <Field label="Email">
-                {lead.email ? <a href={`mailto:${lead.email}`} className="hover:underline">{lead.email}</a> : '—'}
+                {lead.email ? <CopyContactLink value={lead.email} type="email" className="hover:underline">{lead.email}</CopyContactLink> : '—'}
               </Field>
               <Field label="Послуга" value={getServiceLabel(lead.service)} />
               <Field label="Дата" value={fmtDate(lead.created_at)} />

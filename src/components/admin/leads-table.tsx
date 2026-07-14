@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DatePicker } from '@/components/ui/date-picker'
+import { CopyContactLink } from '@/components/CopyContactLink'
 import { toast } from 'sonner'
 import { StatusBadge } from './status-badge'
 import { getServiceLabel, SERVICE_OPTIONS } from '@/lib/services'
@@ -330,7 +331,25 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
         </span>
       ),
     },
-    { accessorKey: 'phone', header: 'Телефон' },
+    {
+      accessorKey: 'phone',
+      header: 'Телефон',
+      cell: ({ getValue }) => {
+        const v = getValue() as string | null
+        if (!v) return <span className="text-muted-foreground">—</span>
+        // stopPropagation: клік по телефону копіює + tel:, але НЕ відкриває картку ліда.
+        return (
+          <CopyContactLink
+            value={v}
+            type="phone"
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline [font-variant-numeric:tabular-nums]"
+          >
+            {v}
+          </CopyContactLink>
+        )
+      },
+    },
     {
       accessorKey: 'service',
       header: 'Послуга',

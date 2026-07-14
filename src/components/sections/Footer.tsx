@@ -3,6 +3,7 @@
 import { Check, Send, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { useContent } from "@/components/ContentProvider";
+import { CopyContactLink } from "@/components/CopyContactLink";
 import { track } from "@/lib/analytics";
 import { nav } from "@/config/site";
 
@@ -75,22 +76,26 @@ export function Footer() {
                 <Send className="h-4 w-4 shrink-0 text-brand" />
                 {site.telegramHandle}
               </a>
-              <a
+              <CopyContactLink
+                value={site.email}
+                type="email"
                 href={`mailto:${site.email}`}
                 onClick={() => track("contacts_email_click", { source: "footer_email" })}
                 className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/70 transition-colors hover:text-brand"
               >
                 <Mail className="h-4 w-4 shrink-0 text-brand" />
                 {site.email}
-              </a>
-              <a
+              </CopyContactLink>
+              <CopyContactLink
+                value={site.phone}
+                type="phone"
                 href={site.phoneHref}
                 onClick={() => track("contacts_phone_click", { source: "footer_phone" })}
                 className="btn-focus flex items-center gap-2.5 rounded text-sm text-white/70 transition-colors hover:text-brand"
               >
                 <Phone className="h-4 w-4 shrink-0 text-brand" />
                 {site.phone}
-              </a>
+              </CopyContactLink>
             </div>
           </div>
         </div>

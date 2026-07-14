@@ -6,6 +6,7 @@ import { Logo } from "@/components/landing-ui/Logo";
 import { Button } from "@/components/landing-ui/Button";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
+import { CopyContactLink } from "@/components/CopyContactLink";
 import { track } from "@/lib/analytics";
 import { nav } from "@/config/site";
 import { cn } from "@/lib/utils";
@@ -100,7 +101,9 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <a
+          <CopyContactLink
+            value={site.phone}
+            type="phone"
             href={site.phoneHref}
             onClick={() => track("header_phone_click", { source: "header_phone" })}
             className="btn-focus inline-flex items-center gap-2 rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
@@ -109,7 +112,7 @@ export function Header() {
               <Phone className="h-4 w-4 text-brand" />
             </span>
             {site.phone}
-          </a>
+          </CopyContactLink>
           <Button size="sm" onClick={handleConsult}>
             Консультація
           </Button>
@@ -156,7 +159,9 @@ export function Header() {
                 </a>
               );
             })}
-            <a
+            <CopyContactLink
+              value={site.phone}
+              type="phone"
               href={site.phoneHref}
               onClick={() => {
                 track("header_phone_click", { source: "header_phone" });
@@ -168,7 +173,7 @@ export function Header() {
                 <Phone className="h-4 w-4 text-brand" />
               </span>
               {site.phone}
-            </a>
+            </CopyContactLink>
             <Button
               className="mt-2"
               onClick={() => {
