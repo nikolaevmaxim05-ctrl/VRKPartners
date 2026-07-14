@@ -21,7 +21,41 @@ const ENV_FALLBACK_VARS: Record<string, string> = {
   google_adjustments_spreadsheet_id:   'GOOGLE_ADJUSTMENTS_SPREADSHEET_ID',
 }
 
+function fromEnv(key: string): string | null {
+  const envVar = ENV_FALLBACK_VARS[key]
+  return (envVar ? process.env[envVar] : undefined) ?? null
+}
+
+// C12: короткий TTL-кеш розшифрованих значень. /api/lead на кожен сабміт читав
+// integrations 6+ разів послідовно; тепер prefetchIntegrations() тягне все одним
+// .in()-запитом, а getIntegration бере з кешу. TTL короткий — інтеграції змінюються рідко.
+type CacheEntry = { value: string | null; expires: number }
+const TTL_MS = 30_000
+const cache = new Map<string, CacheEntry>()
+
+function getCached(key: string): string | null | undefined {
+  const e = cache.get(key)
+  if (e && e.expires > Date.now()) return e.value
+  return undefined
+}
+function setCached(key: string, value: string | null): void {
+  cache.set(key, { value, expires: Date.now() + TTL_MS })
+}
+
+/**
+ * Скидає кеш інтеграцій.
+ * Потрібно для ізоляції unit-тестів (щоб значення одного тесту не «залипало»
+ * у наступному). У проді можна викликати після зміни налаштувань інтеграцій
+ * в адмінці для миттєвої інвалідації — хоча TTL 30s і сам це покриває.
+ */
+export function clearIntegrationCache(): void {
+  cache.clear()
+}
+
 export async function getIntegration(key: string): Promise<string | null> {
+  const cached = getCached(key)
+  if (cached !== undefined) return cached
+
   try {
     const service = createServiceClient()
     const { data } = await service
@@ -31,12 +65,43 @@ export async function getIntegration(key: string): Promise<string | null> {
       .maybeSingle()
 
     if (data) {
-      return decrypt(data.encrypted_value, data.iv, data.auth_tag)
+      const value = decrypt(data.encrypted_value, data.iv, data.auth_tag)
+      setCached(key, value)
+      return value
     }
   } catch {
     // якщо БД недоступна або decrypt впав — фолбек на env
   }
 
-  const envVar = ENV_FALLBACK_VARS[key]
-  return (envVar ? process.env[envVar] : undefined) ?? null
+  const value = fromEnv(key)
+  setCached(key, value)
+  return value
+}
+
+/** C12: один .in()-запит для набору ключів → наповнює кеш (щоб не читати по одному). */
+export async function prefetchIntegrations(keys: string[]): Promise<void> {
+  const missing = keys.filter((k) => getCached(k) === undefined)
+  if (missing.length === 0) return
+  try {
+    const service = createServiceClient()
+    const { data } = await service
+      .from('integrations')
+      .select('key, encrypted_value, iv, auth_tag')
+      .in('key', missing)
+
+    const byKey = new Map(
+      (data ?? []).map((r) => [r.key as string, r as { encrypted_value: string; iv: string; auth_tag: string }]),
+    )
+    for (const k of missing) {
+      const row = byKey.get(k)
+      if (row) {
+        try { setCached(k, decrypt(row.encrypted_value, row.iv, row.auth_tag)) }
+        catch { setCached(k, fromEnv(k)) }
+      } else {
+        setCached(k, fromEnv(k))
+      }
+    }
+  } catch {
+    // БД недоступна — кеш не наповнюємо, getIntegration зробить env-фолбек індивідуально
+  }
 }
