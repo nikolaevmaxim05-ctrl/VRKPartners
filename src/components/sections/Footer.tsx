@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Check, Send, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { useContent } from "@/components/ContentProvider";
@@ -100,11 +101,30 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-bg-line pt-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © {year} {site.name}. Усі права захищені.
-          </p>
-          <p>Офіційний Google Partner · performance-маркетинг</p>
+        <div className="mt-10 border-t border-bg-line pt-6">
+          <nav
+            className="flex flex-wrap gap-x-5 gap-y-2 text-xs"
+            aria-label="Правова інформація"
+          >
+            <Link
+              href="/polityka-konfidentsiynosti"
+              className="btn-focus rounded text-white/50 transition-colors hover:text-brand"
+            >
+              Політика конфіденційності
+            </Link>
+            <Link
+              href="/publichna-oferta"
+              className="btn-focus rounded text-white/50 transition-colors hover:text-brand"
+            >
+              Публічна оферта
+            </Link>
+          </nav>
+          <div className="mt-4 flex flex-col gap-2 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {year} {site.name}. Усі права захищені.
+            </p>
+            <p>Офіційний Google Partner · performance-маркетинг</p>
+          </div>
         </div>
       </div>
     </footer>
