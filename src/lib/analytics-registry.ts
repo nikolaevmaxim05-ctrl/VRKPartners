@@ -76,6 +76,11 @@ export const ANALYTICS_REGISTRY: readonly AnalyticsRegistryEntry[] = [
   { key: 'contacts_phone_click',    blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по номеру телефону в контактах',     description: 'Користувач натиснув номер телефону у блоці контактів (фінальний CTA або футер).',                              defaultEventNames: ['phone_click'] },
   { key: 'contacts_email_click',    blockLabel: 'Фінальний CTA',       interactionLabel: 'Клік по email в контактах',               description: 'Користувач натиснув email у блоці контактів (фінальний CTA або футер).',                                        defaultEventNames: ['email_click'] },
 
+  // ── Кнопка «Або напишіть нам» (Telegram) ──────────────────────────────────
+  // Стоїть поруч із CTA-кнопками по секціях. Одна подія з параметром placement
+  // (hero / audit / services / trust / process / final / header).
+  { key: 'telegram_cta_click',      blockLabel: 'Кнопка «Або напишіть нам»', interactionLabel: 'Клік по Telegram-кнопці біля CTA',        description: 'Користувач натиснув кнопку «Або напишіть нам» (прямий чат менеджера в Telegram), що стоїть поруч із CTA-кнопками по секціях. Параметр placement вказує секцію.', defaultEventNames: ['telegram_click'] },
+
   // ── Форми ─────────────────────────────────────────────────────────────────
   // Одна форма (LeadForm) рендериться у кількох місцях — параметр source
   // розрізняє розміщення (hero, audit, final, modal...).

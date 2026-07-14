@@ -2,6 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
@@ -63,7 +64,7 @@ export function Hero() {
             </p>
           )}
 
-          <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row">
+          <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap">
             <Button size="lg" onClick={handleConsult}>
               {hero.primaryCta}
               <ArrowRight className="h-4 w-4" />
@@ -71,6 +72,7 @@ export function Hero() {
             <Button size="lg" variant="secondary" onClick={handleAudit}>
               {hero.secondaryCta}
             </Button>
+            <TelegramCtaButton placement="hero" size="lg" />
           </div>
 
         </div>

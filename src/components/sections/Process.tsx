@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track } from "@/lib/analytics";
 import { useContent } from "@/components/ContentProvider";
@@ -167,9 +168,12 @@ export function Process() {
               </dl>
             </div>
 
-            <Button size="lg" onClick={handleBonus} className="w-full lg:w-auto">
-              {workflow.bonus.cta}
-            </Button>
+            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:flex-col">
+              <Button size="lg" onClick={handleBonus} className="w-full sm:flex-1 lg:w-auto lg:flex-none">
+                {workflow.bonus.cta}
+              </Button>
+              <TelegramCtaButton placement="process" size="lg" className="w-full sm:flex-1 lg:w-auto lg:flex-none" />
+            </div>
           </div>
         </div>
       </div>

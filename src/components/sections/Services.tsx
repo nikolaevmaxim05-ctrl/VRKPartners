@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
@@ -232,10 +233,11 @@ export function Services() {
           </div>
         )}
 
-        <div className="mt-10 flex justify-center">
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button size="lg" onClick={handleCta}>
             {services.cta}
           </Button>
+          <TelegramCtaButton placement="services" size="lg" />
         </div>
       </div>
     </section>

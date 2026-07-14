@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { useLeadModal } from "@/components/ModalProvider";
 import { track } from "@/lib/analytics";
 import { useContent } from "@/components/ContentProvider";
@@ -69,13 +70,14 @@ export function Audit() {
           })}
         </div>
 
-        <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
           <Button size="lg" onClick={openAudit}>
             {audit.cta}
           </Button>
           <Button size="lg" variant="secondary" onClick={openCalc}>
             {audit.ctaSecondary}
           </Button>
+          <TelegramCtaButton placement="audit" size="lg" />
         </div>
       </div>
     </section>

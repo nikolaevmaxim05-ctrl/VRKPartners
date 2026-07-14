@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
 import { track } from "@/lib/analytics";
@@ -109,8 +110,9 @@ export function Trust() {
               </ul>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button onClick={handleConsult}>{trust.ctaSecondary}</Button>
+              <TelegramCtaButton placement="trust" size="md" />
             </div>
           </div>
 

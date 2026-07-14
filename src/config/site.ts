@@ -18,6 +18,10 @@ export const site = {
   phoneHref: "tel:+380970000000",
   telegram: "https://t.me/vrkpartners",
   telegramHandle: "@vrkpartners",
+  // Кнопка «Або напишіть нам» біля CTA — прямий контакт менеджера в Telegram.
+  // Окремо від telegram (контакт у футері/контактах). Редагується з адмінки.
+  telegramCtaUrl: "https://t.me/Chuev_VRK_Partners",
+  telegramCtaText: "Або напишіть нам",
   format: "Онлайн",
 } as const;
 

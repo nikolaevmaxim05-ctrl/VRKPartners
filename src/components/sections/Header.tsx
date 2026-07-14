@@ -4,6 +4,7 @@ import * as React from "react";
 import { Menu, X, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
 import { CopyContactLink } from "@/components/CopyContactLink";
@@ -116,6 +117,7 @@ export function Header() {
           <Button size="sm" onClick={handleConsult}>
             Консультація
           </Button>
+          <TelegramCtaButton placement="header" size="sm" iconOnly />
         </div>
 
         <button
@@ -183,6 +185,12 @@ export function Header() {
             >
               Отримати консультацію
             </Button>
+            <TelegramCtaButton
+              placement="header"
+              size="md"
+              className="mt-2 w-full"
+              onClick={() => setOpen(false)}
+            />
           </nav>
         </div>
       </div>

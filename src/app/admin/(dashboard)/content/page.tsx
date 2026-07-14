@@ -1,5 +1,10 @@
 import { requireSectionAccess } from '@/lib/admin-guard'
-import { getLandingContentOverrides, mergeLandingContent, getDefaultLandingContent } from '@/lib/content'
+import {
+  getLandingContentOverrides,
+  getLandingContentUpdatedAt,
+  mergeLandingContent,
+  getDefaultLandingContent,
+} from '@/lib/content'
 import { ContentForm } from '@/components/admin/content-form'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +16,7 @@ export default async function ContentPage() {
   const overrides = await getLandingContentOverrides()
   const content = mergeLandingContent(overrides)
   const defaults = getDefaultLandingContent()
+  const updatedAt = await getLandingContentUpdatedAt()
 
   const initial = {
     site: {
@@ -19,6 +25,8 @@ export default async function ContentPage() {
       email: content.site.email,
       telegram: content.site.telegram,
       telegramHandle: content.site.telegramHandle,
+      telegramCtaUrl: content.site.telegramCtaUrl,
+      telegramCtaText: content.site.telegramCtaText,
     },
     hero: {
       title: content.hero.title,
@@ -61,6 +69,7 @@ export default async function ContentPage() {
         defaultServices={defaults.services}
         defaultTrust={defaults.trust}
         defaultAbout={defaults.about}
+        baseUpdatedAt={updatedAt}
       />
     </div>
   )

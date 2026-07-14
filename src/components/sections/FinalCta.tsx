@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Plus, Minus, Send, Mail, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/landing-ui/Button";
+import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
 import { CopyContactLink } from "@/components/CopyContactLink";
@@ -133,11 +134,12 @@ export function FinalCta() {
         {/* Нижній CTA */}
         <div className="reveal mx-auto mt-12 max-w-3xl rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 text-center shadow-card sm:p-8">
           <h3 className="text-2xl font-bold text-white">{finalCta.primaryCta}</h3>
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button size="lg" onClick={openForm}>
               {finalCta.primaryCta}
               <ArrowRight className="h-4 w-4" />
             </Button>
+            <TelegramCtaButton placement="final" size="lg" />
           </div>
         </div>
       </div>

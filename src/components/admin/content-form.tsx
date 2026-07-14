@@ -19,6 +19,7 @@ import type { ServicesContent, TrustContent, AuditContent, WorkflowContent, Abou
 type SiteFields = {
   phone: string; phoneHref: string; email: string
   telegram: string; telegramHandle: string
+  telegramCtaUrl: string; telegramCtaText: string
 }
 type HeroFields = {
   title: string; subtitle: string; trust: string; trustHref: string
@@ -66,13 +67,16 @@ function Field({
 }
 
 export function ContentForm({
-  initial, defaultServices, defaultTrust, defaultAbout,
+  initial, defaultServices, defaultTrust, defaultAbout, baseUpdatedAt: initialUpdatedAt,
 }: {
   initial: Initial
   defaultServices: ServicesContent
   defaultTrust: TrustContent
   defaultAbout: AboutContent
+  baseUpdatedAt: string | null
 }) {
+  // C5(a): версія, з якою завантажили контент — шлемо на сервер для optimistic-lock.
+  const [baseUpdatedAt, setBaseUpdatedAt] = useState<string | null>(initialUpdatedAt)
   const [site, setSite] = useState<SiteFields>(initial.site)
   const [hero, setHero] = useState<HeroFields>(initial.hero)
   const [usp, setUsp] = useState<UspContent>(initial.usp)
@@ -140,10 +144,12 @@ export function ContentForm({
       const res = await fetch('/api/admin/content', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ overrides }),
+        body: JSON.stringify({ overrides, baseUpdatedAt }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
+      // Оновлюємо версію для наступних збережень (щоб не отримати 409 на другому поспіль).
+      if (typeof json.updatedAt === 'string') setBaseUpdatedAt(json.updatedAt)
       setBaseline(current) // фіксуємо новий «збережений» стан
       toast.success('Збережено. Лендинг оновлено.')
     } catch (err) {
@@ -244,6 +250,14 @@ export function ContentForm({
             <Field label="Email" value={site.email} onChange={setSiteField('email')} placeholder="hello@vrkpartners.com" />
             <Field label="Telegram (посилання)" value={site.telegram} onChange={setSiteField('telegram')} placeholder="https://t.me/vrkpartners" />
             <Field label="Telegram (нік)" value={site.telegramHandle} onChange={setSiteField('telegramHandle')} placeholder="@vrkpartners" />
+          </div>
+          <div className="mt-4 space-y-3 rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm font-medium">Кнопка «Або напишіть нам» (Telegram біля CTA)</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Текст кнопки" value={site.telegramCtaText} onChange={setSiteField('telegramCtaText')} placeholder="Або напишіть нам" />
+              <Field label="Посилання (лише t.me / telegram.me)" value={site.telegramCtaUrl} onChange={setSiteField('telegramCtaUrl')} placeholder="https://t.me/Chuev_VRK_Partners" />
+            </div>
+            <p className="text-xs text-muted-foreground">Кнопка стоїть поруч із CTA по секціях. Дозволено лише https://t.me/… або https://telegram.me/…</p>
           </div>
         </CollapsibleCard>
       </div>

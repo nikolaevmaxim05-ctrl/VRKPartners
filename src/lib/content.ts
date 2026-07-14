@@ -120,6 +120,8 @@ export type LandingContentOverrides = {
     email: string
     telegram: string
     telegramHandle: string
+    telegramCtaUrl: string
+    telegramCtaText: string
     geo: string
   }>
   hero?: Partial<{
@@ -246,7 +248,7 @@ function mergeAbout(base: AboutContent, ov?: Partial<AboutContent>): AboutConten
       .map((m, i) => ({
         key: typeof m.key === 'string' && m.key ? m.key : `member-${i + 1}`,
         name: String(m.name ?? ''),
-        photo: String(m.photo ?? ''),
+        photo: safeImg(m.photo) ?? '',
         experience: String(m.experience ?? ''),
         role: String(m.role ?? ''),
         skills: String(m.skills ?? ''),
@@ -335,8 +337,8 @@ function mergeServices(base: ServicesContent, ov?: Partial<ServicesContent>): Se
         key: typeof it.key === 'string' && it.key ? it.key : `svc-${i}`,
         name: String(it.name ?? ''),
         desc: String(it.desc ?? ''),
-        mockup: it.mockup ? String(it.mockup) : undefined,
-        mockupFull: it.mockupFull ? String(it.mockupFull) : undefined,
+        mockup: safeImg(it.mockup),
+        mockupFull: safeImg(it.mockupFull),
         mockupAlt: it.mockupAlt ? String(it.mockupAlt) : undefined,
         previewWide: Boolean(it.previewWide),
       }))
@@ -372,10 +374,10 @@ function mergeTrust(base: TrustContent, ov?: Partial<TrustContent>): TrustConten
           .map((c, ci) => ({
             id: typeof c.id === 'string' && c.id ? c.id : `case-${gi}-${ci}`,
             client: String(c.client ?? ''),
-            href: c.href ? String(c.href) : undefined,
+            href: safeHref(c.href),
             title: String(c.title ?? ''),
             task: c.task ? String(c.task) : undefined,
-            image: c.image ? String(c.image) : undefined,
+            image: safeImg(c.image),
             metrics: (Array.isArray(c.metrics) ? c.metrics : [])
               .filter((m) => m && typeof m.value === 'string')
               .map((m) => ({ value: String(m.value ?? ''), label: String(m.label ?? '') })),
@@ -387,6 +389,54 @@ function mergeTrust(base: TrustContent, ov?: Partial<TrustContent>): TrustConten
       }))
   }
   return out
+}
+
+// ── Валідація URL (C10 — картинки next/image; S7 — href кейсів, захист від javascript:) ──
+/** Безпечний URL зображення: порожньо, локальний шлях `/...`, або https на дозволеному хості. */
+export function isSafeImageUrl(url: string | null | undefined): boolean {
+  if (!url) return true
+  if (url.startsWith('/')) return true // локальний файл у /public
+  try {
+    const u = new URL(url)
+    return u.protocol === 'https:' && (u.hostname === 'supabase.co' || u.hostname.endsWith('.supabase.co'))
+  } catch {
+    return false
+  }
+}
+
+/** Безпечне посилання: порожньо або абсолютний http(s). Блокує javascript:/data: тощо. */
+export function isSafeHref(url: string | null | undefined): boolean {
+  if (!url) return true
+  try {
+    const u = new URL(url)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/** Кнопка «Або напишіть нам»: дозволяємо лише https://t.me/… або https://telegram.me/….
+ * Порожнє значення = валідне (оверрайд очищено → лендинг бере дефолт з config/site.ts). */
+export function isTelegramUrl(url: string | null | undefined): boolean {
+  if (!url) return true
+  try {
+    const u = new URL(url)
+    return u.protocol === 'https:' && (u.hostname === 't.me' || u.hostname === 'telegram.me')
+  } catch {
+    return false
+  }
+}
+
+/** Повертає URL зображення, якщо він безпечний; інакше undefined (картинка не рендериться). */
+function safeImg(v: unknown): string | undefined {
+  const s = v ? String(v) : undefined
+  return isSafeImageUrl(s) ? s : undefined
+}
+
+/** Повертає href, якщо він безпечний; інакше undefined. */
+function safeHref(v: unknown): string | undefined {
+  const s = v ? String(v) : undefined
+  return isSafeHref(s) ? s : undefined
 }
 
 /** Лишає тільки непорожні рядкові значення (щоб порожнє поле не затирало дефолт). */
@@ -419,4 +469,62 @@ export async function getLandingContentOverrides(): Promise<LandingContentOverri
   } catch {
     return {}
   }
+}
+
+/** updated_at рядка site_content — для optimistic-lock (C5a). null, якщо рядка ще немає. */
+export async function getLandingContentUpdatedAt(): Promise<string | null> {
+  try {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const service = createServiceClient()
+    const { data } = await service
+      .from('site_content')
+      .select('updated_at')
+      .eq('id', LANDING_CONTENT_ID)
+      .maybeSingle()
+    return (data?.updated_at as string | null) ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * C5(b): лишає лише поля/блоки, що ВІДРІЗНЯЮТЬСЯ від дефолтів config/site.ts.
+ * Блок, що дорівнює дефолту, взагалі не зберігається — тож майбутні правки дефолтів
+ * у config/site.ts доходять до прод (лендинг не «заморожується» знімком форми).
+ */
+export function diffLandingOverrides(
+  incoming: LandingContentOverrides,
+  defaults: LandingContent,
+): LandingContentOverrides {
+  const out: LandingContentOverrides = {}
+  const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+  const scalarDiff = (
+    inc: Record<string, unknown> | undefined,
+    def: Record<string, string>,
+  ): Record<string, string> | undefined => {
+    if (!inc) return undefined
+    const d: Record<string, string> = {}
+    for (const [k, v] of Object.entries(inc)) {
+      if (typeof v === 'string' && v !== def[k]) d[k] = v
+    }
+    return Object.keys(d).length > 0 ? d : undefined
+  }
+
+  const site = scalarDiff(incoming.site as Record<string, unknown> | undefined, defaults.site)
+  if (site) out.site = site as unknown as LandingContentOverrides['site']
+  const hero = scalarDiff(incoming.hero as Record<string, unknown> | undefined, defaults.hero)
+  if (hero) out.hero = hero as unknown as LandingContentOverrides['hero']
+  const finalCta = scalarDiff(incoming.finalCta as Record<string, unknown> | undefined, defaults.finalCta)
+  if (finalCta) out.finalCta = finalCta as unknown as LandingContentOverrides['finalCta']
+
+  if (incoming.faq && !eq(incoming.faq, defaults.faq)) out.faq = incoming.faq
+  if (incoming.services && !eq(incoming.services, defaults.services)) out.services = incoming.services
+  if (incoming.trust && !eq(incoming.trust, defaults.trust)) out.trust = incoming.trust
+  if (incoming.audit && !eq(incoming.audit, defaults.audit)) out.audit = incoming.audit
+  if (incoming.workflow && !eq(incoming.workflow, defaults.workflow)) out.workflow = incoming.workflow
+  if (incoming.about && !eq(incoming.about, defaults.about)) out.about = incoming.about
+  if (incoming.usp && !eq(incoming.usp, defaults.usp)) out.usp = incoming.usp
+
+  return out
 }
