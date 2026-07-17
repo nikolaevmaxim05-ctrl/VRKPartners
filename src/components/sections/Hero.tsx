@@ -64,15 +64,18 @@ export function Hero() {
             </p>
           )}
 
+          {/* Пара головних CTA у ряд; Telegram-кнопка — окремим повноширинним
+              рядком під ними (три lg-кнопки не влазять у колонку hero). На мобільному
+              все — стовпчик на всю ширину, Telegram останньою. */}
           <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap">
-            <Button size="lg" onClick={handleConsult}>
+            <Button size="lg" onClick={handleConsult} className="sm:flex-1">
               {hero.primaryCta}
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="secondary" onClick={handleAudit}>
+            <Button size="lg" variant="secondary" onClick={handleAudit} className="sm:flex-1">
               {hero.secondaryCta}
             </Button>
-            <TelegramCtaButton placement="hero" size="lg" />
+            <TelegramCtaButton placement="hero" size="lg" className="w-full" />
           </div>
 
         </div>

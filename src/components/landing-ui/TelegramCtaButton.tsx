@@ -1,8 +1,9 @@
 "use client";
 
 // Кнопка «Або напишіть нам» — прямий чат менеджера в Telegram, поруч із CTA.
-// Стиль вторинної кнопки (не конкурує з головним CTA). URL і текст — з контенту
-// (config/site.ts + оверрайди адмінки), не хардкод. Клієнтський лише заради track().
+// Стиль «telegram»: блакитний акцент (рамка+текст+іконка), не конкурує з жовтим
+// primary. URL і текст — з контенту (config/site.ts + оверрайди адмінки), не хардкод.
+// Клієнтський лише заради track().
 
 import { buttonVariants } from "@/components/landing-ui/Button";
 import { useContent } from "@/components/ContentProvider";
@@ -60,7 +61,7 @@ export function TelegramCtaButton({
       aria-label={iconOnly ? text : undefined}
       title={iconOnly ? text : undefined}
       className={cn(
-        buttonVariants({ variant: "secondary", size }),
+        buttonVariants({ variant: "telegram", size }),
         iconOnly && "aspect-square px-0",
         className
       )}

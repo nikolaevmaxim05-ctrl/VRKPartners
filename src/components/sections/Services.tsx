@@ -233,7 +233,7 @@ export function Services() {
           </div>
         )}
 
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
           <Button size="lg" onClick={handleCta}>
             {services.cta}
           </Button>

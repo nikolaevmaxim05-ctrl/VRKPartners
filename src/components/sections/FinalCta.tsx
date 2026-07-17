@@ -134,7 +134,7 @@ export function FinalCta() {
         {/* Нижній CTA */}
         <div className="reveal mx-auto mt-12 max-w-3xl rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 text-center shadow-card sm:p-8">
           <h3 className="text-2xl font-bold text-white">{finalCta.primaryCta}</h3>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
             <Button size="lg" onClick={openForm}>
               {finalCta.primaryCta}
               <ArrowRight className="h-4 w-4" />

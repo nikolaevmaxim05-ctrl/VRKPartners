@@ -14,6 +14,10 @@ const buttonVariants = cva(
         ghost: "text-white/80 hover:bg-white/5 hover:text-white",
         outline:
           "border border-brand/70 text-brand hover:bg-brand hover:text-brand-ink",
+        // Telegram-канал звʼязку: блакитний акцент, не конкурує з жовтим primary.
+        // Контраст #2AABEE на темному фоні проходить WCAG AA (≥4.5:1).
+        telegram:
+          "border border-[#229ED9]/50 bg-transparent text-[#2AABEE] hover:border-[#229ED9] hover:bg-[#2AABEE]/[0.12] hover:text-[#2AABEE]",
       },
       size: {
         sm: "h-9 px-4",
