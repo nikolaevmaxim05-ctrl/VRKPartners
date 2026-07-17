@@ -1,8 +1,10 @@
 'use client'
 
 // Редактор юридичних документів (Політика конфіденційності / Публічна оферта).
-// Дві вкладки; у кожній — список розділів (заголовок + абзаци + необовʼязкові
-// пункти переліку), з додаванням/видаленням/перестановкою. Лише plain text.
+// UI у стилі вкладки «Контент»: дві вкладки-документи → розділи-акордеони
+// (CollapsibleItem — той самий компонент, що у content-form для FAQ/кейсів):
+// у шапці — номер і живий заголовок + шеврон + дії (вгору/вниз/видалити),
+// за замовчуванням згорнуті. Дані/ендпоінти/валідація — без змін.
 
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -11,11 +13,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { CollapsibleItem } from '@/components/admin/collapsible-section'
 
 type DocKey = 'privacy' | 'offer'
 
-// Секція в стані форми: абзаци й пункти редагуються як текст (рядок = абзац/пункт).
-type EditSection = { heading: string; paragraphsText: string; itemsText: string }
+// Секція у стані форми: абзаци й пункти редагуються як текст (рядок = абзац/пункт).
+// id — стабільний ключ для React, щоб згорнутий/розгорнутий стан не «стрибав»
+// під час перестановки чи видалення сусідніх розділів (у dirty-порівнянні не бере участі).
+type EditSection = { id: string; heading: string; paragraphsText: string; itemsText: string }
 type InitialDoc = {
   title: string
   sections: { heading: string; paragraphs: string[]; items?: string[] }[]
@@ -27,8 +32,12 @@ const DOC_LABELS: Record<DocKey, string> = {
   offer: 'Публічна оферта',
 }
 
+let _idSeq = 0
+const newId = () => `sec-${Date.now().toString(36)}-${(_idSeq++).toString(36)}`
+
 function toEdit(doc: InitialDoc): EditSection[] {
   return doc.sections.map((s) => ({
+    id: newId(),
     heading: s.heading,
     paragraphsText: s.paragraphs.join('\n'),
     itemsText: (s.items ?? []).join('\n'),
@@ -50,6 +59,13 @@ function toSections(edit: EditSection[]) {
     .filter((s) => s.heading || s.paragraphs.length > 0 || (s.items && s.items.length > 0))
 }
 
+/** Серіалізація без id — щоб дірті-стан не залежав від службових ключів. */
+function serialize(privacy: EditSection[], offer: EditSection[]) {
+  const strip = (arr: EditSection[]) =>
+    arr.map(({ heading, paragraphsText, itemsText }) => ({ heading, paragraphsText, itemsText }))
+  return JSON.stringify({ privacy: strip(privacy), offer: strip(offer) })
+}
+
 export function LegalForm({
   initial,
   baseUpdatedAt: initialUpdatedAt,
@@ -64,9 +80,9 @@ export function LegalForm({
   const [saving, setSaving] = useState(false)
 
   const [baseline, setBaseline] = useState(() =>
-    JSON.stringify({ privacy: toEdit(initial.privacy), offer: toEdit(initial.offer) }),
+    serialize(toEdit(initial.privacy), toEdit(initial.offer)),
   )
-  const current = JSON.stringify({ privacy, offer })
+  const current = serialize(privacy, offer)
   const dirty = current !== baseline
 
   const sections = tab === 'privacy' ? privacy : offer
@@ -76,7 +92,7 @@ export function LegalForm({
     setSections((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)))
   }
   function addSection() {
-    setSections((prev) => [...prev, { heading: '', paragraphsText: '', itemsText: '' }])
+    setSections((prev) => [...prev, { id: newId(), heading: '', paragraphsText: '', itemsText: '' }])
   }
   function removeSection(i: number) {
     setSections((prev) => prev.filter((_, idx) => idx !== i))
@@ -117,8 +133,8 @@ export function LegalForm({
 
   return (
     <div className="space-y-4 pb-24">
-      {/* Вкладки документів */}
-      <div className="flex gap-2">
+      {/* Рівень 1 — документ: перемикач вкладок */}
+      <div className="flex flex-wrap gap-2">
         {(['privacy', 'offer'] as DocKey[]).map((k) => (
           <Button
             key={k}
@@ -131,61 +147,73 @@ export function LegalForm({
         ))}
       </div>
 
-      {sections.length === 0 && (
-        <p className="text-sm text-muted-foreground">Ще немає розділів. Додайте перший.</p>
-      )}
+      {/* Рівень 2 — розділи документа: акордеони */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">
+          Розділи документа «{DOC_LABELS[tab]}» ({sections.length})
+        </p>
 
-      {sections.map((s, i) => (
-        <div key={i} className="space-y-3 rounded-lg border bg-card p-4">
-          <div className="flex items-start gap-2">
-            <div className="flex-1 space-y-1.5">
-              <Label className="text-sm">Заголовок розділу {i + 1}</Label>
+        {sections.length === 0 && (
+          <p className="text-sm text-muted-foreground">Ще немає розділів. Додайте перший.</p>
+        )}
+
+        {sections.map((s, i) => (
+          <CollapsibleItem
+            key={s.id}
+            title={`${i + 1}. ${s.heading.trim() || 'Новий розділ'}`}
+            right={
+              <>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSection(i, -1)} disabled={i === 0} title="Вгору">
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} title="Вниз">
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeSection(i)} title="Видалити розділ">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            }
+          >
+            {/* Рівень 3 — поля розділу */}
+            <div className="space-y-1.5">
+              <Label className="text-sm">Заголовок розділу</Label>
               <Input
                 value={s.heading}
                 onChange={(e) => updateSection(i, { heading: e.target.value })}
                 placeholder="Напр. 1. Загальні положення"
               />
             </div>
-            <div className="flex shrink-0 gap-1 pt-6">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveSection(i, -1)} disabled={i === 0} title="Вгору">
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} title="Вниз">
-                <ArrowDown className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeSection(i)} title="Видалити розділ">
-                <Trash2 className="h-4 w-4" />
-              </Button>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">Абзаци (кожен рядок — окремий абзац)</Label>
+              <Textarea
+                value={s.paragraphsText}
+                onChange={(e) => updateSection(i, { paragraphsText: e.target.value })}
+                rows={5}
+                placeholder="Текст абзацу…"
+              />
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-sm">Абзаци (кожен рядок — окремий абзац)</Label>
-            <Textarea
-              value={s.paragraphsText}
-              onChange={(e) => updateSection(i, { paragraphsText: e.target.value })}
-              rows={5}
-              placeholder="Текст абзацу…"
-            />
-          </div>
+            {/* Вкладена група — глибший рівень, приглушена підложка */}
+            <div className="space-y-1.5 rounded-lg border bg-muted/40 p-3">
+              <Label className="text-sm">Пункти переліку (необов’язково, кожен рядок — пункт)</Label>
+              <Textarea
+                value={s.itemsText}
+                onChange={(e) => updateSection(i, { itemsText: e.target.value })}
+                rows={3}
+                placeholder="Пункт переліку…"
+              />
+            </div>
+          </CollapsibleItem>
+        ))}
 
-          <div className="space-y-1.5">
-            <Label className="text-sm">Пункти переліку (необов’язково, кожен рядок — пункт)</Label>
-            <Textarea
-              value={s.itemsText}
-              onChange={(e) => updateSection(i, { itemsText: e.target.value })}
-              rows={3}
-              placeholder="Пункт переліку…"
-            />
-          </div>
-        </div>
-      ))}
+        <Button variant="outline" size="sm" onClick={addSection}>
+          <Plus className="mr-1 h-4 w-4" /> Додати розділ
+        </Button>
+      </div>
 
-      <Button variant="outline" size="sm" onClick={addSection}>
-        <Plus className="mr-1 h-4 w-4" /> Додати розділ
-      </Button>
-
-      {/* Плавуча кнопка збереження — зʼявляється лише за наявності змін */}
+      {/* Плавуча кнопка збереження — як у вкладці «Контент» */}
       {dirty && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
           <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">
