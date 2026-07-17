@@ -1,17 +1,23 @@
 import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal/LegalPageLayout'
-import { privacyPolicy } from '@/content/legal/privacy-policy'
 import { site } from '@/config/site'
+import {
+  getLegalOverrides,
+  mergeLegalContent,
+  getLegalUpdatedAt,
+  formatLegalUpdatedAt,
+} from '@/lib/legal'
 
-// TODO(legal): поки стоїть заглушка — сторінка noindex. ПІСЛЯ публікації реального
-// тексту (заповнення `sections` у src/content/legal/privacy-policy.ts):
-//   1. приберіть `robots` нижче (або задайте { index: true, follow: true });
-//   2. додайте цю сторінку в src/app/sitemap.ts (там є відповідний TODO).
-export const metadata: Metadata = {
-  title: `${privacyPolicy.title} — ${site.name}`,
-  robots: { index: false, follow: false },
+export const dynamic = 'force-dynamic'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { privacy } = mergeLegalContent(await getLegalOverrides())
+  return { title: `${privacy.title} — ${site.name}` }
 }
 
-export default function PrivacyPolicyPage() {
-  return <LegalPage doc={privacyPolicy} />
+export default async function PrivacyPolicyPage() {
+  const [overrides, updatedAtIso] = await Promise.all([getLegalOverrides(), getLegalUpdatedAt()])
+  const { privacy } = mergeLegalContent(overrides)
+  const updatedAt = formatLegalUpdatedAt(updatedAtIso, privacy.updatedAt)
+  return <LegalPage doc={privacy} updatedAt={updatedAt} />
 }

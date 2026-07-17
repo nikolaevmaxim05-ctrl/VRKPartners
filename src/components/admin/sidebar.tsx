@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar'
 import {
   PhoneCall, Plug, TrendingUp, Users, Shield,
-  Settings, LogOut, BarChart3, RotateCcw, FileText,
+  Settings, LogOut, BarChart3, RotateCcw, FileText, Scale,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Permission } from '@/lib/permissions'
@@ -30,6 +30,8 @@ const topNavItems = [
 // ----------------------------------------------------------------
 const bottomNavItems = [
   { href: '/admin/content',      label: 'Контент',          icon: FileText,
+    anyPermission: ['manage_content'] as Permission[] },
+  { href: '/admin/legal',        label: 'Юридичні документи', icon: Scale,
     anyPermission: ['manage_content'] as Permission[] },
   { href: '/admin/integrations', label: 'Інтеграції',       icon: Plug,
     anyPermission: ['manage_settings', 'manage_integrations'] as Permission[] },

@@ -7,10 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { leadSchema, leadDefaults, type LeadInput } from "@/lib/validators";
 import { track } from "@/lib/analytics";
+import { setEnhancedConversionUserData } from "@/lib/enhanced-conversions";
 import { getStoredUtm } from "@/lib/utm";
 import { Button } from "@/components/landing-ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/landing-ui/Field";
-import { adFormats, budgetRanges, goals, audit } from "@/config/site";
+import { useContent } from "@/components/ContentProvider";
+import { adFormats, budgetRanges, goals } from "@/config/site";
 
 /** Маска телефону: +380 (XX) XXX-XX-XX. Лишає тільки цифри й форматує. */
 function formatUaPhone(input: string): string {
@@ -61,6 +63,7 @@ export function LeadForm({
   onSuccess,
 }: LeadFormProps) {
   const router = useRouter();
+  const { audit } = useContent(); // C11: список послуг береться з БД-контенту, не з config
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState(false);
 
@@ -102,6 +105,12 @@ export function LeadForm({
         }
         return;
       }
+      // C4: Enhanced Conversions — передаємо хешовані email/телефон у gtag ДО
+      // події-конверсії generate_lead, щоб Google краще матчив конверсію.
+      await setEnhancedConversionUserData({
+        email: data.email || undefined,
+        phone: data.phone,
+      });
       track("form_submit_success", { source });
       if (inlineSuccess) {
         setDone(true);
@@ -275,6 +284,18 @@ export function LeadForm({
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {submitLabel}
       </Button>
+
+      <p className="text-center text-xs leading-relaxed text-white/40">
+        Натискаючи кнопку, ви погоджуєтесь з{" "}
+        <a
+          href="/polityka-konfidentsiynosti"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 transition-colors hover:text-white/70"
+        >
+          Політикою конфіденційності
+        </a>
+      </p>
     </form>
   );
 }
