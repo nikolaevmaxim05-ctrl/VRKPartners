@@ -5,6 +5,24 @@ import { ChevronDown } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
+// Плавне розгортання/згортання без JS-бібліотек: трюк grid-template-rows 0fr→1fr
+// (той самий підхід, що у секції «Показати більше» на лендингу). Працює з
+// авто-висотою вкладеного контенту (textarea, прев'ю) — після відкриття нічого
+// не обрізається, бо у розкритому стані рядок = auto. Легкий fade поверх.
+// Швидко й ненав'язливо: ~200мс, ease-out на розкриття / ease-in на згортання.
+// prefers-reduced-motion вимикає всі transition глобально (див. globals.css),
+// тож у режимі зменшеної анімації розкриття миттєве, як раніше.
+//
+// Контент завжди у DOM (навіть згорнутий) — це потрібно для анімації висоти;
+// стан полів однаково живе у формах, тож нічого не втрачається.
+const ANIM_WRAP =
+  'grid transition-all duration-200 motion-reduce:transition-none'
+function rowsClass(open: boolean) {
+  return open
+    ? 'grid-rows-[1fr] opacity-100 ease-out'
+    : 'grid-rows-[0fr] opacity-0 ease-in'
+}
+
 /** Верхньорівневий згортуваний блок (Card). За замовчуванням згорнутий. */
 export function CollapsibleCard({
   title, description, defaultOpen = false, children,
@@ -30,15 +48,17 @@ export function CollapsibleCard({
           </div>
           <ChevronDown
             className={cn(
-              'h-5 w-5 shrink-0 text-muted-foreground transition-transform',
+              'h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none',
               open && 'rotate-180'
             )}
           />
         </div>
       </CardHeader>
-      {open && (
-        <CardContent className="space-y-4 rounded-b-lg bg-muted/50 pt-4">{children}</CardContent>
-      )}
+      <div className={cn(ANIM_WRAP, rowsClass(open))}>
+        <div className="overflow-hidden">
+          <CardContent className="space-y-4 rounded-b-lg bg-muted/50 pt-4">{children}</CardContent>
+        </div>
+      </div>
     </Card>
   )
 }
@@ -69,7 +89,7 @@ export function CollapsibleItem({
         >
           <ChevronDown
             className={cn(
-              'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+              'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none',
               open && 'rotate-180'
             )}
           />
@@ -77,7 +97,11 @@ export function CollapsibleItem({
         </button>
         {right && <div className="flex shrink-0 gap-1">{right}</div>}
       </div>
-      {open && <div className="space-y-2 border-t p-3">{children}</div>}
+      <div className={cn(ANIM_WRAP, rowsClass(open))}>
+        <div className="overflow-hidden">
+          <div className="space-y-2 border-t p-3">{children}</div>
+        </div>
+      </div>
     </div>
   )
 }
