@@ -1,11 +1,12 @@
 'use client'
 
-// Редактор метаданих (SEO) головної сторінки. Групи-картки: пошукова видача
-// Google (з живим прев'ю сніпета), Open Graph (з прев'ю картки шарингу) та назва/
-// опис організації для JSON-LD. Контакти (телефон/email/telegram) тут НЕ редагуються
-// — їх джерело один: вкладка «Контент» → Контакти (показуються read-only).
-// Біля кожного поля/групи — іконка «i» з детальним поясненням (InfoHint). Ендпоінт
-// збереження — /api/admin/seo. Лише plain-текст.
+// Редактор метаданих (SEO) головної сторінки. UI у стилі вкладки «Контент»: групи —
+// згортувані блоки CollapsibleCard (той самий компонент, що у content-form), за
+// замовчуванням усі СВЕРНУТІ. Стан полів живе в цьому компоненті (useState m), тож
+// згортання/розгортання блоків нічого не втрачає (навіть якщо вміст розмонтовується).
+// Контакти (телефон/email/telegram) тут НЕ редагуються — джерело один: вкладка
+// «Контент» → Контакти (показуються read-only). Біля кожного поля — іконка «i»
+// (InfoHint). Ендпоінт збереження — /api/admin/seo. Лише plain-текст.
 
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -15,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { InfoHint } from '@/components/ui/info-hint'
+import { CollapsibleCard } from '@/components/admin/collapsible-section'
 import { ImageField } from '@/components/admin/content-image-field'
 
 type Meta = {
@@ -35,19 +37,6 @@ function LabelWithInfo({ label, info }: { label: string; info: string }) {
     <div className="flex items-center gap-1.5">
       <Label className="text-sm">{label}</Label>
       <InfoHint text={info} label={label} />
-    </div>
-  )
-}
-
-/** Заголовок групи з іконкою-підказкою. */
-function GroupHeading({ title, subtitle, info }: { title: string; subtitle: string; info: string }) {
-  return (
-    <div>
-      <div className="flex items-center gap-1.5">
-        <h3 className="font-semibold">{title}</h3>
-        <InfoHint text={info} label={title} />
-      </div>
-      <p className="text-sm text-muted-foreground">{subtitle}</p>
     </div>
   )
 }
@@ -141,7 +130,7 @@ export function MetaForm({
 
   return (
     <div className="space-y-4 pb-24">
-      {/* Вступний блок для неспеціаліста */}
+      {/* Вступний блок для неспеціаліста (завжди видимий, не згортається) */}
       <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
         Метадані — це те, як ваш сайт виглядає у Google та під час пересилання
         посилання у месенджерах і соцмережах. На самій сторінці вони не видимі.
@@ -150,13 +139,10 @@ export function MetaForm({
       </div>
 
       {/* Група 1 — Пошукова видача Google */}
-      <div className="space-y-4 rounded-lg border bg-card p-4">
-        <GroupHeading
-          title="Пошукова видача (Google)"
-          subtitle="Як сторінка виглядає в результатах пошуку."
-          info="Це те, як ваша головна сторінка виглядає у результатах пошуку Google: синій заголовок, адреса сайту та короткий опис під ним."
-        />
-
+      <CollapsibleCard
+        title="Пошукова видача (Google)"
+        description="Як сторінка виглядає в результатах пошуку."
+      >
         <Field
           label="Заголовок сторінки (Title)"
           hint="Головний рядок у результатах Google і назва вкладки браузера. Тримайте до ~60 символів."
@@ -175,8 +161,8 @@ export function MetaForm({
           <p className="text-xs"><Counter value={m.description} max={160} /></p>
         </Field>
 
-        {/* Живе прев'ю сніпета Google */}
-        <div className="space-y-1.5">
+        {/* Живе прев'ю сніпета Google — службова підгрупа на приглушеній підложці */}
+        <div className="space-y-1.5 rounded-lg border bg-muted/40 p-3">
           <LabelWithInfo
             label="Прев’ю у Google"
             info="Приблизний вигляд у пошуку. Реальний вигляд може трохи відрізнятися — Google іноді сам переписує заголовок чи опис під запит користувача."
@@ -188,16 +174,13 @@ export function MetaForm({
             <div className="mt-1 line-clamp-2 text-sm text-[#4d5156]">{effDesc}</div>
           </div>
         </div>
-      </div>
+      </CollapsibleCard>
 
       {/* Група 2 — Open Graph */}
-      <div className="space-y-4 rounded-lg border bg-card p-4">
-        <GroupHeading
-          title="Соцмережі (Open Graph)"
-          subtitle="Як виглядає посилання при пересиланні у Telegram, Facebook тощо."
-          info="Open Graph — дані для месенджерів і соцмереж. Коли хтось надсилає посилання на ваш сайт у Telegram, Viber чи Facebook, показується картка із заголовком, описом і картинкою."
-        />
-
+      <CollapsibleCard
+        title="Соцмережі (Open Graph)"
+        description="Як виглядає посилання при пересиланні у Telegram, Facebook тощо."
+      >
         <Field
           label="OG-заголовок"
           hint="Якщо порожньо — використовується заголовок вище (Title)."
@@ -227,8 +210,8 @@ export function MetaForm({
           </p>
         </div>
 
-        {/* Прев'ю картки шарингу */}
-        <div className="space-y-1.5">
+        {/* Прев'ю картки шарингу — службова підгрупа на приглушеній підложці */}
+        <div className="space-y-1.5 rounded-lg border bg-muted/40 p-3">
           <LabelWithInfo
             label="Прев’ю картки при пересиланні"
             info="Приблизний вигляд картки при пересиланні посилання. У різних месенджерах вона може виглядати трохи по-різному."
@@ -247,16 +230,13 @@ export function MetaForm({
             </div>
           </div>
         </div>
-      </div>
+      </CollapsibleCard>
 
       {/* Група 3 — Дані організації (JSON-LD) */}
-      <div className="space-y-4 rounded-lg border bg-card p-4">
-        <GroupHeading
-          title="Дані організації"
-          subtitle="Структуровані дані про компанію для Google (не видимі на сторінці)."
-          info="Прихована технічна інформація про вашу компанію (структуровані дані, JSON-LD). Її не видно на сторінці, але Google використовує її, щоб краще розуміти, хто ви."
-        />
-
+      <CollapsibleCard
+        title="Дані організації"
+        description="Структуровані дані про компанію для Google (не видимі на сторінці)."
+      >
         <Field
           label="Назва компанії"
           hint="Офіційна назва вашої компанії."
@@ -272,7 +252,7 @@ export function MetaForm({
           <Textarea value={m.orgDescription} onChange={(e) => set('orgDescription')(e.target.value)} rows={3} placeholder={defaults.orgDescription} />
         </Field>
 
-        {/* Контакти — read-only, з вкладки «Контент» (єдине джерело) */}
+        {/* Контакти — read-only, з вкладки «Контент» (єдине джерело), службова підгрупа */}
         <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
           <LabelWithInfo
             label="Контакти в структурованих даних"
@@ -301,9 +281,9 @@ export function MetaForm({
             </Button>
           )}
         </div>
-      </div>
+      </CollapsibleCard>
 
-      {/* Плавуча кнопка збереження — як у вкладці «Контент» */}
+      {/* Плавуча кнопка збереження — як у вкладці «Контент», видима незалежно від згорнутості */}
       {dirty && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
           <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">
