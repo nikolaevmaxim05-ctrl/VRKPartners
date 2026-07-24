@@ -16,6 +16,7 @@ import {
   isTelegramUrl,
   type LandingContentOverrides,
 } from '@/lib/content'
+import { isStaleUpdate } from '@/lib/optimistic-lock'
 
 export const runtime = 'nodejs'
 
@@ -101,7 +102,7 @@ export async function PUT(request: NextRequest) {
     .select('updated_at')
     .eq('id', LANDING_CONTENT_ID)
     .maybeSingle()
-  if (current && typeof body.baseUpdatedAt === 'string' && current.updated_at !== body.baseUpdatedAt) {
+  if (isStaleUpdate(current?.updated_at, body.baseUpdatedAt)) {
     return NextResponse.json(
       { error: 'Контент змінив інший адміністратор. Оновіть сторінку й повторіть.' },
       { status: 409 },

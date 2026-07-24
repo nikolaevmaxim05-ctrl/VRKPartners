@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasAnyPermission } from '@/lib/permissions'
+import { isStaleUpdate } from '@/lib/optimistic-lock'
 import {
   LEGAL_CONTENT_ID,
   getLegalOverrides,
@@ -82,7 +83,7 @@ export async function PUT(request: NextRequest) {
     .select('updated_at')
     .eq('id', LEGAL_CONTENT_ID)
     .maybeSingle()
-  if (current && typeof body.baseUpdatedAt === 'string' && current.updated_at !== body.baseUpdatedAt) {
+  if (isStaleUpdate(current?.updated_at, body.baseUpdatedAt)) {
     return NextResponse.json(
       { error: 'Документи змінив інший адміністратор. Оновіть сторінку й повторіть.' },
       { status: 409 },

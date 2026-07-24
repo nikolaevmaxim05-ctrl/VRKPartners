@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasAnyPermission } from '@/lib/permissions'
 import { isSafeImageUrl, isSafeHref } from '@/lib/content'
+import { isStaleUpdate } from '@/lib/optimistic-lock'
 import {
   SEO_CONTENT_ID,
   getSeoOverrides,
@@ -98,7 +99,7 @@ export async function PUT(request: NextRequest) {
     .select('updated_at')
     .eq('id', SEO_CONTENT_ID)
     .maybeSingle()
-  if (current && typeof body.baseUpdatedAt === 'string' && current.updated_at !== body.baseUpdatedAt) {
+  if (isStaleUpdate(current?.updated_at, body.baseUpdatedAt)) {
     return NextResponse.json(
       { error: 'Метадані змінив інший адміністратор. Оновіть сторінку й повторіть.' },
       { status: 409 },
