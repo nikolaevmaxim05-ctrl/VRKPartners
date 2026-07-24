@@ -130,8 +130,8 @@ function buildAdminEmailHtml(data: LeadData, serviceLabel: string): string {
           <tr>
             <td style="padding:32px;">
               <p style="margin:0 0 20px;color:#374151;font-size:16px;">
-                Ви отримали нову заявку на запис. Будь ласка, зв'яжіться з пацієнтом
-                протягом <strong>15 хвилин</strong>.
+                Нова заявка з лендингу. Радимо звʼязатися з клієнтом якнайшвидше —
+                бажано протягом <strong>15 хвилин</strong>.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;">
                 ${tableRows}

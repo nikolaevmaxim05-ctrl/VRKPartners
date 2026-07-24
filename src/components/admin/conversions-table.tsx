@@ -31,6 +31,10 @@ type Conversion = {
 
 export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
   const [conversions, setConversions] = useState<Conversion[]>([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [pendingTotal, setPendingTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [resending, setResending] = useState<string | null>(null)
   const [exportingAll, setExportingAll] = useState(false)
@@ -38,17 +42,21 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/conversions')
+      const res = await fetch(`/api/admin/conversions?page=${page}`)
       const j = await res.json()
       setConversions(j.data ?? [])
+      setTotalPages(j.totalPages ?? 1)
+      setTotal(j.total ?? 0)
+      setPendingTotal(j.pendingTotal ?? 0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page])
 
   useEffect(() => { load() }, [load])
 
-  const pendingCount = conversions.filter((c) => c.export_status === 'pending').length
+  // C9: pending рахуємо по ВСІХ сторінках (з сервера), а не по поточній.
+  const pendingCount = pendingTotal
 
   async function handleResend(conv: Conversion) {
     setResending(conv.id)
@@ -127,7 +135,7 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
           </Button>
         )}
         <span className="text-sm text-muted-foreground">
-          {conversions.length} конверсій · {pendingCount} очікують
+          {total} конверсій · {pendingCount} очікують
         </span>
       </div>
 
@@ -246,6 +254,33 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
           </tbody>
         </table>
       </div>
+
+      {/* Пагінація */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground">
+            Сторінка {page} з {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || loading}
+            >
+              Назад
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || loading}
+            >
+              Далі
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

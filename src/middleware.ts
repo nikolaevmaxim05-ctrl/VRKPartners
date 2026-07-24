@@ -31,7 +31,7 @@ const CSP_DIRECTIVES = [
   // connect-src: GA4, Plausible, Upstash, Telegram, Resend, KeyCRM, Supabase
   // + Google Ads конверсии (прямой AW-тег через gtag.js, промпт 015)
   // + *.analytics.google.com и *.googletagmanager.com — серверные хиты GA4 и GTM preview
-  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://*.upstash.io https://api.telegram.org https://api.resend.com https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, "")}` : ""}`,
+  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://*.upstash.io https://api.telegram.org https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, "")}` : ""}`,
   // frame-src: td.doubleclick.net (GA4/AW инжектят iframe для cross-domain linker)
   "frame-src https://td.doubleclick.net https://www.googletagmanager.com",
   "frame-ancestors 'none'",

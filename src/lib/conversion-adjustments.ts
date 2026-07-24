@@ -34,18 +34,35 @@ export async function recordAdjustment(params: {
 }): Promise<AdjustmentRow | null> {
   const supabase = createServiceClient()
 
-  // Idempotency guard для RETRACT — одна корекція-відкликання на конверсію.
+  // C15: guard для RETRACT — не за самим ФАКТОМ попереднього retract (це «навічно»
+  // глушило другий retract у циклі target→non_target→target→non_target), а за ЧАСОМ:
+  // повторний retract дозволяємо, лише якщо конверсію ПЕРЕекспортували ПІСЛЯ
+  // попереднього retract (тобто є що відкликати знову).
   if (params.type === 'retract') {
-    const { data: dup } = await supabase
+    const { data: lastRetract } = await supabase
       .from('conversion_adjustments')
-      .select('id')
+      .select('adjustment_time')
       .eq('lead_id', params.leadId)
       .eq('adjustment_type', 'retract')
       .eq('conversion_action', params.conversionAction)
+      .order('adjustment_time', { ascending: false })
+      .limit(1)
       .maybeSingle()
-    if (dup) {
-      console.log('[adjustments] retract_already_exists', { leadId: params.leadId })
-      return null
+
+    if (lastRetract) {
+      const { data: oc } = await supabase
+        .from('offline_conversions')
+        .select('exported_at')
+        .eq('lead_id', params.leadId)
+        .maybeSingle()
+      const exportedAt = oc?.exported_at ? new Date(oc.exported_at).getTime() : 0
+      const lastRetractAt = new Date(lastRetract.adjustment_time).getTime()
+      if (exportedAt <= lastRetractAt) {
+        // Після попереднього retract нового експорту не було → дубль, пропускаємо.
+        console.log('[adjustments] retract_suppressed_no_new_export', { leadId: params.leadId })
+        return null
+      }
+      // інакше: конверсію переекспортували після retract → дозволяємо новий retract.
     }
   }
 

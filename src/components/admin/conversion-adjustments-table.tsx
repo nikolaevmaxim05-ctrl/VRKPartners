@@ -30,6 +30,10 @@ type Adjustment = {
 
 export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | null }) {
   const [adjustments, setAdjustments] = useState<Adjustment[]>([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [pendingTotal, setPendingTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [resending, setResending] = useState<string | null>(null)
   const [exportingAll, setExportingAll] = useState(false)
@@ -37,17 +41,21 @@ export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | n
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/conversion-adjustments')
+      const res = await fetch(`/api/admin/conversion-adjustments?page=${page}`)
       const j = await res.json()
       setAdjustments(j.data ?? [])
+      setTotalPages(j.totalPages ?? 1)
+      setTotal(j.total ?? 0)
+      setPendingTotal(j.pendingTotal ?? 0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page])
 
   useEffect(() => { load() }, [load])
 
-  const pendingCount = adjustments.filter((a) => a.export_status === 'pending').length
+  // C9: pending по ВСІХ сторінках (з сервера).
+  const pendingCount = pendingTotal
 
   async function handleResend(adj: Adjustment) {
     setResending(adj.id)
@@ -114,7 +122,7 @@ export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | n
           </Button>
         )}
         <span className="text-sm text-muted-foreground">
-          {adjustments.length} корекцій · {pendingCount} очікують
+          {total} корекцій · {pendingCount} очікують
         </span>
       </div>
 
@@ -228,6 +236,33 @@ export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | n
           </tbody>
         </table>
       </div>
+
+      {/* Пагінація */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground">
+            Сторінка {page} з {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || loading}
+            >
+              Назад
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || loading}
+            >
+              Далі
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

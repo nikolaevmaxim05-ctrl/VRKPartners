@@ -1689,6 +1689,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 function TelephonySection() {
   const [secret, setSecret] = useState('')
   const [showSecret, setShowSecret] = useState(false)
+  const [isSet, setIsSet] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
@@ -1696,32 +1697,39 @@ function TelephonySection() {
 
   useEffect(() => {
     setOrigin(window.location.origin)
-    fetch('/api/admin/settings')
+    // S6: секрет зберігається зашифрованим у integrations і НЕ повертається plaintext.
+    // Тут лише дізнаємось, чи він встановлений. Повний секрет видно тільки поки ви
+    // самі його згенерували/ввели (до перезавантаження) — як у App Password.
+    fetch('/api/admin/integrations')
       .then((r) => r.json())
       .then((j) => {
-        const rows: SettingRow[] = j.data ?? []
-        const row = rows.find((r) => r.key === 'telephony_secret')
-        setSecret(row?.value ?? '')
+        const rows: { key: string; is_set: boolean }[] = j.data ?? []
+        setIsSet(rows.some((r) => r.key === 'telephony_secret' && r.is_set))
       })
       .finally(() => setLoading(false))
   }, [])
 
   const save = async () => {
+    const value = secret.trim()
+    if (!value) {
+      toast.error('Введіть або згенеруйте секрет')
+      return
+    }
     setSaving(true)
     try {
-      const res = await fetch('/api/admin/settings', {
+      // S6: пишемо у зашифроване сховище integrations, а не у site_settings.
+      const res = await fetch('/api/admin/integrations/telephony_secret', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: [{ key: 'telephony_secret', value: secret.trim(), type: 'secret' }],
-        }),
+        body: JSON.stringify({ value }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
         toast.error(j.error ?? 'Помилка збереження')
         return
       }
-      toast.success('Збережено')
+      setIsSet(true)
+      toast.success('Збережено (зашифровано)')
     } finally {
       setSaving(false)
     }
@@ -1758,7 +1766,11 @@ function TelephonySection() {
             type={showSecret ? 'text' : 'password'}
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            placeholder="Не налаштовано — вебхуки не приймаються"
+            placeholder={
+              isSet
+                ? 'Секрет збережено (прихований). Введіть новий, щоб замінити'
+                : 'Не налаштовано — вебхуки не приймаються'
+            }
             className="font-mono text-sm flex-1"
           />
           <Button
@@ -1775,7 +1787,8 @@ function TelephonySection() {
         </div>
         <p className="text-xs text-muted-foreground">
           Передається провайдером у ?token= або заголовку Authorization: Bearer.
-          Без секрету вебхуки повертають 503.
+          Без секрету вебхуки повертають 503. Секрет зберігається зашифрованим і
+          показується лише один раз — після збереження скопіюйте URL нижче; далі він прихований.
         </p>
       </div>
 

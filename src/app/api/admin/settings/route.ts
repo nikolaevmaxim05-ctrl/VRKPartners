@@ -13,11 +13,15 @@ const ALLOWED_KEYS = new Set<string>([
   'dedup_by_phone',
   'dedup_by_ip',
   'dedup_ip_window_hours',
-  'telephony_secret',
+  // S6: telephony_secret більше НЕ зберігається у site_settings (plaintext) —
+  // він переїхав у integrations (AES-256-GCM). Тут його не приймаємо і не віддаємо.
   'google_ads_conversion_action',
   'deal_amount_type',
   'pipelines_enabled',
 ])
+
+// S6: ніколи не віддаємо секрети з GET settings (навіть якщо колись зʼявляться).
+const SECRET_KEYS = new Set<string>(['telephony_secret'])
 
 const ALLOWED_CURRENCIES = ['UAH', 'USD', 'EUR']
 
@@ -35,7 +39,9 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ data: data ?? [] })
+  // S6: секрети ніколи не повертаємо через цей GET.
+  const safe = (data ?? []).filter((r) => !SECRET_KEYS.has(r.key))
+  return NextResponse.json({ data: safe })
 }
 
 type PutItem = { key: string; value: string | number | boolean | null; type?: string }
@@ -110,6 +116,5 @@ function inferType(key: string): string {
   if (key === 'dedup_by_phone' || key === 'dedup_by_ip') return 'boolean'
   if (key === 'pipelines_enabled') return 'boolean'
   if (key === 'dedup_ip_window_hours') return 'number'
-  if (key === 'telephony_secret') return 'secret'
   return 'string'
 }

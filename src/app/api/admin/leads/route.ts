@@ -45,8 +45,9 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1)
 
   if (search) {
-    // Екранування % і _ — це wildcards в ilike
-    const escaped = search.replace(/[%_]/g, '\\$&')
+    // C17: кома/дужки ламають синтаксис PostgREST .or() → вирізаємо їх.
+    // Також екрануємо % і _ — це wildcards в ilike.
+    const escaped = search.replace(/[,()]/g, ' ').replace(/[%_]/g, '\\$&')
     query = query.or(`name.ilike.%${escaped}%,phone.ilike.%${escaped}%`)
   }
   if (service) query = query.eq('service', service)
@@ -94,13 +95,16 @@ export async function GET(request: NextRequest) {
   if (assignedIds.length > 0) {
     const svc = createServiceClient()
     try {
-      const [{ data: usersData }, { data: rolesData }] = await Promise.all([
-        svc.auth.admin.listUsers({ perPage: 200 }),
+      // C13: резолвимо email лише для потрібних id (getUserById), а не listUsers({perPage:200}),
+      // який мовчки ламається після 200 користувачів. На сторінці лідів різних assignee — одиниці.
+      const [userResults, { data: rolesData }] = await Promise.all([
+        Promise.all(assignedIds.map((uid) => svc.auth.admin.getUserById(uid))),
         svc.from('user_roles').select('user_id, name').in('user_id', assignedIds),
       ])
       emailById = new Map(
-        (usersData?.users ?? [])
-          .filter((u) => assignedIds.includes(u.id))
+        userResults
+          .map((r) => r.data?.user)
+          .filter((u): u is NonNullable<typeof u> => !!u)
           .map((u) => [u.id, u.email ?? ''])
       )
       nameById = new Map(

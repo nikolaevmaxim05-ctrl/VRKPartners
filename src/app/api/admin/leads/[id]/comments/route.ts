@@ -1,8 +1,8 @@
 // GET  /api/admin/leads/[id]/comments?type=comment|note|system — стрічка коментарів
 // POST /api/admin/leads/[id]/comments — додати comment або note (type=system пишеться лише з PATCH /leads/[id])
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireApiAccess } from '@/lib/api-guard'
 
 export const runtime = 'nodejs'
 
@@ -11,12 +11,15 @@ type RouteParams = { params: Promise<{ id: string }> }
 const ALLOWED_TYPES = ['comment', 'note', 'system'] as const
 type CommentType = (typeof ALLOWED_TYPES)[number]
 
+// Коментарі лежать поруч з PII ліда — той самий клас доступу, що і список/деталь.
+const VIEW_PERMS = ['manage_leads', 'view_reports', 'export_data', 'manage_conversions'] as const
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireApiAccess([...VIEW_PERMS])
+  if (!guard.ok) return guard.response
 
+  const supabase = createServiceClient()
   const { searchParams } = new URL(request.url)
   const typeFilter = searchParams.get('type')
 
@@ -41,9 +44,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Додавання коментаря — право manage_leads (+ активний користувач).
+  const guard = await requireApiAccess(['manage_leads'])
+  if (!guard.ok) return guard.response
 
   let body: { type?: string; content?: string }
   try {
@@ -71,8 +74,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     .from('lead_comments')
     .insert({
       lead_id: id,
-      user_id: user.id,
-      user_email: user.email ?? null,
+      user_id: guard.userId,
+      user_email: guard.email,
       type,
       content,
     })

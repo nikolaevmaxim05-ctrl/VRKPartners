@@ -30,21 +30,29 @@ function TextField({
   )
 }
 
-/** Редагований список рядків (пункти картки аудиту). */
-function PointsList({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+/** Редагований список рядків (пункти картки / список послуг). */
+function PointsList({
+  value, onChange, label = 'Пункти', itemLabel = 'Пункт', addLabel = 'Додати пункт',
+}: {
+  value: string[]
+  onChange: (v: string[]) => void
+  label?: string
+  itemLabel?: string
+  addLabel?: string
+}) {
   function update(i: number, v: string) { onChange(value.map((s, idx) => (idx === i ? v : s))) }
   function add() { onChange([...value, '']) }
   function remove(i: number) { onChange(value.filter((_, idx) => idx !== i)) }
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm">Пункти</Label>
+      <Label className="text-sm">{label}</Label>
       {value.map((s, i) => (
         <div key={i} className="flex items-center gap-2">
-          <Input value={s} onChange={(e) => update(i, e.target.value)} placeholder={`Пункт ${i + 1}`} />
+          <Input value={s} onChange={(e) => update(i, e.target.value)} placeholder={`${itemLabel} ${i + 1}`} />
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-destructive" onClick={() => remove(i)}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
       ))}
-      <Button variant="outline" size="sm" onClick={add}><Plus className="h-4 w-4 mr-1" /> Додати пункт</Button>
+      <Button variant="outline" size="sm" onClick={add}><Plus className="h-4 w-4 mr-1" /> {addLabel}</Button>
     </div>
   )
 }
@@ -85,6 +93,17 @@ export function AuditEditor({
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="Кнопка (аудит)" value={value.cta} onChange={setField('cta')} />
         <TextField label="Кнопка (калькулятор)" value={value.ctaSecondary} onChange={setField('ctaSecondary')} />
+      </div>
+
+      {/* C11: список послуг для селекта «Послуга» у формі заявки. */}
+      <div className="rounded-lg border bg-muted/40 p-3">
+        <PointsList
+          label="Послуги (для селекта у формі заявки)"
+          itemLabel="Послуга"
+          addLabel="Додати послугу"
+          value={value.services ?? []}
+          onChange={(v) => onChange({ ...value, services: v })}
+        />
       </div>
 
       <div className="space-y-2 pt-2">

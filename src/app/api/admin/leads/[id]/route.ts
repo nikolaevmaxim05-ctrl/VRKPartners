@@ -4,6 +4,7 @@
 // При переведенні в стадію з conversion_type != null — recordConversion();
 // в офлайн-лист рядок іде при ЗМІНІ стану конверсії (inserted/updated), noop мовчить.
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasPermission, hasAnyPermission } from '@/lib/permissions'
@@ -114,12 +115,16 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH — оновлення полів + автоматичний system-комментар
 // ─────────────────────────────────────────────────────────────────────────────
-type PatchBody = Partial<{
-  status_id: string | null
-  assigned_to: string | null
-  deal_amount: number | null
-  deal_profit: number | null
-}>
+// C8: Zod-валідація тіла — суми мають бути скінченними невідʼємними числами (або null),
+// id — рядки (або null). Невідомі ключі Zod відкидає (захист від mass-assignment).
+const patchLeadSchema = z
+  .object({
+    status_id: z.string().min(1).nullable(),
+    assigned_to: z.string().min(1).nullable(),
+    deal_amount: z.number().finite().nonnegative().nullable(),
+    deal_profit: z.number().finite().nonnegative().nullable(),
+  })
+  .partial()
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
@@ -132,17 +137,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const allowed = await hasAnyPermission(user.id, ['manage_leads', 'manage_users'])
   if (!allowed) return NextResponse.json({ error: 'Доступ заборонено' }, { status: 403 })
 
-  let body: PatchBody
+  let raw: unknown
   try {
-    body = await request.json()
+    raw = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
+  const parsed = patchLeadSchema.safeParse(raw)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Невірні дані' }, { status: 400 })
+  }
+  // Зберігаємо семантику «оновлюємо лише передані ключі» — беремо ключі з сирого тіла.
+  const bodyObj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const body = parsed.data
+
   const allowedKeys = ['status_id', 'assigned_to', 'deal_amount', 'deal_profit'] as const
   const update: Record<string, unknown> = {}
   for (const k of allowedKeys) {
-    if (k in body) update[k] = body[k] ?? null
+    if (k in bodyObj) update[k] = body[k] ?? null
   }
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Нічого оновлювати' }, { status: 400 })
@@ -200,29 +213,43 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Перехід «з угоди → без угоди» — обнуляємо суму/прибуток.
     // Не зачіпаємо поля які клієнт уже передав явно у body (напр. deal → deal_adjustment з попапом).
     if (wasDeal && !willBeDeal) {
-      const willClearAmount = !('deal_amount' in body) && before.deal_amount != null
-      const willClearProfit = !('deal_profit' in body) && before.deal_profit != null
+      const willClearAmount = !('deal_amount' in bodyObj) && before.deal_amount != null
+      const willClearProfit = !('deal_profit' in bodyObj) && before.deal_profit != null
       if (willClearAmount) update.deal_amount = null
       if (willClearProfit) update.deal_profit = null
       clearedDealOnTransition = willClearAmount || willClearProfit
     }
   }
 
-  const { data: updated, error: updateErr } = await service
-    .from('leads')
-    .update(update)
-    .eq('id', id)
+  // C8: CAS по status_id — при зміні стадії оновлюємо ТІЛЬКИ якщо поточний статус
+  // усе ще той, що ми прочитали (before). Інакше — паралельна зміна → 409.
+  let updateQuery = service.from('leads').update(update).eq('id', id)
+  const statusChanging = 'status_id' in update && update.status_id !== before.status_id
+  if (statusChanging) {
+    updateQuery = before.status_id
+      ? updateQuery.eq('status_id', before.status_id)
+      : updateQuery.is('status_id', null)
+  }
+
+  const { data: updated, error: updateErr } = await updateQuery
     .select(
       `
         *,
         status:lead_statuses(id, name, color, is_final, is_initial, conversion_type, conversion_action, requires_amount, amount_is_profit)
       `
     )
-    .single()
+    .maybeSingle()
 
   if (updateErr) {
     console.error('[admin/leads/[id]] update_failed', updateErr.message)
     return NextResponse.json({ error: updateErr.message }, { status: 500 })
+  }
+  if (!updated) {
+    // Рядок не оновився: або лід зник, або статус змінили паралельно (CAS-промах).
+    return NextResponse.json(
+      { error: 'Статус ліда змінився паралельно. Оновіть сторінку й повторіть.' },
+      { status: 409 },
+    )
   }
 
   // ── Збираємо тексти system-комментарів для всіх змінених полів

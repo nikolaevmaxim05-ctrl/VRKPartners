@@ -27,6 +27,8 @@ export function ImageField({
     try {
       const fd = new FormData()
       fd.append('file', file)
+      // C14: віддаємо попередній URL, щоб бекенд видалив старий файл при заміні.
+      if (value) fd.append('previous', value)
       const res = await fetch('/api/admin/content/upload', { method: 'POST', body: fd })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)

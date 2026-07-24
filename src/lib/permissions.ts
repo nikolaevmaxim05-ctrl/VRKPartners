@@ -48,7 +48,7 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   export_data: 'Вивантаження лідів та аналітики (CSV/XLSX).',
   delete_leads: 'Видалення заявок.',
   manage_integrations: 'Telegram, CRM, Google-теги та інші інтеграції.',
-  manage_content: 'Редагування контенту сайту: контент, контакти, лікарі, відгуки.',
+  manage_content: 'Редагування контенту лендингу: тексти, послуги, кейси, FAQ, контакти.',
   manage_conversions: 'Перегляд офлайн-конверсій та вивантаження в Google Ads.',
 }
 

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Файл не передано' }, { status: 400 })
   }
   if (!ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: 'Дозволені лише зображення (png, jpg, webp, gif, svg)' }, { status: 400 })
+    return NextResponse.json({ error: 'Дозволені лише зображення: png, jpg, webp, gif' }, { status: 400 })
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: 'Максимальний розмір — 5 МБ' }, { status: 400 })
@@ -54,6 +54,24 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('[content/upload] failed', error.message)
     return NextResponse.json({ error: 'Не вдалося завантажити файл' }, { status: 500 })
+  }
+
+  // C14: видаляємо попередній файл при заміні (щоб не плодити сиріт у bucket).
+  // Клієнт передає старий URL у полі `previous`; чіпаємо лише обʼєкти НАШОГО bucket.
+  const previous = form.get('previous')
+  if (typeof previous === 'string' && previous) {
+    const marker = `/storage/v1/object/public/${BUCKET}/`
+    const idx = previous.indexOf(marker)
+    if (idx !== -1) {
+      const oldPath = previous.slice(idx + marker.length)
+      if (oldPath && oldPath !== path) {
+        try {
+          await service.storage.from(BUCKET).remove([oldPath])
+        } catch (e) {
+          console.error('[content/upload] old_file_remove_failed', e)
+        }
+      }
+    }
   }
 
   const { data } = service.storage.from(BUCKET).getPublicUrl(path)

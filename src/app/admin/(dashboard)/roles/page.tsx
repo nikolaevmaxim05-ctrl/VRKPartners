@@ -79,7 +79,7 @@ export default async function RolesPage() {
           <strong>Видалення лідів</strong> — видалення заявок.<br />
           <strong>Експорт даних</strong> — вивантаження лідів/аналітики.<br />
           <strong>Інтеграції</strong> — Telegram, CRM, Google-теги (GTM/GA4/Google Ads).<br />
-          <strong>Редагування контенту сайту</strong> — контент, контакти, лікарі, відгуки.<br />
+          <strong>Редагування контенту лендингу</strong> — тексти, послуги, кейси, FAQ, контакти.<br />
           <strong>Офлайн конверсії</strong> — перегляд і вивантаження конверсій у Google Ads.<br />
           <strong>Перегляд звітів</strong> — доступ до аналітики та звітів.
         </p>
