@@ -7,9 +7,10 @@ import { SiteBackground } from "@/components/SiteBackground";
 import { UtmTracker } from "@/components/UtmTracker";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { site, siteUrl } from "@/config/site";
+import { siteUrl } from "@/config/site";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getLandingContentOverrides, mergeLandingContent } from "@/lib/content";
+import { getSeoOverrides, mergeSeo, type SeoMeta } from "@/lib/seo";
 import { TAG_ID_PATTERNS, type TrackingTagType } from "@/lib/tracking-tags";
 import {
   ANALYTICS_EVENTS_SETTING_KEY,
@@ -189,23 +190,28 @@ function GtmNoScript({ id }: { id: string }) {
   );
 }
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: site.name,
-  url: siteUrl,
-  description: site.description,
-  email: site.email,
-  sameAs: [site.telegram],
-  areaServed: ["UA", "EU", "US"],
-  knowsAbout: [
-    "Google Ads",
-    "Performance Max",
-    "YouTube Ads",
-    "Demand Gen",
-    "PPC",
-  ],
-};
+// JSON-LD Organization будується з merged-метаданих (дефолти + оверрайди адмінки).
+// Тип схеми та технічні поля лишаються статичними — редагуються лише прості значення.
+function buildJsonLd(m: SeoMeta) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: m.orgName,
+    url: siteUrl,
+    description: m.orgDescription,
+    email: m.orgEmail,
+    telephone: m.orgPhone,
+    sameAs: [m.orgTelegram],
+    areaServed: ["UA", "EU", "US"],
+    knowsAbout: [
+      "Google Ads",
+      "Performance Max",
+      "YouTube Ads",
+      "Demand Gen",
+      "PPC",
+    ],
+  };
+}
 
 // Marketing layout — обгортка публічних сторінок лендінгу
 export default async function MarketingLayout({
@@ -213,12 +219,14 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [tags, analyticsEvents, contentOverrides] = await Promise.all([
+  const [tags, analyticsEvents, contentOverrides, seoOverrides] = await Promise.all([
     getEnabledTrackingTags(),
     getAnalyticsEventsConfig(),
     getLandingContentOverrides(),
+    getSeoOverrides(),
   ]);
   const content = mergeLandingContent(contentOverrides);
+  const jsonLd = buildJsonLd(mergeSeo(seoOverrides));
 
   // Фолбэк на NEXT_PUBLIC_GTM_ID — тільки якщо немає жодного включеного тегу в БД.
   const gtmIds =

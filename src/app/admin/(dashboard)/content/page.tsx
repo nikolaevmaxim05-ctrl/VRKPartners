@@ -5,18 +5,37 @@ import {
   mergeLandingContent,
   getDefaultLandingContent,
 } from '@/lib/content'
-import { ContentForm } from '@/components/admin/content-form'
+import {
+  getSeoOverrides,
+  mergeSeo,
+  getDefaultSeo,
+  getSeoUpdatedAt,
+} from '@/lib/seo'
+import { siteUrl } from '@/config/site'
+import { ContentTabs } from '@/components/admin/content-tabs'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Контент | Адмін' }
 
-export default async function ContentPage() {
+export default async function ContentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
   await requireSectionAccess(['manage_content'])
 
-  const overrides = await getLandingContentOverrides()
+  const [overrides, updatedAt, seoOverrides, seoUpdatedAt, sp] = await Promise.all([
+    getLandingContentOverrides(),
+    getLandingContentUpdatedAt(),
+    getSeoOverrides(),
+    getSeoUpdatedAt(),
+    searchParams,
+  ])
   const content = mergeLandingContent(overrides)
   const defaults = getDefaultLandingContent()
-  const updatedAt = await getLandingContentUpdatedAt()
+  const seoContent = mergeSeo(seoOverrides)
+  const seoDefaults = getDefaultSeo()
+  const initialTab = sp?.tab === 'meta' ? 'meta' : 'content'
 
   const initial = {
     site: {
@@ -60,16 +79,25 @@ export default async function ContentPage() {
       <div>
         <h1 className="text-3xl font-bold">Контент лендингу</h1>
         <p className="text-muted-foreground">
-          Редагуйте тексти першого екрана, фінального блоку, контакти та FAQ.
-          Зміни застосовуються на сайті одразу, без деплою.
+          Редагуйте тексти лендингу та метадані (SEO). Зміни застосовуються на сайті
+          одразу, без деплою.
         </p>
       </div>
-      <ContentForm
-        initial={initial}
-        defaultServices={defaults.services}
-        defaultTrust={defaults.trust}
-        defaultAbout={defaults.about}
-        baseUpdatedAt={updatedAt}
+      <ContentTabs
+        initialTab={initialTab}
+        content={{
+          initial,
+          defaultServices: defaults.services,
+          defaultTrust: defaults.trust,
+          defaultAbout: defaults.about,
+          baseUpdatedAt: updatedAt,
+        }}
+        meta={{
+          initial: seoContent,
+          defaults: seoDefaults,
+          baseUpdatedAt: seoUpdatedAt,
+          siteUrl,
+        }}
       />
     </div>
   )

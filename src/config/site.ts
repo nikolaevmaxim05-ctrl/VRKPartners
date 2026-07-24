@@ -25,6 +25,26 @@ export const site = {
   format: "Онлайн",
 } as const;
 
+/**
+ * Дефолтні метадані (SEO) головної сторінки — редагуються з адмінки
+ * (/admin/content → вкладка «Метадані»). Оверрайди зберігаються в БД
+ * (див. lib/seo.ts), цей об'єкт — завжди безпечний фолбек.
+ * ogTitle/ogDescription порожні = наслідують title/description.
+ * Технічні поля (robots, canonical, verification) сюди НЕ входять — вони інваріантні.
+ */
+export const meta = {
+  title: `${site.name} — Google Ads та performance-маркетинг`,
+  description: site.description,
+  ogTitle: "",
+  ogDescription: "",
+  ogImage: "/og.png",
+  orgName: site.name,
+  orgDescription: site.description,
+  orgPhone: site.phone,
+  orgEmail: site.email,
+  orgTelegram: site.telegram,
+} as const;
+
 export const nav = [
   { label: "Переваги", href: "#usp" },
   { label: "Про нас", href: "#about" },
