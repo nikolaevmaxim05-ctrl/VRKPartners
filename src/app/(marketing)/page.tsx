@@ -7,9 +7,9 @@ import { Audit } from "@/components/sections/Audit";
 import { Trust } from "@/components/sections/Trust";
 import { Process } from "@/components/sections/Process";
 import { FinalCta } from "@/components/sections/FinalCta";
-import { siteUrl } from "@/config/site";
+import { site, siteUrl } from "@/config/site";
 import { isSafeImageUrl } from "@/lib/content";
-import { getSeoOverrides, mergeSeo, effectiveOg } from "@/lib/seo";
+import { getSeoOverrides, mergeSeo, effectiveOg, effectiveOrg } from "@/lib/seo";
 
 // Метадані головної читаються з merged-конфігу (дефолти config/site.ts + оверрайди
 // адмінки). robots/canonical/metadataBase лишаються з кореневого layout (інваріанти).
@@ -17,6 +17,7 @@ import { getSeoOverrides, mergeSeo, effectiveOg } from "@/lib/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const m = mergeSeo(await getSeoOverrides());
   const og = effectiveOg(m);
+  const org = effectiveOrg(m, site.name);
   const ogImage = isSafeImageUrl(m.ogImage) ? m.ogImage : "/og.png";
   return {
     title: { absolute: m.title },
@@ -26,10 +27,10 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       locale: "uk_UA",
       url: siteUrl,
-      siteName: m.orgName,
+      siteName: org.name,
       title: og.title,
       description: og.description,
-      images: [{ url: ogImage, width: 1200, height: 630, alt: m.orgName }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: org.name }],
     },
     twitter: {
       card: "summary_large_image",

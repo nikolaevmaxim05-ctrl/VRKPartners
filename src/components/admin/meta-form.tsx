@@ -76,6 +76,7 @@ export function MetaForm({
   defaults,
   baseUpdatedAt: initialUpdatedAt,
   siteUrl,
+  siteName,
   contacts,
   onGoToContacts,
 }: {
@@ -84,6 +85,8 @@ export function MetaForm({
   baseUpdatedAt: string | null
   /** Адреса сайту — для зеленого URL у прев'ю (з env, редагуванню не підлягає). */
   siteUrl: string
+  /** Базова назва компанії/сайту (config site.name) — джерело наслідування для «Назва компанії». */
+  siteName: string
   /** Контакти з вкладки «Контент» — показуються read-only (джерело для JSON-LD). */
   contacts: Contacts
   /** Перемкнути на вкладку «Контент» (передається з ContentTabs). */
@@ -104,6 +107,10 @@ export function MetaForm({
   const effDesc = m.description || defaults.description
   const ogTitle = m.ogTitle.trim() || effTitle
   const ogDesc = m.ogDescription.trim() || effDesc
+  // Наслідування для блоку «Дані організації» (аналогічно OG): порожня назва → назва
+  // сайту; порожній опис → «Опис сторінки». Обчислюється живо при вводі.
+  const effOrgName = m.orgName.trim() || siteName
+  const effOrgDesc = m.orgDescription.trim() || effDesc
   const domain = (() => {
     try { return new URL(siteUrl).hostname } catch { return siteUrl }
   })()
@@ -239,17 +246,17 @@ export function MetaForm({
       >
         <Field
           label="Назва компанії"
-          hint="Офіційна назва вашої компанії."
-          info="Офіційна назва компанії у структурованих даних для Google. Впливає на те, як Google може показувати назву вашого бізнесу."
+          hint="Якщо порожньо — використовується назва сайту."
+          info={`Офіційна назва компанії у структурованих даних для Google. Якщо залишити порожнім — підставиться базова назва сайту («${siteName}»). Впливає на те, як Google може показувати назву вашого бізнесу.`}
         >
-          <Input value={m.orgName} onChange={(e) => set('orgName')(e.target.value)} placeholder={defaults.orgName} />
+          <Input value={m.orgName} onChange={(e) => set('orgName')(e.target.value)} placeholder={`Наслідує: ${effOrgName}`} />
         </Field>
         <Field
           label="Опис компанії"
-          hint="Коротко про те, чим займається компанія."
-          info="Короткий опис діяльності компанії у структурованих даних. На сторінці не видно — лише для пошукових систем."
+          hint="Якщо порожньо — використовується «Опис сторінки (Description)»."
+          info="Короткий опис діяльності компанії у структурованих даних. Якщо залишити порожнім — візьметься «Опис сторінки (Description)» з блоку «Пошукова видача». На сторінці не видно — лише для пошукових систем."
         >
-          <Textarea value={m.orgDescription} onChange={(e) => set('orgDescription')(e.target.value)} rows={3} placeholder={defaults.orgDescription} />
+          <Textarea value={m.orgDescription} onChange={(e) => set('orgDescription')(e.target.value)} rows={3} placeholder={`Наслідує: ${effOrgDesc}`} />
         </Field>
 
         {/* Контакти — read-only, з вкладки «Контент» (єдине джерело), службова підгрупа */}

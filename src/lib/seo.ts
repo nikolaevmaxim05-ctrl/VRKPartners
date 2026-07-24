@@ -58,6 +58,17 @@ export function effectiveOg(m: SeoMeta): { title: string; description: string } 
   }
 }
 
+/** Дані організації для JSON-LD з наслідуванням порожніх полів (аналогічно OG):
+ *  - назва порожня → базова назва компанії (siteName з config/site.ts, site.name);
+ *  - опис порожній → «Опис сторінки (Description)» (m.description, який теж має свій дефолт).
+ * Обчислюється при рендері (тут), тож правка Description автоматично підтягується. */
+export function effectiveOrg(m: SeoMeta, siteName: string): { name: string; description: string } {
+  return {
+    name: m.orgName.trim() || siteName,
+    description: m.orgDescription.trim() || m.description,
+  }
+}
+
 /** Diff від дефолтів: зберігаємо лише непорожні поля, що відрізняються (правки коду
  * доходять до прод, поки поле не перевизначене вручну). */
 export function diffSeo(incoming: SeoOverrides, defaults: SeoMeta): SeoOverrides {

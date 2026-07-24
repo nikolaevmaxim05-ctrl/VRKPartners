@@ -11,7 +11,7 @@ import {
   getDefaultSeo,
   getSeoUpdatedAt,
 } from '@/lib/seo'
-import { siteUrl } from '@/config/site'
+import { site, siteUrl } from '@/config/site'
 import { ContentTabs } from '@/components/admin/content-tabs'
 
 export const dynamic = 'force-dynamic'
@@ -97,6 +97,7 @@ export default async function ContentPage({
           defaults: seoDefaults,
           baseUpdatedAt: seoUpdatedAt,
           siteUrl,
+          siteName: site.name,
           contacts: {
             phone: content.site.phone,
             email: content.site.email,

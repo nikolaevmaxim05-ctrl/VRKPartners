@@ -7,10 +7,10 @@ import { SiteBackground } from "@/components/SiteBackground";
 import { UtmTracker } from "@/components/UtmTracker";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { siteUrl } from "@/config/site";
+import { site, siteUrl } from "@/config/site";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getLandingContentOverrides, mergeLandingContent } from "@/lib/content";
-import { getSeoOverrides, mergeSeo } from "@/lib/seo";
+import { getSeoOverrides, mergeSeo, effectiveOrg } from "@/lib/seo";
 import { TAG_ID_PATTERNS, type TrackingTagType } from "@/lib/tracking-tags";
 import {
   ANALYTICS_EVENTS_SETTING_KEY,
@@ -234,9 +234,10 @@ export default async function MarketingLayout({
   ]);
   const content = mergeLandingContent(contentOverrides);
   const seo = mergeSeo(seoOverrides);
+  const org = effectiveOrg(seo, site.name);
   const jsonLd = buildJsonLd({
-    orgName: seo.orgName,
-    orgDescription: seo.orgDescription,
+    orgName: org.name,
+    orgDescription: org.description,
     email: content.site.email,
     phone: content.site.phone,
     telegram: content.site.telegram,

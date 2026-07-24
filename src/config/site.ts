@@ -35,11 +35,15 @@ export const site = {
 export const meta = {
   title: `${site.name} — Google Ads та performance-маркетинг`,
   description: site.description,
+  // Порожньо = «наслідувати» (обчислюється при рендері, див. lib/seo.ts):
+  //   ogTitle/ogDescription → title/description;
+  //   orgName → site.name (базова назва компанії);
+  //   orgDescription → «Опис сторінки (Description)».
   ogTitle: "",
   ogDescription: "",
   ogImage: "/og.png",
-  orgName: site.name,
-  orgDescription: site.description,
+  orgName: "",
+  orgDescription: "",
   // Контакти (телефон/email/telegram) для JSON-LD НЕ дублюються тут — вони беруться
   // з контактів лендингу (site.phone/email/telegram, редагуються у вкладці «Контент»),
   // щоб було єдине джерело правди й автосинхронізація.
