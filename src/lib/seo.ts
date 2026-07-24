@@ -16,17 +16,17 @@ export type SeoMeta = {
   ogImage: string
   orgName: string
   orgDescription: string
-  orgPhone: string
-  orgEmail: string
-  orgTelegram: string
 }
 
 export type SeoOverrides = Partial<SeoMeta>
 
-/** Порядок/набір полів — єдине джерело правди (для diff/whitelist). */
+/** Порядок/набір полів — єдине джерело правди (для diff/whitelist).
+ * Контакти (phone/email/telegram) сюди НЕ входять — джерело один: контакти лендингу.
+ * Якщо в БД лишились старі оверрайди orgPhone/orgEmail/orgTelegram — вони більше
+ * не читаються (cleanStrings/merge ітерують лише SEO_KEYS), тож ігноруються без міграції. */
 export const SEO_KEYS: readonly (keyof SeoMeta)[] = [
   'title', 'description', 'ogTitle', 'ogDescription', 'ogImage',
-  'orgName', 'orgDescription', 'orgPhone', 'orgEmail', 'orgTelegram',
+  'orgName', 'orgDescription',
 ]
 
 /** Дефолти з коду у мутабельному вигляді. */

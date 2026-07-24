@@ -5,16 +5,19 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { InfoHint } from '@/components/ui/info-hint'
 import { Loader2, Upload, RotateCcw } from 'lucide-react'
 
-/** Поле зображення: прев'ю + завантаження свого файлу + ручний шлях + повернення до дефолту. */
+/** Поле зображення: прев'ю + завантаження свого файлу + ручний шлях + повернення до дефолту.
+ * `info` (необовʼязково) — текст підказки в іконці «i» біля лейбла. */
 export function ImageField({
-  label, value, defaultValue, onChange,
+  label, value, defaultValue, onChange, info,
 }: {
   label: string
   value: string
   defaultValue?: string
   onChange: (v: string) => void
+  info?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -45,7 +48,10 @@ export function ImageField({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label className="text-sm">{label}</Label>
+        {info && <InfoHint text={info} label={label} />}
+      </div>
       <div className="flex items-start gap-3">
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element

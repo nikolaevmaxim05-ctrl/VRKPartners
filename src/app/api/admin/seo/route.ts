@@ -1,15 +1,15 @@
 // GET  /api/admin/seo — поточні оверрайди метаданих + ефективні значення
 // PUT  /api/admin/seo — зберегти оверрайди (+ revalidate лендингу)
-// Право: manage_content. Zod-валідація (довжини, ogImage за allowlist хостів,
-// email/telegram — формат), whitelist полів (z.object стриже невідомі ключі),
-// лише plain-текст (значення потрапляють у <head>/JSON-LD як екрановані рядки).
+// Право: manage_content. Zod-валідація (довжини полів, ogImage за allowlist хостів),
+// whitelist полів (z.object стриже невідомі ключі), лише plain-текст (значення
+// потрапляють у <head>/JSON-LD як екрановані рядки). Контакти тут не редагуються.
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasAnyPermission } from '@/lib/permissions'
-import { isSafeImageUrl, isSafeHref } from '@/lib/content'
+import { isSafeImageUrl } from '@/lib/content'
 import { isStaleUpdate } from '@/lib/optimistic-lock'
 import {
   SEO_CONTENT_ID,
@@ -23,6 +23,8 @@ import {
 
 export const runtime = 'nodejs'
 
+// Контакти (phone/email/telegram) сюди НЕ входять — вони живуть у контенті лендингу
+// (єдине джерело). z.object стриже невідомі ключі, тож старі оверрайди ігноруються.
 const seoSchema = z.object({
   title: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
@@ -31,9 +33,6 @@ const seoSchema = z.object({
   ogImage: z.string().max(500).optional(),
   orgName: z.string().max(200).optional(),
   orgDescription: z.string().max(500).optional(),
-  orgPhone: z.string().max(50).optional(),
-  orgEmail: z.string().max(254).optional(),
-  orgTelegram: z.string().max(300).optional(),
 })
 
 async function requireSeoAccess() {
@@ -77,18 +76,6 @@ export async function PUT(request: NextRequest) {
       { error: 'Недопустима картинка OG (лише /… або https://…supabase.co)' },
       { status: 400 },
     )
-  }
-  // Email — формат (якщо задано).
-  if (overrides.orgEmail && !z.string().email().safeParse(overrides.orgEmail).success) {
-    return NextResponse.json({ error: 'Некоректний email організації' }, { status: 400 })
-  }
-  // Telegram/соцпосилання — лише http(s).
-  if (overrides.orgTelegram && !isSafeHref(overrides.orgTelegram)) {
-    return NextResponse.json({ error: 'Некоректне посилання Telegram (лише http/https)' }, { status: 400 })
-  }
-  // Телефон — цифри та службові символи + ( ) - пробіл (мʼяка перевірка).
-  if (overrides.orgPhone && !/^[+()\-\s0-9]{3,50}$/.test(overrides.orgPhone)) {
-    return NextResponse.json({ error: 'Некоректний телефон організації' }, { status: 400 })
   }
 
   const service = createServiceClient()

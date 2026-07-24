@@ -97,6 +97,11 @@ export default async function ContentPage({
           defaults: seoDefaults,
           baseUpdatedAt: seoUpdatedAt,
           siteUrl,
+          contacts: {
+            phone: content.site.phone,
+            email: content.site.email,
+            telegram: content.site.telegram,
+          },
         }}
       />
     </div>

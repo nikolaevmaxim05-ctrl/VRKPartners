@@ -10,7 +10,7 @@ import { Footer } from "@/components/sections/Footer";
 import { siteUrl } from "@/config/site";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getLandingContentOverrides, mergeLandingContent } from "@/lib/content";
-import { getSeoOverrides, mergeSeo, type SeoMeta } from "@/lib/seo";
+import { getSeoOverrides, mergeSeo } from "@/lib/seo";
 import { TAG_ID_PATTERNS, type TrackingTagType } from "@/lib/tracking-tags";
 import {
   ANALYTICS_EVENTS_SETTING_KEY,
@@ -190,18 +190,25 @@ function GtmNoScript({ id }: { id: string }) {
   );
 }
 
-// JSON-LD Organization будується з merged-метаданих (дефолти + оверрайди адмінки).
-// Тип схеми та технічні поля лишаються статичними — редагуються лише прості значення.
-function buildJsonLd(m: SeoMeta) {
+// JSON-LD Organization: назва/опис — із метаданих (SEO), а контакти (email/телефон/
+// Telegram) — з КОНТАКТІВ лендингу (content.site), щоб було єдине джерело правди й
+// автосинхронізація зі вкладкою «Контент». Тип схеми лишається статичним.
+function buildJsonLd(args: {
+  orgName: string
+  orgDescription: string
+  email: string
+  phone: string
+  telegram: string
+}) {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: m.orgName,
+    name: args.orgName,
     url: siteUrl,
-    description: m.orgDescription,
-    email: m.orgEmail,
-    telephone: m.orgPhone,
-    sameAs: [m.orgTelegram],
+    description: args.orgDescription,
+    email: args.email,
+    telephone: args.phone,
+    sameAs: [args.telegram],
     areaServed: ["UA", "EU", "US"],
     knowsAbout: [
       "Google Ads",
@@ -226,7 +233,14 @@ export default async function MarketingLayout({
     getSeoOverrides(),
   ]);
   const content = mergeLandingContent(contentOverrides);
-  const jsonLd = buildJsonLd(mergeSeo(seoOverrides));
+  const seo = mergeSeo(seoOverrides);
+  const jsonLd = buildJsonLd({
+    orgName: seo.orgName,
+    orgDescription: seo.orgDescription,
+    email: content.site.email,
+    phone: content.site.phone,
+    telegram: content.site.telegram,
+  });
 
   // Фолбэк на NEXT_PUBLIC_GTM_ID — тільки якщо немає жодного включеного тегу в БД.
   const gtmIds =

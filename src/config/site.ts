@@ -40,9 +40,9 @@ export const meta = {
   ogImage: "/og.png",
   orgName: site.name,
   orgDescription: site.description,
-  orgPhone: site.phone,
-  orgEmail: site.email,
-  orgTelegram: site.telegram,
+  // Контакти (телефон/email/telegram) для JSON-LD НЕ дублюються тут — вони беруться
+  // з контактів лендингу (site.phone/email/telegram, редагуються у вкладці «Контент»),
+  // щоб було єдине джерело правди й автосинхронізація.
 } as const;
 
 export const nav = [
