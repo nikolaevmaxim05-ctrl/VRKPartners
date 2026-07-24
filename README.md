@@ -1,12 +1,18 @@
-# VRK Partners — лідген-лендинг
+# VRK Partners — лідген-лендинг + адмінка-CRM
 
-Односторінкова посадкова сторінка для збору заявок на Google Ads та
-performance-маркетинг. Контент — українською (uk-UA).
+Посадкова сторінка для збору заявок на Google Ads і performance-маркетинг разом з
+адміністративною панеллю (CRM) для керування заявками, воронкою продажів,
+конверсіями, контентом і аналітикою. Весь контент, видимий відвідувачу та
+адміністратору, — українською (uk-UA).
 
 ## Стек
 
-Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS · react-hook-form
-+ Zod. Шрифт Raleway через `next/font`.
+- **Next.js 15** (App Router) · **TypeScript** (strict)
+- **Tailwind CSS**: бренд-тема для лендингу, shadcn/ui для адмінки
+- **react-hook-form + Zod** — форми та валідація
+- **Supabase** — Postgres, Auth, Realtime (заявки, користувачі, налаштування)
+- **Upstash Redis** — rate limit форми
+- Шрифт **Raleway** через `next/font`; хостинг — **Vercel**
 
 ## Запуск
 
@@ -21,28 +27,42 @@ npm run dev        # http://localhost:3000
 npm run build      # продакшн-збірка
 npm run start      # запуск продакшн-збірки
 npm run typecheck  # tsc --noEmit
+npm test           # Vitest
 ```
+
+## Можливості
+
+**Лендинг** — секції (Hero, УТП, «Про нас», послуги, аудит, довіра/кейси, процес,
+фінальний CTA), форма заявки з поп-апами, сторінка `/thanks`, SEO (meta, Open
+Graph, JSON-LD), трекінг-теги (GTM / GA4 / Google Ads) з подіями.
+
+**Адмінка** (`/admin`) — керування заявками та воронкою (стадії, коментарі,
+кастомні поля), офлайн-конверсії та корекції, аналітика, редактори контенту
+лендингу, метаданих (SEO) і юридичних сторінок, трекінг-теги й події, інтеграції,
+користувачі та ролі з гранульованими правами. Зміни застосовуються на сайті
+одразу, без повторного деплою.
+
+**Приймач заявок** (`src/app/api/lead/route.ts`) — серверна валідація (Zod),
+honeypot, rate limit, дедуплікація, збереження в Supabase та розсилка в підключені
+інтеграції: Telegram, KeyCRM, email (Resend), Google Sheets.
 
 ## Структура
 
-- `src/config/site.ts` — **весь** контент (тексти, SEO, контакти, послуги,
-  кейси, FAQ). Редагуйте тут, без правок у компонентах.
-- `src/components/sections/` — 6 блоків лендингу + Header/Footer.
-- `src/components/LeadForm.tsx`, `ModalProvider.tsx` — форми та поп-апи.
-- `src/lib/validators.ts` — Zod-схеми; `analytics.ts` — події GTM (dataLayer).
-- `src/app/api/lead/route.ts` — демо-приймач заявок (валідація + honeypot).
-
-## Обсяг цієї версії
-
-**Входить:** верстка 6 блоків, демо-логіка форм (клієнт + серверна валідація,
-поп-апи, сторінка `/thanks`, інтерактивні кейси з табами).
-
-**Не входить (демо-режим):** реальна відправка заявок у Telegram/CRM/пошту,
-адмінка кейсів/ніш, Cloudflare Turnstile, rate limit. Точки інтеграції
-позначені в `src/app/api/lead/route.ts` та `.env.example`.
+- `src/app/(marketing)/` — лендинг і `/thanks`
+- `src/app/admin/` — панель адміністратора (CRM)
+- `src/app/api/` — приймач заявок і адмін-API
+- `src/components/` — секції лендингу, примітиви UI, компоненти адмінки
+- `src/config/site.ts` — дефолтні тексти / SEO (перевизначаються з адмінки)
+- `src/lib/` — валідатори, інтеграції, конверсії, аналітика, права доступу
+- `supabase/migrations/` — схема БД (застосовувати по порядку)
+- `docs/` — інструкції (зокрема резервне копіювання БД)
 
 ## Налаштування
 
-1. Скопіюйте `.env.example` → `.env.local`, заповніть `NEXT_PUBLIC_SITE_URL`.
-2. Замініть контактні дані та мокапи у `src/config/site.ts` та `public/mockups`.
-3. Для робочих інтеграцій додайте відправку в `src/app/api/lead/route.ts`.
+1. Скопіюйте `.env.example` → `.env.local` і заповніть змінні (Supabase, ключ
+   шифрування адмінки, rate limit тощо — див. коментарі у файлі).
+2. Застосуйте міграції з `supabase/migrations/` по порядку у своєму проєкті Supabase.
+3. Ключі інтеграцій (Telegram, KeyCRM, Resend, Google Sheets) і трекінг-теги
+   додаються з адмінки — без правок коду й без деплою.
+
+Резервне копіювання бази даних описане в `docs/INSTRUKTSIYA-BACKUP.md`.

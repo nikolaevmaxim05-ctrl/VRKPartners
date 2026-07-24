@@ -40,3 +40,11 @@ next-env.d.ts
 ADMIN-TRANSFER.md
 setup-agents/
 .claude/
+
+# Internal dev files (handover cleanup)
+PROMPT-*.md
+CLAUDE.md
+HANDOVER-checklist.md
+SESSION-SUMMARY.md
+DEPLOY-TODO.md
+SETUP-PLAN.md
