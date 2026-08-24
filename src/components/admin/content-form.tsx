@@ -14,6 +14,7 @@ import { WorkflowEditor } from '@/components/admin/content-workflow-editor'
 import { AboutEditor } from '@/components/admin/content-about-editor'
 import { UspEditor } from '@/components/admin/content-usp-editor'
 import { ImageField } from '@/components/admin/content-image-field'
+import { aboutSectionVisible } from '@/config/site'
 import type { ServicesContent, TrustContent, AuditContent, WorkflowContent, AboutContent, UspContent } from '@/lib/content'
 
 type SiteFields = {
@@ -191,8 +192,12 @@ export function ContentForm({
         {/* 2. Унікальні переваги */}
         <UspEditor value={usp} onChange={setUsp} />
 
-        {/* 3. Про нас */}
-        <AboutEditor value={about} onChange={setAbout} defaultAbout={defaultAbout} />
+        {/* 3. Про нас (команда) — редактор прихований тим самим прапорцем, що й
+            секція на лендингу (aboutSectionVisible у config/site.ts). Дані секції
+            лишаються у стані форми й зберігаються без змін (не затираються). */}
+        {aboutSectionVisible && (
+          <AboutEditor value={about} onChange={setAbout} defaultAbout={defaultAbout} />
+        )}
 
         {/* 3. Послуги */}
         <ServicesEditor value={services} onChange={setServices} defaultServices={defaultServices} />
