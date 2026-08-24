@@ -7,6 +7,7 @@ import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { CollapsibleCard, CollapsibleItem } from '@/components/admin/collapsible-section'
 import { ImageField } from '@/components/admin/content-image-field'
 import type { AboutContent, AboutMember } from '@/lib/content'
+import { aboutSectionVisible } from '@/config/site'
 
 function TextField({
   label, value, onChange, textarea, placeholder,
@@ -66,7 +67,10 @@ export function AboutEditor({
   return (
     <CollapsibleCard
       title="Про нас (команда)"
-      description="Заголовок блоку та картки учасників команди з фото."
+      description={
+        'Заголовок блоку та картки учасників команди з фото.' +
+        (aboutSectionVisible ? '' : ' • Блок приховано на сайті (правки збережуться).')
+      }
     >
       <TextField label="Заголовок блоку" value={value.title} onChange={setField('title')} textarea />
       <div className="grid gap-4 sm:grid-cols-2">

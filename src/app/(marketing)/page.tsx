@@ -7,7 +7,7 @@ import { Audit } from "@/components/sections/Audit";
 import { Trust } from "@/components/sections/Trust";
 import { Process } from "@/components/sections/Process";
 import { FinalCta } from "@/components/sections/FinalCta";
-import { site, siteUrl } from "@/config/site";
+import { site, siteUrl, aboutSectionVisible } from "@/config/site";
 import { isSafeImageUrl } from "@/lib/content";
 import { getSeoOverrides, mergeSeo, effectiveOg, effectiveOrg } from "@/lib/seo";
 
@@ -46,7 +46,9 @@ export default function HomePage() {
     <>
       <Hero />
       <Usp />
-      <About />
+      {/* Блок «Про нас (команда)» тимчасово прихований прапорцем aboutSectionVisible
+          (config/site.ts). Код і контент лишаються — вмикання одним прапорцем. */}
+      {aboutSectionVisible && <About />}
       <Services />
       <Audit />
       <Trust />

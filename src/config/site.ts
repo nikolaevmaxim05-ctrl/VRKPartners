@@ -49,7 +49,14 @@ export const meta = {
   // щоб було єдине джерело правди й автосинхронізація.
 } as const;
 
-export const nav = [
+/** Тимчасовий перемикач видимості блоку «Про нас (команда)» на лендингу.
+ *  false — блок і пункт меню «Про нас» приховані (код секції, її контент і
+ *  редактор в адмінці лишаються недоторканими). Повернути — постав true
+ *  (одна ця стрічка). Керує: секцією <About/> у (marketing)/page.tsx і пунктом
+ *  #about у навігації — шапка, мобільне меню та футер читають той самий `nav`. */
+export const aboutSectionVisible: boolean = false;
+
+const navItems = [
   { label: "Переваги", href: "#usp" },
   { label: "Про нас", href: "#about" },
   { label: "Послуги", href: "#services" },
@@ -58,6 +65,12 @@ export const nav = [
   { label: "Процес", href: "#process" },
   { label: "FAQ", href: "#faq" },
 ] as const;
+
+// Поки блок команди вимкнено — приховуємо пункт «Про нас» (#about) з усієї
+// навігації (шапка/мобільне меню/футер), щоб не лишалось якоря на неіснуючу секцію.
+export const nav = navItems.filter(
+  (item) => aboutSectionVisible || item.href !== "#about",
+);
 
 /** Партнери / інтеграції (компактний рядок довіри) */
 export const partners = [
