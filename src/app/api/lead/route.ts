@@ -86,14 +86,29 @@ export async function POST(request: NextRequest) {
     ipResolved: ip !== null,
   });
   if (ip) {
-    const { success: rateLimitOk, reset } = await checkRateLimit(ip);
-    if (!rateLimitOk) {
-      const retryAfterSeconds = Math.max(Math.ceil((reset - Date.now()) / 1000), 1);
+    const rl = await checkRateLimit(ip);
+    if (rl.status === "limited") {
+      // Чесний перебір ліміту користувачем → 429 + Retry-After.
+      const retryAfterSeconds = Math.max(Math.ceil((rl.reset - Date.now()) / 1000), 1);
+      console.warn(`[lead] rate_limited: перебір ліміту, retryAfter=${retryAfterSeconds}s`);
       return NextResponse.json(
         { error: "Забагато запитів. Спробуйте пізніше.", retryAfter: retryAfterSeconds },
         { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
       );
     }
+    if (rl.status === "unavailable") {
+      // Fail-closed: сам rate-limiter недоступний (напр., UPSTASH_* env вказує на
+      // мертвий інстанс). Це ТЕХНІЧНА помилка (503), а НЕ «забагато спроб» —
+      // окреме повідомлення користувачу й чіткий маркер у логах для діагностики.
+      console.error(
+        `[lead] rate_limit_unavailable reason=${rl.reason} — перевір UPSTASH_REDIS_REST_URL/TOKEN та живий інстанс Upstash`
+      );
+      return NextResponse.json(
+        { error: "Технічна помилка. Спробуйте за хвилину." },
+        { status: 503, headers: { "Retry-After": "60" } }
+      );
+    }
+    // rl.status === "ok" → продовжуємо
   } else {
     console.warn("[lead] rate_limit_skipped: клієнтський IP не визначено із заголовків");
   }

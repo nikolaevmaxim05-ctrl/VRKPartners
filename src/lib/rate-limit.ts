@@ -1,19 +1,25 @@
-﻿// Rate limiting через Upstash Redis
+// Rate limiting через Upstash Redis
 // Sliding window: 5 запросов за 10 минут на один IP.
 // Вызывается ТОЛЬКО после базовой валидации (honeypot + Zod) в /api/lead,
 // поэтому считаются лишь валидные сабмиты — боты и ошибочные попытки квоту
 // не тратят. Ключ — реальный IP клиента (см. lib/ip.ts); общий ключ-константа
 // не используется, иначе все посетители попадали бы в один счётчик.
+//
+// Результат — размеченный тип, чтобы вызывающий код РАЗЛИЧАЛ два случая:
+//   • "limited"     — честный перебор лимита (пользователю: «спробуйте через N хв», 429);
+//   • "unavailable" — fail-closed: сам rate-limiter недоступен (нет env / мёртвый
+//                     инстанс Upstash / ошибка сети). Это ТЕХНИЧЕСКАЯ ошибка (503),
+//                     а не «слишком много попыток» — иначе диагностируется вслепую.
+// В production при недоступном Upstash поведение fail-closed (запрос НЕ пропускаем).
 // Документация: https://upstash.com/docs/redis/sdks/ratelimit-ts/overview
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-interface RateLimitResult {
-  success: boolean;
-  remaining: number;
-  reset: number;
-}
+export type RateLimitResult =
+  | { status: "ok"; remaining: number; reset: number }
+  | { status: "limited"; remaining: number; reset: number }
+  | { status: "unavailable"; reason: "env_missing" | "redis_error" };
 
 // Ленивая инициализация — создаём limiter только при первом вызове
 let limiter: Ratelimit | null = null;
@@ -46,43 +52,49 @@ function getLimiter(): Ratelimit | null {
 export async function checkRateLimit(
   identifier: string
 ): Promise<RateLimitResult> {
+  // Байпас для тестов на Preview/локально: ТОЛЬКО вне production и лишь при явном
+  // флаге. На Vercel production (VERCEL_ENV === "production") игнорируется жёстко.
+  if (
+    process.env.VERCEL_ENV !== "production" &&
+    process.env.RATE_LIMIT_DISABLED === "1"
+  ) {
+    return { status: "ok", remaining: 999, reset: Date.now() + 60_000 };
+  }
+
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // Если переменные не заданы — в dev пропускаем, в prod блокируем
+  // Если переменные не заданы — в dev пропускаем, в prod fail-closed (unavailable).
   if (!url || !token) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
         "[rate-limit] Upstash env vars not set — skipping rate limit in development"
       );
-      return { success: true, remaining: 10, reset: Date.now() + 60_000 };
+      return { status: "ok", remaining: 10, reset: Date.now() + 60_000 };
     }
-    // Fail-closed в production: лучше заблокировать, чем работать без защиты
     console.error(
-      "[rate-limit] UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set in production — blocking request"
+      "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not set in production — fail-closed (unavailable)"
     );
-    return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+    return { status: "unavailable", reason: "env_missing" };
   }
 
   const rl = getLimiter();
   if (!rl) {
-    // getLimiter вернул null — переменные не заданы (уже обработали выше, но на всякий случай)
-    return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+    return { status: "unavailable", reason: "env_missing" };
   }
 
   try {
     const result = await rl.limit(identifier);
-    return {
-      success: result.success,
-      remaining: result.remaining,
-      reset: result.reset,
-    };
+    return result.success
+      ? { status: "ok", remaining: result.remaining, reset: result.reset }
+      : { status: "limited", remaining: result.remaining, reset: result.reset };
   } catch (err) {
-    // При ошибке Redis — в prod fail-closed (блокируем), в dev пропускаем
-    console.error("[rate-limit] Redis error:", err);
+    // Недоступен Upstash (мёртвый хост / плохой токен / сеть). В prod — fail-closed
+    // как ТЕХНИЧЕСКАЯ недоступность (503), а не «много попыток». В dev — пропускаем.
+    console.error("[rate-limit] Redis error (fail-closed unavailable):", err);
     if (process.env.NODE_ENV === "production") {
-      return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+      return { status: "unavailable", reason: "redis_error" };
     }
-    return { success: true, remaining: 0, reset: Date.now() + 60_000 };
+    return { status: "ok", remaining: 0, reset: Date.now() + 60_000 };
   }
 }

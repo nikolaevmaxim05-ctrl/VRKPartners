@@ -95,8 +95,14 @@ export function LeadForm({
         // Розрізняємо типи помилок сервера, щоб не втрачати ліди мовчазним «щось пішло не так».
         track("form_submit_error", { source });
         if (res.status === 429) {
+          // Чесний перебір ліміту.
           setServerError(
             "Забагато спроб поспіль. Зачекайте трохи й спробуйте ще раз."
+          );
+        } else if (res.status === 503) {
+          // Технічна недоступність rate-limiter (fail-closed) — НЕ «забагато спроб».
+          setServerError(
+            "Технічна помилка. Спробуйте за хвилину або напишіть нам у Telegram."
           );
         } else {
           setServerError(
