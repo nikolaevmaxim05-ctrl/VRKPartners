@@ -3,6 +3,7 @@ import Script from "next/script";
 import { ModalProvider } from "@/components/ModalProvider";
 import { ContentProvider } from "@/components/ContentProvider";
 import { RevealObserver } from "@/components/RevealObserver";
+import { HashScroll } from "@/components/HashScroll";
 import { SiteBackground } from "@/components/SiteBackground";
 import { UtmTracker } from "@/components/UtmTracker";
 import { Header } from "@/components/sections/Header";
@@ -316,6 +317,7 @@ export default async function MarketingLayout({
           <div className="relative">
             <SiteBackground />
             <RevealObserver />
+            <HashScroll />
             <Header />
             <main>{children}</main>
             <Footer />

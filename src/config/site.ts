@@ -72,6 +72,16 @@ export const nav = navItems.filter(
   (item) => aboutSectionVisible || item.href !== "#about",
 );
 
+/** href пункту навігації залежно від сторінки. Секції-якорі існують лише на
+ *  головній, тож:
+ *   • на "/" — чистий якір ("#usp") → нативний плавний скрол без перезавантаження;
+ *   • на інших сторінках (напр. /thanks) — "/#usp" → перехід на головну, далі
+ *     браузер (+ HashScroll) доскролює до секції.
+ *  pathname передавай із usePathname(). */
+export function navHref(anchor: string, pathname: string): string {
+  return pathname === "/" ? anchor : `/${anchor}`;
+}
+
 /** Партнери / інтеграції (компактний рядок довіри) */
 export const partners = [
   {

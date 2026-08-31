@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Check, Send, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { useContent } from "@/components/ContentProvider";
 import { CopyContactLink } from "@/components/CopyContactLink";
 import { track } from "@/lib/analytics";
-import { nav } from "@/config/site";
+import { nav, navHref } from "@/config/site";
 
 const approach = [
   "Чесна комунікація",
@@ -18,6 +19,7 @@ const approach = [
 
 export function Footer() {
   const { site } = useContent();
+  const pathname = usePathname();
   const year = new Date().getFullYear();
   return (
     <footer className="border-t border-bg-line bg-bg-soft/50">
@@ -52,7 +54,7 @@ export function Footer() {
               {nav.map((item) => (
                 <a
                   key={item.href}
-                  href={item.href}
+                  href={navHref(item.href, pathname)}
                   className="btn-focus w-fit rounded text-base font-medium text-white/70 transition-all duration-300 hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
                 >
                   {item.label}

@@ -5,16 +5,18 @@ import { Menu, X, Phone } from "lucide-react";
 import { Logo } from "@/components/landing-ui/Logo";
 import { Button } from "@/components/landing-ui/Button";
 import { TelegramCtaButton } from "@/components/landing-ui/TelegramCtaButton";
+import { usePathname } from "next/navigation";
 import { useLeadModal } from "@/components/ModalProvider";
 import { useContent } from "@/components/ContentProvider";
 import { CopyContactLink } from "@/components/CopyContactLink";
 import { track } from "@/lib/analytics";
-import { nav } from "@/config/site";
+import { nav, navHref } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 export function Header() {
   const { openLead } = useLeadModal();
   const { site } = useContent();
+  const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [active, setActive] = React.useState("");
@@ -86,7 +88,7 @@ export function Header() {
             return (
               <a
                 key={item.href}
-                href={item.href}
+                href={navHref(item.href, pathname)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "btn-focus rounded text-sm font-medium transition-all duration-300 hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]",
@@ -147,7 +149,7 @@ export function Header() {
               return (
                 <a
                   key={item.href}
-                  href={item.href}
+                  href={navHref(item.href, pathname)}
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => setOpen(false)}
                   className={cn(
