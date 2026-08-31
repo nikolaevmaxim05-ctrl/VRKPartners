@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { leadSchema, type LeadInput } from "@/lib/validators";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/ip";
 import { sendLeadToTelegram } from "@/lib/integrations/telegram";
 import { createKeyCRMLead } from "@/lib/integrations/keycrm";
 import { sendLeadEmail } from "@/lib/integrations/email";
@@ -19,21 +20,6 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { deduplicateLead, markAsRepeat } from "@/lib/dedup";
 
 export const runtime = "nodejs";
-
-function getClientIp(req: NextRequest): string {
-  // S5: ЛІВИЙ сегмент x-forwarded-for контролюється клієнтом (ротацією XFF можна
-  // обійти rate-limit / dedup-by-ip). На Vercel довіряємо x-real-ip — його виставляє
-  // платформа справжнім IP клієнта. Фолбек поза Vercel — ПРАВИЙ сегмент XFF
-  // (найближчий до сервера проксі), а не лівий.
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
-    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 0) return parts[parts.length - 1];
-  }
-  return "unknown";
-}
 
 /** Збирає коментар + додаткові поля форми VRK в один структурований текст. */
 function buildMessage(lead: LeadInput): string | null {
@@ -57,22 +43,10 @@ function buildMessage(lead: LeadInput): string | null {
 }
 
 export async function POST(request: NextRequest) {
-  const ip = getClientIp(request);
+  // Реальний IP клієнта (для rate-limit нижче та для запису в БД). Може бути null.
+  const ip = getClientIp(request.headers);
 
-  // 1. Rate limit по IP
-  const { success: rateLimitOk, reset } = await checkRateLimit(ip);
-  if (!rateLimitOk) {
-    const retryAfterSeconds = Math.ceil((reset - Date.now()) / 1000);
-    return NextResponse.json(
-      { error: "Забагато запитів. Спробуйте пізніше." },
-      {
-        status: 429,
-        headers: { "Retry-After": String(Math.max(retryAfterSeconds, 1)) },
-      }
-    );
-  }
-
-  // 2. Парсинг тіла запиту
+  // 1. Парсинг тіла запиту
   let body: unknown;
   try {
     body = await request.json();
@@ -80,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Невірні дані" }, { status: 400 });
   }
 
-  // 3. Honeypot: якщо бот заповнив приховане поле `company` — тихо повертаємо 200
+  // 2. Honeypot: якщо бот заповнив приховане поле `company` — тихо повертаємо 200
   if (
     body !== null &&
     typeof body === "object" &&
@@ -91,13 +65,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // 4. Zod-валідація
+  // 3. Zod-валідація
   const parsed = leadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Невірні дані" }, { status: 400 });
   }
 
   const lead = parsed.data;
+
+  // 4. Rate limit — САМЕ ТУТ, ПІСЛЯ honeypot + Zod: рахуємо лише валідні сабміти,
+  // тож боти (honeypot) і невалідні запити (400) НЕ з'їдають квоту, а серія ретраїв
+  // після помилки форми не «випалює» ліміт користувача. Ключ — реальний IP клієнта.
+  // Якщо IP не визначено — НЕ вводимо спільний ключ-константу (це загнало б усіх
+  // відвідувачів в один лічильник), а пропускаємо ліміт із попередженням.
+  // Лог без сирого IP (PII) — щоб звірити наявність заголовків у логах Vercel.
+  console.log("[lead] rl_headers", {
+    xRealIp: Boolean(request.headers.get("x-real-ip")),
+    xVercelFwd: Boolean(request.headers.get("x-vercel-forwarded-for")),
+    xff: Boolean(request.headers.get("x-forwarded-for")),
+    ipResolved: ip !== null,
+  });
+  if (ip) {
+    const { success: rateLimitOk, reset } = await checkRateLimit(ip);
+    if (!rateLimitOk) {
+      const retryAfterSeconds = Math.max(Math.ceil((reset - Date.now()) / 1000), 1);
+      return NextResponse.json(
+        { error: "Забагато запитів. Спробуйте пізніше.", retryAfter: retryAfterSeconds },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+      );
+    }
+  } else {
+    console.warn("[lead] rate_limit_skipped: клієнтський IP не визначено із заголовків");
+  }
 
   // C12: одним запитом підтягуємо ключі всіх каналів доставки у кеш — далі
   // getIntegration бере з кешу (замість 6+ послідовних читань на кожен сабміт).
@@ -122,7 +121,7 @@ export async function POST(request: NextRequest) {
     utm: lead.utm,
     source: lead.page || undefined,
   };
-  const ipForDb = ip && ip !== "unknown" ? ip : null;
+  const ipForDb = ip; // string | null (getClientIp повертає null, якщо IP невідомий)
 
   // ── 6. ДЕДУПЛІКАЦІЯ ────────────────────────────────────────────────────────
   // Якщо знайдено оригінал — НЕ створюємо новий лід.

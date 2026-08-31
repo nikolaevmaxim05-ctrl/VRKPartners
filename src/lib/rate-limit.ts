@@ -1,5 +1,9 @@
 ﻿// Rate limiting через Upstash Redis
-// Sliding window: 5 запросов за 60 секунд на один IP
+// Sliding window: 5 запросов за 10 минут на один IP.
+// Вызывается ТОЛЬКО после базовой валидации (honeypot + Zod) в /api/lead,
+// поэтому считаются лишь валидные сабмиты — боты и ошибочные попытки квоту
+// не тратят. Ключ — реальный IP клиента (см. lib/ip.ts); общий ключ-константа
+// не используется, иначе все посетители попадали бы в один счётчик.
 // Документация: https://upstash.com/docs/redis/sdks/ratelimit-ts/overview
 
 import { Ratelimit } from "@upstash/ratelimit";
@@ -28,8 +32,10 @@ function getLimiter(): Ratelimit | null {
 
   limiter = new Ratelimit({
     redis,
-    // 5 запросов / 60 секунд на IP (скользящее окно)
-    limiter: Ratelimit.slidingWindow(5, "60 s"),
+    // 5 валидных заявок / 10 минут на IP (скользящее окно). Считаются только
+    // прошедшие honeypot+Zod сабмиты, поэтому реальному пользователю этого
+    // с запасом хватает, а спам с одного IP тормозится.
+    limiter: Ratelimit.slidingWindow(5, "10 m"),
     analytics: true,
     prefix: "vrk:lead",
   });
