@@ -21,6 +21,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
     }
 
+    // Прибирання старих лічильників rate-limit (вікно 10 хв → усе старше за годину
+    // вже неактуальне). Тримає таблицю rate_limits маленькою. Помилка не критична.
+    const rlCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { error: rlErr } = await service
+      .from('rate_limits')
+      .delete()
+      .lt('window_started_at', rlCutoff)
+    if (rlErr) console.error('[cron/keepalive] rate_limits_cleanup_failed', rlErr.message)
+
     console.log('[cron/keepalive] ping ok', new Date().toISOString())
     return NextResponse.json({ ok: true, ts: new Date().toISOString() })
   } catch (err) {

@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
       );
     }
     if (rl.status === "unavailable") {
-      // Fail-closed: сам rate-limiter недоступний (напр., UPSTASH_* env вказує на
-      // мертвий інстанс). Це ТЕХНІЧНА помилка (503), а НЕ «забагато спроб» —
-      // окреме повідомлення користувачу й чіткий маркер у логах для діагностики.
+      // Fail-closed: rate-limiter недоступний (помилка звернення до БД Supabase).
+      // Це ТЕХНІЧНА помилка (503), а НЕ «забагато спроб» — окреме повідомлення
+      // користувачу й чіткий маркер у логах для діагностики.
       console.error(
-        `[lead] rate_limit_unavailable reason=${rl.reason} — перевір UPSTASH_REDIS_REST_URL/TOKEN та живий інстанс Upstash`
+        `[lead] rate_limit_unavailable reason=${rl.reason} — перевір доступність Supabase (SUPABASE_SERVICE_ROLE_KEY / функція check_rate_limit)`
       );
       return NextResponse.json(
         { error: "Технічна помилка. Спробуйте за хвилину." },

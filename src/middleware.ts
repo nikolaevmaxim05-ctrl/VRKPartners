@@ -28,10 +28,10 @@ const CSP_DIRECTIVES = [
   "img-src 'self' data: https: blob:",
   // font-src: + Google Fonts (сами файлы шрифтов .woff2 с fonts.gstatic.com)
   "font-src 'self' data: https://fonts.gstatic.com",
-  // connect-src: GA4, Plausible, Upstash, Telegram, Resend, KeyCRM, Supabase
+  // connect-src: GA4, Plausible, Telegram, Resend, KeyCRM, Supabase
   // + Google Ads конверсии (прямой AW-тег через gtag.js, промпт 015)
   // + *.analytics.google.com и *.googletagmanager.com — серверные хиты GA4 и GTM preview
-  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://*.upstash.io https://api.telegram.org https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, "")}` : ""}`,
+  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://api.telegram.org https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, "")}` : ""}`,
   // frame-src: td.doubleclick.net (GA4/AW инжектят iframe для cross-domain linker)
   "frame-src https://td.doubleclick.net https://www.googletagmanager.com",
   "frame-ancestors 'none'",
