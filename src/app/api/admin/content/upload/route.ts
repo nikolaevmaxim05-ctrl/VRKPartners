@@ -52,7 +52,13 @@ export async function POST(request: NextRequest) {
     upsert: false,
   })
   if (error) {
-    console.error('[content/upload] failed', error.message)
+    // Логуємо РЕАЛЬНУ причину (напр. «Bucket not found» — типово після переїзду
+    // на новий Supabase-проєкт, поки bucket не створено міграцією 027).
+    console.error('[content-upload] upload_failed', {
+      bucket: BUCKET,
+      name: error.name,
+      message: error.message,
+    })
     return NextResponse.json({ error: 'Не вдалося завантажити файл' }, { status: 500 })
   }
 
