@@ -1,15 +1,24 @@
 /* .dependency-cruiser.cjs — границы слоёв (раздел 3 стандарта CLIENT-SITE-BLUEPRINT.md).
  * Запуск: `npm run depcheck` (= depcruise src --config .dependency-cruiser.cjs).
  * Слои внутри src/ (решение владельца): core, infrastructure, composition, presentation,
- * app, features, shared. Легаси-папки lib/, components/, config/, hooks/ считаются
- * презентацией и растворяются в Фазе 2.
+ * app, features, shared (+ middleware.ts).
  *
  * Разрешённые исключения (AGENTS.md → ARCHITECTURE.md):
  *  1. infrastructure/supabase/server.ts → next/headers (куки).
  *  2. infrastructure/supabase/client.ts (браузерный) — только клиентским файлам:
  *     вход, установка пароля, выход из админки, realtime-подписка leads.
  *  3. core → zod.
+ *  4. middleware.ts → infrastructure/supabase/session.ts (проверка сессии без next/*).
  */
+
+/** Клиентские файлы, которым разрешён браузерный клиент Supabase (исключение 2). */
+const BROWSER_SUPABASE_FILES = [
+  '^src/app/admin/login/page\\.tsx$',
+  '^src/app/admin/set-password/page\\.tsx$',
+  '^src/features/admin/components/sidebar\\.tsx$',
+  '^src/features/admin/components/leads-table\\.tsx$',
+]
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -22,14 +31,11 @@ module.exports = {
       comment: 'Ядро не знает о Next, React, Supabase, инфраструктуре, презентации.',
       severity: 'error',
       from: { path: '^src/core/', pathNot: '__tests__' },
-      to: {
-        pathNot: ['^src/core/', '^node_modules/zod/'],
-        dependencyTypesNot: ['type-only'],
-      },
+      to: { pathNot: ['^src/core/', '^node_modules/zod/'], dependencyTypesNot: ['type-only'] },
     },
     {
       name: 'core-tests-only-core-and-vitest',
-      comment: 'Юнит-тесты ядра: только core, zod и vitest (без моков инфраструктуры).',
+      comment: 'Юнит-тесты ядра: только core, zod и vitest (порты подменяются фейками).',
       severity: 'error',
       from: { path: '^src/core/.*__tests__' },
       to: {
@@ -39,7 +45,7 @@ module.exports = {
     },
     {
       name: 'core-no-type-leaks',
-      comment: 'Даже типы ядро берёт только из core/zod (кроме @types/node).',
+      comment: 'Даже типы ядро берёт только из core.',
       severity: 'error',
       from: { path: '^src/core/' },
       to: { path: '^src/(?!core/)' },
@@ -50,7 +56,7 @@ module.exports = {
       name: 'infra-no-presentation',
       severity: 'error',
       from: { path: '^src/infrastructure/' },
-      to: { path: '^src/(app|features|shared/ui|composition|presentation|components|hooks)/' },
+      to: { path: '^src/(app|features|shared|composition|presentation)/' },
     },
     {
       name: 'infra-no-next',
@@ -59,48 +65,49 @@ module.exports = {
       from: { path: '^src/infrastructure/', pathNot: '^src/infrastructure/supabase/server\\.ts$' },
       to: { path: '^node_modules/(next|react|react-dom)/' },
     },
+    {
+      name: 'supabase-sdk-only-in-infra',
+      comment: 'Запросы к Supabase — только в infrastructure (репозитории и клиенты).',
+      severity: 'error',
+      from: { pathNot: '^src/infrastructure/' },
+      to: { path: '^node_modules/@supabase/' },
+    },
 
-    // ── presentation: composition + core + серверный клиент Supabase ────────
+    // ── presentation: composition + core, без инфраструктуры ─────────────────
     {
       name: 'presentation-no-app-features',
       severity: 'error',
       from: { path: '^src/presentation/' },
-      to: { path: '^src/(app|features|components|hooks)/' },
+      to: { path: '^src/(app|features)/' },
+    },
+    {
+      name: 'presentation-via-composition',
+      comment: 'Обвязка авторизации берёт сессию и роли только через composition/container.',
+      severity: 'error',
+      from: { path: '^src/presentation/' },
+      to: { path: '^src/infrastructure/' },
     },
 
     // ── app / features / shared: не инфраструктура напрямую ─────────────────
     {
-      name: 'presentation-layers-no-infra',
+      name: 'ui-layers-no-infra',
       comment: 'Исключение 2: браузерный клиент Supabase — только перечисленным клиентским файлам.',
       severity: 'error',
-      from: {
-        path: '^src/(app|features|shared|components|hooks|lib|config)/',
-        pathNot: [
-          '^src/app/admin/login/page\\.tsx$',
-          '^src/app/admin/set-password/page\\.tsx$',
-          '^src/features/admin/components/sidebar\\.tsx$',
-          '^src/features/admin/components/leads-table\\.tsx$',
-          '^src/components/admin/sidebar\\.tsx$',
-          '^src/components/admin/leads-table\\.tsx$',
-        ],
-      },
-      to: { path: '^src/infrastructure/', pathNot: '^src/infrastructure/supabase/server\\.ts$' },
+      from: { path: '^src/(app|features|shared)/' },
+      to: { path: '^src/infrastructure/', pathNot: '^src/infrastructure/supabase/client\\.ts$' },
     },
     {
       name: 'browser-supabase-only-client-files',
       severity: 'error',
-      from: {
-        pathNot: [
-          '^src/app/admin/login/page\\.tsx$',
-          '^src/app/admin/set-password/page\\.tsx$',
-          '^src/features/admin/components/sidebar\\.tsx$',
-          '^src/features/admin/components/leads-table\\.tsx$',
-          '^src/components/admin/sidebar\\.tsx$',
-          '^src/components/admin/leads-table\\.tsx$',
-          '^src/lib/supabase/client\\.ts$',
-        ],
-      },
-      to: { path: '^src/(infrastructure|lib)/supabase/client\\.ts$' },
+      from: { pathNot: [...BROWSER_SUPABASE_FILES, '^src/infrastructure/'] },
+      to: { path: '^src/infrastructure/supabase/client\\.ts$' },
+    },
+    {
+      name: 'middleware-only-session',
+      comment: 'Исключение 4: middleware проверяет сессию через infrastructure/supabase/session.ts.',
+      severity: 'error',
+      from: { path: '^src/middleware\\.ts$' },
+      to: { path: '^src/(infrastructure|composition)/', pathNot: '^src/infrastructure/supabase/session\\.ts$' },
     },
 
     // ── shared ↛ features; admin ↮ landing ──────────────────────────────────
@@ -118,7 +125,6 @@ module.exports = {
           '(^|/)\\.[^/]+\\.(js|cjs|mjs|ts|json)$',
           '\\.d\\.ts$',
           '(^|/)tsconfig\\.json$',
-          '(^|/)(babel|webpack)\\.config\\.(js|cjs|mjs|ts|json)$',
           '^src/app/', // файлы роутинга Next подхватываются фреймворком
           '^src/middleware\\.ts$',
           '__tests__',
@@ -136,8 +142,6 @@ module.exports = {
       conditionNames: ['import', 'require', 'node', 'default', 'types'],
       mainFields: ['module', 'main', 'types', 'typings'],
     },
-    reporterOptions: {
-      text: { highlightFocused: true },
-    },
+    reporterOptions: { text: { highlightFocused: true } },
   },
 };
