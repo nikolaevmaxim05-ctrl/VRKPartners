@@ -19,11 +19,39 @@ src/app · src/features · src/shared      презентация (Next.js, Reac
                                           аналитика, теги
 ```
 
-Границы: ESLint `no-restricted-imports` по зонам + `dependency-cruiser`
-(`npm run depcheck`). Алиасы `@/*`, `@core/*`, `@infra/*`, `@composition/*` — в
-`tsconfig.json` **и** `vitest.config.ts`.
+Границы: ESLint `no-restricted-imports` по зонам (`eslint.config.mjs`) +
+`dependency-cruiser` (`.dependency-cruiser.cjs`, `npm run depcheck`). Алиасы `@/*`,
+`@core/*`, `@infra/*`, `@composition/*` — в `tsconfig.json` **и** `vitest.config.ts`.
 
-## Текущее состояние (что есть до перестройки)
+## Состояние после Фазы 1 (каркас, 2026-09-10)
+
+Сделано без изменения поведения прода:
+
+- Папки `src/core/{domain,application}`, `src/infrastructure`, `src/composition`,
+  `src/presentation`, `src/features`, `src/shared` созданы; алиасы и проверки границ
+  подключены (`npm run lint`, `npm run depcheck` зелёные).
+- В `src/core/domain` переехала чистая логика: `access/{permissions,hierarchy}`,
+  `content/{landing,seo,legal,optimistic-lock}`, `lead/{schema,phone,utm,dedup}`,
+  `funnel/{stage-rules,transition,adjustments,conversion-action,google-ads-time,
+  enhanced-conversions}`, `analytics/{registry,report,report-breakdown,export,
+  contact,contact-event}`, `tracking/tags`. Ядро не импортирует ничего, кроме
+  `core` и `zod` (проверяется dependency-cruiser).
+- Старые модули `src/lib/*` стали **адаптерами/реэкспортами** (помечены
+  `LEGACY`): в них остались только дефолты из `config/site.ts`, запросы к Supabase
+  и браузерные вызовы. Растворяются в Фазе 2.
+- Роуты `lead-statuses`, `roles/[id]`, `roles/reorder`, `users/[id]`,
+  `leads/[id]` выполняют планы из ядра (`planStagePatch`, `planNewStage`,
+  `validateRoleReorder`, `*CausesLockout`, `planDealClearing`,
+  `resolveConversionValue`, `decideAdjustment`).
+- Удалён мёртвый код: `theme-toggle` + `next-themes`, shadcn-toast
+  (`ui/toast`, `ui/toaster`, `hooks/use-toast`, `@radix-ui/react-toast`),
+  `lib/analytics-ready`, orphaned CSS `.usp-track/.usp-marquee`, ветка
+  `admin.*`-поддомена в `middleware.ts`.
+- Тесты: 22 файла / 350 юнит-тестов (было 19 / 311): чистые тесты переехали в
+  `src/core/domain/**/__tests__`, добавлены тесты на вынесенные правила
+  (иерархия/lockout, правила стадий, переходы/корректировки, дедуп/UTM).
+
+## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**
   `src/app/api/**` (39 роутов; крупнейшие: `analytics/export` 1083 строки,
