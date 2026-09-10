@@ -13,7 +13,7 @@
  *   sanitizeSheetName     — очищення імені листа XLSX (Excel-обмеження)
  */
 
-import type { ReportResponse, ReportRow } from '@/lib/analytics-report'
+import type { ReportResponse, ReportRow } from './report'
 
 // ─── Типи ────────────────────────────────────────────────────────────────────
 

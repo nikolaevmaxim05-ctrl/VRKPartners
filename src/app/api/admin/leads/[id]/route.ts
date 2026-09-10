@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { hasPermission, hasAnyPermission } from '@/lib/permissions'
+import { hasAnyPermission } from '@/lib/permissions'
 import { requireApiAccess } from '@/lib/api-guard'
 import {
   recordConversion,
@@ -16,6 +16,12 @@ import {
 } from '@/lib/conversions'
 import { recordAdjustment, dispatchAdjustment } from '@/lib/conversion-adjustments'
 import { sendConversionToSheets } from '@/lib/google-sheets'
+import {
+  planDealClearing,
+  resolveConversionValue,
+  isConversionStage,
+  decideAdjustment,
+} from '@core/domain/funnel/transition'
 
 export const runtime = 'nodejs'
 
@@ -187,8 +193,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const statusInfoById = new Map<string, StatusRow>()
   let clearedDealOnTransition = false
 
-  const AMOUNT_TYPES: Array<NonNullable<StatusRow['conversion_type']>> = ['deal', 'deal_adjustment']
-
   if ('status_id' in update && update.status_id !== before.status_id) {
     const ids = [before.status_id, update.status_id].filter((v): v is string => !!v)
     if (ids.length > 0) {
@@ -207,18 +211,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ? statusInfoById.get(update.status_id as string)?.conversion_type ?? null
       : null
 
-    const wasDeal = oldConversionType !== null && AMOUNT_TYPES.includes(oldConversionType)
-    const willBeDeal = newConversionType !== null && AMOUNT_TYPES.includes(newConversionType)
-
-    // Перехід «з угоди → без угоди» — обнуляємо суму/прибуток.
+    // Перехід «з угоди → без угоди» — обнуляємо суму/прибуток (правило в ядрі).
     // Не зачіпаємо поля які клієнт уже передав явно у body (напр. deal → deal_adjustment з попапом).
-    if (wasDeal && !willBeDeal) {
-      const willClearAmount = !('deal_amount' in bodyObj) && before.deal_amount != null
-      const willClearProfit = !('deal_profit' in bodyObj) && before.deal_profit != null
-      if (willClearAmount) update.deal_amount = null
-      if (willClearProfit) update.deal_profit = null
-      clearedDealOnTransition = willClearAmount || willClearProfit
-    }
+    const clearing = planDealClearing({
+      before,
+      bodyKeys: new Set(Object.keys(bodyObj)),
+      oldConversionType,
+      newConversionType,
+    })
+    Object.assign(update, clearing.update)
+    clearedDealOnTransition = clearing.cleared
   }
 
   // C8: CAS по status_id — при зміні стадії оновлюємо ТІЛЬКИ якщо поточний статус
@@ -359,7 +361,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       } | null
     }).status
 
-    if (newStatus?.is_final && newStatus.conversion_type != null) {
+    if (newStatus && isConversionStage(newStatus)) {
       const u = updated as {
         order_no: number
         email: string | null
@@ -373,12 +375,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const orderNo = Number(u.order_no)
       // Якщо стадія потребує суми — беремо її з deal_profit (для deal_adjustment) або deal_amount.
       // Якщо ні — конверсія записується без суми (null).
-      let conversionValue: number | null = null
-      if (newStatus.requires_amount) {
-        conversionValue = newStatus.conversion_type === 'deal_adjustment'
-          ? (u.deal_profit != null ? Number(u.deal_profit) : null)
-          : (u.deal_amount != null ? Number(u.deal_amount) : null)
-      }
+      const conversionValue = resolveConversionValue(newStatus, u)
       const statusConversionAction = newStatus.conversion_action ?? null
       const statusConversionType = newStatus.conversion_type ?? null
 
@@ -386,9 +383,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const oldConversionType = before.status_id
         ? (statusInfoById.get(before.status_id)?.conversion_type ?? null)
         : null
-      const TARGET_TYPES: readonly string[] = ['target_lead', 'deal', 'deal_adjustment']
-      const wasTarget = oldConversionType != null && TARGET_TYPES.includes(oldConversionType)
-
       console.log('[leads/PATCH] conversion_type → recording conversion', {
         leadId: id,
         orderNo,
@@ -410,47 +404,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         console.error('[leads/PATCH] recordConversion failed', err instanceof Error ? err.message : err)
       }
 
-      // ── Корекції: RETRACT vs RESTATE — взаємовиключні для одного переходу ──
-      // Конверсію ЗАМІНЕНО іншою (інша дія Google Ads, не та сама конверсія):
-      // цільовий → нецільовий; цільовий → продаж; або дія реально змінилась.
-      const replaced =
-        (wasTarget && statusConversionType === 'non_target_lead') ||
-        (oldConversionType === 'target_lead' &&
-          statusConversionType != null &&
-          AMOUNT_TYPES.includes(statusConversionType)) ||
-        (outcome.outcome === 'updated' && outcome.action !== outcome.prevAction)
-
-      if (replaced) {
-        // RETRACT старої конверсії — лише якщо оригінал уже вивантажений
-        // (exported); дія — ОРИГІНАЛЬНА ocBefore.conversion_action.
-        // Якщо оригінал ще pending — відкликати нема чого, корекцій нема,
-        // у Google піде лише офлайн-рядок нового стану нижче.
-        // RESTATE у цьому переході НЕ пишемо (RESTATE по неіснуючій у Google
-        // конверсії некоректний — матчинг по Order ID + conversion action).
-        if (ocBefore?.export_status === 'exported') {
-          const adj = await recordAdjustment({
-            leadId: id,
-            orderNo,
-            conversionAction: ocBefore.conversion_action, // оригінальна дія, яку відкликаємо
-            type: 'retract',
-            offlineConversionId: ocBefore.id,
-          })
-          if (adj) await dispatchAdjustment(adj)
-        }
-      } else if (
-        // ── RESTATE: сума ТІЄЇ Ж угоди змінилась (докупив: 5000 → 7000) ──────
-        // Дія не змінилась — ПОТОЧНА дія угоди (resolved у recordConversion).
-        outcome.outcome === 'updated' &&
-        outcome.valueChanged &&
-        statusConversionType != null &&
-        AMOUNT_TYPES.includes(statusConversionType)
-      ) {
+      // ── Корекції: RETRACT vs RESTATE — взаємовиключні для одного переходу.
+      // Рішення — у ядрі (core/domain/funnel/transition.decideAdjustment):
+      // RETRACT старої конверсії лише якщо оригінал уже вивантажений (exported),
+      // RESTATE — сума тієї ж угоди змінилась.
+      const decision = decideAdjustment({
+        oldConversionType,
+        newConversionType: statusConversionType,
+        outcome,
+        ocBefore,
+        conversionValue,
+      })
+      if (decision.kind === 'retract') {
         const adj = await recordAdjustment({
           leadId: id,
           orderNo,
-          conversionAction: outcome.action,
+          conversionAction: decision.conversionAction, // оригінальна дія, яку відкликаємо
+          type: 'retract',
+          offlineConversionId: decision.offlineConversionId,
+        })
+        if (adj) await dispatchAdjustment(adj)
+      } else if (decision.kind === 'restate') {
+        const adj = await recordAdjustment({
+          leadId: id,
+          orderNo,
+          conversionAction: decision.conversionAction,
           type: 'restate',
-          value: conversionValue, // новий підсумок, не дельта
+          value: decision.value, // новий підсумок, не дельта
         })
         if (adj) await dispatchAdjustment(adj)
       }

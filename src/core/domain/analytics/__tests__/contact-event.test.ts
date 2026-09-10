@@ -1,7 +1,7 @@
 // Тест resolveContactEvent — ловить баг «десктоп: клік шле click-to-call замість копіювання».
 
 import { describe, it, expect } from "vitest";
-import { resolveContactEvent } from "@/lib/contact-event";
+import { resolveContactEvent } from "../contact-event";
 
 describe("resolveContactEvent", () => {
   it("десктоп: телефон → подія копіювання (НЕ click-to-call)", () => {

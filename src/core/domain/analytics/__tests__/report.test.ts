@@ -22,7 +22,7 @@ import {
   buildReport,
   type LeadForAggregation,
   type ReportParams,
-} from "@/lib/analytics-report";
+} from "../report";
 
 // --- Фабрика тестового лида ---
 function makeLead(overrides: Partial<LeadForAggregation> = {}): LeadForAggregation {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeContactValue, resolveContactClick } from '@/lib/contact'
+import { normalizeContactValue, resolveContactClick } from '../contact'
 
 describe('normalizeContactValue — телефон (маска → E.164)', () => {
   it('прибирає маску/пробіли/дужки з відображеного номера', () => {

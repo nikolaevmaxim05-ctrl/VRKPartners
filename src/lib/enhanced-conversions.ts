@@ -1,54 +1,13 @@
-// enhanced-conversions.ts — Google Ads Enhanced Conversions (промпт 021).
-// Нормалізація + SHA-256 + gtag('set', 'user_data').
+// LEGACY-адаптер (Фаза 1): нормалізація/хеш — у @core/domain/funnel/enhanced-conversions;
+// тут лишається лише браузерний виклик gtag('set','user_data') (Фаза 2 → features/landing/lib).
 //
-// Інваріанти безпеки:
-//   • НІКОЛИ не кидає винятків (try/catch вокруг всього).
-//   • НІЧОГО не логує (ні сирі значення, ні хеші).
-//   • Не записує дані у storage.
-//   • Сирі email/телефон у dataLayer/gtag('event') НІКОЛИ не потрапляють —
-//     тільки sha256-хеші через gtag('set', 'user_data').
-//   • SSR-safe: перевірка typeof window.
+// Інваріанти безпеки: ніколи не кидає, нічого не логує, не пише у storage; сирі email/телефон
+// у dataLayer/gtag('event') НІКОЛИ не потрапляють — лише sha256-хеші через gtag('set','user_data').
 
-/** Нормалізація email: trim + lowercase */
-export function normalizeEmail(raw: string): string {
-  return raw.trim().toLowerCase()
-}
+import { normalizeEmail, normalizePhoneE164, sha256Hex } from '@core/domain/funnel/enhanced-conversions'
 
-/**
- * Нормалізація телефону у формат E.164.
- * Видаляє пробіли, дужки, дефіси, крапки — залишає тільки + та цифри.
- * У формах телефон вже строго +380\d{9} після Zod-валідації.
- */
-export function normalizePhoneE164(raw: string): string {
-  // Залишаємо тільки '+' і цифри
-  return raw.replace(/[^+\d]/g, '')
-}
+export { normalizeEmail, normalizePhoneE164, sha256Hex } from '@core/domain/funnel/enhanced-conversions'
 
-/**
- * SHA-256 хеш у hex lowercase через Web Crypto API.
- * В node-оточенні (vitest) доступний через globalThis.crypto.
- */
-export async function sha256Hex(input: string): Promise<string> {
-  try {
-    const subtle = (typeof crypto !== 'undefined' ? crypto : globalThis.crypto)?.subtle
-    if (!subtle) return ''
-
-    const encoder = new TextEncoder()
-    const data = encoder.encode(input)
-    const hashBuffer = await subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  } catch {
-    return ''
-  }
-}
-
-/**
- * Нормалізує, хешує та передає user_data у Google Ads Enhanced Conversions.
- * Викликається після успішної відправки форми — до або одночасно з track('...form_submit_success').
- *
- * SSR-safe, no-throw, без логування.
- */
 export async function setEnhancedConversionUserData(data: {
   email?: string
   phone?: string
@@ -57,7 +16,6 @@ export async function setEnhancedConversionUserData(data: {
     if (typeof window === 'undefined') return
     if (typeof window.gtag !== 'function') return
 
-    // Web Crypto: перевіряємо доступність
     const subtle = (typeof crypto !== 'undefined' ? crypto : globalThis.crypto)?.subtle
     if (!subtle) return
 

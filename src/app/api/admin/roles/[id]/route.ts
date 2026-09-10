@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { canManageRoles, sanitizePermissions, getActiveRoleAssignments, getActorRank, getRoleRanks } from '@/lib/roles'
 import { getUserRoleInfo } from '@/lib/permissions'
+import { canActOnRank, roleChangeCausesLockout } from '@core/domain/access/hierarchy'
 
 export const runtime = 'nodejs'
 
@@ -36,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   // ── Ієрархія: редагувати можна лише роль СТРОГО нижче за власну ──
   const [actorRank, ranks] = await Promise.all([getActorRank(user.id), getRoleRanks()])
   const targetRank = ranks.get(id) ?? Number.POSITIVE_INFINITY
-  if (actorRank >= targetRank) {
+  if (!canActOnRank(actorRank, targetRank)) {
     return NextResponse.json(
       { error: 'Не можна редагувати роль, що стоїть на одному рівні або вище за вашу' },
       { status: 403 },
@@ -71,13 +72,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   // яка дає це право активним користувачам ──
   if (Array.isArray(update.permissions) && !update.permissions.includes('manage_users')) {
     const assignments = await getActiveRoleAssignments()
-    const stillHave = assignments.filter(
-      (a) => a.role_id !== id && a.permissions.includes('manage_users'),
-    )
-    const thisRoleHasHolders = assignments.some(
-      (a) => a.role_id === id && a.permissions.includes('manage_users'),
-    )
-    if (thisRoleHasHolders && stillHave.length === 0) {
+    if (roleChangeCausesLockout(assignments, id, update.permissions)) {
       return NextResponse.json(
         { error: 'Не можна прибрати «Управління користувачами» з останньої ролі, що його надає активним користувачам' },
         { status: 400 }
@@ -124,7 +119,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
   // ── Ієрархія: видаляти можна лише роль СТРОГО нижче за власну ──
   const [actorRank, ranks] = await Promise.all([getActorRank(user.id), getRoleRanks()])
-  if (actorRank >= (ranks.get(id) ?? Number.POSITIVE_INFINITY)) {
+  if (!canActOnRank(actorRank, ranks.get(id) ?? Number.POSITIVE_INFINITY)) {
     return NextResponse.json(
       { error: 'Не можна видаляти роль, що стоїть на одному рівні або вище за вашу' },
       { status: 403 },

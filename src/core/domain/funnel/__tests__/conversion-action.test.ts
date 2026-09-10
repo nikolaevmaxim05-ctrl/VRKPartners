@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest'
 import {
   CONVERSION_ACTION_ERROR,
   validateConversionAction,
-} from '@/lib/conversion-action'
+} from '../conversion-action'
 
 describe('validateConversionAction', () => {
   it('принимает валидные имена конверсий', () => {

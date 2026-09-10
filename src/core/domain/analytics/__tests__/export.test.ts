@@ -28,9 +28,9 @@ import {
   wrapPhoneForCsv,
   SUMMARY_COLUMN_HEADERS,
   computeDeltaPct,
-} from '@/lib/analytics-export'
-import type { SummaryColumn, ComparisonPeriod } from '@/lib/analytics-export'
-import type { ReportResponse } from '@/lib/analytics-report'
+} from '../export'
+import type { SummaryColumn, ComparisonPeriod } from '../export'
+import type { ReportResponse } from '../report'
 
 // ─── Фабрика мінімального ReportResponse ──────────────────────────────────────
 

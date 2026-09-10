@@ -1,11 +1,14 @@
-// Хелпери для керування ролями (спільні для API-роутів).
-import { hasPermission, ALL_PERMISSIONS, type Permission } from '@/lib/permissions'
+// LEGACY-адаптер (Фаза 1): правила ієрархії/lockout — у @core/domain/access;
+// тут лишаються запити до БД (Фаза 2 → infrastructure/supabase/repositories/roles).
+import { hasPermission } from '@/lib/permissions'
 import { createServiceClient } from '@/lib/supabase/service'
+import { ALL_PERMISSIONS, effectiveRank, type Permission } from '@core/domain/access/permissions'
+import type { ActiveAssignment } from '@core/domain/access/hierarchy'
 
-// Активні призначення ролей: хто яку роль має + права цієї ролі.
-// Використовується, щоб не дати залишити систему без адміна (lockout-guard).
-export type ActiveAssignment = { user_id: string; role_id: string | null; permissions: Permission[] }
+export { effectiveRank, sanitizePermissions } from '@core/domain/access/permissions'
+export type { ActiveAssignment } from '@core/domain/access/hierarchy'
 
+// Активні призначення ролей: хто яку роль має + права цієї ролі (для lockout-guard).
 export async function getActiveRoleAssignments(): Promise<ActiveAssignment[]> {
   const supabase = createServiceClient()
   const { data } = await supabase
@@ -45,25 +48,13 @@ export async function getRolePermissions(roleId: string): Promise<Permission[]> 
     : []
 }
 
-// Право редагувати ролі: окреме manage_roles АБО загальне manage_users
-// (щоб не залочити існуючих адмінів, у яких ще немає manage_roles).
+// Право редагувати ролі: окреме manage_roles АБО загальне manage_users.
 export async function canManageRoles(userId: string): Promise<boolean> {
   const [a, b] = await Promise.all([
     hasPermission(userId, 'manage_roles'),
     hasPermission(userId, 'manage_users'),
   ])
   return a || b
-}
-
-// ── Ієрархія ролей ───────────────────────────────────────────────────────────
-// Менший order = вище в ієрархії (більше повноважень). «admin» завжди зверху.
-// Роль може керувати лише тими, що СТРОГО нижче (більший order) за неї.
-
-const ADMIN_RANK = -1
-
-export function effectiveRank(role: { name: string; hierarchy_order?: number | null }): number {
-  if (role.name === 'admin') return ADMIN_RANK
-  return Number(role.hierarchy_order ?? 1000)
 }
 
 // Карта roleId → ефективний ранг (для порівнянь у enforcement).
@@ -91,13 +82,4 @@ export async function getActorRank(userId: string): Promise<number> {
   const role = Array.isArray(roleObj) ? roleObj[0] : roleObj
   if (!role) return Number.POSITIVE_INFINITY
   return effectiveRank(role as { name: string; hierarchy_order: number | null })
-}
-
-// Лишає тільки валідні ключі прав, прибирає дублі.
-export function sanitizePermissions(input: unknown): Permission[] {
-  if (!Array.isArray(input)) return []
-  const valid = new Set<string>(ALL_PERMISSIONS)
-  return Array.from(
-    new Set(input.filter((p): p is Permission => typeof p === 'string' && valid.has(p))),
-  )
 }

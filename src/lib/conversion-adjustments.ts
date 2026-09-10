@@ -3,8 +3,9 @@
 // Викликається з PATCH /api/admin/leads/[id] (тригери) і з API корекцій (resend/export).
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendAdjustmentToSheets } from '@/lib/google-sheets'
+import { shouldSuppressRetract, normalizeAdjustmentValue, type AdjustmentType } from '@core/domain/funnel/adjustments'
 
-export type AdjustmentType = 'retract' | 'restate'
+export type { AdjustmentType } from '@core/domain/funnel/adjustments'
 
 export type AdjustmentRow = {
   id: string
@@ -55,9 +56,7 @@ export async function recordAdjustment(params: {
         .select('exported_at')
         .eq('lead_id', params.leadId)
         .maybeSingle()
-      const exportedAt = oc?.exported_at ? new Date(oc.exported_at).getTime() : 0
-      const lastRetractAt = new Date(lastRetract.adjustment_time).getTime()
-      if (exportedAt <= lastRetractAt) {
+      if (shouldSuppressRetract(lastRetract.adjustment_time as string, (oc?.exported_at as string | null) ?? null)) {
         // Після попереднього retract нового експорту не було → дубль, пропускаємо.
         console.log('[adjustments] retract_suppressed_no_new_export', { leadId: params.leadId })
         return null
@@ -66,13 +65,11 @@ export async function recordAdjustment(params: {
     }
   }
 
-  let value: number | null = params.value ?? null
-  let currency: string | null = params.currency ?? null
+  const normalized = normalizeAdjustmentValue(params.type, params.value, params.currency)
+  const value: number | null = normalized.value
+  let currency: string | null = normalized.currency
 
-  if (params.type === 'retract') {
-    value = null
-    currency = null
-  } else if (currency == null) {
+  if (params.type !== 'retract' && currency == null) {
     const { data } = await supabase
       .from('site_settings')
       .select('value')

@@ -1,6 +1,7 @@
 // Запис офлайн-конверсії Google Ads при переході ліда у фінальний статус.
 // Викликається з PATCH /api/admin/leads/[id] синхронно після UPDATE.
 import { createServiceClient } from '@/lib/supabase/service'
+import { conversionStateChanged } from '@core/domain/funnel/transition'
 
 async function getSetting(key: string, fallback: string): Promise<string> {
   const supabase = createServiceClient()
@@ -12,26 +13,8 @@ async function getSetting(key: string, fallback: string): Promise<string> {
   return data?.value?.trim() || fallback
 }
 
-// Форматує ISO-час у формат Google Ads: "2024-01-15 10:30:00+03:00" (Kyiv TZ)
-export function toGoogleAdsTime(iso: string): string {
-  const d = new Date(iso)
-  const offsetParts = new Intl.DateTimeFormat('en', {
-    timeZone: 'Europe/Kyiv',
-    timeZoneName: 'longOffset',
-  }).formatToParts(d)
-  const rawOffset = offsetParts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+02:00'
-  const tzOffset = rawOffset.replace('GMT', '') // "+03:00"
-
-  const parts = new Intl.DateTimeFormat('en', {
-    timeZone: 'Europe/Kyiv',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).formatToParts(d)
-
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
-  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}${tzOffset}`
-}
+// toGoogleAdsTime — у ядрі (Фаза 1); реекспорт для сумісності.
+export { toGoogleAdsTime } from '@core/domain/funnel/google-ads-time'
 
 /**
  * Записує рядок у offline_conversions (або оновлює стан якщо вже є).
@@ -113,11 +96,10 @@ export async function recordConversion(
     const typeNorm = conversionType ?? null
 
     const normNum = (x: unknown): number | null => (x == null ? null : Number(x))
-    const valueChanged = normNum(value) !== normNum(existing.conversion_value)
-    const changed =
-      action !== existing.conversion_action ||
-      typeNorm !== (existing.conversion_type ?? null) ||
-      valueChanged
+    const { changed, valueChanged } = conversionStateChanged(
+      { conversion_action: existing.conversion_action as string, conversion_type: (existing.conversion_type as string | null) ?? null, conversion_value: existing.conversion_value },
+      { action, type: typeNorm, value },
+    )
 
     if (!changed) {
       console.log('[conversions] noop_same_state')

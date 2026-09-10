@@ -2,7 +2,7 @@
 // Запуск: npx vitest run src/lib/__tests__/validators.test.ts
 
 import { describe, it, expect } from "vitest";
-import { leadSchema } from "@/lib/validators";
+import { leadSchema } from "../schema";
 
 // Валідні дані форми VRK (телефон — у форматі маски лендінгу)
 const validLead = {

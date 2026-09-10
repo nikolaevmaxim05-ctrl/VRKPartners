@@ -1,83 +1,20 @@
-// Метадані (SEO) головної сторінки: title/description, Open Graph, поля організації
-// для JSON-LD. Дефолти — в config/site.ts (meta), оверрайди — в БД (таблиця
-// site_content, окремий рядок id='seo'). Механізм і fail-safe — той самий, що для
-// контенту лендингу (lib/content.ts), але окремий рядок, щоб форма метаданих і
-// форма контенту не перетирали одна одну.
+// LEGACY-адаптер (Фаза 1): правила SEO-метаданих — у @core/domain/content/seo.
+// Тут: дефолти з config/site.ts і читання оверрайдів із site_content (id='seo').
 
 import { meta } from '@/config/site'
+import { SEO_CONTENT_ID, mergeSeo as mergeSeoWith, type SeoMeta, type SeoOverrides } from '@core/domain/content/seo'
 
-export const SEO_CONTENT_ID = 'seo'
-
-export type SeoMeta = {
-  title: string
-  description: string
-  ogTitle: string
-  ogDescription: string
-  ogImage: string
-  orgName: string
-  orgDescription: string
-}
-
-export type SeoOverrides = Partial<SeoMeta>
-
-/** Порядок/набір полів — єдине джерело правди (для diff/whitelist).
- * Контакти (phone/email/telegram) сюди НЕ входять — джерело один: контакти лендингу.
- * Якщо в БД лишились старі оверрайди orgPhone/orgEmail/orgTelegram — вони більше
- * не читаються (cleanStrings/merge ітерують лише SEO_KEYS), тож ігноруються без міграції. */
-export const SEO_KEYS: readonly (keyof SeoMeta)[] = [
-  'title', 'description', 'ogTitle', 'ogDescription', 'ogImage',
-  'orgName', 'orgDescription',
-]
+export { SEO_CONTENT_ID, SEO_KEYS, effectiveOg, effectiveOrg, diffSeo } from '@core/domain/content/seo'
+export type { SeoMeta, SeoOverrides } from '@core/domain/content/seo'
 
 /** Дефолти з коду у мутабельному вигляді. */
 export function getDefaultSeo(): SeoMeta {
   return { ...meta }
 }
 
-/** Лишає лише непорожні рядки (щоб порожнє поле не затирало дефолт). */
-function cleanStrings(ov: SeoOverrides | null | undefined): Partial<SeoMeta> {
-  const out: Partial<SeoMeta> = {}
-  if (!ov) return out
-  for (const k of SEO_KEYS) {
-    const v = ov[k]
-    if (typeof v === 'string' && v.trim().length > 0) out[k] = v
-  }
-  return out
-}
-
 /** Мерж дефолтів з оверрайдами. Порожні/невалідні оверрайди → лишається дефолт. */
 export function mergeSeo(overrides: SeoOverrides | null | undefined): SeoMeta {
-  return { ...getDefaultSeo(), ...cleanStrings(overrides) }
-}
-
-/** OG-заголовок/опис із наслідуванням: порожньо → беремо основні title/description. */
-export function effectiveOg(m: SeoMeta): { title: string; description: string } {
-  return {
-    title: m.ogTitle.trim() || m.title,
-    description: m.ogDescription.trim() || m.description,
-  }
-}
-
-/** Дані організації для JSON-LD з наслідуванням порожніх полів (аналогічно OG):
- *  - назва порожня → базова назва компанії (siteName з config/site.ts, site.name);
- *  - опис порожній → «Опис сторінки (Description)» (m.description, який теж має свій дефолт).
- * Обчислюється при рендері (тут), тож правка Description автоматично підтягується. */
-export function effectiveOrg(m: SeoMeta, siteName: string): { name: string; description: string } {
-  return {
-    name: m.orgName.trim() || siteName,
-    description: m.orgDescription.trim() || m.description,
-  }
-}
-
-/** Diff від дефолтів: зберігаємо лише непорожні поля, що відрізняються (правки коду
- * доходять до прод, поки поле не перевизначене вручну). */
-export function diffSeo(incoming: SeoOverrides, defaults: SeoMeta): SeoOverrides {
-  const out: SeoOverrides = {}
-  for (const k of SEO_KEYS) {
-    const v = incoming[k]
-    if (typeof v === 'string' && v.trim().length > 0 && v !== defaults[k]) out[k] = v
-  }
-  return out
+  return mergeSeoWith(getDefaultSeo(), overrides)
 }
 
 /** Серверне читання оверрайдів. Будь-яка помилка → {} (сторінка бере дефолти). */

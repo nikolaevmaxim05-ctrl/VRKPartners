@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasPermission } from '@/lib/permissions'
 import { getActiveRoleAssignments, getRolePermissions, getActorRank, getRoleRanks } from '@/lib/roles'
+import { canActOnRank, userChangeCausesLockout } from '@core/domain/access/hierarchy'
 
 export const runtime = 'nodejs'
 
@@ -44,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .maybeSingle()
     const targetRoleId = (targetRow?.role_id as string | null) ?? null
     const targetRank = targetRoleId ? (ranks.get(targetRoleId) ?? Infinity) : Infinity
-    if (Number.isFinite(targetRank) && actorRank >= targetRank) {
+    if (Number.isFinite(targetRank) && !canActOnRank(actorRank, targetRank)) {
       return NextResponse.json(
         { error: 'Не можна редагувати користувача з роллю на рівні або вище за вашу' },
         { status: 403 },
@@ -52,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (body.role_id) {
       const newRank = ranks.get(body.role_id) ?? Infinity
-      if (actorRank >= newRank) {
+      if (!canActOnRank(actorRank, newRank)) {
         return NextResponse.json(
           { error: 'Не можна призначати роль на рівні або вище за вашу' },
           { status: 403 },
@@ -90,18 +91,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const changesAccess = body.role_id !== undefined || body.is_active === false
   if (changesAccess) {
     const assignments = await getActiveRoleAssignments()
-    const holders = assignments.filter((a) => a.permissions.includes('manage_users'))
-    const otherHolders = holders.filter((a) => a.user_id !== id)
 
     // Чи матиме цільовий користувач manage_users ПІСЛЯ цієї зміни?
-    let targetWillHave = holders.some((a) => a.user_id === id)
+    let targetWillHave = assignments.some((a) => a.user_id === id && a.permissions.includes('manage_users'))
     if (body.role_id !== undefined) {
       const newPerms = await getRolePermissions(body.role_id)
       targetWillHave = newPerms.includes('manage_users')
     }
     if (body.is_active === false) targetWillHave = false
 
-    if (!targetWillHave && otherHolders.length === 0) {
+    if (userChangeCausesLockout(assignments, id, targetWillHave)) {
       return NextResponse.json(
         {
           error: id === user.id
@@ -185,7 +184,7 @@ export async function DELETE(
       .maybeSingle()
     const targetRoleId = (targetRow?.role_id as string | null) ?? null
     const targetRank = targetRoleId ? (ranks.get(targetRoleId) ?? Infinity) : Infinity
-    if (Number.isFinite(targetRank) && actorRank >= targetRank) {
+    if (Number.isFinite(targetRank) && !canActOnRank(actorRank, targetRank)) {
       return NextResponse.json(
         { error: 'Не можна видаляти користувача з роллю на рівні або вище за вашу' },
         { status: 403 },
