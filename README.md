@@ -11,7 +11,7 @@
 - **Tailwind CSS**: бренд-тема для лендингу, shadcn/ui для адмінки
 - **react-hook-form + Zod** — форми та валідація
 - **Supabase** — Postgres, Auth, Realtime (заявки, користувачі, налаштування)
-- **Upstash Redis** — rate limit форми
+- **Rate limit форми** — на Postgres (Supabase), без зовнішніх сервісів
 - Шрифт **Raleway** через `next/font`; хостинг — **Vercel**
 
 ## Запуск
@@ -42,27 +42,37 @@ Graph, JSON-LD), трекінг-теги (GTM / GA4 / Google Ads) з подія�
 користувачі та ролі з гранульованими правами. Зміни застосовуються на сайті
 одразу, без повторного деплою.
 
-**Приймач заявок** (`src/app/api/lead/route.ts`) — серверна валідація (Zod),
-honeypot, rate limit, дедуплікація, збереження в Supabase та розсилка в підключені
-інтеграції: Telegram, KeyCRM, email (Resend), Google Sheets.
+**Приймач заявок** (`src/app/api/leads/route.ts`, старий шлях `/api/lead` — аліас) —
+серверна валідація (Zod), honeypot, rate limit, дедуплікація, збереження в Supabase
+та розсилка в підключені інтеграції: Telegram, KeyCRM, email (Gmail SMTP).
+Офлайн-конверсії вивантажуються в Google Sheets.
 
 ## Структура
 
-- `src/app/(marketing)/` — лендинг і `/thanks`
-- `src/app/admin/` — панель адміністратора (CRM)
-- `src/app/api/` — приймач заявок і адмін-API
-- `src/components/` — секції лендингу, примітиви UI, компоненти адмінки
-- `src/config/site.ts` — дефолтні тексти / SEO (перевизначаються з адмінки)
-- `src/lib/` — валідатори, інтеграції, конверсії, аналітика, права доступу
+Шарувата архітектура (onion), усі шари в `src/`; залежності лише всередину. Правила й
+відхилення — у `AGENTS.md`, карта модулів — у `ARCHITECTURE.md`.
+
+- `src/core/domain/` — бізнес-правила без вводу-виводу: права й ієрархія ролей, воронка
+  й конверсії, контент, заявка, аналітика, теги
+- `src/core/application/` — порти (інтерфейси) і сценарії (use-cases)
+- `src/infrastructure/` — адаптери: Supabase (репозиторії — єдине місце запитів до БД),
+  Telegram, KeyCRM, Gmail SMTP, Google Sheets, GA4, Excel, шифрування
+- `src/composition/container.ts` — збирання залежностей
+- `src/presentation/` — обвʼязка авторизації (`withAdmin`, `requireSectionAccess`)
+- `src/app/` — маршрути Next.js (лендинг, `/admin`, тонкі API-роути)
+- `src/features/admin`, `src/features/landing` — компоненти адмінки й лендингу
+- `src/shared/` — UI-примітиви, спільні хелпери, дефолтні тексти (`shared/config/site.ts`)
 - `supabase/migrations/` — схема БД (застосовувати по порядку)
 - `docs/` — інструкції (зокрема резервне копіювання БД)
+
+Перевірки: `npx tsc --noEmit && npm run lint && npm run test && npm run depcheck && npm run build`.
 
 ## Налаштування
 
 1. Скопіюйте `.env.example` → `.env.local` і заповніть змінні (Supabase, ключ
-   шифрування адмінки, rate limit тощо — див. коментарі у файлі).
+   шифрування адмінки тощо — див. коментарі у файлі).
 2. Застосуйте міграції з `supabase/migrations/` по порядку у своєму проєкті Supabase.
-3. Ключі інтеграцій (Telegram, KeyCRM, Resend, Google Sheets) і трекінг-теги
+3. Ключі інтеграцій (Telegram, KeyCRM, Gmail SMTP, Google Sheets) і трекінг-теги
    додаються з адмінки — без правок коду й без деплою.
 
 Резервне копіювання бази даних описане в `docs/INSTRUKTSIYA-BACKUP.md`.

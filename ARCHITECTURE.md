@@ -51,6 +51,43 @@ src/app · src/features · src/shared      презентация (Next.js, Reac
   `src/core/domain/**/__tests__`, добавлены тесты на вынесенные правила
   (иерархия/lockout, правила стадий, переходы/корректировки, дедуп/UTM).
 
+## Состояние после Фазы 2 (порты, сценарии, контейнер, тонкие роуты)
+
+```
+src/
+  core/domain/{access,analytics,content,funnel,integrations,lead,settings,tracking}   правила
+  core/application/result.ts, paging.ts                  результат сценария без HTTP
+  core/application/ports/{common,leads,access,content,settings,conversions,analytics,
+                          notifications,system}.ts       интерфейсы
+  core/application/use-cases/public/submit-lead.ts
+  core/application/use-cases/admin/{leads,conversion-flow,manage-stages,manage-custom-fields,
+      manage-roles,manage-users,manage-content,manage-integrations,manage-tracking-tags,
+      update-settings,analytics-events,build-report,export-analytics,export-conversions,verify-ga4}.ts
+  core/application/use-cases/system/keepalive.ts
+  infrastructure/supabase/{service,server,client,session,rate-limiter,storage,health}.ts
+  infrastructure/supabase/repositories/{leads,lead-statuses,lead-activity,custom-fields,roles,
+      users,content,settings,tracking-tags,integrations,conversions,analytics}.ts
+  infrastructure/integrations/{integration-config,telegram,keycrm,email,google-sheets,tester,ga4}.ts
+  infrastructure/{crypto/aes-gcm,export/excel,clock}.ts
+  composition/container.ts                                ЕДИНСТВЕННОЕ связывание портов с адаптерами
+  presentation/{admin-route,admin-page,http,client-ip,permissions,conversions}.ts
+  app/api/**                                              тонкие роуты (withAdmin → сценарий → ответ)
+  features/admin/{components,lib}, features/landing/{components,lib}
+  shared/{ui,lib,hooks,config,content}
+  middleware.ts                                           сессия (401 на /api/admin, редирект на /admin/login)
+```
+
+- **Запросы к Supabase — только в `infrastructure`** (dependency-cruiser:
+  `supabase-sdk-only-in-infra`). Сценарии получают порты параметром (`make*(deps)`).
+- **Двойная проверка:** middleware — сессия; `withAdmin(anyOf)` / `requireSectionAccess` —
+  права. Таблица «роут → права» закреплена контракт-тестом
+  `presentation/__tests__/route-permissions.contract.test.ts`.
+- **Разрешённые исключения:** `supabase/server.ts` → `next/headers`; браузерный клиент — только
+  вход, установка пароля, сайдбар (выход), таблица лидов (realtime); `core` → `zod`;
+  `middleware.ts` → `supabase/session.ts`.
+- Тесты: 25 файлов / 407 юнит-тестов; сценарии и адаптеры тестируются на фейковых портах
+  без моков Supabase.
+
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**
