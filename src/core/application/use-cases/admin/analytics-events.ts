@@ -20,7 +20,8 @@ export function makeAnalyticsEventsUseCases(deps: { settings: SettingsRepository
     if (!raw) return {}
     try {
       return parseAnalyticsEventsConfig(JSON.parse(raw))
-    } catch {
+    } catch (err) {
+      console.error('[marketing/layout] analytics_events_unavailable', err)
       return {}
     }
   }

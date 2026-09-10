@@ -13,9 +13,11 @@ export function makeSettingsRepository(db: () => Db): SettingsRepository {
 
     async get(key) {
       try {
-        const { data } = await db().from('site_settings').select('value').eq('key', key).maybeSingle()
+        const { data, error } = await db().from('site_settings').select('value').eq('key', key).maybeSingle()
+        if (error) console.error('[settings] get_failed', key, error.message)
         return (data?.value as string | null | undefined) ?? null
-      } catch {
+      } catch (err) {
+        console.error('[settings] get_unavailable', key, err)
         return null
       }
     },
