@@ -42,8 +42,8 @@ setup-agents/
 .claude/
 
 # Internal dev files (handover cleanup)
+# CLAUDE.md — снова отслеживается: по стандарту это обязательный док проекта (@AGENTS.md)
 PROMPT-*.md
-CLAUDE.md
 HANDOVER-checklist.md
 SESSION-SUMMARY.md
 DEPLOY-TODO.md
