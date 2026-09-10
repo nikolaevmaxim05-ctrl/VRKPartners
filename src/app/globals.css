@@ -157,15 +157,6 @@
   animation-play-state: paused;
 }
 
-/* Авто-слайдер УТП */
-.usp-track {
-  animation: partners-scroll 48s linear infinite;
-  will-change: transform;
-}
-.usp-marquee:hover .usp-track {
-  animation-play-state: paused;
-}
-
 /* Анімовані «аврора»-плями фону — жвавіший рух + легке «дихання» opacity */
 @keyframes drift {
   0% {

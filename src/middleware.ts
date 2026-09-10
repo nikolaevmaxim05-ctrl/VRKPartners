@@ -1,7 +1,6 @@
-// middleware.ts — security headers + subdomain routing + admin auth guard
-// Применяется до рендера страниц.
-// ВАЖНО: использует Node.js runtime (а не Edge), т.к. @supabase/ssr корректно
-// работает с cookies на Node. Next.js 15 это поддерживает.
+// middleware.ts — security headers + admin auth guard (Next 15: middleware, не proxy.ts).
+// Застосовується до рендеру сторінок. Node.js runtime (@supabase/ssr коректно працює з cookies).
+// Гілка admin.*-піддомену видалена у Фазі 1 (рішення власника: таких доменів немає).
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -60,60 +59,11 @@ function applySecurityHeaders(response: NextResponse) {
 }
 
 export async function middleware(request: NextRequest) {
-  const hostname = request.headers.get("host") ?? "";
   const url = request.nextUrl.clone();
 
-  const isAdminSubdomain = hostname.startsWith("admin.");
   const isAdminPath = url.pathname.startsWith("/admin");
 
-  // ── Ветка 1: admin.* subdomain → rewrite на /admin/* + auth guard
-  if (isAdminSubdomain) {
-    const adminPath = url.pathname === "/" ? "/admin" : `/admin${url.pathname}`;
-    let response = NextResponse.rewrite(new URL(adminPath, request.url));
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
-            );
-            response = NextResponse.rewrite(new URL(adminPath, request.url));
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const isLoginPage = url.pathname === "/login";
-    // set-password доступний без сесії: токен приходить у hash (не на сервер)
-    const isPublicAdminPage = isLoginPage || url.pathname === "/set-password";
-
-    if (!user && !isPublicAdminPage) {
-      return applySecurityHeaders(
-        NextResponse.redirect(new URL("/login", request.url))
-      );
-    }
-    if (user && isLoginPage) {
-      return applySecurityHeaders(
-        NextResponse.redirect(new URL("/", request.url))
-      );
-    }
-
-    return applySecurityHeaders(response);
-  }
-
-  // ── Ветка 2: /admin/* на основном домене → auth guard
+  // ── Гілка 1: /admin/* → auth guard (сесія Supabase). Права перевіряє роут/сторінка.
   if (isAdminPath) {
     let response = NextResponse.next({ request });
 
@@ -157,7 +107,7 @@ export async function middleware(request: NextRequest) {
     return applySecurityHeaders(response);
   }
 
-  // ── Ветка 3: всё остальное (лендинг) → только security headers
+  // ── Гілка 2: усе інше (лендинг, /api/*) → лише security headers
   return applySecurityHeaders(NextResponse.next());
 }
 
