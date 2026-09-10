@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasPermission } from '@/lib/permissions'
 import { buildReportForParams } from '@/lib/analytics-report-server'
-import { kyivBoundaryToUtc, buildAssigneeLabelMap, mapDbRowsToLeads } from '@/lib/analytics-report-server'
+import { kyivBoundaryToUtc, buildAssigneeLabelMap } from '@/lib/analytics-report-server'
 import type { DbLeadRow } from '@/lib/analytics-report-server'
 import {
   sanitizeCsvCell,
@@ -605,7 +605,7 @@ type LeadExportField = z.infer<typeof leadExportFieldSchema>
 function buildLeadsCsv(
   headers: string[],
   dataRows: (string | number | Date | null)[][],
-  leadFields: LeadExportField[],
+  _leadFields: LeadExportField[],
 ): string {
   const escapeWithFormula = (v: string | number | Date | null, colIndex: number): string => {
     if (v == null) return '""'
@@ -785,7 +785,7 @@ async function buildLeadsXlsx(
 
 // Хелпер: кількість custom field колонок (розраховуємо з headers і leadFields)
 function customFieldDefCount(headers: string[], leadFields: LeadExportField[]): number {
-  let offset = 0
+  let _offset = 0
   for (const f of leadFields) {
     if (f === 'custom_fields') {
       // підраховуємо кількість залишених заголовків що НЕ відносяться до інших полів
@@ -800,9 +800,9 @@ function customFieldDefCount(headers: string[], leadFields: LeadExportField[]): 
       }
       return headers.length - nonCfHeaders
     }
-    if (f === 'dates') offset += 2
-    else if (f === 'all_utm') offset += 8
-    else offset += 1
+    if (f === 'dates') _offset += 2
+    else if (f === 'all_utm') _offset += 8
+    else _offset += 1
   }
   return 0
 }

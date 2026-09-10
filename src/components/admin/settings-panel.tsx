@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Check, ChevronDown, ChevronRight, Copy, Eye, EyeOff, GripVertical, HelpCircle, Plus, RefreshCw, Save, Send, Trash2, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Copy, Eye, EyeOff, GripVertical, HelpCircle, Plus, RefreshCw, Save, Trash2, Upload, X } from 'lucide-react'
 import {
   DndContext,
   closestCenter,

@@ -3,7 +3,7 @@
 // Один вузол у body, aria-live=polite, автоскриття ~2с. SSR-safe.
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null
-let removeTimer: ReturnType<typeof setTimeout> | null = null
+const removeTimer: ReturnType<typeof setTimeout> | null = null
 
 const ROOT_ID = 'copy-toast-root'
 
