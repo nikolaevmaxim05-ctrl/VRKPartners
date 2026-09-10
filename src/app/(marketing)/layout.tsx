@@ -1,24 +1,22 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { ModalProvider } from "@/components/ModalProvider";
-import { ContentProvider } from "@/components/ContentProvider";
-import { RevealObserver } from "@/components/RevealObserver";
-import { HashScroll } from "@/components/HashScroll";
-import { SiteBackground } from "@/components/SiteBackground";
-import { UtmTracker } from "@/components/UtmTracker";
-import { Header } from "@/components/sections/Header";
-import { Footer } from "@/components/sections/Footer";
-import { site, siteUrl } from "@/config/site";
-import { createServiceClient } from "@/lib/supabase/service";
-import { getLandingContentOverrides, mergeLandingContent } from "@/lib/content";
-import { getSeoOverrides, mergeSeo, effectiveOrg } from "@/lib/seo";
-import { TAG_ID_PATTERNS, type TrackingTagType } from "@/lib/tracking-tags";
+import { ModalProvider } from "@/features/landing/components/forms/ModalProvider";
+import { ContentProvider } from "@/features/landing/components/layout/ContentProvider";
+import { RevealObserver } from "@/features/landing/components/layout/RevealObserver";
+import { HashScroll } from "@/features/landing/components/layout/HashScroll";
+import { SiteBackground } from "@/features/landing/components/layout/SiteBackground";
+import { UtmTracker } from "@/features/landing/components/layout/UtmTracker";
+import { Header } from "@/features/landing/components/sections/Header";
+import { Footer } from "@/features/landing/components/sections/Footer";
+import { site, siteUrl } from "@/shared/config/site";
 import {
-  ANALYTICS_EVENTS_SETTING_KEY,
-  parseAnalyticsEventsConfig,
-  getDefaultAnalyticsEvents,
-  type AnalyticsEventsConfig,
-} from "@/lib/analytics-registry";
+  getAnalyticsEventsUseCases,
+  getContentUseCases,
+  getTrackingTagUseCases,
+} from "@composition/container";
+import { mergeSeo, effectiveOrg } from "@core/domain/content/seo";
+import type { AnalyticsEventsConfig } from "@core/domain/analytics/registry";
+import { mergeLandingContent, getDefaultSeo } from "@/shared/content/defaults";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? "";
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
@@ -33,62 +31,6 @@ export const metadata: Metadata = GOOGLE_VERIFICATION
 // revalidatePath('/', 'layout') з /api/admin/tracking-tags після кожної мутації;
 // цей revalidate=300 спрацьовує тільки якщо on-demand revalidate чомусь не прийшов.
 export const revalidate = 300;
-
-type EnabledTag = { type: TrackingTagType; tag_id: string };
-
-// Серверне читання включених тегів із tracking_tags.
-async function getEnabledTrackingTags(): Promise<EnabledTag[]> {
-  try {
-    const service = createServiceClient();
-    const { data, error } = await service
-      .from("tracking_tags")
-      .select("type, tag_id")
-      .eq("enabled", true)
-      .order("position", { ascending: true });
-
-    if (error) {
-      console.error("[marketing/layout] tracking_tags_query_failed", error.message);
-      return [];
-    }
-
-    // Defense-in-depth: рендеримо тільки ID, що пройшли формат-валідацію.
-    return ((data ?? []) as EnabledTag[]).filter(
-      (t) => TAG_ID_PATTERNS[t.type]?.test(t.tag_id),
-    );
-  } catch (err) {
-    console.error("[marketing/layout] tracking_tags_unavailable", err);
-    return [];
-  }
-}
-
-// Серверне читання конфігу подій із site_settings.
-// Інлайнимо ПОВНИЙ merged-конфіг (дефолти + stored), щоб виключена в адмінці
-// точка не «терялася» і не падала в enabled:true на лендингу.
-async function getAnalyticsEventsConfig(): Promise<AnalyticsEventsConfig> {
-  try {
-    const service = createServiceClient();
-    const { data, error } = await service
-      .from("site_settings")
-      .select("value")
-      .eq("key", ANALYTICS_EVENTS_SETTING_KEY)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[marketing/layout] analytics_events_query_failed", error.message);
-      return getDefaultAnalyticsEvents();
-    }
-
-    const stored = data?.value
-      ? parseAnalyticsEventsConfig(JSON.parse(data.value))
-      : {};
-
-    // Повний мерж: дефолти як база + stored-оверрайди поверх.
-    return { ...getDefaultAnalyticsEvents(), ...stored };
-  } catch (err) {
-    console.error("[marketing/layout] analytics_events_unavailable", err);
-    return getDefaultAnalyticsEvents();
-  }
-}
 
 // Інлайн window.__analyticsEvents — повний merged-конфіг імен/вкл-викл подій.
 // Значення вже пройшли whitelist-валідацію + екранування "<".
@@ -227,14 +169,15 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Усі читання fail-safe: помилка БД → дефолти (сайт не падає).
   const [tags, analyticsEvents, contentOverrides, seoOverrides] = await Promise.all([
-    getEnabledTrackingTags(),
-    getAnalyticsEventsConfig(),
-    getLandingContentOverrides(),
-    getSeoOverrides(),
+    getTrackingTagUseCases().listEnabledForSite(),
+    getAnalyticsEventsUseCases().getMergedConfig(),
+    getContentUseCases().getLandingOverrides(),
+    getContentUseCases().getSeoOverrides(),
   ]);
   const content = mergeLandingContent(contentOverrides);
-  const seo = mergeSeo(seoOverrides);
+  const seo = mergeSeo(getDefaultSeo(), seoOverrides);
   const org = effectiveOrg(seo, site.name);
   const jsonLd = buildJsonLd({
     orgName: org.name,

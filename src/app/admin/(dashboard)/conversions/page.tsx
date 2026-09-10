@@ -1,18 +1,17 @@
-import { ConversionsTable } from '@/components/admin/conversions-table'
-import { requireSectionAccess } from '@/lib/admin-guard'
-import { getIntegration } from '@/lib/integrations/get-integration'
+import { getIntegrationConfig } from '@composition/container'
+import { requireSectionAccess } from '@/presentation/admin-page'
+import { CONVERSION_PERMISSIONS } from '@/presentation/permissions'
+import { ConversionsTable } from '@/features/admin/components/conversions-table'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Офлайн конверсії Google Ads | Адмін' }
 
 export default async function ConversionsPage() {
-  await requireSectionAccess(['manage_conversions', 'manage_users'])
+  await requireSectionAccess(CONVERSION_PERMISSIONS)
 
-  // Поточна підвʼязана таблиця (з налаштувань Інтеграцій). Будуємо публічне посилання.
-  const spreadsheetId = (await getIntegration('google_spreadsheet_id'))?.trim() || null
-  const sheetUrl = spreadsheetId
-    ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
-    : null
+  // Поточна підвʼязана таблиця (з налаштувань Інтеграцій) → публічне посилання.
+  const spreadsheetId = (await getIntegrationConfig().get('google_spreadsheet_id'))?.trim() || null
+  const sheetUrl = spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : null
 
   return (
     <div className="space-y-4">

@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { Hero } from "@/components/sections/Hero";
-import { Usp } from "@/components/sections/Usp";
-import { About } from "@/components/sections/About";
-import { Services } from "@/components/sections/Services";
-import { Audit } from "@/components/sections/Audit";
-import { Trust } from "@/components/sections/Trust";
-import { Process } from "@/components/sections/Process";
-import { FinalCta } from "@/components/sections/FinalCta";
-import { site, siteUrl, aboutSectionVisible } from "@/config/site";
-import { isSafeImageUrl } from "@/lib/content";
-import { getSeoOverrides, mergeSeo, effectiveOg, effectiveOrg } from "@/lib/seo";
+import { Hero } from "@/features/landing/components/sections/Hero";
+import { Usp } from "@/features/landing/components/sections/Usp";
+import { About } from "@/features/landing/components/sections/About";
+import { Services } from "@/features/landing/components/sections/Services";
+import { Audit } from "@/features/landing/components/sections/Audit";
+import { Trust } from "@/features/landing/components/sections/Trust";
+import { Process } from "@/features/landing/components/sections/Process";
+import { FinalCta } from "@/features/landing/components/sections/FinalCta";
+import { site, siteUrl, aboutSectionVisible } from "@/shared/config/site";
+import { getContentUseCases } from "@composition/container";
+import { isSafeImageUrl } from "@core/domain/content/landing";
+import { mergeSeo, effectiveOg, effectiveOrg } from "@core/domain/content/seo";
+import { getDefaultSeo } from "@/shared/content/defaults";
 
 // Метадані головної читаються з merged-конфігу (дефолти config/site.ts + оверрайди
 // адмінки). robots/canonical/metadataBase лишаються з кореневого layout (інваріанти).
 // title.absolute — щоб показати рівно те, що ввів адмін (як у прев'ю сніпета).
 export async function generateMetadata(): Promise<Metadata> {
-  const m = mergeSeo(await getSeoOverrides());
+  const m = mergeSeo(getDefaultSeo(), await getContentUseCases().getSeoOverrides());
   const og = effectiveOg(m);
   const org = effectiveOrg(m, site.name);
   const ogImage = isSafeImageUrl(m.ogImage) ? m.ogImage : "/og.png";

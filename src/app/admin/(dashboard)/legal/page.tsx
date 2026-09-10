@@ -1,26 +1,17 @@
-import { requireSectionAccess } from '@/lib/admin-guard'
-import {
-  getLegalOverrides,
-  mergeLegalContent,
-  getLegalUpdatedAt,
-} from '@/lib/legal'
-import { LegalForm } from '@/components/admin/legal-form'
+import { getContentUseCases } from '@composition/container'
+import { requireSectionAccess } from '@/presentation/admin-page'
+import { LegalForm } from '@/features/admin/components/legal-form'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Юридичні документи | Адмін' }
 
 export default async function LegalPage() {
   await requireSectionAccess(['manage_content'])
-
-  const overrides = await getLegalOverrides()
-  const content = mergeLegalContent(overrides)
-  const updatedAt = await getLegalUpdatedAt()
-
+  const { content, updatedAt } = await getContentUseCases().getLegal()
   const initial = {
     privacy: { title: content.privacy.title, sections: content.privacy.sections },
     offer: { title: content.offer.title, sections: content.offer.sections },
   }
-
   return (
     <div className="space-y-6">
       <div>

@@ -1,6 +1,6 @@
 // Детальна сторінка лида /admin/leads/[id]
 // Серверний shell — auth-guard виконує layout. Дані тягне клієнтський LeadDetail.
-import { LeadDetail } from '@/components/admin/lead-detail'
+import { LeadDetail } from '@/features/admin/components/lead-detail'
 
 export const dynamic = 'force-dynamic'
 

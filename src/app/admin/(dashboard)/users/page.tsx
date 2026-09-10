@@ -1,74 +1,31 @@
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { getUserRoleInfo } from '@/lib/permissions'
-import { UsersTable } from '@/components/admin/users-table'
+import { getRoleUseCases, getUserUseCases } from '@composition/container'
+import { getAdminAccess } from '@/presentation/admin-page'
+import { effectiveRank } from '@core/domain/access/permissions'
+import { UsersTable } from '@/features/admin/components/users-table'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Користувачі | Адмін' }
 
 export default async function UsersPage() {
-  const supabase = await createClient()
-  const { data: { user: currentUser } } = await supabase.auth.getUser()
-
-  const service = createServiceClient()
-
-  const [authResult, rolesResult, adminRolesResult, currentRoleInfo] = await Promise.all([
-    service.auth.admin.listUsers({ perPage: 200 }),
-    service
-      .from('user_roles')
-      .select('user_id, name, is_active, role_id, role:admin_roles(id, name)'),
-    service
-      .from('admin_roles')
-      .select('id, name, is_system, hierarchy_order')
-      .order('hierarchy_order', { ascending: true })
-      .order('name'),
-    currentUser ? getUserRoleInfo(currentUser.id) : Promise.resolve(null),
+  const [{ actor, roleInfo, permissions }, usersRes, rolesRes] = await Promise.all([
+    getAdminAccess(),
+    getUserUseCases().listUsers(),
+    getRoleUseCases().listRoles(),
   ])
 
-  type RoleJoin = { id: string; name: string }
-  type RoleRow = {
-    user_id: string
-    name: string | null
-    is_active: boolean
-    role_id: string | null
-    role: RoleJoin | RoleJoin[] | null
-  }
-
-  const rolesByUserId = new Map<string, RoleRow>()
-  for (const r of (rolesResult.data ?? []) as RoleRow[]) {
-    rolesByUserId.set(r.user_id, r)
-  }
-
-  const users = (authResult.data?.users ?? []).map((u) => {
-    const roleRow = rolesByUserId.get(u.id)
-    const roleObj = roleRow?.role
-    const role = Array.isArray(roleObj) ? roleObj[0] : roleObj
-    return {
-      id: u.id,
-      email: u.email ?? '',
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at ?? null,
-      email_confirmed: !!u.email_confirmed_at,
-      display_name: roleRow?.name ?? null,
-      role_id: roleRow?.role_id ?? null,
-      role_name: role?.name ?? null,
-      is_active: roleRow?.is_active ?? true,
-    }
-  })
-
-  const adminRoles = (adminRolesResult.data ?? []).map((r) => ({
-    id: r.id as string,
-    name: r.name as string,
-    is_system: r.is_system as boolean,
-    rank: r.name === 'admin' ? -1 : Number((r as { hierarchy_order?: number }).hierarchy_order ?? 1000),
+  const users = usersRes.ok ? usersRes.value : []
+  const adminRoles = (rolesRes.ok ? rolesRes.value : []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    is_system: r.is_system,
+    rank: effectiveRank(r),
   }))
 
   // Карта roleId → ранг для гейтингу рядків таблиці
   const roleRanks: Record<string, number> = Object.fromEntries(adminRoles.map((r) => [r.id, r.rank]))
-
-  const canManageUsers = currentRoleInfo?.permissions.includes('manage_users') ?? false
+  const canManageUsers = permissions.includes('manage_users')
   // Ранг поточного користувача (велике число = немає ролі; Infinity не серіалізується)
-  const actorRank = currentRoleInfo?.roleRank ?? 999999
+  const actorRank = roleInfo?.roleRank ?? 999999
 
   return (
     <div className="max-w-4xl space-y-4">
@@ -84,7 +41,7 @@ export default async function UsersPage() {
       <UsersTable
         initialUsers={users}
         adminRoles={adminRoles}
-        currentUserId={currentUser?.id ?? ''}
+        currentUserId={actor?.id ?? ''}
         canManageUsers={canManageUsers}
         actorRank={actorRank}
         roleRanks={roleRanks}

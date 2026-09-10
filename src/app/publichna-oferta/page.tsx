@@ -1,23 +1,17 @@
 import type { Metadata } from 'next'
-import { LegalPage } from '@/components/legal/LegalPageLayout'
-import { site } from '@/config/site'
-import {
-  getLegalOverrides,
-  mergeLegalContent,
-  getLegalUpdatedAt,
-  formatLegalUpdatedAt,
-} from '@/lib/legal'
+import { getContentUseCases } from '@composition/container'
+import { formatLegalUpdatedAt } from '@core/domain/content/legal'
+import { LegalPage } from '@/features/landing/components/legal/LegalPageLayout'
+import { site } from '@/shared/config/site'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { offer } = mergeLegalContent(await getLegalOverrides())
-  return { title: `${offer.title} — ${site.name}` }
+  const { content } = await getContentUseCases().getLegal()
+  return { title: `${content.offer.title} — ${site.name}` }
 }
 
 export default async function PublicOfferPage() {
-  const [overrides, updatedAtIso] = await Promise.all([getLegalOverrides(), getLegalUpdatedAt()])
-  const { offer } = mergeLegalContent(overrides)
-  const updatedAt = formatLegalUpdatedAt(updatedAtIso, offer.updatedAt)
-  return <LegalPage doc={offer} updatedAt={updatedAt} />
+  const { content, updatedAt } = await getContentUseCases().getLegal()
+  return <LegalPage doc={content.offer} updatedAt={formatLegalUpdatedAt(updatedAt, content.offer.updatedAt)} />
 }

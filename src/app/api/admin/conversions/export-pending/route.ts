@@ -1,88 +1,11 @@
-// POST /api/admin/conversions/export-pending
-// Масова вивантаження всіх конверсій зі статусом 'pending' у Google Sheets.
-// Кожну успішно відправлену помічає як export_status='exported'.
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { sendConversionToSheets } from '@/lib/google-sheets'
-import { markConversionExportedByLead } from '@/lib/conversions'
-import { hasAnyPermission } from '@/lib/permissions'
+// POST /api/admin/conversions/export-pending — масове вивантаження pending-конверсій у Google Sheets.
+import { getConversionExportUseCases } from '@composition/container'
+import { withAdmin } from '@/presentation/admin-route'
+import { respond } from '@/presentation/http'
 
 export const runtime = 'nodejs'
 
-type LeadJoin = {
-  id: string
-  order_no: number
-  email: string | null
-  phone: string
-  gclid: string | null
-  gbraid: string | null
-  wbraid: string | null
-  deal_amount: number | string | null
-  deal_profit: number | string | null
-  status: { conversion_action: string | null } | null
-}
-
-export async function POST() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowed = await hasAnyPermission(user.id, ['manage_conversions', 'manage_users'])
-  if (!allowed) return NextResponse.json({ error: 'Доступ заборонено' }, { status: 403 })
-
-  const service = createServiceClient()
-  const { data: rows, error } = await service
-    .from('offline_conversions')
-    .select(`
-      id, lead_id, conversion_value,
-      lead:leads(
-        id, order_no, email, phone, gclid, gbraid, wbraid,
-        status:lead_statuses(conversion_action)
-      )
-    `)
-    .eq('export_status', 'pending')
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  let sent = 0
-  let failed = 0
-  let skipped = 0
-  for (const row of rows ?? []) {
-    const typedRow = row as { lead: unknown; conversion_value: number | string | null }
-    const lead = typedRow.lead as LeadJoin | null
-    if (!lead) { failed++; continue }
-    try {
-      const ok = await sendConversionToSheets({
-        lead_id: lead.id,
-        order_no: lead.order_no,
-        email: lead.email,
-        phone: lead.phone,
-        gclid: lead.gclid,
-        gbraid: lead.gbraid,
-        wbraid: lead.wbraid,
-        // C2: відправляємо ЗБЕРЕЖЕНЕ значення конверсії (фід = offline_conversions).
-        conversionValue: typedRow.conversion_value != null ? Number(typedRow.conversion_value) : null,
-        conversionAction: lead.status?.conversion_action ?? null,
-      })
-      if (ok) {
-        await markConversionExportedByLead(lead.id)
-        sent++
-      } else {
-        skipped++ // Sheets не налаштовано
-      }
-    } catch (e) {
-      console.error('[conversions/export-pending] send_failed', e instanceof Error ? e.message : e)
-      failed++
-    }
-  }
-
-  if (sent === 0 && skipped > 0) {
-    return NextResponse.json(
-      { ok: false, error: 'Google Sheets не налаштовано — нічого не вивантажено' },
-      { status: 400 }
-    )
-  }
-
-  return NextResponse.json({ ok: true, sent, failed, skipped, total: (rows ?? []).length })
-}
+export const POST = () =>
+  withAdmin(['manage_conversions', 'manage_users'], async () =>
+    respond(await getConversionExportUseCases().exportPendingConversions(), (counts) => ({ ok: true, ...counts })),
+  )

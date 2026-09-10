@@ -1,23 +1,17 @@
 import type { Metadata } from 'next'
-import { LegalPage } from '@/components/legal/LegalPageLayout'
-import { site } from '@/config/site'
-import {
-  getLegalOverrides,
-  mergeLegalContent,
-  getLegalUpdatedAt,
-  formatLegalUpdatedAt,
-} from '@/lib/legal'
+import { getContentUseCases } from '@composition/container'
+import { formatLegalUpdatedAt } from '@core/domain/content/legal'
+import { LegalPage } from '@/features/landing/components/legal/LegalPageLayout'
+import { site } from '@/shared/config/site'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { privacy } = mergeLegalContent(await getLegalOverrides())
-  return { title: `${privacy.title} — ${site.name}` }
+  const { content } = await getContentUseCases().getLegal()
+  return { title: `${content.privacy.title} — ${site.name}` }
 }
 
 export default async function PrivacyPolicyPage() {
-  const [overrides, updatedAtIso] = await Promise.all([getLegalOverrides(), getLegalUpdatedAt()])
-  const { privacy } = mergeLegalContent(overrides)
-  const updatedAt = formatLegalUpdatedAt(updatedAtIso, privacy.updatedAt)
-  return <LegalPage doc={privacy} updatedAt={updatedAt} />
+  const { content, updatedAt } = await getContentUseCases().getLegal()
+  return <LegalPage doc={content.privacy} updatedAt={formatLegalUpdatedAt(updatedAt, content.privacy.updatedAt)} />
 }

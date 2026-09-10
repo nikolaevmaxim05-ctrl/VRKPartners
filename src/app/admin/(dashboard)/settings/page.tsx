@@ -1,5 +1,5 @@
-import { SettingsPanel } from '@/components/admin/settings-panel'
-import { requireSectionAccess } from '@/lib/admin-guard'
+import { SettingsPanel } from '@/features/admin/components/settings-panel'
+import { requireSectionAccess } from '@/presentation/admin-page'
 
 export const dynamic = 'force-dynamic'
 

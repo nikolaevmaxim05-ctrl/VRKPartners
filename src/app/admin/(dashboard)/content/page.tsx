@@ -1,77 +1,54 @@
-import { requireSectionAccess } from '@/lib/admin-guard'
-import {
-  getLandingContentOverrides,
-  getLandingContentUpdatedAt,
-  mergeLandingContent,
-  getDefaultLandingContent,
-} from '@/lib/content'
-import {
-  getSeoOverrides,
-  mergeSeo,
-  getDefaultSeo,
-  getSeoUpdatedAt,
-} from '@/lib/seo'
-import { site, siteUrl } from '@/config/site'
-import { ContentTabs } from '@/components/admin/content-tabs'
+import { getContentUseCases } from '@composition/container'
+import { requireSectionAccess } from '@/presentation/admin-page'
+import { site, siteUrl } from '@/shared/config/site'
+import { ContentTabs } from '@/features/admin/components/content-tabs'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Контент | Адмін' }
 
-export default async function ContentPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string }>
-}) {
+export default async function ContentPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireSectionAccess(['manage_content'])
 
-  const [overrides, updatedAt, seoOverrides, seoUpdatedAt, sp] = await Promise.all([
-    getLandingContentOverrides(),
-    getLandingContentUpdatedAt(),
-    getSeoOverrides(),
-    getSeoUpdatedAt(),
-    searchParams,
-  ])
-  const content = mergeLandingContent(overrides)
-  const defaults = getDefaultLandingContent()
-  const seoContent = mergeSeo(seoOverrides)
-  const seoDefaults = getDefaultSeo()
+  const content = getContentUseCases()
+  const [landing, seo, sp] = await Promise.all([content.getLandingForEditor(), content.getSeo(), searchParams])
+  const c = landing.content
   const initialTab = sp?.tab === 'meta' ? 'meta' : 'content'
 
   const initial = {
     site: {
-      phone: content.site.phone,
-      phoneHref: content.site.phoneHref,
-      email: content.site.email,
-      telegram: content.site.telegram,
-      telegramHandle: content.site.telegramHandle,
-      telegramCtaUrl: content.site.telegramCtaUrl,
-      telegramCtaText: content.site.telegramCtaText,
+      phone: c.site.phone,
+      phoneHref: c.site.phoneHref,
+      email: c.site.email,
+      telegram: c.site.telegram,
+      telegramHandle: c.site.telegramHandle,
+      telegramCtaUrl: c.site.telegramCtaUrl,
+      telegramCtaText: c.site.telegramCtaText,
     },
     hero: {
-      title: content.hero.title,
-      subtitle: content.hero.subtitle,
-      trust: content.hero.trust,
-      trustHref: content.hero.trustHref ?? '',
-      partnerBadge: content.hero.partnerBadge ?? '',
-      partnerTitle: content.hero.partnerTitle ?? '',
-      partnerLinkText: content.hero.partnerLinkText ?? '',
-      primaryCta: content.hero.primaryCta,
-      secondaryCta: content.hero.secondaryCta,
-      formTitle: content.hero.formTitle,
-      formNote: content.hero.formNote,
+      title: c.hero.title,
+      subtitle: c.hero.subtitle,
+      trust: c.hero.trust,
+      trustHref: c.hero.trustHref ?? '',
+      partnerBadge: c.hero.partnerBadge ?? '',
+      partnerTitle: c.hero.partnerTitle ?? '',
+      partnerLinkText: c.hero.partnerLinkText ?? '',
+      primaryCta: c.hero.primaryCta,
+      secondaryCta: c.hero.secondaryCta,
+      formTitle: c.hero.formTitle,
+      formNote: c.hero.formNote,
     },
     finalCta: {
-      title: content.finalCta.title,
-      text: content.finalCta.text,
-      primaryCta: content.finalCta.primaryCta,
+      title: c.finalCta.title,
+      text: c.finalCta.text,
+      primaryCta: c.finalCta.primaryCta,
     },
-    faq: content.faq.map((f) => ({ q: f.q, a: f.a })),
-    usp: content.usp,
-    about: content.about,
-    services: content.services,
-    trust: content.trust,
-    audit: content.audit,
-    workflow: content.workflow,
+    faq: c.faq.map((f) => ({ q: f.q, a: f.a })),
+    usp: c.usp,
+    about: c.about,
+    services: c.services,
+    trust: c.trust,
+    audit: c.audit,
+    workflow: c.workflow,
   }
 
   return (
@@ -87,22 +64,18 @@ export default async function ContentPage({
         initialTab={initialTab}
         content={{
           initial,
-          defaultServices: defaults.services,
-          defaultTrust: defaults.trust,
-          defaultAbout: defaults.about,
-          baseUpdatedAt: updatedAt,
+          defaultServices: landing.defaults.services,
+          defaultTrust: landing.defaults.trust,
+          defaultAbout: landing.defaults.about,
+          baseUpdatedAt: landing.updatedAt,
         }}
         meta={{
-          initial: seoContent,
-          defaults: seoDefaults,
-          baseUpdatedAt: seoUpdatedAt,
+          initial: seo.content,
+          defaults: seo.defaults,
+          baseUpdatedAt: seo.updatedAt,
           siteUrl,
           siteName: site.name,
-          contacts: {
-            phone: content.site.phone,
-            email: content.site.email,
-            telegram: content.site.telegram,
-          },
+          contacts: { phone: c.site.phone, email: c.site.email, telegram: c.site.telegram },
         }}
       />
     </div>

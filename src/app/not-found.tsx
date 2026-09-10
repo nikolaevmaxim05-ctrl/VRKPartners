@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/landing-ui/Button";
+import { Button } from "@/features/landing/components/ui/Button";
 
 export default function NotFound() {
   return (

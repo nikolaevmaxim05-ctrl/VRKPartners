@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Raleway } from "next/font/google";
 import "./globals.css";
-import { site, siteUrl } from "@/config/site";
+import { site, siteUrl } from "@/shared/config/site";
 
 const raleway = Raleway({
   subsets: ["latin", "cyrillic"],

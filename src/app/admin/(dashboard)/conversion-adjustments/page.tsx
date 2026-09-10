@@ -1,18 +1,17 @@
-import { ConversionAdjustmentsTable } from '@/components/admin/conversion-adjustments-table'
-import { requireSectionAccess } from '@/lib/admin-guard'
-import { getIntegration } from '@/lib/integrations/get-integration'
+import { getIntegrationConfig } from '@composition/container'
+import { requireSectionAccess } from '@/presentation/admin-page'
+import { CONVERSION_PERMISSIONS } from '@/presentation/permissions'
+import { ConversionAdjustmentsTable } from '@/features/admin/components/conversion-adjustments-table'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Корекції конверсій Google Ads | Адмін' }
 
 export default async function ConversionAdjustmentsPage() {
-  await requireSectionAccess(['manage_conversions', 'manage_users'])
+  await requireSectionAccess(CONVERSION_PERMISSIONS)
 
-  // Окрема таблиця корекцій (з налаштувань Google Sheets). Будуємо публічне посилання.
-  const spreadsheetId = (await getIntegration('google_adjustments_spreadsheet_id'))?.trim() || null
-  const sheetUrl = spreadsheetId
-    ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
-    : null
+  // Окрема таблиця корекцій (з налаштувань Google Sheets) → публічне посилання.
+  const spreadsheetId = (await getIntegrationConfig().get('google_adjustments_spreadsheet_id'))?.trim() || null
+  const sheetUrl = spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : null
 
   return (
     <div className="space-y-4">
