@@ -1,6 +1,7 @@
 // use-cases/admin/manage-users — користувачі адмінки: список, запрошення, зміна, видалення.
 import { ok, fail, type Result } from '../../result'
 import type { Actor } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { RoleRepository, UserRepository, AdminUserView, AssigneeView } from '../../ports/access'
 import { canActOnRank, userChangeCausesLockout } from '../../../domain/access/hierarchy'
 
@@ -21,8 +22,9 @@ export type InviteResult = {
   warning?: string
 }
 
-export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepository; clock: { now(): Date } }) {
+export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepository; clock: { now(): Date }; audit?: AuditLog }) {
   const { users, roles, clock } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function listUsers(): Promise<Result<AdminUserView[]>> {
     const res = await users.listAdminUsers()
@@ -50,6 +52,7 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
 
     const inv = await users.invite(email, `${redirectOrigin}/admin/set-password`)
     if (!inv.ok) return fail('failed', inv.error)
+    await audit.record(actor, 'user.invite', `user_roles/${inv.data?.id ?? 'unknown'}`, { new: { email, role_id: roleId ?? null } })
 
     let roleAssigned = false
     if (roleId && inv.data?.id) {
@@ -140,6 +143,7 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
         return fail('failed', res.error)
       }
     }
+    await audit.record(actor, 'user.update', `user_roles/${id}`, { new: fields })
     return ok(undefined)
   }
 
@@ -152,7 +156,9 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
       return fail('forbidden', 'Не можна видаляти користувача з роллю на рівні або вище за вашу')
     }
     const res = await users.deleteAuthUser(id)
-    return res.ok ? ok(undefined) : fail('failed', res.error)
+    if (!res.ok) return fail('failed', res.error)
+    await audit.record(actor, 'user.delete', `user_roles/${id}`)
+    return ok(undefined)
   }
 
   return { listUsers, listAssignees, inviteUser, updateUser, deleteUser }

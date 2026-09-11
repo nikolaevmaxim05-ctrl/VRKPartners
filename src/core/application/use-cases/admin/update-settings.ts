@@ -1,11 +1,13 @@
 // use-cases/admin/update-settings — site_settings (білий список ключів, без секретів).
 import { ok, fail, type Result } from '../../result'
 import type { Actor, Clock } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { SettingsRepository, SettingRow } from '../../ports/settings'
 import { SECRET_SETTING_KEYS, normalizeSettingItems } from '../../../domain/settings/site-settings'
 
-export function makeSettingsUseCases(deps: { settings: SettingsRepository; clock: Clock }) {
+export function makeSettingsUseCases(deps: { settings: SettingsRepository; clock: Clock; audit?: AuditLog }) {
   const { settings, clock } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function getSettings(): Promise<Result<SettingRow[]>> {
     const res = await settings.listAll()
@@ -26,6 +28,7 @@ export function makeSettingsUseCases(deps: { settings: SettingsRepository; clock
       console.error('[admin/settings] upsert_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'settings.update', 'site_settings', { new: norm.rows.map((r) => ({ key: r.key, value: r.value })) })
     return ok(undefined)
   }
 

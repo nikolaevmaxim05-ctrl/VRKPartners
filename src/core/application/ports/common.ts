@@ -10,8 +10,8 @@ export const dbOk = <T>(data: T): DbResult<T> => ({ ok: true, data })
 export const dbFail = <T = never>(error: string, code?: string): DbResult<T> =>
   code ? { ok: false, error, code } : { ok: false, error }
 
-/** Хто виконує дію в адмінці. */
-export type Actor = { id: string; email: string | null }
+/** Хто виконує дію в адмінці. ip — з ланцюжка заголовків (для audit_log), 'unknown' → null. */
+export type Actor = { id: string; email: string | null; ip?: string | null }
 
 /** Годинник — щоб сценарії не залежали від new Date() напряму. */
 export interface Clock {

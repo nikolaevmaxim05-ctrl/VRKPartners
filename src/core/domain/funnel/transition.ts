@@ -1,7 +1,11 @@
-// core/domain/funnel/transition — що відбувається при зміні ліда (раздел 6 стандарту).
-// Чисті правила, винесені з PATCH /api/admin/leads/[id] без зміни поведінки (Фаза 1).
-// Розбіжності зі стандартом (leave → RETRACT, amount без зміни стадії → RESTATE)
-// виправляються у Фазі 5 — тут поведінка навмисно «як було».
+// core/domain/funnel/transition — що відбувається при зміні ліда (розділ 6 стандарту).
+// Чисті правила; сценарій (use-cases/admin/leads) лише виконує план.
+//
+// Випадок визначається за стадією ПІСЛЯ зміни:
+//   enter  — стадія змінилась, нова конверсійна → записати конверсію (нову або оновити);
+//   leave  — стадія змінилась, нова НЕ конверсійна → RETRACT, якщо конверсію вже вивантажено;
+//   amount — стадія та сама, конверсійна з сумою, сума змінилась → RESTATE (якщо вивантажено);
+//   none   — решта.
 import { isAmountConversionType, type ConversionType } from './stage-rules'
 
 /** Типи конверсій, які вважаються «цільовим» станом (для RETRACT при заміні). */
@@ -55,9 +59,31 @@ export function resolveConversionValue(
   return lead.deal_amount != null ? Number(lead.deal_amount) : null
 }
 
+type StatusLike = { is_final?: boolean; conversion_type?: string | null; requires_amount?: boolean } | null | undefined
+
 /** Чи стадія конверсійна (is_final + conversion_type задано). */
-export function isConversionStage(status: { is_final?: boolean; conversion_type?: string | null } | null | undefined): boolean {
+export function isConversionStage(status: StatusLike): boolean {
   return !!status?.is_final && status.conversion_type != null
+}
+
+export type LeadChangeCase = 'enter' | 'leave' | 'amount' | 'none'
+
+/** Який випадок розділу 6 настав (стадія береться ПІСЛЯ зміни). */
+export function classifyLeadChange(args: {
+  statusChanged: boolean
+  oldStatus: StatusLike
+  newStatus: StatusLike
+  /** Значення конверсії (resolveConversionValue) до і після відрізняються. */
+  amountChanged: boolean
+}): LeadChangeCase {
+  const { statusChanged, oldStatus, newStatus, amountChanged } = args
+  if (statusChanged) {
+    if (isConversionStage(newStatus)) return 'enter'
+    if (isConversionStage(oldStatus)) return 'leave'
+    return 'none'
+  }
+  if (isConversionStage(newStatus) && newStatus?.requires_amount && amountChanged) return 'amount'
+  return 'none'
 }
 
 export type RecordOutcome =
@@ -78,7 +104,7 @@ export type AdjustmentDecision =
   | { kind: 'none' }
 
 /**
- * Корекція при enter на конверсійну стадію (раздел 6, п. 3):
+ * Корекція при enter на конверсійну стадію (розділ 6, п. 3):
  *  - конверсію ЗАМІНЕНО іншою (цільовий → нецільовий; цільовий лід → угода; змінилась дія)
  *    → RETRACT, лише якщо стара вже вивантажена (exported);
  *  - та сама угода, змінилась сума → RESTATE;
@@ -114,6 +140,30 @@ export function decideAdjustment(args: {
     return { kind: 'restate', conversionAction: outcome.action, value: args.conversionValue }
   }
 
+  return { kind: 'none' }
+}
+
+/** leave: відкликати конверсію (RETRACT) лише якщо вона вже вивантажена; pending Google не бачив. */
+export function decideLeave(ocBefore: ExistingConversionState | null): AdjustmentDecision {
+  if (ocBefore?.export_status === 'exported') {
+    return { kind: 'retract', conversionAction: ocBefore.conversion_action, offlineConversionId: ocBefore.id }
+  }
+  return { kind: 'none' }
+}
+
+/**
+ * amount: стадія та сама, сума змінилась. Якщо конверсію вже вивантажено — RESTATE з новою сумою;
+ * якщо ще pending — корекції нема (новий стан піде самим рядком конверсії).
+ */
+export function decideAmountAdjustment(args: {
+  outcome: RecordOutcome
+  ocBefore: ExistingConversionState | null
+  conversionValue: number | null
+}): AdjustmentDecision {
+  const { outcome, ocBefore, conversionValue } = args
+  if (outcome.outcome === 'updated' && outcome.valueChanged && ocBefore?.export_status === 'exported') {
+    return { kind: 'restate', conversionAction: outcome.action, value: conversionValue }
+  }
   return { kind: 'none' }
 }
 

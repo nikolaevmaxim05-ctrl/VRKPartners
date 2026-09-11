@@ -4,7 +4,7 @@ import { dbOk, dbFail } from '@core/application/ports/common'
 import type { TrackingTagRepository } from '@core/application/ports/settings'
 import type { TrackingTag, TrackingTagType } from '@core/domain/tracking/tags'
 
-const TAG_SELECT = 'id, type, tag_id, label, enabled, position, created_at'
+const TAG_SELECT = 'id, type, tag_id, label, conversion_label, enabled, position, created_at'
 
 export function makeTrackingTagRepository(db: () => Db): TrackingTagRepository {
   return {
@@ -22,11 +22,11 @@ export function makeTrackingTagRepository(db: () => Db): TrackingTagRepository {
       try {
         const { data, error } = await db()
           .from('tracking_tags')
-          .select('type, tag_id')
+          .select('type, tag_id, conversion_label')
           .eq('enabled', true)
           .order('position', { ascending: true })
         if (error) return dbFail(error.message)
-        return dbOk((data ?? []) as Array<{ type: TrackingTagType; tag_id: string }>)
+        return dbOk((data ?? []) as Array<{ type: TrackingTagType; tag_id: string; conversion_label: string | null }>)
       } catch (e) {
         return dbFail(e instanceof Error ? e.message : String(e))
       }

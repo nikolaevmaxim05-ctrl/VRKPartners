@@ -21,6 +21,7 @@ import { makeExportAnalytics } from '@core/application/use-cases/admin/export-an
 import { makeConversionExportUseCases } from '@core/application/use-cases/admin/export-conversions'
 import { makeVerifyGa4 } from '@core/application/use-cases/admin/verify-ga4'
 import { makeKeepalive } from '@core/application/use-cases/system/keepalive'
+import { makeAuditLog } from '@core/application/audit'
 import { makeLeadSchema } from '@core/domain/lead/schema'
 
 import { serviceClient } from '@infra/supabase/service'
@@ -43,6 +44,7 @@ import { makeConversionRepository, makeAdjustmentRepository } from '@infra/supab
 import { makeAnalyticsRepository } from '@infra/supabase/repositories/analytics'
 import { makeImageStorage } from '@infra/supabase/storage'
 import { makeHealthCheck } from '@infra/supabase/health'
+import { makeAuditLogRepository } from '@infra/supabase/repositories/audit-log'
 import { aesGcmCipher } from '@infra/crypto/aes-gcm'
 import { makeIntegrationConfig } from '@infra/integrations/integration-config'
 import { makeTelegramNotifier } from '@infra/integrations/telegram'
@@ -87,6 +89,8 @@ const contentRepo = once(() => makeContentRepository(serviceClient))
 const settingsRepo = once(() => makeSettingsRepository(serviceClient))
 const tagRepo = once(() => makeTrackingTagRepository(serviceClient))
 const secretsRepo = once(() => makeIntegrationSecretsRepository(serviceClient, aesGcmCipher))
+// Журнал дій адмінів (audit_log) — один на всі сценарії.
+const auditLog = once(() => makeAuditLog(makeAuditLogRepository(serviceClient)))
 const conversionRepo = once(() => makeConversionRepository(serviceClient))
 const adjustmentRepo = once(() => makeAdjustmentRepository(serviceClient))
 const analyticsRepo = once(() => makeAnalyticsRepository(serviceClient))
@@ -154,18 +158,21 @@ export const getLeadUseCases = once(() =>
     users: userRepo(),
     conversionFlow: conversionFlow(),
     sheets: sheets(),
+    audit: auditLog(),
   }),
 )
 
 export const getStageUseCases = once(() =>
-  makeStageUseCases({ statuses: statusRepo(), leads: leadRepo(), settings: settingsRepo() }),
+  makeStageUseCases({ statuses: statusRepo(), leads: leadRepo(), settings: settingsRepo(), audit: auditLog() }),
 )
 
-export const getCustomFieldUseCases = once(() => makeCustomFieldUseCases({ customFields: customFieldRepo() }))
+export const getCustomFieldUseCases = once(() => makeCustomFieldUseCases({ customFields: customFieldRepo(), audit: auditLog() }))
 
-export const getRoleUseCases = once(() => makeRoleUseCases({ roles: roleRepo(), users: userRepo() }))
+export const getRoleUseCases = once(() => makeRoleUseCases({ roles: roleRepo(), users: userRepo(), audit: auditLog() }))
 
-export const getUserUseCases = once(() => makeUserUseCases({ users: userRepo(), roles: roleRepo(), clock: systemClock }))
+export const getUserUseCases = once(() =>
+  makeUserUseCases({ users: userRepo(), roles: roleRepo(), clock: systemClock, audit: auditLog() }),
+)
 
 export const getContentUseCases = once(() =>
   makeContentUseCases({
@@ -174,6 +181,7 @@ export const getContentUseCases = once(() =>
     storage: makeImageStorage(serviceClient),
     cache: nextCache,
     clock: systemClock,
+    audit: auditLog(),
   }),
 )
 
@@ -184,15 +192,20 @@ export const getIntegrationUseCases = once(() =>
     sheets: sheets(),
     clock: systemClock,
     notificationEmail: () => process.env.NOTIFICATION_EMAIL,
+    audit: auditLog(),
   }),
 )
 
-export const getTrackingTagUseCases = once(() => makeTrackingTagUseCases({ tags: tagRepo(), cache: nextCache }))
+export const getTrackingTagUseCases = once(() =>
+  makeTrackingTagUseCases({ tags: tagRepo(), cache: nextCache, audit: auditLog() }),
+)
 
-export const getSettingsUseCases = once(() => makeSettingsUseCases({ settings: settingsRepo(), clock: systemClock }))
+export const getSettingsUseCases = once(() =>
+  makeSettingsUseCases({ settings: settingsRepo(), clock: systemClock, audit: auditLog() }),
+)
 
 export const getAnalyticsEventsUseCases = once(() =>
-  makeAnalyticsEventsUseCases({ settings: settingsRepo(), cache: nextCache, clock: systemClock }),
+  makeAnalyticsEventsUseCases({ settings: settingsRepo(), cache: nextCache, clock: systemClock, audit: auditLog() }),
 )
 
 export const getReportUseCases = once(() =>

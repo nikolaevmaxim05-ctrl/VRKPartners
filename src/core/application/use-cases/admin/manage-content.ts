@@ -3,6 +3,7 @@
 // updated_at; після збереження — revalidate сайту.
 import { ok, fail, type Result } from '../../result'
 import type { Actor, CacheInvalidator, Clock } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { ContentRepository, ImageStorage } from '../../ports/content'
 import { mergeMessages, diffMessages, pickEditable } from '../../../domain/content/messages'
 import { validateMessages } from '../../../domain/content/limits'
@@ -48,8 +49,10 @@ export function makeContentUseCases(deps: {
   storage: ImageStorage
   cache: CacheInvalidator
   clock: Clock
+  audit?: AuditLog
 }) {
   const { content, defaults, storage, cache, clock } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function isStale(id: string, baseUpdatedAt: string | null | undefined): Promise<boolean> {
     return isStaleUpdate(await content.getUpdatedAt(id), baseUpdatedAt)
@@ -93,6 +96,8 @@ export function makeContentUseCases(deps: {
     const res = await content.save(id, diff, nowIso, actor.id)
     if (!res.ok) return fail('failed', res.error)
     cache.invalidateSite()
+    // У журнал — лише перелік змінених розділів (сам дифф може бути великим).
+    await audit.record(actor, 'content.save', `site_content/${id}`, { new: { sections: Object.keys(diff as object) } })
     return ok({ updatedAt: nowIso })
   }
 
@@ -117,9 +122,11 @@ export function makeContentUseCases(deps: {
       return fail('conflict', 'Метадані змінив інший адміністратор. Оновіть сторінку й повторіть.')
     }
     const nowIso = clock.now().toISOString()
-    const res = await content.save(SEO_CONTENT_ID, diffSeo(overrides, defaults.seo()), nowIso, actor.id)
+    const seoDiff = diffSeo(overrides, defaults.seo())
+    const res = await content.save(SEO_CONTENT_ID, seoDiff, nowIso, actor.id)
     if (!res.ok) return fail('failed', res.error)
     cache.invalidateSite()
+    await audit.record(actor, 'seo.save', `site_content/${SEO_CONTENT_ID}`, { new: seoDiff })
     return ok({ updatedAt: nowIso })
   }
 
@@ -143,6 +150,7 @@ export function makeContentUseCases(deps: {
     const res = await content.save(LEGAL_CONTENT_ID, diff, nowIso, actor.id)
     if (!res.ok) return fail('failed', res.error)
     cache.invalidatePaths(LEGAL_PATHS)
+    await audit.record(actor, 'legal.save', `site_content/${LEGAL_CONTENT_ID}`, { new: { docs: Object.keys(diff) } })
     return ok({ updatedAt: nowIso })
   }
 

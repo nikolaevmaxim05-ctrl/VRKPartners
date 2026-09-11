@@ -1,6 +1,7 @@
 // use-cases/admin/manage-stages — стадії воронки: список, створення, зміна, видалення, порядок.
 import { ok, fail, type Result } from '../../result'
-import { UNIQUE_VIOLATION } from '../../ports/common'
+import { UNIQUE_VIOLATION, type Actor } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { LeadRepository, LeadStatusRepository, LeadStatusRow } from '../../ports/leads'
 import type { SettingsRepository } from '../../ports/settings'
 import {
@@ -18,8 +19,10 @@ export function makeStageUseCases(deps: {
   statuses: LeadStatusRepository
   leads: LeadRepository
   settings: SettingsRepository
+  audit?: AuditLog
 }) {
   const { statuses, leads, settings } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function listStages(): Promise<Result<{ data: LeadStatusRow[]; pipelines_enabled: boolean }>> {
     const [list, pipelines] = await Promise.all([statuses.list(), settings.get('pipelines_enabled')])
@@ -30,7 +33,7 @@ export function makeStageUseCases(deps: {
     return ok({ data: list.data, pipelines_enabled: pipelines === 'true' })
   }
 
-  async function createStage(body: StageCreateBody): Promise<Result<LeadStatusRow>> {
+  async function createStage(body: StageCreateBody, actor?: Actor): Promise<Result<LeadStatusRow>> {
     const plan = planNewStage(body)
     if (!plan.ok) return fail('invalid', plan.error)
     const nextPosition = (await statuses.maxPosition()) + 1
@@ -41,10 +44,11 @@ export function makeStageUseCases(deps: {
       console.error('[admin/lead-statuses] insert_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'stage.create', `lead_statuses/${res.data.id}`, { new: plan.values })
     return ok(res.data)
   }
 
-  async function updateStage(id: string, body: StagePatchBody): Promise<Result<LeadStatusRow>> {
+  async function updateStage(id: string, body: StagePatchBody, actor?: Actor): Promise<Result<LeadStatusRow>> {
     const current = await statuses.getCurrent(id)
     if (!current) return fail('not_found', 'Стадія не знайдена')
 
@@ -70,10 +74,11 @@ export function makeStageUseCases(deps: {
       console.error('[admin/lead-statuses/[id]] update_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'stage.update', `lead_statuses/${id}`, { old: current, new: update })
     return ok(res.data)
   }
 
-  async function deleteStage(id: string): Promise<Result<void>> {
+  async function deleteStage(id: string, actor?: Actor): Promise<Result<void>> {
     const target = await statuses.getForDelete(id)
     if (!target) return fail('not_found', 'Стадія не знайдена')
     if (target.is_initial) return fail('invalid', 'Спочатку призначте іншу стадію первинною')
@@ -89,10 +94,11 @@ export function makeStageUseCases(deps: {
       console.error('[admin/lead-statuses/[id]] delete_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'stage.delete', `lead_statuses/${id}`, { old: target })
     return ok(undefined)
   }
 
-  async function reorderStages(body: { items?: unknown }): Promise<Result<void>> {
+  async function reorderStages(body: { items?: unknown }, actor?: Actor): Promise<Result<void>> {
     const items = body.items
     if (!Array.isArray(items) || items.length === 0) return fail('invalid', 'Порожній items')
     for (const item of items as Array<{ id?: string; position?: number }>) {
@@ -110,6 +116,7 @@ export function makeStageUseCases(deps: {
       console.error('[admin/lead-statuses/reorder] partial_failure', errors)
       return fail('failed', errors.join('; '))
     }
+    await audit.record(actor, 'stage.reorder', 'lead_statuses', { new: items })
     return ok(undefined)
   }
 

@@ -2,6 +2,7 @@
 // Реєстр і дефолтні імена подій НЕ змінюються (клієнтські GTM-тригери).
 import { ok, fail, type Result } from '../../result'
 import type { Actor, CacheInvalidator, Clock } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { SettingsRepository } from '../../ports/settings'
 import {
   ANALYTICS_REGISTRY,
@@ -12,8 +13,9 @@ import {
 } from '../../../domain/analytics/registry'
 import { validateEventsPatch } from '../../../domain/analytics/events-config'
 
-export function makeAnalyticsEventsUseCases(deps: { settings: SettingsRepository; cache: CacheInvalidator; clock: Clock }) {
+export function makeAnalyticsEventsUseCases(deps: { settings: SettingsRepository; cache: CacheInvalidator; clock: Clock; audit?: AuditLog }) {
   const { settings, cache, clock } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function readStored(): Promise<AnalyticsEventsConfig> {
     const raw = await settings.get(ANALYTICS_EVENTS_SETTING_KEY)
@@ -60,6 +62,7 @@ export function makeAnalyticsEventsUseCases(deps: { settings: SettingsRepository
         console.error('[admin/analytics-events] upsert_events_failed', res.error)
         return fail('failed', 'Помилка сервера')
       }
+      await audit.record(actor, 'analytics_events.update', 'site_settings/analytics_events', { new: v.patch })
     }
 
     cache.invalidateSite()

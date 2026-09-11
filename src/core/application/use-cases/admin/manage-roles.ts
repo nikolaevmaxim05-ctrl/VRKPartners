@@ -1,12 +1,14 @@
 // use-cases/admin/manage-roles — ролі та їх ієрархія (раздел 5).
 import { ok, fail, type Result } from '../../result'
 import { UNIQUE_VIOLATION, type Actor } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { RoleRepository, RoleRow, UserRepository } from '../../ports/access'
 import { sanitizePermissions } from '../../../domain/access/permissions'
 import { canActOnRank, roleChangeCausesLockout, validateRoleReorder } from '../../../domain/access/hierarchy'
 
-export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepository }) {
+export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepository; audit?: AuditLog }) {
   const { roles, users } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function listRoles(): Promise<Result<RoleRow[]>> {
     const res = await roles.list()
@@ -17,7 +19,7 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
     return ok(res.data)
   }
 
-  async function createRole(body: { name?: string; permissions?: unknown }): Promise<Result<RoleRow>> {
+  async function createRole(body: { name?: string; permissions?: unknown }, actor?: Actor): Promise<Result<RoleRow>> {
     const name = (body.name ?? '').trim().slice(0, 48)
     if (!name) return fail('invalid', 'Назва ролі обовʼязкова')
     const permissions = sanitizePermissions(body.permissions)
@@ -29,6 +31,7 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
       console.error('[admin/roles] create_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'role.create', `admin_roles/${res.data.id}`, { new: { name, permissions } })
     return ok(res.data)
   }
 
@@ -80,6 +83,7 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
       if (res.code === UNIQUE_VIOLATION) return fail('conflict', 'Роль з такою назвою вже існує')
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'role.update', `admin_roles/${id}`, { old: { name: role.name }, new: update })
     return ok(res.data)
   }
 
@@ -96,7 +100,9 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
     if ((await roles.countUsers(id)) > 0) return fail('invalid', 'Роль призначена користувачам — спершу змініть їм роль')
 
     const res = await roles.delete(id)
-    return res.ok ? ok(undefined) : fail('failed', res.error)
+    if (!res.ok) return fail('failed', res.error)
+    await audit.record(actor, 'role.delete', `admin_roles/${id}`, { old: { name: role.name } })
+    return ok(undefined)
   }
 
   async function reorderRoles(body: { orderedIds?: unknown }, actor: Actor): Promise<Result<void>> {
@@ -113,7 +119,9 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
     if (!plan.ok) return fail(plan.status === 403 ? 'forbidden' : 'invalid', plan.error)
 
     const res = await roles.setOrder(orderedIds)
-    return res.ok ? ok(undefined) : fail('failed', res.error)
+    if (!res.ok) return fail('failed', res.error)
+    await audit.record(actor, 'role.reorder', 'admin_roles', { new: orderedIds })
+    return ok(undefined)
   }
 
   return { listRoles, createRole, updateRole, deleteRole, reorderRoles }

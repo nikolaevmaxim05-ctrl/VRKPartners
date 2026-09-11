@@ -3,6 +3,7 @@
 // (core/domain/funnel/transition), сценарій лише виконує план.
 import { ok, fail, type Result } from '../../result'
 import type { Actor } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type {
   LeadRepository,
   LeadStatusRepository,
@@ -23,8 +24,11 @@ import { validateCustomFieldValue } from '../../../domain/lead/custom-fields'
 import {
   planDealClearing,
   resolveConversionValue,
-  isConversionStage,
+  classifyLeadChange,
   decideAdjustment,
+  decideLeave,
+  decideAmountAdjustment,
+  type AdjustmentDecision,
   type StatusForTransition,
 } from '../../../domain/funnel/transition'
 import type { ConversionType } from '../../../domain/funnel/stage-rules'
@@ -38,10 +42,12 @@ export type LeadUseCaseDeps = {
   users: UserRepository
   conversionFlow: ConversionFlow
   sheets: ConversionSheetExporter
+  audit?: AuditLog
 }
 
 export function makeLeadUseCases(deps: LeadUseCaseDeps) {
   const { leads, statuses, comments, history, customFields, users, conversionFlow, sheets } = deps
+  const audit = deps.audit ?? noopAudit
 
   // ── Список ─────────────────────────────────────────────────────────────────
   async function listLeads(get: (k: string) => string | null): Promise<Result<Record<string, unknown>>> {
@@ -131,9 +137,13 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     let clearedDealOnTransition = false
     const statusChanging = 'status_id' in update && update.status_id !== before.status_id
 
-    if (statusChanging) {
-      const ids = [before.status_id, update.status_id].filter((v): v is string => !!v)
+    const amountKeys = 'deal_amount' in update || 'deal_profit' in update
+    if (statusChanging || (amountKeys && before.status_id)) {
+      const ids = [before.status_id, statusChanging ? update.status_id : null].filter((v): v is string => !!v)
       for (const s of await statuses.getForTransition(ids)) statusInfoById.set(s.id, s)
+    }
+
+    if (statusChanging) {
 
       const oldConversionType = before.status_id ? statusInfoById.get(before.status_id)?.conversion_type ?? null : null
       const newConversionType = update.status_id
@@ -210,115 +220,117 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       }
     }
 
-    // ── Офлайн-конверсія при переході на конверсійну стадію (is_final + conversion_type) ──
+    // ── Розділ 6: enter / leave / amount (стадія береться ПІСЛЯ зміни) ──
     // Усі відправки await-яться до відповіді; помилки логуються і НЕ валять PATCH.
-    if (statusChanging && update.status_id) {
-      const newStatus = (updated as {
-        status?: {
-          is_final?: boolean
-          conversion_type?: ConversionType | null
-          conversion_action?: string | null
-          requires_amount?: boolean
-        } | null
-      }).status
+    const newStatus = (updated as {
+      status?: {
+        is_final?: boolean
+        conversion_type?: ConversionType | null
+        conversion_action?: string | null
+        requires_amount?: boolean
+      } | null
+    }).status ?? null
+    const oldStatus = before.status_id ? statusInfoById.get(before.status_id) ?? null : null
+    const u = updated as unknown as {
+      order_no: number
+      email: string | null
+      phone: string
+      gclid: string | null
+      gbraid: string | null
+      wbraid: string | null
+      deal_amount: unknown
+      deal_profit: unknown
+    }
+    const orderNo = Number(u.order_no)
+    const conversionValue = newStatus ? resolveConversionValue(newStatus, u) : null
+    const amountChanged = !!newStatus && resolveConversionValue(newStatus, before) !== conversionValue
 
-      if (newStatus && isConversionStage(newStatus)) {
-        const u = updated as unknown as {
-          order_no: number
-          email: string | null
-          phone: string
-          gclid: string | null
-          gbraid: string | null
-          wbraid: string | null
-          deal_amount: unknown
-          deal_profit: unknown
-        }
-        const orderNo = Number(u.order_no)
-        const conversionValue = resolveConversionValue(newStatus, u)
-        const statusConversionAction = newStatus.conversion_action ?? null
-        const statusConversionType = newStatus.conversion_type ?? null
-        const oldConversionType = before.status_id ? statusInfoById.get(before.status_id)?.conversion_type ?? null : null
+    const change = classifyLeadChange({ statusChanged: statusChanging, oldStatus, newStatus, amountChanged })
 
-        console.log('[leads/PATCH] conversion_type → recording conversion', {
-          leadId: id,
-          orderNo,
-          newStatusId: update.status_id,
-          oldConversionType,
-          conversionType: statusConversionType,
+    const runAdjustment = async (decision: AdjustmentDecision) => {
+      if (decision.kind === 'none') return
+      const adj = await conversionFlow.recordAdjustment(
+        decision.kind === 'retract'
+          ? { leadId: id, orderNo, conversionAction: decision.conversionAction, type: 'retract', offlineConversionId: decision.offlineConversionId }
+          : { leadId: id, orderNo, conversionAction: decision.conversionAction, type: 'restate', value: decision.value },
+      )
+      if (adj) await conversionFlow.dispatchAdjustment(adj)
+    }
+
+    // Офлайн-лист: рядок ОСТАННЬОГО стану конверсії (без дублів — лише при реальній зміні).
+    const sendConversionRow = async (action: string | null) => {
+      try {
+        const sent = await sheets.sendConversion({
+          lead_id: id,
+          order_no: orderNo,
+          email: u.email ?? null,
+          phone: u.phone ?? '',
+          gclid: u.gclid ?? null,
+          gbraid: u.gbraid ?? null,
+          wbraid: u.wbraid ?? null,
           conversionValue,
-          statusConversionAction,
+          conversionAction: action,
         })
-
-        // Стан конверсії ДО апдейту — для RETRACT потрібні оригінальні action + export_status.
-        const ocBefore = await conversionFlow.getConversionByLead(id)
-
-        let outcome: Awaited<ReturnType<ConversionFlow['recordConversion']>> = { outcome: 'error' }
-        try {
-          outcome = await conversionFlow.recordConversion(id, conversionValue, statusConversionAction, statusConversionType)
-        } catch (err) {
-          console.error('[leads/PATCH] recordConversion failed', err instanceof Error ? err.message : err)
-        }
-
-        // RETRACT vs RESTATE — рішення в домені.
-        const decision = decideAdjustment({
-          oldConversionType,
-          newConversionType: statusConversionType,
-          outcome,
-          ocBefore,
-          conversionValue,
-        })
-        if (decision.kind === 'retract') {
-          const adj = await conversionFlow.recordAdjustment({
-            leadId: id,
-            orderNo,
-            conversionAction: decision.conversionAction,
-            type: 'retract',
-            offlineConversionId: decision.offlineConversionId,
-          })
-          if (adj) await conversionFlow.dispatchAdjustment(adj)
-        } else if (decision.kind === 'restate') {
-          const adj = await conversionFlow.recordAdjustment({
-            leadId: id,
-            orderNo,
-            conversionAction: decision.conversionAction,
-            type: 'restate',
-            value: decision.value,
-          })
-          if (adj) await conversionFlow.dispatchAdjustment(adj)
-        }
-
-        // Офлайн-лист: рядок ОСТАННЬОГО стану лише при inserted/updated (без дублів).
-        if (outcome.outcome === 'inserted' || outcome.outcome === 'updated') {
-          try {
-            const sent = await sheets.sendConversion({
-              lead_id: id,
-              order_no: orderNo,
-              email: u.email ?? null,
-              phone: u.phone ?? '',
-              gclid: u.gclid ?? null,
-              gbraid: u.gbraid ?? null,
-              wbraid: u.wbraid ?? null,
-              conversionValue,
-              conversionAction: statusConversionAction,
-            })
-            if (sent) await conversionFlow.markConversionExportedByLead(id)
-          } catch (err) {
-            console.error('[google-sheets] send_failed', err instanceof Error ? err.message : err)
-          }
-        }
+        if (sent) await conversionFlow.markConversionExportedByLead(id)
+      } catch (err) {
+        console.error('[google-sheets] send_failed', err instanceof Error ? err.message : err)
       }
     }
 
+    const recordConversionSafe = async (action: string | null, type: ConversionType | null) => {
+      try {
+        return await conversionFlow.recordConversion(id, conversionValue, action, type)
+      } catch (err) {
+        console.error('[leads/PATCH] recordConversion failed', err instanceof Error ? err.message : err)
+        return { outcome: 'error' as const }
+      }
+    }
+
+    if (change === 'enter' && newStatus) {
+      const statusConversionAction = newStatus.conversion_action ?? null
+      const statusConversionType = newStatus.conversion_type ?? null
+      const oldConversionType = oldStatus?.conversion_type ?? null
+      console.log('[leads/PATCH] enter → recording conversion', {
+        leadId: id, orderNo, newStatusId: update.status_id, oldConversionType, conversionType: statusConversionType, conversionValue, statusConversionAction,
+      })
+      // Стан конверсії ДО апдейту — для RETRACT потрібні оригінальні action + export_status.
+      const ocBefore = await conversionFlow.getConversionByLead(id)
+      const outcome = await recordConversionSafe(statusConversionAction, statusConversionType)
+      await runAdjustment(decideAdjustment({ oldConversionType, newConversionType: statusConversionType, outcome, ocBefore, conversionValue }))
+      if (outcome.outcome === 'inserted' || outcome.outcome === 'updated') await sendConversionRow(statusConversionAction)
+    } else if (change === 'leave') {
+      // Пішли з конверсійної стадії: відкликаємо вивантажену конверсію (RETRACT).
+      const ocBefore = await conversionFlow.getConversionByLead(id)
+      const decision = decideLeave(ocBefore)
+      console.log('[leads/PATCH] leave', { leadId: id, orderNo, retract: decision.kind === 'retract' })
+      await runAdjustment(decision)
+    } else if (change === 'amount' && newStatus) {
+      // Та сама конверсійна стадія, змінилась сума: оновити стан; вивантажена → RESTATE,
+      // ще pending → рядок конверсії піде з новою сумою.
+      const statusConversionAction = newStatus.conversion_action ?? null
+      const statusConversionType = newStatus.conversion_type ?? null
+      const ocBefore = await conversionFlow.getConversionByLead(id)
+      const outcome = await recordConversionSafe(statusConversionAction, statusConversionType)
+      console.log('[leads/PATCH] amount', { leadId: id, orderNo, conversionValue, outcome: outcome.outcome })
+      const decision = decideAmountAdjustment({ outcome, ocBefore, conversionValue })
+      await runAdjustment(decision)
+      if (decision.kind === 'none' && (outcome.outcome === 'inserted' || outcome.outcome === 'updated')) {
+        await sendConversionRow(statusConversionAction)
+      }
+    }
+
+    await audit.record(actor, 'lead.update', `leads/${id}`, { old: before, new: update })
     return ok(updated)
   }
 
   // ── Видалення ──────────────────────────────────────────────────────────────
-  async function deleteLead(id: string): Promise<Result<void>> {
+  async function deleteLead(id: string, actor?: Actor): Promise<Result<void>> {
     const res = await leads.delete(id)
     if (!res.ok) {
       console.error('[admin/leads/:id] delete_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'lead.delete', `leads/${id}`)
     return ok(undefined)
   }
 

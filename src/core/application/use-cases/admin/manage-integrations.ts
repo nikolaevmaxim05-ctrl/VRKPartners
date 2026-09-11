@@ -1,6 +1,7 @@
 // use-cases/admin/manage-integrations — секрети інтеграцій (зашифровані), перевірка підключення.
 import { ok, fail, type Result } from '../../result'
 import type { Actor, Clock } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { IntegrationSecretsRepository } from '../../ports/settings'
 import type { IntegrationTester, TestMessage } from '../../ports/notifications'
 import type { ConversionSheetExporter, SheetsTestResult } from '../../ports/conversions'
@@ -21,8 +22,10 @@ export function makeIntegrationUseCases(deps: {
   clock: Clock
   /** env NOTIFICATION_EMAIL (адресат тестового листа). */
   notificationEmail: () => string | undefined
+  audit?: AuditLog
 }) {
   const { secrets, tester, sheets, clock } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function listIntegrations(): Promise<Result<IntegrationListItem[]>> {
     const res = await secrets.listDecrypted()
@@ -42,13 +45,18 @@ export function makeIntegrationUseCases(deps: {
     if (!KNOWN_INTEGRATION_KEYS.has(key)) return fail('invalid', 'Невідома інтеграція')
     if (!body.value?.trim()) return fail('invalid', 'Value is required')
     const res = await secrets.set(key, body.value.trim(), actor.id, clock.now().toISOString())
-    return res.ok ? ok(undefined) : fail('failed', res.error)
+    if (!res.ok) return fail('failed', res.error)
+    // У журнал — лише ключ, ніколи значення.
+    await audit.record(actor, 'integration.set', `integrations/${key}`)
+    return ok(undefined)
   }
 
-  async function deleteIntegration(key: string): Promise<Result<void>> {
+  async function deleteIntegration(key: string, actor?: Actor): Promise<Result<void>> {
     if (!KNOWN_INTEGRATION_KEYS.has(key)) return fail('invalid', 'Невідома інтеграція')
     const res = await secrets.delete(key)
-    return res.ok ? ok(undefined) : fail('failed', res.error)
+    if (!res.ok) return fail('failed', res.error)
+    await audit.record(actor, 'integration.delete', `integrations/${key}`)
+    return ok(undefined)
   }
 
   /** Реальний запит до API інтеграції зі значенням із БД. Завжди відповідь 200 {ok, message}. */

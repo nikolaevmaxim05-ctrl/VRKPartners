@@ -2,6 +2,8 @@
 // middleware.ts відповідає за СЕСІЮ (401 без неї), роут через withAdmin — за ПРАВА.
 // 401 без сесії, 403 без права; anyOf = [] — достатньо бути активним користувачем з роллю.
 import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
+import { getClientIp } from './client-ip'
 import { getAuthSession, getUserRepository } from '@composition/container'
 import { roleGrants, type Permission } from '@core/domain/access/permissions'
 import type { Actor } from '@core/application/ports/common'
@@ -20,5 +22,7 @@ export async function withAdmin(
   const allowed = anyOf.length === 0 ? !!info?.isActive : roleGrants(info, anyOf)
   if (!allowed) return NextResponse.json({ error: 'Доступ заборонено' }, { status: 403 })
 
-  return handler({ id: user.id, email: user.email })
+  // IP — для audit_log (ланцюжок розділу 8; 'unknown' журнал пише як NULL).
+  const ip = getClientIp(await headers())
+  return handler({ id: user.id, email: user.email, ip })
 }

@@ -16,7 +16,7 @@ export interface SettingsRepository {
 
 export interface TrackingTagRepository {
   list(): Promise<DbResult<TrackingTag[]>>
-  listEnabled(): Promise<DbResult<Array<{ type: TrackingTagType; tag_id: string }>>>
+  listEnabled(): Promise<DbResult<Array<{ type: TrackingTagType; tag_id: string; conversion_label: string | null }>>>
   getType(id: string): Promise<{ id: string; type: TrackingTagType } | null>
   exists(id: string): Promise<boolean>
   maxPosition(): Promise<number>
