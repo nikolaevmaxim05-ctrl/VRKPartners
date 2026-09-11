@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { notFound } from "next/navigation";
+import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { getMessages, setRequestLocale } from "next-intl/server";
 import { ModalProvider } from "@/features/landing/components/forms/ModalProvider";
-import { ContentProvider } from "@/features/landing/components/layout/ContentProvider";
 import { RevealObserver } from "@/features/landing/components/layout/RevealObserver";
 import { HashScroll } from "@/features/landing/components/layout/HashScroll";
 import { SiteBackground } from "@/features/landing/components/layout/SiteBackground";
 import { UtmTracker } from "@/features/landing/components/layout/UtmTracker";
 import { Header } from "@/features/landing/components/sections/Header";
 import { Footer } from "@/features/landing/components/sections/Footer";
-import { site, siteUrl } from "@/shared/config/site";
+import { siteUrl } from "@/shared/config/site";
+import { routing } from "@/i18n/routing";
 import {
   getAnalyticsEventsUseCases,
   getContentUseCases,
@@ -16,7 +19,8 @@ import {
 } from "@composition/container";
 import { mergeSeo, effectiveOrg } from "@core/domain/content/seo";
 import type { AnalyticsEventsConfig } from "@core/domain/analytics/registry";
-import { mergeLandingContent, getDefaultSeo } from "@/shared/content/defaults";
+import type { SiteMessages } from "@core/domain/content/site-messages";
+import { getDefaultSeo } from "@/shared/content/defaults";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? "";
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
@@ -28,9 +32,13 @@ export const metadata: Metadata = GOOGLE_VERIFICATION
   : {};
 
 // TTL-фолбэк для кеша цього layout-сегмента. Основний механізм інвалідації —
-// revalidatePath('/', 'layout') з /api/admin/tracking-tags після кожної мутації;
+// revalidatePath('/', 'layout') після кожної мутації контенту/тегів з адмінки;
 // цей revalidate=300 спрацьовує тільки якщо on-demand revalidate чомусь не прийшов.
 export const revalidate = 300;
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
 
 // Інлайн window.__analyticsEvents — повний merged-конфіг імен/вкл-викл подій.
 // Значення вже пройшли whitelist-валідацію + екранування "<".
@@ -134,7 +142,7 @@ function GtmNoScript({ id }: { id: string }) {
 }
 
 // JSON-LD Organization: назва/опис — із метаданих (SEO), а контакти (email/телефон/
-// Telegram) — з КОНТАКТІВ лендингу (content.site), щоб було єдине джерело правди й
+// Telegram) — з КОНТАКТІВ сайту (messages.site), щоб було єдине джерело правди й
 // автосинхронізація зі вкладкою «Контент». Тип схеми лишається статичним.
 function buildJsonLd(args: {
   orgName: string
@@ -163,28 +171,34 @@ function buildJsonLd(args: {
   };
 }
 
-// Marketing layout — обгортка публічних сторінок лендінгу
-export default async function MarketingLayout({
+// Layout сайту — обгортка публічних сторінок (головна, /thanks, юр.сторінки, 404).
+export default async function SiteLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+  setRequestLocale(locale);
+
   // Усі читання fail-safe: помилка БД → дефолти (сайт не падає).
-  const [tags, analyticsEvents, contentOverrides, seoOverrides] = await Promise.all([
+  const [tags, analyticsEvents, messages, seoOverrides] = await Promise.all([
     getTrackingTagUseCases().listEnabledForSite(),
     getAnalyticsEventsUseCases().getMergedConfig(),
-    getContentUseCases().getLandingOverrides(),
+    getMessages(),
     getContentUseCases().getSeoOverrides(),
   ]);
-  const content = mergeLandingContent(contentOverrides);
+  const site = (messages as unknown as SiteMessages).site;
   const seo = mergeSeo(getDefaultSeo(), seoOverrides);
   const org = effectiveOrg(seo, site.name);
   const jsonLd = buildJsonLd({
     orgName: org.name,
     orgDescription: org.description,
-    email: content.site.email,
-    phone: content.site.phone,
-    telegram: content.site.telegram,
+    email: site.email,
+    phone: site.phone,
+    telegram: site.telegram,
   });
 
   // Фолбэк на NEXT_PUBLIC_GTM_ID — тільки якщо немає жодного включеного тегу в БД.
@@ -255,7 +269,8 @@ export default async function MarketingLayout({
       {/* Збір UTM-міток у sessionStorage (атрибуція заявок) */}
       <UtmTracker />
 
-      <ContentProvider content={content}>
+      {/* Тексти сайту (дефолти ⊕ правки клієнта) — клієнтським компонентам через useMessages() */}
+      <NextIntlClientProvider locale={locale} messages={messages}>
         <ModalProvider>
           <div className="relative">
             <SiteBackground />
@@ -266,7 +281,7 @@ export default async function MarketingLayout({
             <Footer />
           </div>
         </ModalProvider>
-      </ContentProvider>
+      </NextIntlClientProvider>
     </>
   );
 }

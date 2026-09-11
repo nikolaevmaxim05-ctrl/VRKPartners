@@ -6,36 +6,36 @@ import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-rea
 import { Button } from "@/features/landing/components/ui/Button";
 import { TelegramCtaButton } from "@/features/landing/components/ui/TelegramCtaButton";
 import { useLeadModal } from "@/features/landing/components/forms/ModalProvider";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages } from "@/features/landing/lib/messages";
+import { contentList, hasText } from "@core/domain/content/messages";
+import type { CaseItem } from "@core/domain/content/site-messages";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
 
 export function Trust() {
   const { openLead } = useLeadModal();
-  const { trust } = useContent();
+  const { trust } = useSiteMessages();
 
   // Рівень 1 — ніша, Рівень 2 — кейс усередині ніші.
   const [nicheIdx, setNicheIdx] = React.useState(0);
   const [caseIdx, setCaseIdx] = React.useState(0);
 
-  const group = trust.caseGroups[nicheIdx] ?? trust.caseGroups[0];
+  // Порожні ніші/кейси (без назви) не виводяться; кейси мають опційні task/approach/image.
+  const caseGroups = trust.caseGroups
+    .filter((g) => hasText(g.niche))
+    .map((g) => ({ ...g, cases: g.cases.filter((c) => hasText(c.client)) }))
+    .filter((g) => g.cases.length > 0);
+  const group = caseGroups[nicheIdx] ?? caseGroups[0];
   const current = group?.cases[caseIdx] ?? group?.cases[0];
-  // Кейси мають різні набори полів (task/approach/image — опційні)
-  const cur = current as unknown as {
-    id: string;
-    client: string;
-    href?: string;
-    title: string;
-    task?: string;
-    image?: string;
-    metrics: readonly { value: string; label: string }[];
-    approach?: readonly string[];
-  };
+  const cur = current as CaseItem;
+  const facts = contentList(trust.facts);
+  const niches = contentList(trust.niches);
+  const highlights = trust.highlights.filter((h) => hasText(h.value));
 
   const selectNiche = (i: number) => {
     setNicheIdx(i);
     setCaseIdx(0); // скидаємо вибір кейсу при зміні ніші
-    track("case_niche_click", { niche: trust.caseGroups[i]?.niche });
+    track("case_niche_click", { niche: caseGroups[i]?.niche });
   };
 
   const selectCase = (i: number) => {
@@ -49,14 +49,14 @@ export function Trust() {
   const handleConsult = () => {
     track("trust_cta_click", { source: "trust" });
     openLead({
-      title: "Отримати консультацію",
-      description: "Розкажемо, як отримати схожий результат у вашій ніші.",
+      title: trust.modalTitle,
+      description: trust.modalDescription,
       source: "trust",
-      submitLabel: "Отримати консультацію",
+      submitLabel: trust.submitLabel,
     });
   };
 
-  if (!group || !current) return null;
+  const hasCases = !!group && !!current;
 
   return (
     <section id="cases" className="section">
@@ -67,26 +67,26 @@ export function Trust() {
             <h2 className="h2">{trust.title}</h2>
 
             <ul className="mt-6 space-y-3">
-              {trust.facts.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-white/75">
+              {facts.map((f, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-white/75">
                   <Check className="mt-1 h-4 w-4 shrink-0 text-brand" />
                   <span>{f}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-brand/30 bg-brand/5 px-4 py-3">
-              <BadgeCheck className="h-7 w-7 text-brand" />
-              <span className="text-sm font-semibold text-white">
-                Офіційний Google Partner
-              </span>
-            </div>
+            {hasText(trust.partnerLabel) && (
+              <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-brand/30 bg-brand/5 px-4 py-3">
+                <BadgeCheck className="h-7 w-7 text-brand" />
+                <span className="text-sm font-semibold text-white">{trust.partnerLabel}</span>
+              </div>
+            )}
 
             {/* хайлайти-цифри: рядки на мобільному, колонки на десктопі */}
             <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {trust.highlights.map((h) => (
+              {highlights.map((h, i) => (
                 <div
-                  key={h.label}
+                  key={i}
                   className="flex items-center gap-3 rounded-2xl border border-bg-line bg-bg-card p-4 text-left shadow-card sm:flex-col sm:gap-1 sm:text-center"
                 >
                   <div className="shrink-0 text-2xl font-bold text-brand">{h.value}</div>
@@ -96,12 +96,13 @@ export function Trust() {
             </div>
 
             {/* ніші */}
+            {niches.length > 0 && (
             <div className="mt-8">
-              <p className="text-xs uppercase tracking-widest text-white/35">Ніші</p>
+              <p className="text-xs uppercase tracking-widest text-white/35">{trust.nichesTitle}</p>
               <ul className="mt-3 flex flex-wrap gap-2">
-                {trust.niches.map((n) => (
+                {niches.map((n, i) => (
                   <li
-                    key={n}
+                    key={i}
                     className="shrink-0 rounded-full border border-bg-line bg-bg-soft px-3 py-1.5 text-sm text-white/75"
                   >
                     {n}
@@ -109,34 +110,36 @@ export function Trust() {
                 ))}
               </ul>
             </div>
+            )}
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button onClick={handleConsult}>{trust.ctaSecondary}</Button>
+              {hasText(trust.ctaSecondary) && <Button onClick={handleConsult}>{trust.ctaSecondary}</Button>}
               <TelegramCtaButton placement="trust" size="md" />
             </div>
           </div>
 
-          {/* Права колонка: кейси — ніша → кейс → контент */}
+          {/* Права колонка: кейси — ніша → кейс → контент (без кейсів — не виводиться) */}
+          {hasCases && (
           <div className="reveal min-w-0 rounded-2xl border border-bg-line bg-bg-card p-5 shadow-card sm:p-7">
             <div className="flex items-center gap-2">
               <Quote className="h-5 w-5 text-brand" />
-              <h3 className="text-lg font-bold text-white">Кейси та результати</h3>
+              <h3 className="text-lg font-bold text-white">{trust.casesTitle}</h3>
             </div>
-            <p className="mt-1 text-sm text-white/50">{trust.caseHint}</p>
+            {hasText(trust.caseHint) && <p className="mt-1 text-sm text-white/50">{trust.caseHint}</p>}
 
             {/* Крок 1 — вибір ніші */}
             <div className="mt-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">
-                1. Ніша
+                {trust.nicheStep}
               </p>
               <div
                 role="tablist"
-                aria-label="Ніші кейсів"
+                aria-label={trust.nichesAria}
                 className="flex flex-wrap gap-2"
               >
-                {trust.caseGroups.map((g, i) => (
+                {caseGroups.map((g, i) => (
                   <button
-                    key={g.id}
+                    key={i}
                     role="tab"
                     aria-selected={nicheIdx === i}
                     onClick={() => selectNiche(i)}
@@ -166,16 +169,16 @@ export function Trust() {
             {/* Крок 2 — вибір кейсу всередині ніші */}
             <div className="mt-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">
-                2. Кейс
+                {trust.caseStep}
               </p>
               <div
                 role="tablist"
-                aria-label="Кейси ніші"
+                aria-label={trust.casesAria}
                 className="flex flex-wrap gap-2"
               >
                 {group.cases.map((c, i) => (
                   <button
-                    key={c.id}
+                    key={i}
                     role="tab"
                     aria-selected={caseIdx === i}
                     onClick={() => selectCase(i)}
@@ -200,7 +203,7 @@ export function Trust() {
 
             {/* Крок 3 — контент кейсу */}
             <div
-              key={`${group.id}-${cur.id}`}
+              key={`${nicheIdx}-${caseIdx}`}
               role="tabpanel"
               className="mt-6 animate-fade-up border-t border-bg-line pt-6"
             >
@@ -227,16 +230,16 @@ export function Trust() {
               </div>
               {cur.task && (
                 <p className="mt-2 text-sm leading-relaxed text-white/65">
-                  <span className="font-semibold text-white/80">Завдання: </span>
+                  <span className="font-semibold text-white/80">{trust.taskLabel} </span>
                   {cur.task}
                 </p>
               )}
 
               {/* метрики */}
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {cur.metrics.map((m) => (
+                {cur.metrics.filter((m) => hasText(m.value)).map((m, i) => (
                   <div
-                    key={m.label}
+                    key={i}
                     className="rounded-xl border border-bg-line bg-bg-soft p-3 text-center"
                   >
                     <div className="text-base font-bold leading-tight text-brand sm:text-lg">
@@ -254,7 +257,7 @@ export function Trust() {
                 <div className="mt-5 overflow-hidden rounded-xl border border-bg-line bg-white">
                   <Image
                     src={cur.image}
-                    alt={`Результати реклами — ${cur.client}`}
+                    alt={`${trust.imageAlt} — ${cur.client}`}
                     width={1400}
                     height={285}
                     className="h-auto w-full"
@@ -263,14 +266,14 @@ export function Trust() {
               )}
 
               {/* підходи */}
-              {cur.approach && cur.approach.length > 0 && (
+              {contentList(cur.approach).length > 0 && (
               <div className="mt-6">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
-                  Підходи до результату
+                  {trust.approachTitle}
                 </p>
                 <ul className="mt-3 space-y-2">
-                  {cur.approach.map((a) => (
-                    <li key={a} className="flex items-start gap-2 text-sm text-white/70">
+                  {contentList(cur.approach).map((a, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-white/70">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                       <span>{a}</span>
                     </li>
@@ -280,6 +283,7 @@ export function Trust() {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </section>

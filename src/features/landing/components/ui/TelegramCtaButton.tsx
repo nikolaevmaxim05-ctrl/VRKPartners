@@ -2,11 +2,11 @@
 
 // Кнопка «Або напишіть нам» — прямий чат менеджера в Telegram, поруч із CTA.
 // Стиль «telegram»: блакитний акцент (рамка+текст+іконка), не конкурує з жовтим
-// primary. URL і текст — з контенту (config/site.ts + оверрайди адмінки), не хардкод.
+// primary. URL і текст — з текстів сайту (messages.site + правки адмінки), не хардкод.
 // Клієнтський лише заради track().
 
 import { buttonVariants } from "@/features/landing/components/ui/Button";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages } from "@/features/landing/lib/messages";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
 
@@ -42,12 +42,12 @@ export function TelegramCtaButton({
   /** Додатковий обробник (напр. закрити мобільне меню). Перехід не скасовується. */
   onClick?: () => void;
 }) {
-  const { site } = useContent();
+  const { site } = useSiteMessages();
   const url = site.telegramCtaUrl;
-  const text = site.telegramCtaText || "Або напишіть нам";
+  const text = site.telegramCtaText;
 
-  // Немає URL (адмін очистив і немає дефолту) — кнопку не показуємо.
-  if (!url) return null;
+  // Немає URL або тексту (адмін очистив) — кнопку не показуємо.
+  if (!url || text.trim() === "") return null;
 
   return (
     <a

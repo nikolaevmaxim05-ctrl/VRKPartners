@@ -2,19 +2,14 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages } from "@/features/landing/lib/messages";
+import { hasText } from "@core/domain/content/messages";
+import type { AboutMember } from "@core/domain/content/site-messages";
 
-type Member = {
-  key: string;
-  name: string;
-  photo: string;
-  experience: string;
-  role: string;
-  skills: string;
-};
+type Labels = { experienceLabel: string; roleLabel: string; skillsLabel: string };
 
 /** Картка учасника з 3D-нахилом услід за курсором. */
-function MemberCard({ m }: { m: Member }) {
+function MemberCard({ m, labels }: { m: AboutMember; labels: Labels }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = React.useState({ rx: 0, ry: 0, active: false });
 
@@ -58,23 +53,21 @@ function MemberCard({ m }: { m: Member }) {
         <h3 className="mt-4 text-lg font-bold text-white">{m.name}</h3>
 
         <dl className="mt-4 space-y-2 text-left text-sm leading-relaxed">
-          {m.experience && (
+          {hasText(m.experience) && (
             <p>
-              <span className="font-semibold text-brand">
-                Досвід PPC Google Ads:{" "}
-              </span>
+              <span className="font-semibold text-brand">{labels.experienceLabel} </span>
               <span className="text-white/70">{m.experience}</span>
             </p>
           )}
-          {m.role && (
+          {hasText(m.role) && (
             <p>
-              <span className="font-semibold text-brand">Роль: </span>
+              <span className="font-semibold text-brand">{labels.roleLabel} </span>
               <span className="text-white/70">{m.role}</span>
             </p>
           )}
-          {m.skills && (
+          {hasText(m.skills) && (
             <p>
-              <span className="font-semibold text-brand">Навички: </span>
+              <span className="font-semibold text-brand">{labels.skillsLabel} </span>
               <span className="text-white/70">{m.skills}</span>
             </p>
           )}
@@ -85,26 +78,28 @@ function MemberCard({ m }: { m: Member }) {
 }
 
 export function About() {
-  const { about } = useContent();
+  const { about } = useSiteMessages();
+  const members = about.members.filter((m) => hasText(m.name));
+  const labels = { experienceLabel: about.experienceLabel, roleLabel: about.roleLabel, skillsLabel: about.skillsLabel };
 
   return (
     <section id="about" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
-          {about.eyebrow && (
+          {hasText(about.eyebrow) && (
             <p className="text-sm font-semibold uppercase tracking-widest text-brand">
               {about.eyebrow}
             </p>
           )}
           <h2 className="h2 mt-3">{about.title}</h2>
-          {about.text && (
+          {hasText(about.text) && (
             <p className="mt-4 text-lg text-white/60">{about.text}</p>
           )}
         </div>
 
         <div className="reveal-stagger mt-10 grid gap-5 sm:grid-cols-2">
-          {about.members.map((m) => (
-            <MemberCard key={m.key} m={m} />
+          {members.map((m, i) => (
+            <MemberCard key={i} m={m} labels={labels} />
           ))}
         </div>
       </div>

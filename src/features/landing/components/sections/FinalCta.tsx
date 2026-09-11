@@ -5,9 +5,10 @@ import { Plus, Minus, Send, Mail, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/features/landing/components/ui/Button";
 import { TelegramCtaButton } from "@/features/landing/components/ui/TelegramCtaButton";
 import { useLeadModal } from "@/features/landing/components/forms/ModalProvider";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages, useHomeVisibility } from "@/features/landing/lib/messages";
 import { CopyContactLink } from "@/shared/ui/copy-contact-link";
 import { track } from "@/shared/lib/analytics";
+import { hasText } from "@core/domain/content/messages";
 import { cn } from "@/shared/lib/utils";
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -55,17 +56,24 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
+// Одна секція сайту (#contacts) з двома приховуваними блоками: `finalCta` (заголовок, контакти,
+// нижній CTA) і `faq` (питання). Приховане не потрапляє в DOM; секцію без обох блоків не
+// рендерить page.tsx.
 export function FinalCta() {
   const { openLead } = useLeadModal();
-  const { finalCta, faq, site } = useContent();
+  const { finalCta, faq, site } = useSiteMessages();
+  const vis = useHomeVisibility();
+  const showCta = vis.shown("finalCta");
+  const questions = faq.filter((f) => hasText(f.q));
+  const showFaq = vis.shown("faq") && questions.length > 0;
 
   const openForm = () => {
     track("final_cta_click", { source: "final" });
     openLead({
       title: finalCta.primaryCta,
-      description: "Проаналізуємо вашу задачу та підкажемо, з чого почати.",
+      description: finalCta.modalDescription,
       source: "final",
-      submitLabel: "Отримати відповідь",
+      submitLabel: finalCta.submitLabel,
     });
   };
 
@@ -73,75 +81,94 @@ export function FinalCta() {
     <section id="contacts" className="section">
       <div className="container-x">
         {/* Заголовок */}
-        <div className="reveal mx-auto max-w-3xl text-center">
-          <h2 className="h2">{finalCta.title}</h2>
-          <p className="mt-4 text-lg text-white/60">{finalCta.text}</p>
-        </div>
+        {showCta && (
+          <div className="reveal mx-auto max-w-3xl text-center">
+            <h2 className="h2">{finalCta.title}</h2>
+            {hasText(finalCta.text) && <p className="mt-4 text-lg text-white/60">{finalCta.text}</p>}
+          </div>
+        )}
 
         {/* FAQ — у дві колонки на десктопі */}
-        <div
-          id="faq"
-          className="reveal mx-auto mt-10 grid max-w-5xl scroll-mt-24 gap-3 lg:grid-cols-2 lg:items-start"
-        >
-          {faq.map((f) => (
-            <FaqItem key={f.q} q={f.q} a={f.a} />
-          ))}
-        </div>
-
-        {/* Контакти */}
-        <div className="reveal mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <a
-            href={site.telegram}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => track("contacts_telegram_click", { source: "contacts_telegram" })}
-            className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
+        {showFaq && (
+          <div
+            id="faq"
+            className={cn(
+              "reveal mx-auto grid max-w-5xl scroll-mt-24 gap-3 lg:grid-cols-2 lg:items-start",
+              showCta && "mt-10"
+            )}
           >
-            <Send className="h-5 w-5 shrink-0 text-brand" />
-            <span className="text-sm">
-              <span className="block text-white/45">Telegram</span>
-              <span className="font-medium text-white">{site.telegramHandle}</span>
-            </span>
-          </a>
-          <CopyContactLink
-            value={site.email}
-            type="email"
-            href={`mailto:${site.email}`}
-            onClick={() => track("contacts_email_click", { source: "contacts_email" })}
-            className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
-          >
-            <Mail className="h-5 w-5 shrink-0 text-brand" />
-            <span className="text-sm">
-              <span className="block text-white/45">Email</span>
-              <span className="font-medium text-white">{site.email}</span>
-            </span>
-          </CopyContactLink>
-          <CopyContactLink
-            value={site.phone}
-            type="phone"
-            href={site.phoneHref}
-            onClick={() => track("contacts_phone_click", { source: "contacts_phone" })}
-            className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
-          >
-            <Phone className="h-5 w-5 shrink-0 text-brand" />
-            <span className="text-sm">
-              <span className="block text-white/45">Телефон</span>
-              <span className="font-medium text-white">{site.phone}</span>
-            </span>
-          </CopyContactLink>
-        </div>
-
-        {/* Нижній CTA */}
-        <div className="reveal mx-auto mt-12 max-w-3xl rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 text-center shadow-card sm:p-8">
-          <h3 className="text-2xl font-bold text-white">{finalCta.primaryCta}</h3>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
-            <Button size="lg" onClick={openForm}>
-              {finalCta.primaryCta}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <TelegramCtaButton placement="final" size="lg" />
+            {questions.map((f, i) => (
+              <FaqItem key={i} q={f.q} a={f.a} />
+            ))}
           </div>
-        </div>
+        )}
+
+        {showCta && (
+          <>
+            {/* Контакти */}
+            <div className="reveal mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {hasText(site.telegram) && (
+                <a
+                  href={site.telegram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("contacts_telegram_click", { source: "contacts_telegram" })}
+                  className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
+                >
+                  <Send className="h-5 w-5 shrink-0 text-brand" />
+                  <span className="text-sm">
+                    <span className="block text-white/45">{finalCta.telegramLabel}</span>
+                    <span className="font-medium text-white">{site.telegramHandle}</span>
+                  </span>
+                </a>
+              )}
+              {hasText(site.email) && (
+                <CopyContactLink
+                  value={site.email}
+                  type="email"
+                  href={`mailto:${site.email}`}
+                  onClick={() => track("contacts_email_click", { source: "contacts_email" })}
+                  className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
+                >
+                  <Mail className="h-5 w-5 shrink-0 text-brand" />
+                  <span className="text-sm">
+                    <span className="block text-white/45">{finalCta.emailLabel}</span>
+                    <span className="font-medium text-white">{site.email}</span>
+                  </span>
+                </CopyContactLink>
+              )}
+              {hasText(site.phone) && (
+                <CopyContactLink
+                  value={site.phone}
+                  type="phone"
+                  href={site.phoneHref}
+                  onClick={() => track("contacts_phone_click", { source: "contacts_phone" })}
+                  className="btn-focus flex items-center gap-3 rounded-xl border border-bg-line bg-bg-card p-4 transition-colors hover:border-brand/40"
+                >
+                  <Phone className="h-5 w-5 shrink-0 text-brand" />
+                  <span className="text-sm">
+                    <span className="block text-white/45">{finalCta.phoneLabel}</span>
+                    <span className="font-medium text-white">{site.phone}</span>
+                  </span>
+                </CopyContactLink>
+              )}
+            </div>
+
+            {/* Нижній CTA */}
+            {hasText(finalCta.primaryCta) && (
+              <div className="reveal mx-auto mt-12 max-w-3xl rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 text-center shadow-card sm:p-8">
+                <h3 className="text-2xl font-bold text-white">{finalCta.primaryCta}</h3>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+                  <Button size="lg" onClick={openForm}>
+                    {finalCta.primaryCta}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <TelegramCtaButton placement="final" size="lg" />
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   );

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { useSiteMessages } from "@/features/landing/lib/messages";
 
 interface DialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ export function Dialog({
   children,
   className,
 }: DialogProps) {
+  const { form } = useSiteMessages();
   const panelRef = React.useRef<HTMLDivElement>(null);
   // mounted — чи рендеримо в DOM; visible — стан для CSS-переходу (плавна поява/зникнення)
   const [mounted, setMounted] = React.useState(open);
@@ -88,7 +90,7 @@ export function Dialog({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Закрити"
+          aria-label={form.closeLabel}
           className="btn-focus absolute right-4 top-4 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/5 hover:text-white"
         >
           <X className="h-5 w-5" />

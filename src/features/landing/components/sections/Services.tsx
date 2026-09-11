@@ -19,19 +19,11 @@ import {
 import { Button } from "@/features/landing/components/ui/Button";
 import { TelegramCtaButton } from "@/features/landing/components/ui/TelegramCtaButton";
 import { useLeadModal } from "@/features/landing/components/forms/ModalProvider";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages } from "@/features/landing/lib/messages";
+import { hasText } from "@core/domain/content/messages";
+import type { ServiceItem } from "@core/domain/content/site-messages";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
-
-type ServiceItem = {
-  key: string;
-  name: string;
-  desc: string;
-  mockup?: string;
-  mockupFull?: string;
-  mockupAlt?: string;
-  previewWide?: boolean;
-};
 
 const icons: Record<string, LucideIcon> = {
   search: Search,
@@ -153,27 +145,29 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
 
 export function Services() {
   const { openLead } = useLeadModal();
-  const { services } = useContent();
+  const { services } = useSiteMessages();
+  // Порожня картка (без назви) не виводиться.
+  const items = services.items.filter((s) => hasText(s.name));
   const [showAll, setShowAll] = React.useState(false);
   // Після завершення анімації розгортання знімаємо overflow-hidden,
   // щоб збільшене превью карток не обрізалося контейнером.
   const [expanded, setExpanded] = React.useState(false);
 
-  const previewItems = services.items.slice(0, SERVICES_PREVIEW);
-  const extraItems = services.items.slice(SERVICES_PREVIEW);
+  const previewItems = items.slice(0, SERVICES_PREVIEW);
+  const extraItems = items.slice(SERVICES_PREVIEW);
   const hiddenCount = extraItems.length;
 
   const renderCard = (s: ServiceItem, i: number) => (
-    <ServiceCard key={s.key} s={s} i={i} />
+    <ServiceCard key={i} s={s} i={i} />
   );
 
   const handleCta = () => {
     track("services_cta_click", { source: "services" });
     openLead({
-      title: services.popup?.title ?? services.cta,
-      description: services.popup?.note ?? services.text,
+      title: services.popup.title || services.cta,
+      description: services.popup.note || services.text,
       source: "services",
-      submitLabel: "Отримати консультацію",
+      submitLabel: services.submitLabel,
     });
   };
 
@@ -182,7 +176,7 @@ export function Services() {
       <div className="container-x">
         <div className="reveal max-w-3xl">
           <h2 className="h2">{services.title}</h2>
-          <p className="mt-4 text-lg text-white/60">{services.text}</p>
+          {hasText(services.text) && <p className="mt-4 text-lg text-white/60">{services.text}</p>}
         </div>
 
         {/* Перші 3 — завжди видимі */}
@@ -220,12 +214,12 @@ export function Services() {
                     ?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
               >
-                Згорнути
+                {services.showLess}
                 <ChevronUp className="h-4 w-4" />
               </Button>
             ) : (
               <Button variant="secondary" onClick={() => setShowAll(true)}>
-                Показати більше
+                {services.showMore}
                 <span className="text-white/50">(+{hiddenCount})</span>
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -234,9 +228,11 @@ export function Services() {
         )}
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
-          <Button size="lg" onClick={handleCta}>
-            {services.cta}
-          </Button>
+          {hasText(services.cta) && (
+            <Button size="lg" onClick={handleCta}>
+              {services.cta}
+            </Button>
+          )}
           <TelegramCtaButton placement="services" size="lg" />
         </div>
       </div>

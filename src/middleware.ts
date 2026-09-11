@@ -1,11 +1,17 @@
-// middleware.ts — security headers + перевірка сесії адмінки (Next 15: middleware, не proxy.ts).
+// middleware.ts — security headers + перевірка сесії адмінки + next-intl для сайту
+// (Next 15: middleware, не proxy.ts).
 // Дві перевірки навмисно (раздел 5 стандарту): middleware — СЕСІЯ, роут/сторінка — ПРАВА.
 //   /api/admin/* без сесії → 401 JSON;
 //   /admin/* без сесії → редірект на /admin/login (крім /admin/login і /admin/set-password);
 //   залогінений на /admin/login → /admin.
+// Адмінка — завжди поза мовами: гілки /admin і /api/admin обробляються ДО next-intl і без
+// нього (розділ 10). Публічні /api/* і файли (robots.txt, sitemap.xml, картинки) — теж без
+// next-intl. Решта (сайт) → next-intl переписує запит у сегмент [locale] (адреси без /uk).
 // Node.js runtime (@supabase/ssr коректно працює з cookies).
 import { NextResponse, type NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware'
 import { getSessionUserId } from '@infra/supabase/session'
+import { routing } from '@/i18n/routing'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -48,12 +54,17 @@ function applySecurityHeaders(response: NextResponse) {
 
 const PUBLIC_ADMIN_PAGES = ['/admin/login', '/admin/set-password']
 
+const intlMiddleware = createMiddleware(routing)
+
+/** Файлові маршрути (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не сторінки сайту. */
+const isFilePath = (pathname: string) => /\.[^/]+$/.test(pathname)
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isAdminApi = pathname.startsWith('/api/admin')
   const isAdminPage = pathname.startsWith('/admin')
 
-  // ── Гілка 1: адмінка (сторінки й API) → перевірка сесії Supabase ──
+  // ── Гілка 1: адмінка (сторінки й API) → перевірка сесії Supabase, без next-intl ──
   if (isAdminApi || isAdminPage) {
     let response = NextResponse.next({ request })
     const userId = await getSessionUserId({
@@ -79,8 +90,13 @@ export async function middleware(request: NextRequest) {
     return applySecurityHeaders(response)
   }
 
-  // ── Гілка 2: усе інше (сайт, публічні /api/*) → лише security headers ──
-  return applySecurityHeaders(NextResponse.next())
+  // ── Гілка 2: публічні /api/* і файлові маршрути → лише security headers ──
+  if (pathname.startsWith('/api') || isFilePath(pathname)) {
+    return applySecurityHeaders(NextResponse.next())
+  }
+
+  // ── Гілка 3: сайт → next-intl (внутрішній rewrite у сегмент [locale]) + security headers ──
+  return applySecurityHeaders(intlMiddleware(request))
 }
 
 export const config = {

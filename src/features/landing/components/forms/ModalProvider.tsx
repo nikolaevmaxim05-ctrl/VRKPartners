@@ -2,14 +2,13 @@
 
 import * as React from "react";
 import { Dialog } from "@/features/landing/components/ui/Dialog";
-import { LeadForm, type LeadFormFields } from "@/features/landing/components/forms/LeadForm";
+import { LeadForm } from "@/features/landing/components/forms/LeadForm";
 import { track } from "@/shared/lib/analytics";
 
 interface LeadModalConfig {
   title: string;
   description?: string;
   source: string;
-  fields?: LeadFormFields;
   submitLabel?: string;
 }
 
@@ -51,7 +50,6 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
         {shown && (
           <LeadForm
             source={shown.source}
-            fields={shown.fields}
             submitLabel={shown.submitLabel}
             onSuccess={closeLead}
           />

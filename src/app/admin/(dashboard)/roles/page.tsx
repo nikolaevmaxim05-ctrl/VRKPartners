@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getRoleUseCases } from '@composition/container'
 import { requireSectionAccess } from '@/presentation/admin-page'
 import { ROLE_PERMISSIONS } from '@/presentation/permissions'
@@ -37,7 +38,7 @@ export default async function RolesPage() {
         <h1 className="text-3xl font-bold">Ролі</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Налаштуйте, що може робити кожна роль. Призначте роль користувачу на сторінці{' '}
-          <a href="/admin/users" className="underline underline-offset-2">Користувачі</a>.
+          <Link href="/admin/users" className="underline underline-offset-2">Користувачі</Link>.
         </p>
       </div>
 

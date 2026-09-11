@@ -6,7 +6,8 @@ import { Button } from "@/features/landing/components/ui/Button";
 import { TelegramCtaButton } from "@/features/landing/components/ui/TelegramCtaButton";
 import { useLeadModal } from "@/features/landing/components/forms/ModalProvider";
 import { track } from "@/shared/lib/analytics";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages } from "@/features/landing/lib/messages";
+import { hasText } from "@core/domain/content/messages";
 
 // Десктоп: понад стільки кроків — гортаємо сторінками зі стрілками (інакше тісно).
 const DESKTOP_PAGINATE_THRESHOLD = 10;
@@ -14,9 +15,11 @@ const DESKTOP_PAGE_SIZE = 8;
 
 export function Process() {
   const { openLead } = useLeadModal();
-  const { workflow } = useContent();
+  const { workflow } = useSiteMessages();
 
-  const steps = workflow.steps;
+  // Номер кроку — за позицією серед видимих (порожній крок не виводиться), не з даних.
+  const steps = workflow.steps.filter((s) => hasText(s.title)).map((s, i) => ({ n: i + 1, title: s.title }));
+  const terms = workflow.bonus.terms.filter((t) => hasText(t.label));
   const paginated = steps.length > DESKTOP_PAGINATE_THRESHOLD;
   const pageCount = paginated ? Math.ceil(steps.length / DESKTOP_PAGE_SIZE) : 1;
   const [page, setPage] = React.useState(0);
@@ -51,7 +54,7 @@ export function Process() {
 
         {/* Мобільний: компактний вертикальний таймлайн */}
         <ol className="reveal-stagger relative ml-3 mt-8 space-y-4 border-l-2 border-bg-line lg:hidden">
-          {workflow.steps.map((step) => (
+          {steps.map((step) => (
             <li key={step.n} className="relative flex min-h-[1.75rem] items-center pl-6">
               <span className="absolute left-0 top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-brand-ink ring-4 ring-bg-soft">
                 {step.n}
@@ -81,7 +84,7 @@ export function Process() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={safePage === 0}
-                aria-label="Попередні кроки"
+                aria-label={workflow.prevAria}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-bg-line text-white/70 transition-colors hover:border-brand/50 hover:text-white disabled:opacity-30 disabled:hover:border-bg-line disabled:hover:text-white/70"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -125,7 +128,7 @@ export function Process() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                 disabled={safePage >= pageCount - 1}
-                aria-label="Наступні кроки"
+                aria-label={workflow.nextAria}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-bg-line text-white/70 transition-colors hover:border-brand/50 hover:text-white disabled:opacity-30 disabled:hover:border-bg-line disabled:hover:text-white/70"
               >
                 <ChevronRight className="h-5 w-5" />
@@ -142,11 +145,10 @@ export function Process() {
               <p className="mt-2 max-w-2xl text-sm text-white/65">{workflow.bonus.desc}</p>
 
               <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-                {workflow.bonus.terms.map((term) => {
-                  const t = term as { label: string; value: string; highlight?: string };
+                {terms.map((t, ti) => {
                   const parts = t.highlight ? t.value.split(t.highlight) : [t.value];
                   return (
-                    <div key={t.label} className="rounded-xl border border-bg-line bg-bg-soft p-3">
+                    <div key={ti} className="rounded-xl border border-bg-line bg-bg-soft p-3">
                       <dt className="text-xs uppercase tracking-wide text-white/40">{t.label}</dt>
                       <dd className="mt-1 text-sm font-medium text-white/85">
                         {t.highlight ? (

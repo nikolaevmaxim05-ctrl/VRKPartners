@@ -7,19 +7,27 @@ import { Button } from "@/features/landing/components/ui/Button";
 import { TelegramCtaButton } from "@/features/landing/components/ui/TelegramCtaButton";
 import { usePathname } from "next/navigation";
 import { useLeadModal } from "@/features/landing/components/forms/ModalProvider";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages, useHomeVisibility } from "@/features/landing/lib/messages";
+import { navHref } from "@/features/landing/lib/nav";
 import { CopyContactLink } from "@/shared/ui/copy-contact-link";
 import { track } from "@/shared/lib/analytics";
-import { nav, navHref } from "@/shared/config/site";
+import { NAV_ITEMS } from "@core/domain/content/visibility";
 import { cn } from "@/shared/lib/utils";
 
 export function Header() {
   const { openLead } = useLeadModal();
-  const { site } = useContent();
+  const { site, header, nav: navLabels } = useSiteMessages();
+  const vis = useHomeVisibility();
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [active, setActive] = React.useState("");
+
+  // Посилання на прихований блок не виводиться ніде (розділ 9).
+  const nav = NAV_ITEMS.filter((item) => vis.shown(item.id) && navLabels[item.id].trim() !== "").map(
+    (item) => ({ href: item.anchor, label: navLabels[item.id] })
+  );
+  const navIds = nav.map((n) => n.href.replace("#", "")).join(",");
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -31,7 +39,7 @@ export function Header() {
   // Scrollspy: активна — остання секція, чий верх перетнув лінію ~35% висоти вікна.
   // Позиційний розрахунок дає неперервну підсвітку без «мертвих зон» між секціями.
   React.useEffect(() => {
-    const ids = nav.map((n) => n.href.replace("#", ""));
+    const ids = navIds.split(",").filter(Boolean);
 
     const compute = () => {
       const line = window.scrollY + window.innerHeight * 0.35;
@@ -52,15 +60,15 @@ export function Header() {
       window.removeEventListener("scroll", compute);
       window.removeEventListener("resize", compute);
     };
-  }, []);
+  }, [navIds]);
 
   const handleConsult = () => {
     track("header_cta_click", { source: "header" });
     openLead({
-      title: "Отримати консультацію",
-      description: "Залиште контакти — зв'яжемося та підкажемо наступний крок.",
+      title: header.modalTitle,
+      description: header.modalDescription,
       source: "header",
-      submitLabel: "Отримати консультацію",
+      submitLabel: header.consultCta,
     });
   };
 
@@ -77,12 +85,12 @@ export function Header() {
         <a
           href="#top"
           className="btn-focus rounded-lg text-2xl transition-all duration-300 hover:[text-shadow:0_0_16px_rgba(246,247,64,0.6)]"
-          aria-label="VRK Partners — на початок"
+          aria-label={header.logoAria}
         >
           <Logo />
         </a>
 
-        <nav className="hidden items-center gap-7 md:flex" aria-label="Головна навігація">
+        <nav className="hidden items-center gap-7 md:flex" aria-label={header.navAria}>
           {nav.map((item) => {
             const isActive = active === item.href.replace("#", "");
             return (
@@ -117,7 +125,7 @@ export function Header() {
             {site.phone}
           </CopyContactLink>
           <Button size="sm" onClick={handleConsult}>
-            Консультація
+            {header.consultShort}
           </Button>
           <TelegramCtaButton placement="header" size="sm" iconOnly />
         </div>
@@ -125,7 +133,7 @@ export function Header() {
         <button
           type="button"
           className="btn-focus rounded-lg p-2 text-white md:hidden"
-          aria-label={open ? "Закрити меню" : "Відкрити меню"}
+          aria-label={open ? header.menuClose : header.menuOpen}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >
@@ -143,7 +151,7 @@ export function Header() {
         )}
       >
         <div className="overflow-hidden">
-          <nav className="container-x flex flex-col gap-1 py-4" aria-label="Мобільна навігація">
+          <nav className="container-x flex flex-col gap-1 py-4" aria-label={header.mobileNavAria}>
             {nav.map((item) => {
               const isActive = active === item.href.replace("#", "");
               return (
@@ -185,7 +193,7 @@ export function Header() {
                 handleConsult();
               }}
             >
-              Отримати консультацію
+              {header.consultCta}
             </Button>
             <TelegramCtaButton
               placement="header"

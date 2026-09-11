@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
-import { site } from "@/shared/config/site";
+import { getDefaultMessages } from "@/shared/content/defaults";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const { site, pageMeta } = getDefaultMessages();
   return {
-    name: `${site.name} — Google Ads`,
+    name: pageMeta.title,
     short_name: site.name,
     description: site.description,
     start_url: "/",

@@ -1,17 +1,20 @@
 import type { Metadata } from 'next'
+import { getMessages, setRequestLocale } from 'next-intl/server'
 import { getContentUseCases } from '@composition/container'
 import { formatLegalUpdatedAt } from '@core/domain/content/legal'
+import type { SiteMessages } from '@core/domain/content/site-messages'
 import { LegalPage } from '@/features/landing/components/legal/LegalPageLayout'
-import { site } from '@/shared/config/site'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { content } = await getContentUseCases().getLegal()
-  return { title: `${content.privacy.title} — ${site.name}` }
+  const [{ content }, messages] = await Promise.all([getContentUseCases().getLegal(), getMessages()])
+  return { title: `${content.privacy.title} — ${(messages as unknown as SiteMessages).site.name}` }
 }
 
-export default async function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  setRequestLocale(locale)
   const { content, updatedAt } = await getContentUseCases().getLegal()
   return <LegalPage doc={content.privacy} updatedAt={formatLegalUpdatedAt(updatedAt, content.privacy.updatedAt)} />
 }

@@ -1,13 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { useContent } from "@/features/landing/components/layout/ContentProvider";
+import { useSiteMessages } from "@/features/landing/lib/messages";
 import { cn } from "@/shared/lib/utils";
 import { ContentIcon } from "@/features/landing/components/layout/ContentIcon";
 import { DEFAULT_USP_ICON_ORDER } from "@/shared/lib/audit-icons";
+import { hasText } from "@core/domain/content/messages";
 
 export function Usp() {
-  const { usp } = useContent();
+  const { usp: uspRaw } = useSiteMessages();
+  // Порожній пункт (без заголовка) не виводиться; ключі React — за індексом (тексти повторюються).
+  const usp = { ...uspRaw, items: uspRaw.items.filter((it) => hasText(it.title)) };
   const cardsRef = React.useRef<Array<HTMLDivElement | null>>([]);
   // Активна картка на мобільному — та, що найближча до центру екрана під час скролу.
   // На десктопі підсвітка керується :hover, тож active = -1.
@@ -59,13 +62,13 @@ export function Usp() {
     <section id="usp" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
-          {usp.eyebrow && (
+          {hasText(usp.eyebrow) && (
             <p className="text-sm font-semibold uppercase tracking-widest text-brand">
               {usp.eyebrow}
             </p>
           )}
           <h2 className="h2 mt-3">{usp.title}</h2>
-          {usp.text && (
+          {hasText(usp.text) && (
             <p className="mt-4 text-lg text-white/60">{usp.text}</p>
           )}
         </div>

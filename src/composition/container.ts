@@ -54,8 +54,7 @@ import { ga4Client } from '@infra/integrations/ga4'
 import { excelBuilder } from '@infra/export/excel'
 import { systemClock } from '@infra/clock'
 
-import { site } from '@/shared/config/site'
-import { getDefaultLandingContent, getDefaultSeo, getDefaultLegalContent } from '@/shared/content/defaults'
+import { getDefaultMessages, getDefaultSeo, getDefaultLegalContent } from '@/shared/content/defaults'
 
 /** Ліниве одноразове створення. */
 function once<T>(factory: () => T): () => T {
@@ -99,14 +98,16 @@ const integrationConfig = once(() =>
     aesGcmCipher,
   ),
 )
+// Назва/контакти для сповіщень — з дефолтних текстів сайту (не хардкод).
+const siteDefaults = once(() => getDefaultMessages().site)
 const sheets = once(() => makeGoogleSheetsExporter({ config: integrationConfig(), settings: settingsRepo() }))
 const notifiers = once(() => ({
-  telegram: makeTelegramNotifier({ config: integrationConfig(), siteName: site.name }),
+  telegram: makeTelegramNotifier({ config: integrationConfig(), siteName: siteDefaults().name }),
   keycrm: makeKeycrmNotifier({ config: integrationConfig() }),
   email: makeEmailNotifier({
     config: integrationConfig(),
-    siteName: site.name,
-    notificationEmail: () => process.env.NOTIFICATION_EMAIL ?? site.email,
+    siteName: siteDefaults().name,
+    notificationEmail: () => process.env.NOTIFICATION_EMAIL ?? siteDefaults().email,
   }),
 }))
 
@@ -166,7 +167,7 @@ export const getUserUseCases = once(() => makeUserUseCases({ users: userRepo(), 
 export const getContentUseCases = once(() =>
   makeContentUseCases({
     content: contentRepo(),
-    defaults: { landing: getDefaultLandingContent, seo: getDefaultSeo, legal: getDefaultLegalContent },
+    defaults: { messages: getDefaultMessages, seo: getDefaultSeo, legal: getDefaultLegalContent },
     storage: makeImageStorage(serviceClient),
     cache: nextCache,
     clock: systemClock,
@@ -176,7 +177,7 @@ export const getContentUseCases = once(() =>
 export const getIntegrationUseCases = once(() =>
   makeIntegrationUseCases({
     secrets: secretsRepo(),
-    tester: makeIntegrationTester({ siteName: site.name }),
+    tester: makeIntegrationTester({ siteName: siteDefaults().name }),
     sheets: sheets(),
     clock: systemClock,
     notificationEmail: () => process.env.NOTIFICATION_EMAIL,
