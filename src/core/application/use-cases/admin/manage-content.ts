@@ -1,15 +1,13 @@
-// use-cases/admin/manage-content — контент лендингу, метадані (SEO), юр.документи, картинки.
-// Зберігаємо лише дифф від дефолтів; optimistic-lock по updated_at; після збереження — revalidate.
+// use-cases/admin/manage-content — тексти сайту (messages + правки клієнта), метадані (SEO),
+// юр.документи, картинки. Зберігаємо лише дифф від дефолтів (розділ 9); optimistic-lock по
+// updated_at; після збереження — revalidate сайту.
 import { ok, fail, type Result } from '../../result'
 import type { Actor, CacheInvalidator, Clock } from '../../ports/common'
 import type { ContentRepository, ImageStorage } from '../../ports/content'
-import {
-  mergeLandingContent,
-  diffLandingOverrides,
-  isSafeImageUrl,
-  type LandingContent,
-  type LandingContentOverrides,
-} from '../../../domain/content/landing'
+import { mergeMessages, diffMessages, pickEditable } from '../../../domain/content/messages'
+import { validateMessages } from '../../../domain/content/limits'
+import type { SiteMessages } from '../../../domain/content/site-messages'
+import { isSafeImageUrl } from '../../../domain/content/landing'
 import { mergeSeo, diffSeo, SEO_CONTENT_ID, type SeoMeta, type SeoOverrides } from '../../../domain/content/seo'
 import {
   mergeLegalContent,
@@ -20,7 +18,6 @@ import {
 } from '../../../domain/content/legal'
 import { isStaleUpdate } from '../../../domain/content/optimistic-lock'
 import {
-  validateLandingOverrides,
   seoOverridesSchema,
   legalOverridesSchema,
   validateImageUpload,
@@ -28,12 +25,17 @@ import {
   extractOwnObjectPath,
 } from '../../../domain/content/validation'
 
-export const LANDING_CONTENT_ID = 'landing'
+/** Рядок правок текстів для мови: `landing` = uk (відхилення 5); інші мови — `landing:<lang>`. */
+export function landingContentId(locale: string): string {
+  return locale === 'uk' ? 'landing' : `landing:${locale}`
+}
+
+export const LANDING_CONTENT_ID = landingContentId('uk')
 
 export const LEGAL_PATHS = ['/polityka-konfidentsiynosti', '/publichna-oferta']
 
 export type ContentDefaultsSource = {
-  landing(): LandingContent
+  messages(locale: string): SiteMessages
   seo(): SeoMeta
   legal(): LegalContent
 }
@@ -53,30 +55,42 @@ export function makeContentUseCases(deps: {
     return isStaleUpdate(await content.getUpdatedAt(id), baseUpdatedAt)
   }
 
-  // ── Лендинг ────────────────────────────────────────────────────────────────
-  async function getLandingOverrides(): Promise<LandingContentOverrides> {
-    return (await content.getData(LANDING_CONTENT_ID)) as LandingContentOverrides
+  // ── Тексти сайту ───────────────────────────────────────────────────────────
+  async function getMessageOverrides(locale = 'uk'): Promise<unknown> {
+    return content.getData(landingContentId(locale))
   }
 
-  async function getLanding() {
-    const overrides = await getLandingOverrides()
-    return { overrides, content: mergeLandingContent(defaults.landing(), overrides) }
+  /** Повні тексти для рендеру: дефолти + правки. Помилка БД → чисті дефолти (сайт не падає). */
+  async function getMessages(locale = 'uk'): Promise<SiteMessages> {
+    return mergeMessages(defaults.messages(locale), await getMessageOverrides(locale))
   }
 
-  async function getLandingForEditor() {
-    const [overrides, updatedAt] = await Promise.all([getLandingOverrides(), content.getUpdatedAt(LANDING_CONTENT_ID)])
-    return { content: mergeLandingContent(defaults.landing(), overrides), defaults: defaults.landing(), updatedAt }
+  /** Для редактора: лише редаговані розділи (без pageMeta) + дефолти + версія рядка. */
+  async function getMessagesForEditor(locale = 'uk') {
+    const [overrides, updatedAt] = await Promise.all([getMessageOverrides(locale), content.getUpdatedAt(landingContentId(locale))])
+    const base = defaults.messages(locale)
+    return {
+      messages: pickEditable(mergeMessages(base, overrides)),
+      defaults: pickEditable(base),
+      updatedAt,
+    }
   }
 
-  async function saveLanding(body: SaveBody, actor: Actor): Promise<Result<{ updatedAt: string }>> {
-    const v = validateLandingOverrides(body.overrides)
-    if (!v.ok) return fail('invalid', v.message)
-    if (await isStale(LANDING_CONTENT_ID, body.baseUpdatedAt)) {
+  /**
+   * Збереження: редактор шле ПОВНІ значення редагованих розділів; чужий розділ → 400;
+   * ліміти/URL/масиви/приховані блоки → 400; дифф проти дефолтів → БД; revalidate.
+   */
+  async function saveMessages(body: SaveBody, actor: Actor, locale = 'uk'): Promise<Result<{ updatedAt: string }>> {
+    const base = defaults.messages(locale)
+    const v = validateMessages(pickEditable(base), body.overrides)
+    if (!v.ok) return fail('invalid', v.error.path ? `${v.error.path}: ${v.error.message}` : v.error.message)
+    const id = landingContentId(locale)
+    if (await isStale(id, body.baseUpdatedAt)) {
       return fail('conflict', 'Контент змінив інший адміністратор. Оновіть сторінку й повторіть.')
     }
-    const diff = diffLandingOverrides(v.value, defaults.landing())
+    const diff = diffMessages(pickEditable(base), v.value) ?? {}
     const nowIso = clock.now().toISOString()
-    const res = await content.save(LANDING_CONTENT_ID, diff, nowIso, actor.id)
+    const res = await content.save(id, diff, nowIso, actor.id)
     if (!res.ok) return fail('failed', res.error)
     cache.invalidateSite()
     return ok({ updatedAt: nowIso })
@@ -153,10 +167,10 @@ export function makeContentUseCases(deps: {
   }
 
   return {
-    getLandingOverrides,
-    getLanding,
-    getLandingForEditor,
-    saveLanding,
+    getMessageOverrides,
+    getMessages,
+    getMessagesForEditor,
+    saveMessages,
     getSeoOverrides,
     getSeo,
     saveSeo,

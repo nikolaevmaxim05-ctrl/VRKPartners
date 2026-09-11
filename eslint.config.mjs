@@ -56,7 +56,7 @@ const config = [
   ),
   // app / features / shared: @composition, @core, presentation. НЕ инфраструктура и НЕ SDK Supabase.
   zone(
-    ["src/app/**/*.{ts,tsx}", "src/features/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}"],
+    ["src/app/**/*.{ts,tsx}", "src/features/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}", "src/i18n/**/*.{ts,tsx}"],
     [["@infra/*", "@/infrastructure/*", "@supabase/*"]],
     "Презентация не импортирует инфраструктуру напрямую — только через @composition.",
   ),

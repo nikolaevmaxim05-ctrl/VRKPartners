@@ -6,7 +6,10 @@
 // додати реквізити окремим розділом через адмінку.
 
 import type { LegalDocument } from './types'
-import { site } from '@/shared/config/site'
+import uk from '@/messages/uk.json'
+
+// Реквізити у тексті — з дефолтних текстів сайту (назва, контакти).
+const site = uk.site
 
 export const publicOffer: LegalDocument = {
   title: 'Публічна оферта',

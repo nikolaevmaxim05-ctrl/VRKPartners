@@ -93,7 +93,7 @@ module.exports = {
       name: 'ui-layers-no-infra',
       comment: 'Исключение 2: браузерный клиент Supabase — только перечисленным клиентским файлам.',
       severity: 'error',
-      from: { path: '^src/(app|features|shared)/' },
+      from: { path: '^src/(app|features|shared|i18n)/' },
       to: { path: '^src/infrastructure/', pathNot: '^src/infrastructure/supabase/client\\.ts$' },
     },
     {
@@ -126,6 +126,7 @@ module.exports = {
           '\\.d\\.ts$',
           '(^|/)tsconfig\\.json$',
           '^src/app/', // файлы роутинга Next подхватываются фреймворком
+          '^src/i18n/request\\.ts$', // подключается плагином next-intl (next.config.mjs)
           '^src/middleware\\.ts$',
           '__tests__',
         ],

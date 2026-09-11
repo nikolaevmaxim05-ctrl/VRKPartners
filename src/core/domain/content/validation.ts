@@ -1,50 +1,8 @@
-// core/domain/content/validation — валідація збереження контенту (лендинг, SEO, юр.документи)
-// і завантаження картинок. Перенесено з роутів /api/admin/{content,seo,legal,content/upload}.
+// core/domain/content/validation — валідація збереження SEO та юр.документів і завантаження
+// картинок. Тексти сайту перевіряє limits.ts (validateMessages) за розділом 9.
 import { z } from 'zod'
-import { isSafeImageUrl, isSafeHref, isTelegramUrl, type LandingContentOverrides } from './landing'
 
 type Plan<T> = { ok: true; value: T } | { ok: false; message: string }
-
-/**
- * Санітизує FAQ і перевіряє URL (картинки next/image; href кейсів — захист від javascript:;
- * кнопка Telegram — лише t.me/telegram.me). Мутує overrides.faq (як і було).
- */
-export function validateLandingOverrides(overrides: unknown): Plan<LandingContentOverrides> {
-  if (!overrides || typeof overrides !== 'object') return { ok: false, message: 'overrides is required' }
-  const o = overrides as LandingContentOverrides
-
-  if (o.faq !== undefined) {
-    if (!Array.isArray(o.faq)) return { ok: false, message: 'faq має бути масивом' }
-    o.faq = o.faq
-      .filter((f) => f && typeof f.q === 'string' && typeof f.a === 'string' && f.q.trim().length > 0)
-      .map((f) => ({ q: String(f.q).slice(0, 300), a: String(f.a).slice(0, 2000) }))
-  }
-
-  for (const it of o.services?.items ?? []) {
-    if (!isSafeImageUrl(it.mockup ?? null) || !isSafeImageUrl(it.mockupFull ?? null)) {
-      return { ok: false, message: 'Недопустиме зображення послуги (лише /… або https://…supabase.co)' }
-    }
-  }
-  for (const m of o.about?.members ?? []) {
-    if (!isSafeImageUrl(m.photo ?? null)) {
-      return { ok: false, message: 'Недопустиме фото учасника (лише /… або https://…supabase.co)' }
-    }
-  }
-  if (!isTelegramUrl(o.site?.telegramCtaUrl)) {
-    return { ok: false, message: 'Посилання кнопки Telegram — лише https://t.me/… або https://telegram.me/…' }
-  }
-  for (const g of o.trust?.caseGroups ?? []) {
-    for (const c of g.cases ?? []) {
-      if (!isSafeImageUrl(c.image ?? null)) {
-        return { ok: false, message: 'Недопустиме зображення кейса (лише /… або https://…supabase.co)' }
-      }
-      if (!isSafeHref(c.href ?? null)) {
-        return { ok: false, message: 'Недопустиме посилання кейса (лише http/https)' }
-      }
-    }
-  }
-  return { ok: true, value: o }
-}
 
 // Контакти (phone/email/telegram) у SEO не входять — вони в контенті лендингу.
 // z.object стриже невідомі ключі, тож старі оверрайди ігноруються.

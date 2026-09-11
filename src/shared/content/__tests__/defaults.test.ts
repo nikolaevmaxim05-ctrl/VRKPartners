@@ -1,16 +1,7 @@
-// Регрес фази 2: валідація URL (C10/S7), diff-семантика збереження контенту (C5),
-// мерж дефолтів з оверрайдами та санітизація href при рендері.
+// Регрес: валідація URL (C10/S7), дефолти з messages/uk.json, мерж/дифф на реальних дефолтах.
 import { describe, it, expect } from 'vitest'
-import {
-  getDefaultLandingContent,
-  mergeLandingContent,
-  diffLandingOverrides,
-  isSafeImageUrl,
-  isSafeHref,
-  type LandingContentOverrides,
-} from '../defaults'
-
-const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v))
+import { mergeMessages, diffMessages, pickEditable } from '@core/domain/content/messages'
+import { getDefaultMessages, getDefaultSeo, isSafeImageUrl, isSafeHref } from '../defaults'
 
 describe('C10/S7 — валідація URL', () => {
   it('isSafeImageUrl: локальні і supabase — ок; чуже/js — ні', () => {
@@ -18,6 +9,7 @@ describe('C10/S7 — валідація URL', () => {
     expect(isSafeImageUrl('https://abc.supabase.co/storage/v1/object/public/content/x.png')).toBe(true)
     expect(isSafeImageUrl('https://evil.example.com/x.png')).toBe(false)
     expect(isSafeImageUrl('javascript:alert(1)')).toBe(false)
+    expect(isSafeImageUrl('//evil.example.com/x.png')).toBe(false)
     expect(isSafeImageUrl('')).toBe(true)
     expect(isSafeImageUrl(undefined)).toBe(true)
   })
@@ -31,55 +23,39 @@ describe('C10/S7 — валідація URL', () => {
   })
 })
 
-describe('C5 — diffLandingOverrides', () => {
-  it('блок, рівний дефолту, не зберігається (дефолти config доходять до прод)', () => {
-    const d = getDefaultLandingContent()
-    const incoming = {
-      hero: { ...d.hero },
-      services: clone(d.services),
-    } as unknown as LandingContentOverrides
-    const diff = diffLandingOverrides(incoming, d)
-    expect(diff.hero).toBeUndefined()
-    expect(diff.services).toBeUndefined()
+describe('дефолти messages/uk.json', () => {
+  it('містять усі простори, копія незалежна', () => {
+    const a = getDefaultMessages()
+    const b = getDefaultMessages()
+    expect(a).toEqual(b)
+    expect(a).not.toBe(b)
+    for (const ns of ['site', 'nav', 'header', 'hero', 'usp', 'about', 'services', 'audit', 'trust', 'workflow', 'finalCta', 'faq', 'footer', 'form', 'thanks', 'notFound', 'legal', 'home', 'pageMeta']) {
+      expect(ns in a, ns).toBe(true)
+    }
+    expect(a.home.hidden).toEqual([])
+    expect(getDefaultSeo().title.length).toBeGreaterThan(0)
   })
 
-  it('змінене скалярне поле лишається, незмінені — ні', () => {
-    const d = getDefaultLandingContent()
-    const incoming = { hero: { ...d.hero, title: 'НОВИЙ' } } as unknown as LandingContentOverrides
-    const diff = diffLandingOverrides(incoming, d)
-    expect(diff.hero).toEqual({ title: 'НОВИЙ' })
+  it('C5 — блок, рівний дефолту, не зберігається; змінене поле — лишається', () => {
+    const d = pickEditable(getDefaultMessages())
+    expect(diffMessages(d, JSON.parse(JSON.stringify(d)))).toBeUndefined()
+    const edited = JSON.parse(JSON.stringify(d))
+    edited.hero.title = 'НОВИЙ'
+    expect(diffMessages(d, edited)).toEqual({ hero: { title: 'НОВИЙ' } })
   })
 
-  it('змінений структурний блок зберігається цілком', () => {
-    const d = getDefaultLandingContent()
-    const changed = clone(d.services)
-    changed.title = 'ІНШИЙ ЗАГОЛОВОК'
-    const diff = diffLandingOverrides({ services: changed } as unknown as LandingContentOverrides, d)
-    expect(diff.services?.title).toBe('ІНШИЙ ЗАГОЛОВОК')
-  })
-})
-
-describe('C5/merge — дефолти + оверрайди + санітизація', () => {
-  it('mergeLandingContent застосовує оверрайд поверх дефолту', () => {
-    const d = getDefaultLandingContent()
-    const merged = mergeLandingContent({ hero: { title: 'X' } } as unknown as LandingContentOverrides)
-    expect(merged.hero.title).toBe('X')
-    expect(merged.hero.subtitle).toBe(d.hero.subtitle) // інші поля — з дефолтів
-  })
-
-  it('mergeLandingContent прибирає небезпечний href кейса (S7)', () => {
-    const d = getDefaultLandingContent()
-    const trust = clone(d.trust)
-    trust.caseGroups[0].cases[0].href = 'javascript:alert(1)'
-    const merged = mergeLandingContent({ trust } as unknown as LandingContentOverrides)
-    expect(merged.trust.caseGroups[0].cases[0].href).toBeUndefined()
-  })
-
-  it('mergeLandingContent прибирає зображення з чужого хоста (C10)', () => {
-    const d = getDefaultLandingContent()
-    const services = clone(d.services)
-    services.items[0].mockup = 'https://evil.example.com/x.png'
-    const merged = mergeLandingContent({ services } as unknown as LandingContentOverrides)
-    expect(merged.services.items[0].mockup).toBeUndefined()
+  it('старі правки клієнта (hero.trust/trustHref, site.*, trust цілком) мержаться без втрат', () => {
+    const d = getDefaultMessages()
+    const overrides = {
+      hero: { trust: 'Правка довіри', trustHref: 'https://partners.example' },
+      site: { phone: '+38 (000) 000-00-00', phoneHref: 'tel:+380000000000', telegram: 'https://t.me/x', telegramHandle: '@x' },
+      trust: { ...JSON.parse(JSON.stringify(d.trust)), eyebrow: 'legacy', cta: 'legacy', facts: ['Новий факт', ...d.trust.facts.slice(1)] },
+    }
+    const m = mergeMessages(d, overrides)
+    expect(m.hero.trust).toBe('Правка довіри')
+    expect(m.site.phone).toBe('+38 (000) 000-00-00')
+    expect(m.trust.facts[0]).toBe('Новий факт')
+    expect(m.trust.caseGroups).toEqual(d.trust.caseGroups)
+    expect((m.trust as unknown as Record<string, unknown>).eyebrow).toBeUndefined()
   })
 })
