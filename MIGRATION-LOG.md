@@ -102,20 +102,44 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
    дефолт»; массив заменяется целиком (сейчас пустой массив игнорируется). Проверено:
    в правках клиента единственная пустая строка — `image: ""` у кейса digigreet, и
    она уже означает «без картинки» → визуально ничего не меняется.
-3. **Формат диффа меняется** (рекурсивный вместо поблочного). Операция
-   `MIG-CONTENT-01`: скрипт `scripts/migrate-content-overrides.ts` читает строку
-   `landing`, считает `merged = mergeMessages(defaults, data)`, затем
-   `data' = diffMessages(defaults, merged)` и **сначала печатает** дифф `data` vs
-   `data'` (ожидание: исчезнут только скаляры `trust.*`, равные дефолтам; массивы
-   `caseGroups/facts/niches/highlights` сохранятся целиком). Бэкап полной строки —
-   в файл `backups/site_content-landing-<дата>.json` (вне git). Применение — по
-   подтверждению владельца. Откат: `update site_content set data = '<бэкап>'::jsonb
-   where id='landing'`.
+3. **Формат диффа меняется** (рекурсивный вместо поблочного). Новый код читает старый
+   формат **без миграции** (тест `shared/content/__tests__/defaults.test.ts`), поэтому
+   `MIG-CONTENT-01` — только гигиена: пока в строке лежит весь блок `trust`, правки
+   дефолтов `trust.*` в файле не доедут до сайта до следующего сохранения клиентом.
+   Проверено по данным 2026-09-11: в `trust` равны дефолтам `title`, `caseHint`,
+   `ctaSecondary`, `niches`, `highlights`; ключи `eyebrow`, `cta` больше не существуют
+   (не рендерились). Отличаются `facts` и `caseGroups`. Применять **после** деплоя Фазы 3
+   (новый `diffMessages`), по подтверждению владельца:
+   ```sql
+   -- бэкап (сохранить вывод в backups/site_content-landing-<дата>.json, вне git)
+   select data from site_content where id = 'landing';
+   -- пересчёт диффа: убрать из trust всё, что равно дефолтам / не существует
+   update site_content
+      set data = jsonb_set(data, '{trust}',
+            (data->'trust') - 'cta' - 'eyebrow' - 'title' - 'caseHint' - 'ctaSecondary' - 'niches' - 'highlights')
+    where id = 'landing'
+      and data->'trust'->>'caseHint' = 'Оберіть нішу, далі — кейс. Контент змінюється без перезавантаження.'
+      and data->'trust'->>'ctaSecondary' = 'Отримати консультацію'
+      and data->'trust'->>'title' = 'Офіційний Google Partner з фокусом на результат і прозору аналітику';
+   -- откат: update site_content set data = '<бэкап>'::jsonb where id = 'landing';
+   ```
+   Ожидаемый результат: `trust` = `{ facts, caseGroups }`; сайт визуально не меняется.
 4. **Скрытие «Про нас»**: флаг `aboutSectionVisible=false` заменяется на
    `HIDEABLE_BLOCKS` + `hidden`. Чтобы блок остался скрытым, выполняется
    `MIG-CONTENT-02`: в `site_content.landing` добавляется `home: { hidden:
    ["about"] }` как **правка клиента** (решение владельца: блок можно включить
-   обратно из админки; дефолт в файле — `hidden: []`). Откат — удалить ключ.
+   обратно из админки; дефолт в файле — `hidden: []`).
+   ```sql
+   update site_content
+      set data = jsonb_set(data, '{home}', '{"hidden":["about"]}'::jsonb, true)
+    where id = 'landing';
+   -- откат: update site_content set data = data - 'home' where id = 'landing';
+   ```
+   **Порядок:** выполнить **до** `git push` Фазы 3 (старый код ключ `home` не читает и не
+   ломается), затем сразу пушить. Окно риска: если между SQL и деплоем клиент сохранит
+   контент из **старой** админки, старый `diffLandingOverrides` выбросит ключ `home` — тогда
+   после деплоя «Про нас» появится на сайте; лечится повторным SQL или тумблером в новой
+   админке. Если SQL забыть — после деплоя блок «Про нас» **виден** (дефолт `hidden: []`).
 5. **`seo.orgEmail/orgPhone`** — `MIG-CONTENT-03` (опц.): удалить мёртвые ключи
    (`update site_content set data = data - 'orgEmail' - 'orgPhone' where id='seo'`).
    Откат — вернуть значения из бэкапа.
@@ -124,5 +148,10 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
 
 ## 5. Записи о применённых операциях
 
-_(пока нет; заполняется по мере применения — по одной записи на миграцию и на
-операцию `MIG-CONTENT-*`: дата, кто, SQL до/после, результат)_
+- **2026-09-11, Фаза 3 (ассистент, только SELECT).** Проверка перед переносом ключей:
+  `select id, jsonb_object_keys(data) from site_content` → `landing`: `hero, site, trust`
+  (updated_at 2026-09-02 14:31 UTC); `seo`: `orgEmail, orgPhone`. Данные **не менялись**.
+  Итог сверки с новым `messages/uk.json`: все ключи правок клиента существуют под теми же
+  именами, кроме `trust.eyebrow` и `trust.cta` (удалены из дефолтов как не выводимые;
+  значения клиента равны дефолтам — текст с сайта не исчезает). Операции MIG-CONTENT-01/02/03
+  — **не применены**, ждут подтверждения владельца (SQL — раздел 4).

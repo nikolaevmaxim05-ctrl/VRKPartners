@@ -88,6 +88,48 @@ src/
 - Тесты: 25 файлов / 407 юнит-тестов; сценарии и адаптеры тестируются на фейковых портах
   без моков Supabase.
 
+## Состояние после Фазы 3 (контент-система, next-intl)
+
+```
+src/
+  messages/uk.json                                        ДЕФОЛТЫ всех текстов сайта (единственное место)
+  i18n/{routing,request,navigation}.ts                    профиль A: ['uk'], localePrefix 'never';
+                                                          request.ts = mergeMessages(defaults, правки БД)
+  core/domain/content/site-messages.ts                    типы формы messages
+  core/domain/content/messages.ts                         mergeMessages / diffMessages / contentList /
+                                                          countChanges / EDITABLE_NAMESPACES
+  core/domain/content/limits.ts                           тип поля по имени ключа, лимиты, URL-правила,
+                                                          validateMessages (санитизация + 400)
+  core/domain/content/visibility.ts                       HIDEABLE_BLOCKS, NAV_ITEMS, isHidden, pageVisibility
+  core/domain/content/layout.ts                           CONTENT_PAGES, PAGE_BLOCKS, KEY_LABELS (редактор)
+  core/application/use-cases/admin/manage-content.ts      getMessages / getMessagesForEditor / saveMessages
+  app/layout.tsx                                          <html lang> из LOCALE_CODES, базовые метаданные
+  app/[locale]/{layout,page,not-found,[...rest]}.tsx      сайт: теги, JSON-LD, NextIntlClientProvider,
+  app/[locale]/{thanks,polityka-…,publichna-oferta}/      Header/Footer; 404 и юр.страницы под шапкой
+  features/landing/lib/messages.ts                        useSiteMessages / useHomeVisibility (клиент)
+  features/admin/components/content-editor.tsx            универсальный редактор по PAGE_BLOCKS
+  shared/content/defaults.ts                              getDefaultMessages / getDefaultSeo / getDefaultLegalContent
+  shared/config/site.ts                                   только siteUrl (текстов нет)
+  middleware.ts                                           /admin,/api/admin → сессия; /api,файлы → заголовки;
+                                                          остальное → next-intl (rewrite в [locale])
+```
+
+- **Поток текстов:** `messages/uk.json` → `i18n/request.ts` (`getContentUseCases().getMessages()`
+  = дефолты ⊕ `site_content.landing`, ошибка БД → дефолты) → `NextIntlClientProvider` →
+  `useSiteMessages()` в секциях. Сервер-компоненты — `getMessages()`.
+- **Сохранение:** редактор шлёт полные значения → `validateMessages` (чужой раздел → 400,
+  лимиты, URL, ≤50 элементов, `hidden`) → `diffMessages` → `site_content.landing` →
+  `revalidatePath('/', 'layout')`.
+- **Скрытие:** `page.tsx` не рендерит секцию, если `pageVisibility('home', hidden).shown(id)`
+  ложно; шапка/футер фильтруют `NAV_ITEMS` тем же правилом.
+- **Контракт-тесты раскладки:** `shared/content/__tests__/layout.contract.test.ts` (каждый
+  ключ показан ровно один раз; вкладки = ключи PAGE_BLOCKS; id блоков = HIDEABLE_BLOCKS;
+  дефолты проходят собственную валидацию; у каждого ключа есть подпись).
+- Тесты: 29 файлов / 441 юнит-тест.
+- Разрешённые исключения (доп.): `i18n/request.ts` → `@composition/container` (единственный
+  серверный вход next-intl, подключается плагином в `next.config.mjs`); `middleware.ts` →
+  `i18n/routing.ts`.
+
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**

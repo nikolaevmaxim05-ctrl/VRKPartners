@@ -165,7 +165,7 @@ src/i18n`.
 - ESLint `react/no-unescaped-entities` выключено (апостроф в uk-UA тексте JSX — норма).
 - Тесты адаптеров переносятся вместе с адаптерами (Фаза 2).
 
-## Фаза 2: принятые решения (на подтверждение владельцу в отчёте)
+## Фаза 2: принятые решения (подтверждены владельцем 2026-09-11)
 
 1. **`withAdmin([])` требует активную роль.** Раньше 8 GET-роутов (справочники: стадии,
    поля, роли, теги, настройки, пользователи, ответственные, события) пускали любого
@@ -187,6 +187,65 @@ src/i18n`.
    (серверное — в `infrastructure`/use-cases, клиентское — в `shared/lib` и `features/*/lib`).
 7. Лог `[lead] rl_headers` пишется для каждого запроса с валидным JSON (раньше — после Zod).
 
+## Решения владельца по вопросам Фазы 2 (2026-09-11)
+
+- Изменения 1–5 Фазы 2 подтверждены.
+- Выгрузка лидов игнорирует фильтр по нескольким ответственным (как и до перестройки) —
+  **не исправлять**.
+- Открытая запись в `site_content` для `authenticated` закрывается миграцией RLS в Фазе 5
+  (решение 9), отдельной срочной миграции не делаем.
+
+## Фаза 3: принятые решения (на подтверждение владельцу в отчёте)
+
+1. **Тексты сайта — только `src/messages/uk.json`** (дефолты) ⊕ правки клиента в
+   `site_content.landing` (id не меняется, отклонение 5). Ключи прежних блоков
+   (`site, hero, usp, about, services, audit, trust, workflow, finalCta, faq`) сохранены 1:1;
+   строки, зашитые в компонентах, вынесены в новые пространства `nav, header, footer, form,
+   thanks, notFound, legal, home`. Ключи, которые нигде не выводились, из дефолтов удалены
+   (`hero.badge/formTitle`, `services.eyebrow`, `audit.eyebrow/formTitle/services`,
+   `trust.eyebrow/cta`, `workflow.eyebrow/cta`, `finalCta.eyebrow/telegramCta`, `site.legalName/
+   tagline/format`, `workflow.steps[].n`, `about.members[].key`, справочники `adFormats/
+   budgetRanges/goals`). У клиента есть правки по `trust.eyebrow` и `trust.cta` — они равны
+   дефолтам и никогда не рендерились; мерж их игнорирует (MIGRATION-LOG.md, раздел 4).
+2. **Рендер текстов — через `useMessages()`/`getMessages()`, а не `t('key')`.** Тексты
+   редактирует клиент, и ICU-синтаксис (`{`, `'`) в них — обычные символы, а не формат;
+   структурные блоки (карточки, кейсы) — массивы объектов, которые `t()` не отдаёт.
+   Типы — `core/domain/content/site-messages.ts` (явные, из-за необязательных полей).
+3. **Профиль A по разделу 10:** `app/[locale]/` + `localePrefix: 'never'`, middleware
+   пропускает через next-intl только страницы сайта (не `/admin`, не `/api`, не файлы).
+   `<html lang>` ставится в корневом layout из единой карты `LOCALE_CODES` (root layout
+   общий с админкой, которая вне языков). `alternateLinks/localeDetection/localeCookie`
+   выключены (одна мова).
+4. **Мерж/дифф по разделу 9** (`core/domain/content/messages.ts`): «пусто = убрано», массив
+   целиком, чужие ключи игнорируются, дифф рекурсивный. Старый формат правок клиента
+   читается без миграции (тест `shared/content/__tests__/defaults.test.ts`). Пересчёт
+   диффа (MIG-CONTENT-01) — гигиена по подтверждению.
+5. **Лимиты по типу поля** (`core/domain/content/limits.ts`): признаки таблицы раздела 9
+   применяются к camelCase-именам как суффиксы (`modalDescription` → абзац, `primaryCta` →
+   кнопка); исключения — `FIELD_TYPE_EXCEPTIONS` (напр. `faq[].q` → заголовок, `hero.trust` →
+   абзац, `partnerLinkText` → подпись). Один модуль на сервер (400 с путём поля) и на редактор
+   (счётчик «N / ліміт»). Технические ключи элементов `key`/`id` не показываются, но хранятся.
+6. **Скрытие блоков** (`core/domain/content/visibility.ts`): `HIDEABLE_BLOCKS.home` = секции
+   (`hero, usp, about, services, audit, cases, process, faq, finalCta`), список — `home.hidden`.
+   Элементы списков (карточки, кейсы, шаги) **не** имеют своих id для скрытия: списки
+   редактируются (добавить/удалить), поэтому «скрыть карточку» = удалить её из списка.
+   Скрытое не попадает в DOM; ссылки меню/футера на скрытый блок не выводятся. «Про нас»:
+   дефолт `hidden: []`, скрытие — правка клиента в БД (MIG-CONTENT-02, решение 5).
+7. **Редактор** (`features/admin/components/content-editor.tsx`) — один универсальный,
+   строится по `CONTENT_PAGES/PAGE_BLOCKS/KEY_LABELS` (`core/domain/content/layout.ts`) и форме
+   дефолтов; вкладки «Головна», «Наскрізне», «Метадані (SEO)» (отклонение 2), раздел
+   «Юридичні документи» — отдельная страница (отклонение 3). Специализированные редакторы
+   USP/команда/услуги/аудит/кейсы/процесс заменены генератором полей (те же возможности:
+   вложенные карточки, порядок, картинки, иконки). Кнопка сохранения — справа внизу.
+8. **Форма заявки**: неиспользуемые поля (`website, service, adFormat, budget, goal,
+   comment`) и их справочники удалены из компонента (никогда не рендерились — `fields` не
+   передавался); Zod-схема сервера пока принимает их (Фаза 4). Список `audit.services`
+   остался в `features/admin/lib/services.ts` только как фильтр исторических `leads.service`.
+9. **Юр.страницы и 404 — под layout сайта** (решение 13): `LegalPage` без своей шапки/`<main>`,
+   `app/[locale]/not-found.tsx` + catch-all; корневой `not-found.tsx` — для путей вне сайта.
+10. Фолбек `siteUrl` → `https://vrk.com.ua` (решение 17); `shared/config/site.ts` больше
+    не содержит текстов.
+
 ## Известные «требует действий владельца»
 
 - Ключи интеграций в админке: сейчас только Telegram. KeyCRM, Email (SMTP), Google
@@ -196,6 +255,8 @@ src/i18n`.
   `/admin/set-password`).
 - Vercel env Production+Preview: `NEXT_PUBLIC_SITE_URL=https://vrk.com.ua`,
   ключи нового Supabase, `ADMIN_ENCRYPTION_KEY`, `CRON_SECRET`, `NOTIFICATION_EMAIL`.
-  В коде фолбек `siteUrl` всё ещё `https://vrkpartners.com` — заменить на `vrk.com.ua`
-  в Фазе 3 (не хардкод: это дефолт для локальной разработки).
+  Фолбек `siteUrl` в коде — `https://vrk.com.ua` (с Фазы 3; это дефолт для локальной
+  разработки, прод берёт env).
+- **До пуша Фазы 3:** выполнить MIG-CONTENT-02 (`home.hidden = ["about"]` в
+  `site_content.landing`), иначе блок «Про нас» появится на сайте (MIGRATION-LOG.md, раздел 5).
 - Google Ads: после Фазы 5 у тега `AW-…` заполнить Conversion label.

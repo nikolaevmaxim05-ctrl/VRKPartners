@@ -61,7 +61,9 @@ Graph, JSON-LD), трекінг-теги (GTM / GA4 / Google Ads) з подія�
 - `src/presentation/` — обвʼязка авторизації (`withAdmin`, `requireSectionAccess`)
 - `src/app/` — маршрути Next.js (лендинг, `/admin`, тонкі API-роути)
 - `src/features/admin`, `src/features/landing` — компоненти адмінки й лендингу
-- `src/shared/` — UI-примітиви, спільні хелпери, дефолтні тексти (`shared/config/site.ts`)
+- `src/messages/uk.json` — ДЕФОЛТНІ тексти сайту (єдине місце; правки клієнта — `site_content`)
+- `src/i18n/` — next-intl: маршрутизація (одна мова, адреси без префікса) і мерж текстів на запит
+- `src/shared/` — UI-примітиви, спільні хелпери, дефолти SEO/юр.документів (`shared/content`)
 - `supabase/migrations/` — схема БД (застосовувати по порядку)
 - `docs/` — інструкції (зокрема резервне копіювання БД)
 
