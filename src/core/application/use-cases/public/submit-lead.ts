@@ -3,8 +3,9 @@
 //   (3 заявки / 10 хв з одного IP; помилка підрахунку НЕ блокує) → 429;  (капчі немає —
 //   відхилення 4);  5. нормалізація (телефон E.164 у Zod, email trim+lowercase);
 //   6. дедуп за телефоном/IP → коментар до оригіналу, сповіщення «повтор», новий лід не
-//   створюється;  7. запис ліда в початкову стадію → 500 при помилці БД;
-//   8. сповіщення Telegram / KeyCRM / email — Promise.allSettled, помилки запит не валять.
+//   створюється;  7. запис ліда в початкову стадію;  8. сповіщення Telegram / KeyCRM / email —
+//   Promise.allSettled, помилки запит не валять. Рішення власника (Фаза 4): при відказі БД
+//   сповіщення все одно надсилаються — 500 «DB error» лише якщо впали і БД, і всі канали.
 import { ok, fail, type Result } from '../../result'
 import type { Clock } from '../../ports/common'
 import type { LeadRepository, LeadStatusRepository, LeadCommentRepository, LeadInsert } from '../../ports/leads'
@@ -97,13 +98,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
   /** Запис ліда; винятки адаптера → помилка (а не 500 без тіла). */
   async function insertLead(row: LeadInsert): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
-      let saved = await leads.insert(row)
-      if (!saved.ok && /locale/i.test(saved.error)) {
-        // Перехідний захист: міграція 029 (колонка leads.locale) ще не застосована — лід важливіший.
-        console.warn('[lead] insert_without_locale: застосуйте міграцію 029_leads_locale_ip_index.sql')
-        const { locale: _locale, ...withoutLocale } = row
-        saved = await leads.insert(withoutLocale)
-      }
+      const saved = await leads.insert(row)
       return saved.ok ? { ok: true } : { ok: false, error: saved.error }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -203,25 +198,30 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       locale: lead.locale || DEFAULT_LEAD_LOCALE,
     }
     const saved = await insertLead(row)
-    if (!saved.ok) {
-      console.error('[lead] supabase_failed', saved.error)
-      return fail('failed', 'DB error')
-    }
-    console.log('[lead] channel_ok channel=supabase')
+    if (saved.ok) console.log('[lead] channel_ok channel=supabase')
+    else console.error('[lead] supabase_failed', saved.error)
 
-    // 8. Сповіщення — усі канали паралельно, помилки лише в лог.
+    // 8. Сповіщення — усі канали паралельно, помилки лише в лог. Ідуть і при відказі БД
+    // (менеджер має побачити заявку), тому лід у Telegram може існувати без рядка в CRM.
     const channelNames = ['telegram', 'keycrm', 'email'] as const
     const results = await Promise.allSettled([
       notifiers.telegram.send(leadData),
       notifiers.keycrm.send(leadData),
       notifiers.email.send(leadData),
     ])
+    let delivered = 0
     results.forEach((result, i) => {
-      if (result.status === 'fulfilled' && result.value.ok) console.log(`[lead] channel_ok channel=${channelNames[i]}`)
-      else if (result.status === 'fulfilled') console.error(`[lead] integration_failed:${channelNames[i]}`, result.value.error)
+      if (result.status === 'fulfilled' && result.value.ok) {
+        delivered++
+        console.log(`[lead] channel_ok channel=${channelNames[i]}`)
+      } else if (result.status === 'fulfilled') console.error(`[lead] integration_failed:${channelNames[i]}`, result.value.error)
       else console.error(`[lead] integration_threw:${channelNames[i]}`, result.reason)
     })
 
+    if (!saved.ok && delivered === 0) {
+      console.error('[lead] all_channels_failed')
+      return fail('failed', 'DB error')
+    }
     return ok({ duplicate: false })
   }
 }

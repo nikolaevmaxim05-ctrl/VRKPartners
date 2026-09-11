@@ -17,18 +17,13 @@ const T = {
   errorEmailInvalid: 'email',
 }
 
-function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean; insertErrors?: string[] } = {}) {
-  const insertErrors = [...(opts.insertErrors ?? [])]
+function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean } = {}) {
   const leads = {
     findFirstIdByPhone: vi.fn(async (phone: string) => dbOk(phone === STORED_PHONE ? 'orig-1' : null)),
     findFirstIdByIpSince: vi.fn(async () => dbOk(null)),
     countByIpSince: vi.fn(async () => (opts.count === 'error' ? dbFail<number>('db down') : dbOk(opts.count ?? 0))),
     markRepeat: vi.fn(async () => dbOk(undefined)),
-    insert: vi.fn(async () => {
-      const err = insertErrors.shift()
-      if (err) return dbFail<void>(err)
-      return opts.saveOk === false ? dbFail<void>('db down') : dbOk(undefined)
-    }),
+    insert: vi.fn(async () => (opts.saveOk === false ? dbFail<void>('db down') : dbOk(undefined))),
   }
   const notifier = () => ({ send: vi.fn(async () => ({ ok: opts.notifyOk ?? true })) })
   const notifiers = { telegram: notifier(), keycrm: notifier(), email: notifier() }
@@ -167,31 +162,27 @@ describe('submit-lead', () => {
     expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ locale: 'uk' }))
   })
 
-  it('7. помилка БД → failed «DB error», сповіщення не йдуть', async () => {
+  it('7. помилка БД → сповіщення все одно йдуть; ok, якщо хоч один канал доставив (рішення власника)', async () => {
     quiet()
     const { submit, notifiers } = setup({ saveOk: false })
-    expect(await submit(valid, ctx)).toMatchObject({ ok: false, code: 'failed', message: 'DB error' })
-    expect(notifiers.telegram.send).not.toHaveBeenCalled()
+    expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
+    expect(notifiers.telegram.send).toHaveBeenCalledOnce()
   })
 
-  it('7. адаптер БД кинув виняток → failed «DB error» (не 500 без тіла)', async () => {
+  it('7. впали і БД, і всі канали → failed «DB error»', async () => {
     quiet()
-    const { submit, leads } = setup()
+    const { submit } = setup({ saveOk: false, notifyOk: false })
+    expect(await submit(valid, ctx)).toMatchObject({ ok: false, code: 'failed', message: 'DB error' })
+  })
+
+  it('7. адаптер БД кинув виняток → без тіла 500 не буває: сповіщення йдуть, відповідь ok', async () => {
+    quiet()
+    const { submit, leads, notifiers } = setup()
     leads.insert.mockImplementation(async () => {
       throw new Error('supabaseUrl is required')
     })
-    leads.countByIpSince.mockImplementation(async () => {
-      throw new Error('supabaseUrl is required')
-    })
-    expect(await submit(valid, ctx)).toMatchObject({ ok: false, code: 'failed', message: 'DB error' })
-  })
-
-  it('7. перехідний захист: колонки locale ще немає → повтор запису без locale', async () => {
-    quiet()
-    const { submit, leads } = setup({ insertErrors: ["column \"locale\" of relation \"leads\" does not exist"] })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
-    expect(leads.insert).toHaveBeenCalledTimes(2)
-    expect((leads.insert.mock.calls as unknown as unknown[][])[1][0]).not.toHaveProperty('locale')
+    expect(notifiers.telegram.send).toHaveBeenCalledOnce()
   })
 
   it('8. усі канали сповіщень впали → заявка все одно успішна (лід збережено)', async () => {

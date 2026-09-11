@@ -76,8 +76,8 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
 
 | Файл | Содержимое | Фаза | Риск |
 |---|---|---|---|
-| `029_leads_locale_ip_index.sql` | `alter table leads add column if not exists locale text; create index if not exists idx_leads_ip_created on leads(ip_address, created_at desc);` — **файл создан в Фазе 4**, без backfill существующих строк (данные клиента не трогаем; новый код пишет `'uk'`) | 4 (до/сразу после деплоя; код переживает отсутствие колонки) | низкий |
-| `030_drop_rate_limits.sql` | `drop function if exists check_rate_limit(text,int,int); drop table if exists rate_limits;` — **файл создан в Фазе 4**, применять **только после** деплоя кода Фазы 4 (старый код без функции → 503 на все заявки) | 4 | низкий (таблица пуста) |
+| `029_leads_locale_ip_index.sql` | `leads.locale` + индекс `(ip_address, created_at desc)`, без backfill | 4 — **применена 2026-09-11** | низкий |
+| `030_drop_rate_limits.sql` | drop `check_rate_limit`, `rate_limits` | 4 — **применена 2026-09-11** (после деплоя) | низкий |
 | `031_tracking_tags_conversion_label.sql` | `alter table tracking_tags add column if not exists conversion_label text;` | 5 | низкий |
 | `032_drop_legacy.sql` | `drop table if exists site_contacts; alter table lead_statuses drop column if exists deal_type, drop column if exists result_type; drop type if exists status_deal_type;` | 5 | низкий (0 ссылок; откат — пересоздать по 001/010) |
 | `033_rls_unify_fk_indexes.sql` | политики по п. 11 (drop/create idемпотентно), индексы п. 12, CHECK п. 13 | 5 | средний: проверить, что UI админки не читает `site_content` браузерным клиентом (по аудиту — не читает; realtime только `leads`) |
@@ -176,3 +176,8 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   `check_rate_limit(text,int,int)` существует, `rate_limits` пуста по смыслу (окно 10 мин). Лидов в
   таблице: 1 (за 30 дней 1, все с IP). Созданы файлы миграций 029 и 030 — **не применены**, ждут
   решения владельца по порядку (029 — можно до деплоя; 030 — только после).
+- **2026-09-11, Фаза 4 (ассистент через Supabase MCP `apply_migration`, по решению владельца, после
+  деплоя кода Фазы 4 — проверено по ответам прода).** Применены `029_leads_locale_ip_index`
+  (колонка `leads.locale`, индекс `idx_leads_ip_created`; существующие строки не заполнялись) и
+  `030_drop_rate_limits` (функция `check_rate_limit` и таблица `rate_limits` удалены). Откат 030 —
+  повторно выполнить `026_rate_limits.sql` (данных не было).
