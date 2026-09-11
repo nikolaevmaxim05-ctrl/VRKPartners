@@ -149,6 +149,29 @@ src/
 - Тесты: 30 файлов / 431 юнит-тест; сценарий приёма заявки покрыт на фейковых портах (порядок шагов,
   лимит, дедуп, запись до уведомлений, отказ БД, переходная запись без `locale`).
 
+## Состояние после Фазы 5 (воронка, аудит, RLS)
+
+```
+src/
+  core/domain/funnel/transition.ts                 classifyLeadChange (enter/leave/amount/none), decideLeave,
+                                                   decideAmountAdjustment, decideAdjustment (enter)
+  core/domain/tracking/{tags,tag-rules}.ts         conversion_label, adsSendToList → window.__awConversions
+  core/application/audit.ts                        AuditLog.record(actor, action, resource, {old,new})
+  core/application/ports/system.ts                 AuditLogRepository
+  infrastructure/supabase/repositories/audit-log.ts
+  presentation/admin-route.ts                      Actor.ip из цепочки раздела 8 (для audit_log)
+  features/admin/lib/sections.ts                   ADMIN_SECTIONS — меню сайдбара и карточки /admin
+  app/admin/(dashboard)/page.tsx                   главная админки (карточки)
+  shared/lib/analytics.ts                          fireAdsConversions() — gtag('event','conversion',{send_to})
+  supabase/migrations/031_tracking_tags_conversion_label.sql
+  supabase/migrations/032_drop_legacy.sql
+  supabase/migrations/033_rls_unify_fk_indexes.sql
+```
+
+- Все мутации админки пишут `audit_log` (сценарий → `audit.record` после успеха); секреты
+  интеграций в журнал не попадают.
+- Тесты: 34 файла / 453 юнит-теста (+ раздел 6 на фейковых портах, conversion label, audit).
+
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**

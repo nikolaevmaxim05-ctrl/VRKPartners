@@ -281,6 +281,42 @@ src/i18n`.
 8. **Форма шлёт на `/api/leads`**; `/api/lead` остаётся алиасом (решение 19). Ответы API на
    английском по стандарту — форма показывает свои тексты из `messages.form`.
 
+## Фаза 5: принятые решения (на подтверждение владельцу в отчёте)
+
+1. **Воронка по разделу 6** (`core/domain/funnel/transition.ts`: `classifyLeadChange`, `decideLeave`,
+   `decideAmountAdjustment`; сценарий `use-cases/admin/leads.ts`): **enter** — как раньше;
+   **leave** (уход с конверсионной стадии на неконверсионную) → RETRACT, если конверсия уже
+   выгружена (`exported`), pending — ничего; **amount** (стадия та же, конверсионная с суммой,
+   сумма изменилась) → состояние конверсии обновляется, выгруженная → RESTATE, ещё pending →
+   уходит обновлённым рядком конверсии. Строка `offline_conversions` при leave остаётся
+   (последнее состояние + история в `conversion_adjustments`); повторный enter в то же
+   состояние → noop (см. вопрос в отчёте).
+2. **Google Ads conversion label** (миграция 031, `tracking_tags.conversion_label`): только для
+   `aw`, формат `[A-Za-z0-9_-]{1,64}`, для `ga4`/`gtm` → 400. Layout инлайнит
+   `window.__awConversions = ['AW-…/LABEL']`; форма после `gtag('set','user_data')` вызывает
+   `gtag('event','conversion',{send_to})` для каждого (только gtag, без dataLayer/Plausible), затем
+   `generate_lead`. Редактор — в «Інтеграції → Google теги» (поле у AW-тегов).
+3. **Главная `/admin`** — карточки доступных разделов; меню сайдбара и карточки — один массив
+   `features/admin/lib/sections.ts` (`{ href, label, icon, anyPermission }`). Редирект по правам
+   (решение 3 Фазы 2) убран.
+4. **`audit_log` пишется из сценариев** через `core/application/audit.ts` (`AuditLog.record`):
+   лиды (update/delete), контент (save, seo, legal), стадии, кастомные поля, роли, пользователи,
+   интеграции (**только ключ, без значений**), Google-теги, настройки, события аналитики.
+   IP актора — из цепочки раздела 8 в `withAdmin` (`Actor.ip`). Ошибка записи в журнал не
+   валит запрос. Экрана просмотра журнала в админке нет (читается из БД).
+5. **RLS-унификация (033)**: везде `service_role_all` + чтение только активному админу
+   (`is_active_admin()`), в т.ч. `offline_conversions`, `conversion_adjustments`,
+   `lead_status_history`, `tracking_tags`, `lead_custom_fields`, `audit_log`; **запись в
+   `site_content` для `authenticated` закрыта** (решение 9). Плюс индексы на FK и CHECK
+   `offline_conversions.export_status`. **032** — drop `site_contacts`, `lead_statuses.deal_type/
+   result_type`, тип `status_deal_type`.
+6. **Matcher middleware — по расширению файла** (раздел 16): статика исключается списком
+   расширений, адрес вида `/foo.bar` идёт в next-intl (→ 404 сайта). CSP-хосты не менялись
+   (решение 15).
+7. Порядок применения миграций: **031 — до пуша** (аддитивная; иначе список тегов на сайте
+   упадёт на `select conversion_label`), 032/033 — в любой момент (код от них не зависит; 033
+   ужесточает RLS, браузерный клиент читает только `leads`).
+
 ## Известные «требует действий владельца»
 
 - Ключи интеграций в админке: сейчас только Telegram. KeyCRM, Email (SMTP), Google
@@ -293,4 +329,5 @@ src/i18n`.
   Фолбек `siteUrl` в коде — `https://vrk.com.ua` (с Фазы 3; это дефолт для локальной
   разработки, прод берёт env).
 - После стабилизации Фазы 3 удалить бэкап-строки `backup:*` из `site_content` (MIGRATION-LOG.md, раздел 5).
-- Google Ads: после Фазы 5 у тега `AW-…` заполнить Conversion label.
+- Google Ads: в «Інтеграції → Google теги» у тега `AW-…` заполнить Conversion label (иначе конверсия формы не вызывается).
+- После стабилизации Фазы 5: удалить бэкап-строки `backup:*` из `site_content`.

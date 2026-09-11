@@ -78,10 +78,10 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
 |---|---|---|---|
 | `029_leads_locale_ip_index.sql` | `leads.locale` + индекс `(ip_address, created_at desc)`, без backfill | 4 — **применена 2026-09-11** | низкий |
 | `030_drop_rate_limits.sql` | drop `check_rate_limit`, `rate_limits` | 4 — **применена 2026-09-11** (после деплоя) | низкий |
-| `031_tracking_tags_conversion_label.sql` | `alter table tracking_tags add column if not exists conversion_label text;` | 5 | низкий |
-| `032_drop_legacy.sql` | `drop table if exists site_contacts; alter table lead_statuses drop column if exists deal_type, drop column if exists result_type; drop type if exists status_deal_type;` | 5 | низкий (0 ссылок; откат — пересоздать по 001/010) |
-| `033_rls_unify_fk_indexes.sql` | политики по п. 11 (drop/create idемпотентно), индексы п. 12, CHECK п. 13 | 5 | средний: проверить, что UI админки не читает `site_content` браузерным клиентом (по аудиту — не читает; realtime только `leads`) |
-| `034_audit_log_indexes.sql` (опц.) | индекс `audit_log(user_id, created_at desc)` | 5 | низкий |
+| `031_tracking_tags_conversion_label.sql` | `tracking_tags.conversion_label` (аддитивная) — **файл создан в Фазе 5**; применять **до** деплоя кода Фазы 5 | 5 | низкий |
+| `032_drop_legacy.sql` | drop `site_contacts`, `lead_statuses.deal_type/result_type`, тип `status_deal_type` — **файл создан в Фазе 5** | 5 | низкий (0 ссылок, 0 строк; откат — пересоздать по 001/010) |
+| `033_rls_unify_fk_indexes.sql` | политики п. 11 (везде `service_role` + `is_active_admin()` на чтение; `site_content` — запись закрыта), индексы FK п. 12, CHECK п. 13, индекс `audit_log(user_id, created_at)` — **файл создан в Фазе 5** | 5 | низкий: браузерный клиент админки читает только `leads` (realtime), политика с 025 сохранена |
+| ~~`034_audit_log_indexes.sql`~~ | индекс вошёл в 033 | — | — |
 
 Каждая миграция начинается с комментария «зачем» и ссылкой на фазу; применяется
 владельцем (или ассистентом через MCP `apply_migration` по явному «применяй»)
@@ -181,3 +181,7 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   (колонка `leads.locale`, индекс `idx_leads_ip_created`; существующие строки не заполнялись) и
   `030_drop_rate_limits` (функция `check_rate_limit` и таблица `rate_limits` удалены). Откат 030 —
   повторно выполнить `026_rate_limits.sql` (данных не было).
+- **2026-09-11, Фаза 5 (ассистент, только SELECT).** Сняты политики RLS всех 17 таблиц, индексы,
+  CHECK/FK-ограничения; подтверждено: `site_content` — ALL для authenticated (закрывается в 033),
+  `authenticated_read (true)` на 5 таблицах, `site_contacts` пуста, `audit_log` существует
+  (9 колонок, не пишется). Созданы файлы 031/032/033 — **не применены**, ждут решения владельца.
