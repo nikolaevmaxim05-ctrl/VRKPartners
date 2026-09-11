@@ -8,6 +8,7 @@ import { RevealObserver } from "@/features/landing/components/layout/RevealObser
 import { FitText } from "@/features/landing/components/layout/FitText";
 import { HashScroll } from "@/features/landing/components/layout/HashScroll";
 import { SiteBackground } from "@/features/landing/components/layout/SiteBackground";
+import { SiteParallax } from "@/features/landing/components/layout/SiteParallax";
 import { UtmTracker } from "@/features/landing/components/layout/UtmTracker";
 import { Header } from "@/features/landing/components/sections/Header";
 import { Footer } from "@/features/landing/components/sections/Footer";
@@ -283,6 +284,7 @@ export default async function SiteLayout({
         <ModalProvider>
           <div className="site relative">
             <SiteBackground />
+            <SiteParallax />
             <RevealObserver />
             <FitText />
             <HashScroll />

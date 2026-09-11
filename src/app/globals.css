@@ -245,6 +245,54 @@
   animation: spin-slow 24s linear infinite;
 }
 
+/* ── Фон сайту (SiteBackground): шар + одна доріжка з плямами й сіткою. Стартовий стан —
+   absolute на всю сторінку, їде разом із контентом (без JS / «менше руху» / до гідрації).
+   SiteParallax ставить data-parallax="css"|"js": шар закріплюється на вьюпорті (100vh —
+   найбільший вьюпорт, не міняється зі згортанням адресного рядка iOS), а зсувається ЛИШЕ
+   доріжка (один transform, will-change тільки на ній). Геометрія — core/domain/layout/parallax:
+   висота доріжки = ratio × (H − vh) + vh, зсув у кінці = −(висота − 100vh) = −ratio × (H − vh),
+   тому ключові кадри не потребують числа від JS: calc(-100% + 100vh). ── */
+.site-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+.site-bg[data-parallax] {
+  position: fixed;
+  bottom: auto;
+  height: 100vh;
+}
+.site-bg-track {
+  position: absolute;
+  inset: 0;
+}
+.site-bg[data-parallax] .site-bg-track {
+  bottom: auto;
+  will-change: transform;
+}
+/* Плями після ввімкнення отримують top у px — плавно переїжджають із SSR-позицій. */
+.site-bg-blob {
+  transition: top 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes site-bg-parallax {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, calc(-100% + 100vh), 0);
+  }
+}
+/* Scroll-driven animation: прогрес = прокрутка документа, рахується поза головним потоком.
+   Без підтримки — JS-фолбек (data-parallax="js", transform пише SiteParallax). */
+@supports (animation-timeline: scroll()) {
+  .site-bg[data-parallax="css"] .site-bg-track {
+    animation: site-bg-parallax linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
 /* Захист від горизонтального переповнення на мобільному/планшеті
    (декоративні плями, широка стрічка партнерів тощо). На десктопі (lg+)
    не чіпаємо, щоб не зламати position: sticky. */
@@ -354,8 +402,18 @@ body::-webkit-scrollbar {
   .anim-drift2,
   .anim-drift3,
   .anim-spin-slow,
-  .animate-pulse-glow {
+  .animate-pulse-glow,
+  .site-bg-track {
     animation: none !important;
+  }
+  /* Паралакс фону вимкнено: шар лишається absolute на всю сторінку і їде разом із контентом. */
+  .site-bg[data-parallax] {
+    position: absolute !important;
+    bottom: 0 !important;
+    height: auto !important;
+  }
+  .site-bg-track {
+    transform: none !important;
   }
   /* Поява при скролі: у режимі «менше руху» нічого не ховаємо взагалі — стартовий стан видимий. */
   .js-reveal .reveal,
