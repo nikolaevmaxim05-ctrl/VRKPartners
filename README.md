@@ -11,7 +11,7 @@
 - **Tailwind CSS**: бренд-тема для лендингу, shadcn/ui для адмінки
 - **react-hook-form + Zod** — форми та валідація
 - **Supabase** — Postgres, Auth, Realtime (заявки, користувачі, налаштування)
-- **Rate limit форми** — на Postgres (Supabase), без зовнішніх сервісів
+- **Rate limit форми** — 3 заявки / 10 хв з одного IP, підрахунок по таблиці `leads` (без зовнішніх сервісів)
 - Шрифт **Raleway** через `next/font`; хостинг — **Vercel**
 
 ## Запуск
@@ -43,7 +43,7 @@ Graph, JSON-LD), трекінг-теги (GTM / GA4 / Google Ads) з подія�
 одразу, без повторного деплою.
 
 **Приймач заявок** (`src/app/api/leads/route.ts`, старий шлях `/api/lead` — аліас) —
-серверна валідація (Zod), honeypot, rate limit, дедуплікація, збереження в Supabase
+серверна валідація (Zod), honeypot, rate limit (3 / 10 хв з IP по таблиці `leads`), дедуплікація, збереження в Supabase — до сповіщень (розділ 8 стандарту)
 та розсилка в підключені інтеграції: Telegram, KeyCRM, email (Gmail SMTP).
 Офлайн-конверсії вивантажуються в Google Sheets.
 

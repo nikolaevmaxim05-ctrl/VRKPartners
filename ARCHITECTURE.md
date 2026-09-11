@@ -130,6 +130,25 @@ src/
   серверный вход next-intl, подключается плагином в `next.config.mjs`); `middleware.ts` →
   `i18n/routing.ts`.
 
+## Состояние после Фазы 4 (приём заявки, раздел 8)
+
+```
+src/
+  core/domain/lead/{schema,phone,email,message,dedup,utm}.ts   makeLeadSchema(messages), единая нормализация
+  core/domain/funnel/enhanced-conversions.ts                   hashableUserData + sha256Hex (сайт и выгрузка)
+  core/application/use-cases/public/submit-lead.ts             порядок раздела 8, LEAD_RATE_LIMIT 3/10 мин
+  core/application/ports/leads.ts                              LeadRepository.countByIpSince, LeadInsert.locale
+  presentation/client-ip.ts                                    cf-connecting-ip → XFF[0] → x-real-ip → 'unknown'
+  app/api/leads/route.ts (+ /api/lead алиас)                   400 Invalid data · 429 + Retry-After · 500 DB error
+  supabase/migrations/029_leads_locale_ip_index.sql            leads.locale, idx (ip_address, created_at)
+  supabase/migrations/030_drop_rate_limits.sql                 после деплоя: drop check_rate_limit, rate_limits
+```
+
+- Удалены: `infrastructure/supabase/rate-limiter.ts`, порт `RateLimiter`, `HealthCheck.cleanupRateLimits`,
+  `normalizePhoneE164`, локальная нормализация телефона в `google-sheets.ts`, мёртвые поля формы в схеме.
+- Тесты: 30 файлов / 431 юнит-тест; сценарий приёма заявки покрыт на фейковых портах (порядок шагов,
+  лимит, дедуп, запись до уведомлений, отказ БД, переходная запись без `locale`).
+
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**

@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { leadSchema, leadDefaults, type LeadInput } from "@core/domain/lead/schema";
+import { makeLeadSchema, leadDefaults, type LeadInput } from "@core/domain/lead/schema";
 import { track } from "@/shared/lib/analytics";
 import { setEnhancedConversionUserData } from "@/features/landing/lib/enhanced-conversions";
 import { getStoredUtm } from "@/features/landing/lib/utm";
@@ -43,7 +44,9 @@ interface LeadFormProps {
   onSuccess?: () => void;
 }
 
-// Форма заявки: імʼя + телефон (+ honeypot `company`). Тексти — messages.form.
+// Форма заявки: імʼя + телефон (+ honeypot `company`). Тексти й помилки — messages.form.
+// Відправка на /api/leads; порядок аналітики (розділ 15): form_submit_attempt → fetch →
+// gtag('set','user_data') → form_submit_success (generate_lead).
 export function LeadForm({
   source,
   submitLabel,
@@ -51,7 +54,9 @@ export function LeadForm({
   onSuccess,
 }: LeadFormProps) {
   const router = useRouter();
+  const locale = useLocale();
   const { form: t } = useSiteMessages();
+  const schema = React.useMemo(() => makeLeadSchema(t), [t]);
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState(false);
 
@@ -60,8 +65,8 @@ export function LeadForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LeadInput>({
-    resolver: zodResolver(leadSchema),
-    defaultValues: { ...leadDefaults, source },
+    resolver: zodResolver(schema),
+    defaultValues: { ...leadDefaults, source, locale },
   });
 
   const nameReg = register("name");
@@ -74,10 +79,10 @@ export function LeadForm({
     const utm = getStoredUtm();
     const page = typeof window !== "undefined" ? window.location.href : undefined;
     try {
-      const res = await fetch("/api/lead", {
+      const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, utm, page }),
+        body: JSON.stringify({ ...data, utm, page, locale }),
       });
       if (!res.ok) {
         // Розрізняємо типи помилок сервера, щоб не втрачати ліди мовчазним «щось пішло не так».
@@ -86,7 +91,7 @@ export function LeadForm({
           // Чесний перебір ліміту.
           setServerError(t.errorRateLimited);
         } else if (res.status === 503) {
-          // Технічна недоступність rate-limiter (fail-closed) — НЕ «забагато спроб».
+          // Технічна недоступність — НЕ «забагато спроб».
           setServerError(t.errorUnavailable);
         } else {
           setServerError(t.errorFailed);

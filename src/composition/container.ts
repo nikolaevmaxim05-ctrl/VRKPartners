@@ -21,6 +21,7 @@ import { makeExportAnalytics } from '@core/application/use-cases/admin/export-an
 import { makeConversionExportUseCases } from '@core/application/use-cases/admin/export-conversions'
 import { makeVerifyGa4 } from '@core/application/use-cases/admin/verify-ga4'
 import { makeKeepalive } from '@core/application/use-cases/system/keepalive'
+import { makeLeadSchema } from '@core/domain/lead/schema'
 
 import { serviceClient } from '@infra/supabase/service'
 import { cookieAuthSession } from '@infra/supabase/server'
@@ -40,7 +41,6 @@ import {
 } from '@infra/supabase/repositories/integrations'
 import { makeConversionRepository, makeAdjustmentRepository } from '@infra/supabase/repositories/conversions'
 import { makeAnalyticsRepository } from '@infra/supabase/repositories/analytics'
-import { makePostgresRateLimiter } from '@infra/supabase/rate-limiter'
 import { makeImageStorage } from '@infra/supabase/storage'
 import { makeHealthCheck } from '@infra/supabase/health'
 import { aesGcmCipher } from '@infra/crypto/aes-gcm'
@@ -130,7 +130,8 @@ export const getIntegrationConfig = integrationConfig
 // ── Сценарії ─────────────────────────────────────────────────────────────────
 export const getSubmitLead = once(() =>
   makeSubmitLead({
-    rateLimiter: makePostgresRateLimiter(serviceClient),
+    // Тексти помилок Zod на сервері — з дефолтів (клієнту віддається лише 400 Invalid data).
+    schema: makeLeadSchema(getDefaultMessages().form),
     integrationConfig: integrationConfig(),
     leads: leadRepo(),
     statuses: statusRepo(),
@@ -138,6 +139,8 @@ export const getSubmitLead = once(() =>
     settings: settingsRepo(),
     notifiers: notifiers(),
     clock: systemClock,
+    // Байпас ліміту для тестів на Preview/локально: ТІЛЬКИ поза production і за явним прапором.
+    rateLimitBypass: () => process.env.VERCEL_ENV !== 'production' && process.env.RATE_LIMIT_DISABLED === '1',
   }),
 )
 

@@ -248,6 +248,39 @@ src/i18n`.
 11. Партнёры (`hero.partners`: логотипы, ссылки) — редактируются клиентом. `/uk` → 307 на `/`.
     MIG-CONTENT-01/02/03 применены 2026-09-11 через MCP по решению владельца (MIGRATION-LOG.md).
 
+## Фаза 4: принятые решения (на подтверждение владельцу в отчёте)
+
+1. **Порядок приёма заявки — раздел 8:** Zod → 400 `Invalid data`; honeypot `company` → фейковый
+   успех; rate limit по таблице `leads` (3 заявки / 10 мин с IP, ошибка подсчёта не блокирует) →
+   429 `Too many requests` + `Retry-After: 600`; нормализация (телефон E.164 в Zod-transform, email
+   `trim().toLowerCase()`); дедуп; **запись лида до уведомлений** → 500 `DB error` при отказе БД;
+   уведомления Telegram/KeyCRM/email — `Promise.allSettled`, ошибки только в лог. Ответ 503 больше
+   не возвращается (нет отдельного rate-limiter).
+2. **Honeypot проверяется после Zod** на разобранных данных: схема принимает любое `company`
+   (раньше `z.literal('')` отдавал 400 и выдавал бота).
+3. **Rate limit считает только сохранённые лиды** (дубли строк не создают) — повторные отправки
+   одного номера ограничиваются лишь дедупом (каждая шлёт Telegram «[ПОВТОР]»). Байпас
+   `RATE_LIMIT_DISABLED=1` вне production сохранён. Таблица `rate_limits`/функция
+   `check_rate_limit` и их чистка в keepalive убраны (миграция 030 — **после** деплоя).
+4. **IP-цепочка раздела 8** (`presentation/client-ip.ts`): `cf-connecting-ip` → первый
+   `x-forwarded-for` → `x-real-ip` → `'unknown'` (раньше — `x-real-ip` → `x-vercel-forwarded-for`
+   → последний XFF, иначе `null`). `'unknown'`: лимит и дедуп по IP пропускаются, в БД `NULL`.
+5. **Одна нормализация на проект:** `core/domain/lead/phone.ts` (`normalizePhone`) и
+   `core/domain/lead/email.ts` (`normalizeEmail`, `emailForHash` — без точек для gmail только
+   перед хешем). `normalizePhoneE164` и локальная `normalizePhone` в `google-sheets.ts` удалены;
+   выгрузка конверсий хеширует email через `emailForHash` (раздел 15). В БД email хранится с точками.
+6. **Zod-схема — фабрика `makeLeadSchema(messages.form)`**: тексты ошибок формы редактируются из
+   админки (`form.errorNameMin/Max/Letters`, `errorPhoneRequired/Incomplete`, `errorEmailInvalid`);
+   сервер строит схему из дефолтов (клиенту уходит только 400). Из схемы удалены мёртвые поля
+   `website, adFormat, budget, goal` (решение 4 Фазы 3); `comment` ≤ 500, `service` ≤ 50, добавлен
+   `locale`. `buildLeadMessage` = комментарий + «Форма: <source>».
+7. **`leads.locale`** (миграция 029, + индекс `(ip_address, created_at desc)`): форма шлёт
+   `useLocale()`, сценарий пишет `'uk'` по умолчанию. Переходная защита: если колонки ещё нет,
+   запись повторяется без `locale` (лид важнее) с предупреждением в логе — убрать в Фазе 5 после
+   применения 029.
+8. **Форма шлёт на `/api/leads`**; `/api/lead` остаётся алиасом (решение 19). Ответы API на
+   английском по стандарту — форма показывает свои тексты из `messages.form`.
+
 ## Известные «требует действий владельца»
 
 - Ключи интеграций в админке: сейчас только Telegram. KeyCRM, Email (SMTP), Google
@@ -260,4 +293,7 @@ src/i18n`.
   Фолбек `siteUrl` в коде — `https://vrk.com.ua` (с Фазы 3; это дефолт для локальной
   разработки, прод берёт env).
 - После стабилизации Фазы 3 удалить бэкап-строки `backup:*` из `site_content` (MIGRATION-LOG.md, раздел 5).
+- **Фаза 4, миграции:** 029 (`leads.locale` + индекс) — применить **до или сразу после** деплоя
+  (без неё каждый лид пишется вторым запросом); 030 (drop `rate_limits`) — **только после**
+  деплоя кода Фазы 4 (старый код при отсутствии функции отдаёт 503 на все заявки).
 - Google Ads: после Фазы 5 у тега `AW-…` заполнить Conversion label.
