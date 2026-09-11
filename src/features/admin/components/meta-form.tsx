@@ -85,7 +85,7 @@ export function MetaForm({
   baseUpdatedAt: string | null
   /** Адреса сайту — для зеленого URL у прев'ю (з env, редагуванню не підлягає). */
   siteUrl: string
-  /** Базова назва компанії/сайту (config site.name) — джерело наслідування для «Назва компанії». */
+  /** Назва компанії/сайту (messages.site.name) — джерело наслідування для «Назва компанії». */
   siteName: string
   /** Контакти з вкладки «Контент» — показуються read-only (джерело для JSON-LD). */
   contacts: Contacts

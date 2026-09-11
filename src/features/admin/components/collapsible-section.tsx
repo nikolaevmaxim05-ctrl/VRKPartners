@@ -28,7 +28,7 @@ export function CollapsibleCard({
   title, description, defaultOpen = false, children,
 }: {
   title: string
-  description?: string
+  description?: ReactNode
   defaultOpen?: boolean
   children: ReactNode
 }) {

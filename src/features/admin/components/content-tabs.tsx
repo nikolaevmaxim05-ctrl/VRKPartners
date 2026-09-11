@@ -1,76 +1,68 @@
 'use client'
 
-// Підвкладки розділу «Контент»: «Контент» (редактор лендингу, без змін) і
-// «Метадані (SEO)». Активна вкладка синхронізується з URL (?tab=meta), щоб
-// переживати перезавантаження: початкове значення приходить із сервера
-// (searchParams), зміна — пише в URL через router.replace.
+// Вкладки розділу «Контент»: сторінки сайту з CONTENT_PAGES («Головна», «Наскрізне») +
+// «Метадані (SEO)» (відхилення 2). Активна вкладка синхронізується з URL (?tab=…), щоб
+// переживати перезавантаження: початкове значення приходить із сервера (searchParams),
+// зміна — пише в URL через router.replace.
 //
-// Контакти для read-only блоку у «Метадані» приходять із сервера, але при переході
-// НА вкладку «Метадані» перечитуються (GET /api/admin/content), щоб показати свіжі
-// значення одразу після правки контактів у вкладці «Контент» — без F5.
+// Редактор текстів змонтований завжди (стан усіх сторінок — один обʼєкт, одна кнопка
+// збереження); вкладка лише каже, яку сторінку показувати. Контакти для read-only блоку у
+// «Метадані» беруться зі стану редактора після збереження — без F5.
 
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
-import { ContentForm } from '@/features/admin/components/content-form'
+import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs'
+import { ContentEditor } from '@/features/admin/components/content-editor'
 import { MetaForm } from '@/features/admin/components/meta-form'
+import { CONTENT_PAGES } from '@core/domain/content/layout'
+import type { PlainObject } from '@core/domain/content/messages'
 
-type Tab = 'content' | 'meta'
+const META_TAB = 'meta'
 type Contacts = { phone: string; email: string; telegram: string }
+
+function contactsOf(messages: PlainObject): Contacts {
+  const s = (messages.site ?? {}) as Record<string, unknown>
+  return { phone: String(s.phone ?? ''), email: String(s.email ?? ''), telegram: String(s.telegram ?? '') }
+}
 
 export function ContentTabs({
   initialTab,
   content,
   meta,
 }: {
-  initialTab: Tab
-  content: React.ComponentProps<typeof ContentForm>
-  // onGoToContacts додає сам ContentTabs; contacts — початкові (перечитуються при переході).
-  meta: Omit<React.ComponentProps<typeof MetaForm>, 'onGoToContacts'>
+  initialTab: string
+  content: Omit<React.ComponentProps<typeof ContentEditor>, 'page' | 'onSaved'>
+  // contacts і onGoToContacts додає сам ContentTabs.
+  meta: Omit<React.ComponentProps<typeof MetaForm>, 'onGoToContacts' | 'contacts'>
 }) {
-  const [tab, setTab] = useState<Tab>(initialTab)
-  const [contacts, setContacts] = useState<Contacts>(meta.contacts)
+  const isKnown = (t: string) => t === META_TAB || CONTENT_PAGES.some((p) => p.id === t)
+  const [tab, setTab] = useState<string>(isKnown(initialTab) ? initialTab : CONTENT_PAGES[0].id)
+  const [contacts, setContacts] = useState<Contacts>(() => contactsOf(content.initial))
   const pathname = usePathname()
   const router = useRouter()
 
-  async function refreshContacts() {
-    try {
-      const res = await fetch('/api/admin/content')
-      if (!res.ok) return
-      const json = await res.json()
-      const s = json?.content?.site
-      if (s && typeof s === 'object') {
-        setContacts({
-          phone: String(s.phone ?? ''),
-          email: String(s.email ?? ''),
-          telegram: String(s.telegram ?? ''),
-        })
-      }
-    } catch {
-      // не критично — лишаємо попередні значення
-    }
-  }
-
   function onChange(v: string) {
-    const t: Tab = v === 'meta' ? 'meta' : 'content'
+    const t = isKnown(v) ? v : CONTENT_PAGES[0].id
     setTab(t)
-    router.replace(t === 'meta' ? `${pathname}?tab=meta` : pathname, { scroll: false })
-    // Перечитуємо контакти при переході на «Метадані» (могли змінити у «Контент»).
-    if (t === 'meta') void refreshContacts()
+    router.replace(t === CONTENT_PAGES[0].id ? pathname : `${pathname}?tab=${t}`, { scroll: false })
   }
 
   return (
-    <Tabs value={tab} onValueChange={onChange}>
-      <TabsList>
-        <TabsTrigger value="content">Контент</TabsTrigger>
-        <TabsTrigger value="meta">Метадані (SEO)</TabsTrigger>
-      </TabsList>
-      <TabsContent value="content">
-        <ContentForm {...content} />
-      </TabsContent>
-      <TabsContent value="meta">
-        <MetaForm {...meta} contacts={contacts} onGoToContacts={() => onChange('content')} />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-4">
+      <Tabs value={tab} onValueChange={onChange}>
+        <TabsList>
+          {CONTENT_PAGES.map((p) => (
+            <TabsTrigger key={p.id} value={p.id}>
+              {p.label}
+            </TabsTrigger>
+          ))}
+          <TabsTrigger value={META_TAB}>Метадані (SEO)</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <ContentEditor {...content} page={tab === META_TAB ? null : tab} onSaved={(m) => setContacts(contactsOf(m))} />
+      <div hidden={tab !== META_TAB}>
+        <MetaForm {...meta} contacts={contacts} onGoToContacts={() => onChange('global')} />
+      </div>
+    </div>
   )
 }
