@@ -9,9 +9,5 @@ export function makeHealthCheck(db: () => Db): HealthCheck {
       const { error } = await db().from('lead_statuses').select('id').limit(1)
       return error ? dbFail(error.message) : dbOk(undefined)
     },
-    async cleanupRateLimits(cutoffIso) {
-      const { error } = await db().from('rate_limits').delete().lt('window_started_at', cutoffIso)
-      return error ? dbFail(error.message) : dbOk(undefined)
-    },
   }
 }

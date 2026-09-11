@@ -1,19 +1,9 @@
-// core/application/ports/system — rate limiter, keepalive, GA4 dev-перевірка.
+// core/application/ports/system — keepalive, GA4 dev-перевірка.
+// Rate limit форми — підрахунок по таблиці leads (LeadRepository.countByIpSince), окремого порту немає.
 import type { DbResult } from './common'
-
-export type RateLimitResult =
-  | { status: 'ok'; remaining: number; reset: number }
-  | { status: 'limited'; remaining: number; reset: number }
-  | { status: 'unavailable'; reason: 'db_error' }
-
-export interface RateLimiter {
-  check(identifier: string): Promise<RateLimitResult>
-}
 
 export interface HealthCheck {
   ping(): Promise<DbResult<void>>
-  /** Прибирання старих лічильників rate-limit (таблиця rate_limits, до Фази 4). */
-  cleanupRateLimits(cutoffIso: string): Promise<DbResult<void>>
 }
 
 /** GA4: Measurement Protocol + Realtime Data API (dev-інструмент). */

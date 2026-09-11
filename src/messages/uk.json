@@ -1068,7 +1068,13 @@
     "errorNetwork": "Проблема зі зʼєднанням. Перевірте інтернет і спробуйте ще раз.",
     "doneTitle": "Дякуємо за заявку!",
     "doneText": "Команда VRK Partners зв'яжеться з вами найближчим часом.",
-    "closeLabel": "Закрити"
+    "closeLabel": "Закрити",
+    "errorNameMin": "Вкажіть ім'я (мінімум 2 символи)",
+    "errorNameMax": "Занадто довге ім'я",
+    "errorNameLetters": "Ім'я може містити лише літери",
+    "errorPhoneRequired": "Вкажіть номер телефону",
+    "errorPhoneIncomplete": "Введіть повний номер телефону",
+    "errorEmailInvalid": "Некоректний формат email"
   },
   "thanks": {
     "metaTitle": "Дякуємо за заявку",

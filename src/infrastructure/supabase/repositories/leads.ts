@@ -34,6 +34,16 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
       return dbOk(data && data.length > 0 ? (data[0].id as string) : null)
     },
 
+    async countByIpSince(ip, sinceIso) {
+      const { count, error } = await db()
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('ip_address', ip)
+        .gte('created_at', sinceIso)
+      if (error) return dbFail(error.message)
+      return dbOk(count ?? 0)
+    },
+
     async markRepeat(id) {
       const { error } = await db().from('leads').update({ is_repeat: true }).eq('id', id)
       return error ? dbFail(error.message) : dbOk(undefined)

@@ -1,14 +1,17 @@
-// use-cases/public/submit-lead — приймач заявок з лендингу.
-// Фаза 2: перенос БЕЗ зміни поведінки (порядок: honeypot → Zod → rate limit → дедуп →
-// паралельно запис + сповіщення). Порядок розділу 8 стандарту — у Фазі 4.
+// use-cases/public/submit-lead — приймач заявок з лендингу. Порядок розділу 8 стандарту:
+//   1. Zod → 400;  2. honeypot → фейковий успіх;  3. rate limit по таблиці leads
+//   (3 заявки / 10 хв з одного IP; помилка підрахунку НЕ блокує) → 429;  (капчі немає —
+//   відхилення 4);  5. нормалізація (телефон E.164 у Zod, email trim+lowercase);
+//   6. дедуп за телефоном/IP → коментар до оригіналу, сповіщення «повтор», новий лід не
+//   створюється;  7. запис ліда в початкову стадію → 500 при помилці БД;
+//   8. сповіщення Telegram / KeyCRM / email — Promise.allSettled, помилки запит не валять.
 import { ok, fail, type Result } from '../../result'
 import type { Clock } from '../../ports/common'
 import type { LeadRepository, LeadStatusRepository, LeadCommentRepository, LeadInsert } from '../../ports/leads'
 import type { SettingsRepository, IntegrationConfig } from '../../ports/settings'
 import type { LeadNotifier, LeadNotification } from '../../ports/notifications'
-import type { RateLimiter } from '../../ports/system'
-import { leadSchema } from '../../../domain/lead/schema'
-import { normalizePhone } from '../../../domain/lead/phone'
+import type { LeadSchema } from '../../../domain/lead/schema'
+import { normalizeEmail } from '../../../domain/lead/email'
 import { buildLeadMessage, isHoneypotFilled } from '../../../domain/lead/message'
 import {
   DEFAULT_DEDUP_SETTINGS,
@@ -19,8 +22,14 @@ import {
 } from '../../../domain/lead/dedup'
 import { LEAD_DELIVERY_KEYS } from '../../../domain/integrations/keys'
 
+/** Rate limit форми: не більше 3 заявок з одного IP за 10 хвилин (розділ 8). */
+export const LEAD_RATE_LIMIT = { max: 3, windowMs: 10 * 60 * 1000 } as const
+
+/** Мова за замовчуванням для leads.locale (профіль A). */
+export const DEFAULT_LEAD_LOCALE = 'uk'
+
 export type SubmitLeadDeps = {
-  rateLimiter: RateLimiter
+  schema: LeadSchema
   integrationConfig: IntegrationConfig
   leads: LeadRepository
   statuses: LeadStatusRepository
@@ -28,9 +37,12 @@ export type SubmitLeadDeps = {
   settings: SettingsRepository
   notifiers: { telegram: LeadNotifier; keycrm: LeadNotifier; email: LeadNotifier }
   clock: Clock
+  /** Байпас ліміту для тестів поза production (RATE_LIMIT_DISABLED=1). */
+  rateLimitBypass?: () => boolean
 }
 
-export type SubmitLeadContext = { ip: string | null; userAgent: string | null }
+/** ip — з ланцюжка заголовків (розділ 8); 'unknown' = не визначено (ліміт і дедуп за IP пропускаються). */
+export type SubmitLeadContext = { ip: string; userAgent: string | null }
 
 export type SubmitLeadValue = { duplicate: boolean }
 
@@ -38,7 +50,7 @@ export type SubmitLeadValue = { duplicate: boolean }
 const FALLBACK_INITIAL_STAGE_NAME = 'Новий клієнт'
 
 export function makeSubmitLead(deps: SubmitLeadDeps) {
-  const { leads, statuses, comments, settings, notifiers, clock } = deps
+  const { schema, leads, statuses, comments, settings, notifiers, clock } = deps
 
   async function getDedupSettings(): Promise<DedupSettings> {
     const res = await settings.getMany(['dedup_by_phone', 'dedup_by_ip', 'dedup_ip_window_hours'])
@@ -52,12 +64,9 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
   async function findDuplicate(phone: string, ip: string | null): Promise<{ id: string; reason: DedupReason } | null> {
     const s = await getDedupSettings()
     if (s.dedupByPhone) {
-      const normalized = normalizePhone(phone)
-      if (normalized) {
-        const r = await leads.findFirstIdByPhone(normalized)
-        if (!r.ok) console.error('[dedup] phone_lookup_failed', r.error)
-        else if (r.data) return { id: r.data, reason: 'phone' }
-      }
+      const r = await leads.findFirstIdByPhone(phone)
+      if (!r.ok) console.error('[dedup] phone_lookup_failed', r.error)
+      else if (r.data) return { id: r.data, reason: 'phone' }
     }
     if (s.dedupByIp && ip) {
       const since = new Date(clock.now().getTime() - s.ipWindowHours * 3600 * 1000).toISOString()
@@ -68,49 +77,79 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     return null
   }
 
-  return async function submitLead(body: unknown, ctx: SubmitLeadContext): Promise<Result<SubmitLeadValue>> {
-    // 1. Honeypot: бот заповнив приховане поле `company` — тихий «успіх».
-    if (isHoneypotFilled(body)) return ok({ duplicate: false })
+  /** true = ліміт перевищено. Помилка підрахунку → false (заявку не блокуємо), лише лог. */
+  async function isRateLimited(ip: string): Promise<boolean> {
+    if (deps.rateLimitBypass?.()) return false
+    const since = new Date(clock.now().getTime() - LEAD_RATE_LIMIT.windowMs).toISOString()
+    try {
+      const r = await leads.countByIpSince(ip, since)
+      if (!r.ok) {
+        console.error('[lead] rate_limit_count_failed (не блокуємо)', r.error)
+        return false
+      }
+      return r.data >= LEAD_RATE_LIMIT.max
+    } catch (err) {
+      console.error('[lead] rate_limit_count_threw (не блокуємо)', err)
+      return false
+    }
+  }
 
-    // 2. Zod
-    const parsed = leadSchema.safeParse(body)
-    if (!parsed.success) return fail('invalid', 'Невірні дані')
+  /** Запис ліда; винятки адаптера → помилка (а не 500 без тіла). */
+  async function insertLead(row: LeadInsert): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+      let saved = await leads.insert(row)
+      if (!saved.ok && /locale/i.test(saved.error)) {
+        // Перехідний захист: міграція 029 (колонка leads.locale) ще не застосована — лід важливіший.
+        console.warn('[lead] insert_without_locale: застосуйте міграцію 029_leads_locale_ip_index.sql')
+        const { locale: _locale, ...withoutLocale } = row
+        saved = await leads.insert(withoutLocale)
+      }
+      return saved.ok ? { ok: true } : { ok: false, error: saved.error }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  }
+
+  return async function submitLead(body: unknown, ctx: SubmitLeadContext): Promise<Result<SubmitLeadValue>> {
+    // 1. Zod
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) return fail('invalid', 'Invalid data')
     const lead = parsed.data
 
-    // 3. Rate limit — ПІСЛЯ honeypot + Zod (рахуємо лише валідні сабміти). IP невідомий → пропускаємо.
-    if (ctx.ip) {
-      const rl = await deps.rateLimiter.check(ctx.ip)
-      if (rl.status === 'limited') {
-        const retryAfter = Math.max(Math.ceil((rl.reset - clock.now().getTime()) / 1000), 1)
-        console.warn(`[lead] rate_limited: перебір ліміту, retryAfter=${retryAfter}s`)
-        return fail('rate_limited', 'Забагато запитів. Спробуйте пізніше.', { retryAfter })
-      }
-      if (rl.status === 'unavailable') {
-        console.error(
-          `[lead] rate_limit_unavailable reason=${rl.reason} — перевір доступність Supabase (SUPABASE_SERVICE_ROLE_KEY / функція check_rate_limit)`,
-        )
-        return fail('unavailable', 'Технічна помилка. Спробуйте за хвилину.')
+    // 2. Honeypot: бот заповнив приховане поле `company` — фейковий успіх (бот не дізнається).
+    if (isHoneypotFilled(lead)) return ok({ duplicate: false })
+
+    const ip = ctx.ip && ctx.ip !== 'unknown' ? ctx.ip : null
+
+    // 3. Rate limit по таблиці leads (рахуються лише збережені валідні заявки).
+    if (ip) {
+      if (await isRateLimited(ip)) {
+        const retryAfter = Math.ceil(LEAD_RATE_LIMIT.windowMs / 1000)
+        console.warn(`[lead] rate_limited: >${LEAD_RATE_LIMIT.max} за ${retryAfter}s`)
+        return fail('rate_limited', 'Too many requests', { retryAfter })
       }
     } else {
       console.warn('[lead] rate_limit_skipped: клієнтський IP не визначено із заголовків')
     }
 
-    // Ключі всіх каналів доставки — одним запитом у кеш.
-    await deps.integrationConfig.prefetch(LEAD_DELIVERY_KEYS)
-
+    // 5. Нормалізація: телефон уже E.164 (Zod transform), email — trim + lowercase.
+    const email = lead.email ? normalizeEmail(lead.email) : null
     const message = buildLeadMessage(lead)
     const leadData: LeadNotification = {
       name: lead.name,
       phone: lead.phone,
-      email: lead.email || undefined,
+      email: email || undefined,
       service: lead.service || undefined,
       comment: message ?? undefined,
       utm: lead.utm,
       source: lead.page || undefined,
     }
 
-    // 4. Дедуп: оригінал маркується is_repeat + system-коментар, Telegram з [ПОВТОР].
-    const dup = await findDuplicate(leadData.phone, ctx.ip)
+    // Ключі всіх каналів доставки — одним запитом у кеш.
+    await deps.integrationConfig.prefetch(LEAD_DELIVERY_KEYS)
+
+    // 6. Дедуп: оригінал маркується is_repeat + system-коментар, Telegram з [ПОВТОР].
+    const dup = await findDuplicate(lead.phone, ip)
     if (dup) {
       const mark = await leads.markRepeat(dup.id)
       if (!mark.ok) console.error('[dedup] mark_repeat_failed', mark.error)
@@ -139,73 +178,50 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       return ok({ duplicate: true })
     }
 
-    // 5. Новий лід: запис у БД — рівноправний канал поруч зі сповіщеннями.
-    async function saveLead(): Promise<{ ok: boolean; error?: string }> {
-      try {
-        const statusId = (await statuses.findInitialId()) ?? (await statuses.findIdByName(FALLBACK_INITIAL_STAGE_NAME))
-        const row: LeadInsert = {
-          name: lead.name,
-          phone: lead.phone,
-          email: lead.email || null,
-          service: lead.service || null,
-          message,
-          utm_source: lead.utm?.utm_source ?? null,
-          utm_medium: lead.utm?.utm_medium ?? null,
-          utm_campaign: lead.utm?.utm_campaign ?? null,
-          utm_term: lead.utm?.utm_term ?? null,
-          utm_content: lead.utm?.utm_content ?? null,
-          gclid: lead.utm?.gclid ?? null,
-          fbclid: lead.utm?.fbclid ?? null,
-          ttclid: lead.utm?.ttclid ?? null,
-          referrer: lead.utm?.referrer ?? null,
-          source_url: lead.page ?? null,
-          ip_address: ctx.ip,
-          user_agent: ctx.userAgent,
-          status_id: statusId,
-        }
-        const res = await leads.insert(row)
-        if (!res.ok) {
-          console.error('[lead] supabase_failed', res.error)
-          return { ok: false, error: res.error }
-        }
-        return { ok: true }
-      } catch (e) {
-        console.error('[lead] supabase_threw', e)
-        return { ok: false, error: String(e) }
-      }
+    // 7. Запис ліда в початкову стадію — ДО сповіщень; помилка БД → 500.
+    const statusId = (await statuses.findInitialId()) ?? (await statuses.findIdByName(FALLBACK_INITIAL_STAGE_NAME))
+    const row: LeadInsert = {
+      name: lead.name,
+      phone: lead.phone,
+      email,
+      service: lead.service || null,
+      message,
+      utm_source: lead.utm?.utm_source ?? null,
+      utm_medium: lead.utm?.utm_medium ?? null,
+      utm_campaign: lead.utm?.utm_campaign ?? null,
+      utm_term: lead.utm?.utm_term ?? null,
+      utm_content: lead.utm?.utm_content ?? null,
+      gclid: lead.utm?.gclid ?? null,
+      fbclid: lead.utm?.fbclid ?? null,
+      ttclid: lead.utm?.ttclid ?? null,
+      referrer: lead.utm?.referrer ?? null,
+      source_url: lead.page ?? null,
+      // 'unknown' у БД не пишемо: колонка inet → NULL (відхилення 10).
+      ip_address: ip,
+      user_agent: ctx.userAgent,
+      status_id: statusId,
+      locale: lead.locale || DEFAULT_LEAD_LOCALE,
     }
+    const saved = await insertLead(row)
+    if (!saved.ok) {
+      console.error('[lead] supabase_failed', saved.error)
+      return fail('failed', 'DB error')
+    }
+    console.log('[lead] channel_ok channel=supabase')
 
-    const [telegramResult, keycrmResult, emailResult, supabaseResult] = await Promise.allSettled([
+    // 8. Сповіщення — усі канали паралельно, помилки лише в лог.
+    const channelNames = ['telegram', 'keycrm', 'email'] as const
+    const results = await Promise.allSettled([
       notifiers.telegram.send(leadData),
       notifiers.keycrm.send(leadData),
       notifiers.email.send(leadData),
-      saveLead(),
     ])
-
-    const channelNames = ['telegram', 'keycrm', 'email'] as const
-    let successCount = 0
-    ;[telegramResult, keycrmResult, emailResult].forEach((result, i) => {
-      if (result.status === 'fulfilled' && result.value.ok) {
-        successCount++
-        console.log(`[lead] channel_ok channel=${channelNames[i]}`)
-      } else if (result.status === 'fulfilled') {
-        console.error(`[lead] integration_failed:${channelNames[i]}`, result.value.error)
-      } else {
-        console.error(`[lead] integration_threw:${channelNames[i]}`)
-      }
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled' && result.value.ok) console.log(`[lead] channel_ok channel=${channelNames[i]}`)
+      else if (result.status === 'fulfilled') console.error(`[lead] integration_failed:${channelNames[i]}`, result.value.error)
+      else console.error(`[lead] integration_threw:${channelNames[i]}`, result.reason)
     })
 
-    if (supabaseResult.status === 'fulfilled' && supabaseResult.value.ok) {
-      console.log('[lead] channel_ok channel=supabase')
-      successCount++
-    } else {
-      console.error('[lead] supabase_issue', supabaseResult)
-    }
-
-    if (successCount === 0) {
-      console.error('[lead] all_channels_failed')
-      return fail('failed', 'Помилка сервера. Спробуйте пізніше або зателефонуйте нам.')
-    }
     return ok({ duplicate: false })
   }
 }

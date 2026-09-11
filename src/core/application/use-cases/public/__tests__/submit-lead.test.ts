@@ -1,23 +1,39 @@
-// submit-lead на фейкових портах: honeypot, Zod, rate limit, дедуп (C1 — E.164), канали доставки.
+// submit-lead на фейкових портах — порядок розділу 8: Zod → honeypot → rate limit (по leads) →
+// нормалізація → дедуп → запис → сповіщення (allSettled).
 import { describe, it, expect, vi } from 'vitest'
-import { makeSubmitLead } from '../submit-lead'
-import { dbOk } from '../../../ports/common'
-import type { RateLimitResult } from '../../../ports/system'
+import { makeSubmitLead, LEAD_RATE_LIMIT } from '../submit-lead'
+import { dbOk, dbFail } from '../../../ports/common'
+import { makeLeadSchema } from '../../../../domain/lead/schema'
 
 const STORED_PHONE = '+380991234567'
 const NOW = new Date('2026-03-01T12:00:00.000Z')
 
-function setup(opts: { rl?: RateLimitResult; notifyOk?: boolean; saveOk?: boolean } = {}) {
+const T = {
+  errorNameMin: 'min',
+  errorNameMax: 'max',
+  errorNameLetters: 'letters',
+  errorPhoneRequired: 'phone',
+  errorPhoneIncomplete: 'incomplete',
+  errorEmailInvalid: 'email',
+}
+
+function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean; insertErrors?: string[] } = {}) {
+  const insertErrors = [...(opts.insertErrors ?? [])]
   const leads = {
     findFirstIdByPhone: vi.fn(async (phone: string) => dbOk(phone === STORED_PHONE ? 'orig-1' : null)),
     findFirstIdByIpSince: vi.fn(async () => dbOk(null)),
+    countByIpSince: vi.fn(async () => (opts.count === 'error' ? dbFail<number>('db down') : dbOk(opts.count ?? 0))),
     markRepeat: vi.fn(async () => dbOk(undefined)),
-    insert: vi.fn(async () => (opts.saveOk === false ? { ok: false as const, error: 'db down' } : dbOk(undefined))),
+    insert: vi.fn(async () => {
+      const err = insertErrors.shift()
+      if (err) return dbFail<void>(err)
+      return opts.saveOk === false ? dbFail<void>('db down') : dbOk(undefined)
+    }),
   }
   const notifier = () => ({ send: vi.fn(async () => ({ ok: opts.notifyOk ?? true })) })
   const notifiers = { telegram: notifier(), keycrm: notifier(), email: notifier() }
   const deps = {
-    rateLimiter: { check: vi.fn(async () => opts.rl ?? ({ status: 'ok', remaining: 4, reset: 0 } as RateLimitResult)) },
+    schema: makeLeadSchema(T),
     integrationConfig: { get: vi.fn(), prefetch: vi.fn(async () => {}) },
     leads,
     statuses: { findInitialId: vi.fn(async () => 'st-initial'), findIdByName: vi.fn(async () => null) },
@@ -25,6 +41,7 @@ function setup(opts: { rl?: RateLimitResult; notifyOk?: boolean; saveOk?: boolea
     settings: { getMany: vi.fn(async () => dbOk(new Map<string, string | null>())) },
     notifiers,
     clock: { now: () => NOW },
+    rateLimitBypass: () => opts.bypass ?? false,
   }
   return { submit: makeSubmitLead(deps as never), deps, leads, notifiers }
 }
@@ -36,66 +53,151 @@ const quiet = () => {
 }
 
 const ctx = { ip: '1.2.3.4', userAgent: 'UA' }
+const valid = { name: 'Тест Тест', phone: '+380 (50) 123-45-67' }
 
 describe('submit-lead', () => {
-  it('honeypot `company` → тихий успіх без запису', async () => {
+  it('1. невалідні дані → invalid «Invalid data» (до honeypot і ліміту)', async () => {
     const { submit, leads } = setup()
-    const r = await submit({ name: 'Бот', phone: '+380 (99) 000-00-00', company: 'spam' }, ctx)
+    expect(await submit({ name: 'A', phone: '1', company: 'spam' }, ctx)).toMatchObject({ ok: false, code: 'invalid', message: 'Invalid data' })
+    expect(leads.countByIpSince).not.toHaveBeenCalled()
+  })
+
+  it('2. honeypot `company` → фейковий успіх без запису, ліміту і сповіщень', async () => {
+    const { submit, leads, notifiers } = setup()
+    const r = await submit({ ...valid, company: 'Spam Inc' }, ctx)
     expect(r).toEqual({ ok: true, value: { duplicate: false } })
+    expect(leads.insert).not.toHaveBeenCalled()
+    expect(leads.countByIpSince).not.toHaveBeenCalled()
+    expect(notifiers.telegram.send).not.toHaveBeenCalled()
+  })
+
+  it('3. ≥3 заявок з IP за 10 хв → rate_limited «Too many requests», retryAfter = вікно', async () => {
+    quiet()
+    const { submit, leads } = setup({ count: LEAD_RATE_LIMIT.max })
+    const r = await submit(valid, ctx)
+    expect(r).toMatchObject({ ok: false, code: 'rate_limited', message: 'Too many requests', details: { retryAfter: 600 } })
+    expect(leads.countByIpSince).toHaveBeenCalledWith('1.2.3.4', new Date(NOW.getTime() - LEAD_RATE_LIMIT.windowMs).toISOString())
     expect(leads.insert).not.toHaveBeenCalled()
   })
 
-  it('невалідні дані → invalid «Невірні дані»', async () => {
-    const { submit } = setup()
-    expect(await submit({ name: 'A', phone: '1' }, ctx)).toMatchObject({ ok: false, code: 'invalid', message: 'Невірні дані' })
-  })
-
-  it('перебір ліміту → rate_limited з retryAfter', async () => {
+  it('3. 2 заявки — ще можна', async () => {
     quiet()
-    const { submit } = setup({ rl: { status: 'limited', remaining: 0, reset: NOW.getTime() + 90_000 } })
-    const r = await submit({ name: 'Тест Тест', phone: '+380 (50) 123-45-67' }, ctx)
-    expect(r).toMatchObject({ ok: false, code: 'rate_limited', details: { retryAfter: 90 } })
+    const { submit } = setup({ count: 2 })
+    expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
   })
 
-  it('rate-limiter недоступний → unavailable', async () => {
+  it('3. помилка підрахунку ліміту НЕ блокує заявку', async () => {
     quiet()
-    const { submit } = setup({ rl: { status: 'unavailable', reason: 'db_error' } })
-    expect(await submit({ name: 'Тест Тест', phone: '+380 (50) 123-45-67' }, ctx)).toMatchObject({ ok: false, code: 'unavailable' })
+    const { submit, leads } = setup({ count: 'error' })
+    expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
+    expect(leads.insert).toHaveBeenCalledOnce()
   })
 
-  it('C1: маска телефону нормалізується в E.164 → дубль, новий лід не створюється', async () => {
+  it('3. байпас поза production (RATE_LIMIT_DISABLED) → підрахунок не викликається', async () => {
+    quiet()
+    const { submit, leads } = setup({ bypass: true, count: 10 })
+    expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
+    expect(leads.countByIpSince).not.toHaveBeenCalled()
+  })
+
+  it("3. IP 'unknown' → ліміт і дедуп за IP пропускаються, у БД ip_address = null", async () => {
+    quiet()
+    const { submit, leads } = setup()
+    await submit(valid, { ip: 'unknown', userAgent: null })
+    expect(leads.countByIpSince).not.toHaveBeenCalled()
+    expect(leads.findFirstIdByIpSince).not.toHaveBeenCalled()
+    expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ ip_address: null }))
+  })
+
+  it('5. нормалізація: телефон → E.164, email → trim+lowercase (крапки gmail у БД лишаються)', async () => {
     quiet()
     const { submit, leads, notifiers } = setup()
+    await submit({ ...valid, email: '  Ivan.Petrenko@Gmail.com ' }, ctx)
+    expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ phone: '+380501234567', email: 'ivan.petrenko@gmail.com' }))
+    expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ email: 'ivan.petrenko@gmail.com' }))
+  })
+
+  it('6. дубль за телефоном → маркування, system-коментар, Telegram [ПОВТОР], новий лід не створюється', async () => {
+    quiet()
+    const { submit, leads, notifiers, deps } = setup()
     const r = await submit({ name: 'Тест Тест', phone: '+380 (99) 123-45-67' }, ctx)
     expect(r).toEqual({ ok: true, value: { duplicate: true } })
     expect(leads.findFirstIdByPhone).toHaveBeenCalledWith(STORED_PHONE)
     expect(leads.markRepeat).toHaveBeenCalledWith('orig-1')
+    expect(deps.comments.insertMany).toHaveBeenCalledOnce()
     expect(leads.insert).not.toHaveBeenCalled()
     expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ phone: STORED_PHONE }), { isRepeat: true })
+    expect(notifiers.keycrm.send).not.toHaveBeenCalled()
   })
 
-  it('новий лід → запис у початкову стадію + 3 канали', async () => {
+  it('7. запис у початкову стадію ДО сповіщень, з locale і мітками', async () => {
     quiet()
+    const order: string[] = []
     const { submit, leads, notifiers } = setup()
-    const r = await submit({ name: 'Тест Тест', phone: '+380 (50) 123-45-67', page: 'https://vrk.com.ua/' }, ctx)
+    leads.insert.mockImplementation(async () => {
+      order.push('insert')
+      return dbOk(undefined)
+    })
+    notifiers.telegram.send.mockImplementation(async () => {
+      order.push('telegram')
+      return { ok: true }
+    })
+    const r = await submit({ ...valid, page: 'https://vrk.com.ua/', source: 'hero', locale: 'uk', utm: { gclid: 'g1' } }, ctx)
     expect(r).toEqual({ ok: true, value: { duplicate: false } })
+    expect(order).toEqual(['insert', 'telegram'])
     expect(leads.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ phone: '+380501234567', status_id: 'st-initial', ip_address: '1.2.3.4', source_url: 'https://vrk.com.ua/' }),
+      expect.objectContaining({
+        phone: '+380501234567',
+        status_id: 'st-initial',
+        ip_address: '1.2.3.4',
+        source_url: 'https://vrk.com.ua/',
+        locale: 'uk',
+        gclid: 'g1',
+        message: 'Форма: hero',
+      }),
     )
     expect(notifiers.keycrm.send).toHaveBeenCalledOnce()
     expect(notifiers.email.send).toHaveBeenCalledOnce()
   })
 
-  it('усі канали впали (і БД) → failed', async () => {
+  it('7. без locale у тілі → DEFAULT uk', async () => {
     quiet()
-    const { submit } = setup({ notifyOk: false, saveOk: false })
-    expect(await submit({ name: 'Тест Тест', phone: '+380 (50) 123-45-67' }, ctx)).toMatchObject({ ok: false, code: 'failed' })
+    const { submit, leads } = setup()
+    await submit(valid, ctx)
+    expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ locale: 'uk' }))
   })
 
-  it('IP невідомий → rate limit пропускається', async () => {
+  it('7. помилка БД → failed «DB error», сповіщення не йдуть', async () => {
     quiet()
-    const { submit, deps } = setup()
-    await submit({ name: 'Тест Тест', phone: '+380 (50) 123-45-67' }, { ip: null, userAgent: null })
-    expect(deps.rateLimiter.check).not.toHaveBeenCalled()
+    const { submit, notifiers } = setup({ saveOk: false })
+    expect(await submit(valid, ctx)).toMatchObject({ ok: false, code: 'failed', message: 'DB error' })
+    expect(notifiers.telegram.send).not.toHaveBeenCalled()
+  })
+
+  it('7. адаптер БД кинув виняток → failed «DB error» (не 500 без тіла)', async () => {
+    quiet()
+    const { submit, leads } = setup()
+    leads.insert.mockImplementation(async () => {
+      throw new Error('supabaseUrl is required')
+    })
+    leads.countByIpSince.mockImplementation(async () => {
+      throw new Error('supabaseUrl is required')
+    })
+    expect(await submit(valid, ctx)).toMatchObject({ ok: false, code: 'failed', message: 'DB error' })
+  })
+
+  it('7. перехідний захист: колонки locale ще немає → повтор запису без locale', async () => {
+    quiet()
+    const { submit, leads } = setup({ insertErrors: ["column \"locale\" of relation \"leads\" does not exist"] })
+    expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
+    expect(leads.insert).toHaveBeenCalledTimes(2)
+    expect((leads.insert.mock.calls as unknown as unknown[][])[1][0]).not.toHaveProperty('locale')
+  })
+
+  it('8. усі канали сповіщень впали → заявка все одно успішна (лід збережено)', async () => {
+    quiet()
+    const { submit, leads } = setup({ notifyOk: false })
+    expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
+    expect(leads.insert).toHaveBeenCalledOnce()
   })
 })

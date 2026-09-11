@@ -141,6 +141,7 @@ export const PAGE_BLOCKS: Record<string, PageBlock[]> = {
           keys: [
             'nameLabel', 'namePlaceholder', 'phoneLabel', 'phonePlaceholder', 'submit', 'consentPrefix', 'consentLinkText',
             'doneTitle', 'doneText', 'errorRateLimited', 'errorUnavailable', 'errorFailed', 'errorNetwork', 'honeypotLabel', 'closeLabel',
+            'errorNameMin', 'errorNameMax', 'errorNameLetters', 'errorPhoneRequired', 'errorPhoneIncomplete', 'errorEmailInvalid',
           ],
         },
       ],
@@ -303,6 +304,12 @@ export const KEY_LABELS: Record<string, string> = {
   doneTitle: 'Успіх — заголовок',
   doneText: 'Успіх — текст',
   closeLabel: 'Кнопка «Закрити» модалки — підпис',
+  errorNameMin: 'Помилка поля «Імʼя»: коротке',
+  errorNameMax: 'Помилка поля «Імʼя»: довге',
+  errorNameLetters: 'Помилка поля «Імʼя»: недопустимі символи',
+  errorPhoneRequired: 'Помилка поля «Телефон»: порожнє',
+  errorPhoneIncomplete: 'Помилка поля «Телефон»: неповний номер',
+  errorEmailInvalid: 'Помилка поля «Email»: некоректний',
   // thanks / notFound / legal
   metaTitle: 'Заголовок вкладки браузера',
   backHome: 'Посилання «На головну»',

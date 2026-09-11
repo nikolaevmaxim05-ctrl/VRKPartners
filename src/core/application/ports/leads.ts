@@ -24,6 +24,8 @@ export type LeadInsert = {
   ip_address: string | null
   user_agent: string | null
   status_id: string | null
+  /** Мова сторінки заявки (leads.locale, міграція 029). */
+  locale?: string | null
 }
 
 export type LeadListFilters = {
@@ -52,6 +54,8 @@ export type LeadState = {
 export interface LeadRepository {
   findFirstIdByPhone(phone: string): Promise<DbResult<string | null>>
   findFirstIdByIpSince(ip: string, sinceIso: string): Promise<DbResult<string | null>>
+  /** Кількість заявок з IP від sinceIso — rate limit форми (розділ 8). */
+  countByIpSince(ip: string, sinceIso: string): Promise<DbResult<number>>
   markRepeat(id: string): Promise<DbResult<void>>
   insert(row: LeadInsert): Promise<DbResult<void>>
   list(filters: LeadListFilters): Promise<DbResult<{ rows: LeadRow[]; total: number }>>

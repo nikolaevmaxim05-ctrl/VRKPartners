@@ -1,35 +1,31 @@
-// presentation/client-ip — клієнтський IP для rate-limit / dedup.
-// Фаза 2: поведінка без змін. Фаза 4: цепочка розділу 8 стандарту
-// (cf-connecting-ip → перший x-forwarded-for → x-real-ip → 'unknown').
-//
-// Поточний порядок (усі заголовки ставить Vercel):
-//   1) x-real-ip; 2) x-vercel-forwarded-for (перший сегмент);
-//   3) x-forwarded-for — ПРАВИЙ сегмент (S5: лівий контролює клієнт).
-// Не визначено → null (без спільного ключа-константи для всіх відвідувачів).
-export function getClientIp(headers: Headers): string | null {
-  const realIp = headers.get('x-real-ip')?.trim()
-  if (realIp) return realIp
+// presentation/client-ip — клієнтський IP для rate-limit / dedup (ланцюжок розділу 8):
+//   cf-connecting-ip → перший сегмент x-forwarded-for → x-real-ip → 'unknown'.
+// На Vercel x-forwarded-for виставляє платформа (клієнтський спуфінг неможливий).
+// 'unknown' — сценарій пропускає ліміт і дедуп за IP, у БД пише NULL (відхилення 10).
+export const UNKNOWN_IP = 'unknown'
 
-  const vercelFwd = headers.get('x-vercel-forwarded-for')
-  if (vercelFwd) {
-    const first = vercelFwd.split(',')[0]?.trim()
-    if (first) return first
-  }
+export function getClientIp(headers: Headers): string {
+  const cf = headers.get('cf-connecting-ip')?.trim()
+  if (cf) return cf
 
   const xff = headers.get('x-forwarded-for')
   if (xff) {
-    const parts = xff.split(',').map((p) => p.trim()).filter(Boolean)
-    if (parts.length > 0) return parts[parts.length - 1]
+    const first = xff.split(',')[0]?.trim()
+    if (first) return first
   }
-  return null
+
+  const realIp = headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+
+  return UNKNOWN_IP
 }
 
 /** Лог без сирого IP (PII) — щоб звірити наявність заголовків у логах Vercel. */
-export function logIpHeaders(headers: Headers, ip: string | null): void {
+export function logIpHeaders(headers: Headers, ip: string): void {
   console.log('[lead] rl_headers', {
-    xRealIp: Boolean(headers.get('x-real-ip')),
-    xVercelFwd: Boolean(headers.get('x-vercel-forwarded-for')),
+    cfConnectingIp: Boolean(headers.get('cf-connecting-ip')),
     xff: Boolean(headers.get('x-forwarded-for')),
-    ipResolved: ip !== null,
+    xRealIp: Boolean(headers.get('x-real-ip')),
+    ipResolved: ip !== UNKNOWN_IP,
   })
 }

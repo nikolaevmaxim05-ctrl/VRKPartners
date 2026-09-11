@@ -1,146 +1,82 @@
-// Unit-тести Zod-схеми заявки VRK
-// Запуск: npx vitest run src/lib/__tests__/validators.test.ts
-
+// Unit-тести Zod-схеми заявки (тексти помилок — параметром із текстів сайту).
 import { describe, it, expect } from "vitest";
-import { leadSchema } from "../schema";
+import { makeLeadSchema, leadDefaults } from "../schema";
 
-// Валідні дані форми VRK (телефон — у форматі маски лендінгу)
-const validLead = {
-  name: "Іван Петренко",
-  phone: "+380 (99) 123-45-67",
+const T = {
+  errorNameMin: "Вкажіть ім'я",
+  errorNameMax: "Занадто довге ім'я",
+  errorNameLetters: "Лише літери",
+  errorPhoneRequired: "Вкажіть телефон",
+  errorPhoneIncomplete: "Повний номер",
+  errorEmailInvalid: "Некоректний email",
 };
+const leadSchema = makeLeadSchema(T);
 
-describe("leadSchema (VRK)", () => {
-  // --- Позитивний шлях ---
+// Валідні дані форми (телефон — у форматі маски лендінгу)
+const validLead = { name: "Іван Петренко", phone: "+380 (99) 123-45-67" };
 
-  it("приймає мінімально валідні дані (ім'я + телефон)", () => {
-    const result = leadSchema.safeParse(validLead);
-    expect(result.success).toBe(true);
+describe("makeLeadSchema", () => {
+  it("приймає мінімально валідні дані (ім'я + телефон) і дефолти форми", () => {
+    expect(leadSchema.safeParse(validLead).success).toBe(true);
+    expect(leadSchema.safeParse({ ...leadDefaults, ...validLead }).success).toBe(true);
   });
 
-  it("приймає повний набір полів", () => {
+  it("приймає повний набір полів і нормалізує телефон у E.164", () => {
     const result = leadSchema.safeParse({
       ...validLead,
-      website: "example.com",
       comment: "Цікавить аудит кампаній",
       source: "hero",
-      adFormat: "Пошукова реклама",
-      budget: "1000–3000 $",
       service: "Аудит Google Ads",
-      goal: "Ліди",
       email: "ivan@example.com",
-      utm: {
-        utm_source: "google",
-        utm_medium: "cpc",
-        gclid: "abc123",
-        referrer: "https://google.com/",
-      },
-      page: "https://vrkpartners.com/?utm_source=google",
+      locale: "uk",
+      utm: { utm_source: "google", utm_medium: "cpc", gclid: "abc123", referrer: "https://google.com/" },
+      page: "https://vrk.com.ua/?utm_source=google",
     });
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data.phone).toBe("+380991234567");
   });
 
-  it("приймає телефон без маски (+380991234567 — 12 цифр)", () => {
-    const result = leadSchema.safeParse({ ...validLead, phone: "+380991234567" });
+  it("невідомі поля (website, adFormat, budget, goal) відкидаються без помилки", () => {
+    const result = leadSchema.safeParse({ ...validLead, website: "x.com", adFormat: "a", budget: "b", goal: "g" });
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty("website");
   });
 
-  it("приймає коментар рівно 1000 символів", () => {
-    const result = leadSchema.safeParse({ ...validLead, comment: "а".repeat(1000) });
-    expect(result.success).toBe(true);
+  it("телефон: без маски ок; неповний / порожній — помилка з текстом із messages", () => {
+    expect(leadSchema.safeParse({ ...validLead, phone: "+380991234567" }).success).toBe(true);
+    const short = leadSchema.safeParse({ ...validLead, phone: "+380 (99) 123-45" });
+    expect(short.success).toBe(false);
+    expect(short.error?.flatten().fieldErrors.phone).toEqual([T.errorPhoneIncomplete]);
+    const empty = leadSchema.safeParse({ ...validLead, phone: "" });
+    expect(empty.error?.flatten().fieldErrors.phone?.[0]).toBe(T.errorPhoneRequired);
   });
 
-  it("приймає порожній email і відсутній email", () => {
+  it("ім'я: порожнє / 1 символ / >60 / цифри — помилки з текстом із messages", () => {
+    expect(leadSchema.safeParse({ ...validLead, name: "" }).error?.flatten().fieldErrors.name?.[0]).toBe(T.errorNameMin);
+    expect(leadSchema.safeParse({ ...validLead, name: "І" }).success).toBe(false);
+    expect(leadSchema.safeParse({ ...validLead, name: "а".repeat(61) }).error?.flatten().fieldErrors.name?.[0]).toBe(T.errorNameMax);
+    expect(leadSchema.safeParse({ ...validLead, name: "Іван123" }).error?.flatten().fieldErrors.name?.[0]).toBe(T.errorNameLetters);
+  });
+
+  it("comment ≤ 500, service ≤ 50; email порожній/відсутній ок, некоректний — помилка", () => {
+    expect(leadSchema.safeParse({ ...validLead, comment: "а".repeat(500) }).success).toBe(true);
+    expect(leadSchema.safeParse({ ...validLead, comment: "а".repeat(501) }).success).toBe(false);
+    expect(leadSchema.safeParse({ ...validLead, service: "x".repeat(51) }).success).toBe(false);
     expect(leadSchema.safeParse({ ...validLead, email: "" }).success).toBe(true);
-    expect(leadSchema.safeParse(validLead).success).toBe(true);
+    expect(leadSchema.safeParse({ ...validLead, email: "not-an-email" }).error?.flatten().fieldErrors.email?.[0]).toBe(T.errorEmailInvalid);
   });
 
-  // --- Негативний шлях: телефон ---
-
-  it("відхиляє телефон з неповною кількістю цифр", () => {
-    const result = leadSchema.safeParse({ ...validLead, phone: "+380 (99) 123-45" });
-    expect(result.success).toBe(false);
-    const errors = result.error?.flatten().fieldErrors.phone;
-    expect(errors).toBeDefined();
-  });
-
-  it("відхиляє порожній телефон", () => {
-    const result = leadSchema.safeParse({ ...validLead, phone: "" });
-    expect(result.success).toBe(false);
-  });
-
-  // --- Негативний шлях: ім'я ---
-
-  it("відхиляє порожнє ім'я", () => {
-    const result = leadSchema.safeParse({ ...validLead, name: "" });
-    expect(result.success).toBe(false);
-    expect(result.error?.flatten().fieldErrors.name).toBeDefined();
-  });
-
-  it("відхиляє ім'я з одним символом (менше мінімуму 2)", () => {
-    const result = leadSchema.safeParse({ ...validLead, name: "І" });
-    expect(result.success).toBe(false);
-  });
-
-  it("відхиляє ім'я довше 60 символів", () => {
-    const result = leadSchema.safeParse({ ...validLead, name: "а".repeat(61) });
-    expect(result.success).toBe(false);
-  });
-
-  it("відхиляє ім'я з цифрами/символами", () => {
-    const result = leadSchema.safeParse({ ...validLead, name: "Іван123" });
-    expect(result.success).toBe(false);
-  });
-
-  // --- Негативний шлях: comment / email ---
-
-  it("відхиляє коментар довше 1000 символів", () => {
-    const result = leadSchema.safeParse({ ...validLead, comment: "а".repeat(1001) });
-    expect(result.success).toBe(false);
-  });
-
-  it("відхиляє некоректний email", () => {
-    const result = leadSchema.safeParse({ ...validLead, email: "not-an-email" });
-    expect(result.success).toBe(false);
-  });
-
-  // --- Honeypot (company) ---
-
-  it("відхиляє заповнений honeypot (company != '')", () => {
+  it("honeypot `company` проходить Zod (рішення — у сценарії, фейковий успіх)", () => {
     const result = leadSchema.safeParse({ ...validLead, company: "Spam Inc" });
-    expect(result.success).toBe(false);
-  });
-
-  it("приймає порожній company і відсутній company", () => {
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.company).toBe("Spam Inc");
     expect(leadSchema.safeParse({ ...validLead, company: "" }).success).toBe(true);
-    expect(leadSchema.safeParse(validLead).success).toBe(true);
   });
 
-  // --- website — РЕАЛЬНЕ поле (не honeypot) ---
-
-  it("приймає заповнений website (реальне поле «Сайт / ніша»)", () => {
-    const result = leadSchema.safeParse({ ...validLead, website: "https://shop.example.com" });
+  it("utm: задовгий gclid (>512) — помилка; невідомі ключі ігноруються", () => {
+    expect(leadSchema.safeParse({ ...validLead, utm: { gclid: "x".repeat(513) } }).success).toBe(false);
+    const result = leadSchema.safeParse({ ...validLead, utm: { utm_source: "google", yclid: "заборонено" } });
     expect(result.success).toBe(true);
-  });
-
-  // --- UTM ---
-
-  it("відхиляє utm з задовгим gclid (>512)", () => {
-    const result = leadSchema.safeParse({
-      ...validLead,
-      utm: { gclid: "x".repeat(513) },
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("ігнорує невідомі ключі в utm", () => {
-    const result = leadSchema.safeParse({
-      ...validLead,
-      utm: { utm_source: "google", yclid: "заборонено" },
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.utm).toEqual({ utm_source: "google" });
-    }
+    if (result.success) expect(result.data.utm).toEqual({ utm_source: "google" });
   });
 });

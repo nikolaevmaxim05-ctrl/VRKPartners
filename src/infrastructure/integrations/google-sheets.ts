@@ -2,6 +2,8 @@
 // Auth: service account JWT (RS256 на вбудованому crypto). Sheets API v4 values:append, RAW.
 // Конфігурація: IntegrationConfig (БД → env). Поведінка без змін.
 import { createHash, createSign } from 'crypto'
+import { normalizePhone as corePhone } from '@core/domain/lead/phone'
+import { normalizeEmail, emailForHash } from '@core/domain/lead/email'
 import type { IntegrationConfig, SettingsRepository } from '@core/application/ports/settings'
 import type {
   ConversionSheetExporter,
@@ -56,15 +58,10 @@ export function sha256hex(s: string): string {
   return createHash('sha256').update(s, 'utf8').digest('hex')
 }
 
-// E.164 з плюсом: "+380509663258" (плюс запобігає апострофу в Sheets).
-// Фаза 4: замінюється єдиною normalizePhone ядра.
-export function normalizePhone(phone: string | null | undefined): string {
-  if (!phone) return ''
-  const digits = phone.replace(/\D/g, '')
-  if (digits.startsWith('380')) return `+${digits}`
-  if (digits.startsWith('38') && digits.length >= 11) return `+${digits}`
-  if (digits.startsWith('0') && digits.length >= 9) return `+38${digits}`
-  return `+${digits}`
+// Нормалізація — ЄДИНІ функції ядра (розділ 15): телефон E.164 з плюсом (плюс запобігає апострофу
+// в Sheets), email — trim+lowercase у колонці, без крапок gmail — лише перед хешем.
+function normalizePhone(phone: string | null | undefined): string {
+  return phone ? corePhone(phone) : ''
 }
 
 // "YYYY-MM-DD HH:MM:SS" у київському часі
@@ -97,13 +94,13 @@ export type ConversionRowParams = {
 /** Числові колонки — JS number (Sheets RAW зберігає як INTEGER без апострофа). */
 export function buildConversionRow(params: ConversionRowParams): (string | number)[] {
   const phone = normalizePhone(params.phone)
-  const email = (params.email ?? '').toLowerCase().trim()
+  const email = params.email ? normalizeEmail(params.email) : ''
   const unixTs = Math.floor(new Date(params.conversionTime).getTime() / 1000)
   return [
     params.conversionAction,                  // Conversion Name
     email,                                    // email
     phone,                                    // phone_number
-    email ? sha256hex(email) : '',            // sha256_email_address
+    email ? sha256hex(emailForHash(email)) : '', // sha256_email_address (gmail без крапок)
     phone ? sha256hex(phone) : '',            // sha256_phone_number
     unixTs,                                   // conversion_event_time (number)
     readableKyivTime(params.conversionTime),  // event_time

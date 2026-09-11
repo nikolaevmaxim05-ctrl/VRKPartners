@@ -185,6 +185,12 @@ export type FormMessages = {
   doneTitle: string
   doneText: string
   closeLabel: string
+  errorNameMin: string
+  errorNameMax: string
+  errorNameLetters: string
+  errorPhoneRequired: string
+  errorPhoneIncomplete: string
+  errorEmailInvalid: string
 }
 
 export type ThanksMessages = { metaTitle: string; title: string; text: string; home: string }
