@@ -11,8 +11,8 @@ export const runtime = 'nodejs'
 export const GET = () => withAdmin([], async () => respond(await getTrackingTagUseCases().listTags()))
 
 export const POST = (request: NextRequest) =>
-  withAdmin(INTEGRATION_PERMISSIONS, async () => {
+  withAdmin(INTEGRATION_PERMISSIONS, async (actor) => {
     const body = await readJson(request)
     if (!body.ok) return body.response
-    return respond(await getTrackingTagUseCases().createTag(body.body))
+    return respond(await getTrackingTagUseCases().createTag(body.body, actor))
   })

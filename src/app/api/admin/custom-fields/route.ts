@@ -10,8 +10,8 @@ export const runtime = 'nodejs'
 export const GET = () => withAdmin([], async () => respond(await getCustomFieldUseCases().listFields()))
 
 export const POST = (request: NextRequest) =>
-  withAdmin(['manage_settings'], async () => {
+  withAdmin(['manage_settings'], async (actor) => {
     const body = await readJson(request)
     if (!body.ok) return body.response
-    return respond(await getCustomFieldUseCases().createField(body.body))
+    return respond(await getCustomFieldUseCases().createField(body.body, actor))
   })

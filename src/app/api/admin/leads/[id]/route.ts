@@ -26,8 +26,8 @@ export const PATCH = (request: NextRequest, { params }: RouteParams) =>
   })
 
 export const DELETE = (_request: NextRequest, { params }: RouteParams) =>
-  withAdmin(LEAD_DELETE_PERMISSIONS, async () => {
+  withAdmin(LEAD_DELETE_PERMISSIONS, async (actor) => {
     const { id } = await params
-    const result = await getLeadUseCases().deleteLead(id)
+    const result = await getLeadUseCases().deleteLead(id, actor)
     return result.ok ? NextResponse.json({ ok: true }) : respond(result)
   })

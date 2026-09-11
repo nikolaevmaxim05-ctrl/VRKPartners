@@ -19,6 +19,7 @@ import {
 } from "@composition/container";
 import { mergeSeo, effectiveOrg } from "@core/domain/content/seo";
 import type { AnalyticsEventsConfig } from "@core/domain/analytics/registry";
+import { adsSendToList } from "@core/domain/tracking/tags";
 import type { SiteMessages } from "@core/domain/content/site-messages";
 import { getDefaultSeo } from "@/shared/content/defaults";
 
@@ -40,17 +41,22 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-// Інлайн window.__analyticsEvents — повний merged-конфіг імен/вкл-викл подій.
+// Інлайн window.__analyticsEvents — повний merged-конфіг імен/вкл-викл подій, і
+// window.__awConversions — send_to Ads-тегів з conversion label (розділ 15: конверсія
+// викликається на сайті після gtag('set','user_data'), до generate_lead).
 // Значення вже пройшли whitelist-валідацію + екранування "<".
 function AnalyticsEventsScript({
   analyticsEvents,
+  awConversions,
 }: {
   analyticsEvents: AnalyticsEventsConfig;
+  awConversions: string[];
 }) {
   const json = JSON.stringify(analyticsEvents).replace(/</g, "\\u003c");
+  const aw = JSON.stringify(awConversions).replace(/</g, "\\u003c");
   return (
     <Script id="analytics-config" strategy="afterInteractive">
-      {`window.__analyticsEvents = ${json};`}
+      {`window.__analyticsEvents = ${json}; window.__awConversions = ${aw};`}
     </Script>
   );
 }
@@ -214,6 +220,7 @@ export default async function SiteLayout({
       : [];
 
   const hasAnyTag = gtmIds.length > 0 || gtagIds.length > 0;
+  const awConversions = adsSendToList(tags);
 
   return (
     <>
@@ -237,7 +244,7 @@ export default async function SiteLayout({
       ))}
 
       {/* Конфіг аналітики — window.__analyticsEvents (повний merged-конфіг) */}
-      <AnalyticsEventsScript analyticsEvents={analyticsEvents} />
+      <AnalyticsEventsScript analyticsEvents={analyticsEvents} awConversions={awConversions} />
 
       {/* Consent Mode v2 — ОДИН раз, до будь-яких тегів */}
       {hasAnyTag && <ConsentDefaults />}

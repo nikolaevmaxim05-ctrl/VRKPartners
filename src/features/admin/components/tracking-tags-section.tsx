@@ -2,8 +2,10 @@
 
 // Секція «Google теги» на сторінці «Інтеграції».
 // Список тегів (тип, ID, мітка, switch enabled, видалення з підтвердженням)
-// + форма додавання з селектом типу. Зміни застосовуються на лендингу
-// миттєво — API робить revalidatePath('/', 'layout').
+// + форма додавання з селектом типу. Для тегів Google Ads — поле Conversion label
+// (друга половина send_to: AW-XXX/LABEL): без нього відправка форми не викликає
+// конверсію Ads і Enhanced Conversions нема до чого привʼязатися.
+// Зміни застосовуються на лендингу миттєво — API робить revalidatePath('/', 'layout').
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/ui/button'
@@ -20,7 +22,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from '@/shared/ui/alert-dialog'
-import { Plus, Trash2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Loader2, Check } from 'lucide-react'
 import type { TrackingTag, TrackingTagType } from '@core/domain/tracking/tags'
 
 const TYPE_LABELS: Record<TrackingTagType, string> = {
@@ -39,9 +41,57 @@ type FormState = {
   type: TrackingTagType
   tag_id: string
   label: string
+  conversion_label: string
 }
 
-const EMPTY_FORM: FormState = { type: 'gtm', tag_id: '', label: '' }
+const EMPTY_FORM: FormState = { type: 'gtm', tag_id: '', label: '', conversion_label: '' }
+
+/** Інлайн-редактор Conversion label для тега Google Ads (зберігається окремим PATCH). */
+function ConversionLabelField({ tag, onSaved, onError }: { tag: TrackingTag; onSaved: (t: TrackingTag) => void; onError: (m: string) => void }) {
+  const [value, setValue] = useState(tag.conversion_label ?? '')
+  const [saving, setSaving] = useState(false)
+  const dirty = value.trim() !== (tag.conversion_label ?? '')
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/tracking-tags/${tag.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversion_label: value.trim() || null }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Помилка оновлення')
+      onSaved(json.data)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Помилка оновлення')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <span className="text-xs text-muted-foreground shrink-0">Conversion label:</span>
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="AbCdEfGhIjK"
+        className="h-7 w-40 font-mono text-xs"
+        aria-label={`Conversion label для ${tag.tag_id}`}
+        onKeyDown={(e) => { if (e.key === 'Enter' && dirty) save() }}
+      />
+      {dirty && (
+        <Button size="sm" variant="outline" className="h-7 px-2" onClick={save} disabled={saving} aria-label="Зберегти conversion label">
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+        </Button>
+      )}
+      {!tag.conversion_label && !dirty && (
+        <span className="text-xs text-destructive">без label конверсія Ads не викликається</span>
+      )}
+    </div>
+  )
+}
 
 export function TrackingTagsSection() {
   const [tags, setTags] = useState<TrackingTag[]>([])
@@ -73,12 +123,13 @@ export function TrackingTagsSection() {
           type: form.type,
           tag_id: tagId,
           label: form.label.trim() || null,
+          conversion_label: form.type === 'aw' ? form.conversion_label.trim() || null : null,
         }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Помилка збереження')
       setTags(prev => [...prev, json.data])
-      setForm(f => ({ ...f, tag_id: '', label: '' }))
+      setForm(f => ({ ...f, tag_id: '', label: '', conversion_label: '' }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка збереження')
     } finally {
@@ -133,7 +184,8 @@ export function TrackingTagsSection() {
         <CardTitle className="text-lg">Google теги</CardTitle>
         <CardDescription>
           GA4, Google Tag Manager та Google Ads. Увімкнені теги підключаються
-          на лендингу автоматично, без деплою.
+          на лендингу автоматично, без деплою. Для Google Ads вкажіть Conversion label —
+          тоді відправка форми викликає конверсію (send_to = AW-…/label).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -154,15 +206,22 @@ export function TrackingTagsSection() {
                 {tags.map(tag => (
                   <div
                     key={tag.id}
-                    className="flex items-center gap-3 rounded-md border px-3 py-2"
+                    className="flex items-start gap-3 rounded-md border px-3 py-2"
                   >
-                    <Badge variant="secondary" className="text-xs font-normal w-20 justify-center shrink-0">
+                    <Badge variant="secondary" className="mt-0.5 text-xs font-normal w-20 justify-center shrink-0">
                       {TYPE_LABELS[tag.type]}
                     </Badge>
                     <div className="min-w-0 flex-1">
                       <div className="font-mono text-sm">{tag.tag_id}</div>
                       {tag.label && (
                         <div className="text-xs text-muted-foreground truncate">{tag.label}</div>
+                      )}
+                      {tag.type === 'aw' && (
+                        <ConversionLabelField
+                          tag={tag}
+                          onSaved={(t) => setTags(prev => prev.map(x => x.id === t.id ? t : x))}
+                          onError={setError}
+                        />
                       )}
                     </div>
                     <Switch
@@ -210,6 +269,15 @@ export function TrackingTagsSection() {
                   className="font-mono text-sm w-48"
                   onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
                 />
+                {form.type === 'aw' && (
+                  <Input
+                    value={form.conversion_label}
+                    onChange={e => setForm(f => ({ ...f, conversion_label: e.target.value }))}
+                    placeholder="Conversion label"
+                    className="font-mono text-sm w-44"
+                    onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                  />
+                )}
                 <Input
                   value={form.label}
                   onChange={e => setForm(f => ({ ...f, label: e.target.value }))}

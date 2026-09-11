@@ -11,8 +11,8 @@ export const runtime = 'nodejs'
 export const GET = () => withAdmin([], async () => respond(await getRoleUseCases().listRoles()))
 
 export const POST = (request: NextRequest) =>
-  withAdmin(ROLE_PERMISSIONS, async () => {
+  withAdmin(ROLE_PERMISSIONS, async (actor) => {
     const body = await readJson<{ name?: string; permissions?: unknown }>(request)
     if (!body.ok) return body.response
-    return respond(await getRoleUseCases().createRole(body.body))
+    return respond(await getRoleUseCases().createRole(body.body, actor))
   })

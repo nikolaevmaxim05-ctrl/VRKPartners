@@ -25,8 +25,8 @@ export const PUT = (request: NextRequest, { params }: RouteParams) =>
   })
 
 export const DELETE = (_request: NextRequest, { params }: RouteParams) =>
-  withAdmin(INTEGRATION_PERMISSIONS, async () => {
+  withAdmin(INTEGRATION_PERMISSIONS, async (actor) => {
     const { key } = await params
-    const result = await getIntegrationUseCases().deleteIntegration(key)
+    const result = await getIntegrationUseCases().deleteIntegration(key, actor)
     return result.ok ? NextResponse.json({ ok: true }) : errorResponse(result)
   })

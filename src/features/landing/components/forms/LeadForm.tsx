@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { makeLeadSchema, leadDefaults, type LeadInput } from "@core/domain/lead/schema";
-import { track } from "@/shared/lib/analytics";
+import { track, fireAdsConversions } from "@/shared/lib/analytics";
 import { setEnhancedConversionUserData } from "@/features/landing/lib/enhanced-conversions";
 import { getStoredUtm } from "@/features/landing/lib/utm";
 import { useSiteMessages } from "@/features/landing/lib/messages";
@@ -98,12 +98,13 @@ export function LeadForm({
         }
         return;
       }
-      // C4: Enhanced Conversions — передаємо хешовані email/телефон у gtag ДО
-      // події-конверсії generate_lead, щоб Google краще матчив конверсію.
+      // Розділ 15, жорсткий порядок: 1) gtag('set','user_data') з хешами (Enhanced Conversions);
+      // 2) gtag('event','conversion',{send_to}) для Ads-тегів з label; 3) generate_lead.
       await setEnhancedConversionUserData({
         email: data.email || undefined,
         phone: data.phone,
       });
+      fireAdsConversions();
       track("form_submit_success", { source });
       if (inlineSuccess) {
         setDone(true);

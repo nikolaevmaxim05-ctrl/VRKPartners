@@ -7,44 +7,10 @@ import {
   SidebarGroupContent, SidebarGroupLabel, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarHeader,
 } from '@/shared/ui/sidebar'
-import {
-  PhoneCall, Plug, TrendingUp, Users, Shield,
-  Settings, LogOut, BarChart3, RotateCcw, FileText, Scale,
-} from 'lucide-react'
+import { LayoutGrid, LogOut } from 'lucide-react'
 import { createClient } from '@infra/supabase/client'
 import type { Permission } from '@core/domain/access/permissions'
-
-// ----------------------------------------------------------------
-// Верхні пункти (Заявки, Аналітика — умовно за правами)
-// ----------------------------------------------------------------
-const topNavItems = [
-  { href: '/admin/leads',     label: 'Заявки',    icon: PhoneCall  },
-  // Аналітика — рендериться тільки якщо є view_reports (перевірка нижче)
-  { href: '/admin/analytics', label: 'Аналітика', icon: BarChart3, permission: 'view_reports' as Permission },
-]
-
-// ----------------------------------------------------------------
-// Нижня група: Інтеграції, Користувачі, Ролі, Офлайн конверсії, Налаштування
-// (порядок: Офлайн конверсії — НАД Налаштуваннями)
-// ----------------------------------------------------------------
-const bottomNavItems = [
-  { href: '/admin/content',      label: 'Контент',          icon: FileText,
-    anyPermission: ['manage_content'] as Permission[] },
-  { href: '/admin/legal',        label: 'Юридичні документи', icon: Scale,
-    anyPermission: ['manage_content'] as Permission[] },
-  { href: '/admin/integrations', label: 'Інтеграції',       icon: Plug,
-    anyPermission: ['manage_settings', 'manage_integrations'] as Permission[] },
-  { href: '/admin/users',        label: 'Користувачі',      icon: Users,
-    anyPermission: ['manage_users'] as Permission[] },
-  { href: '/admin/roles',        label: 'Ролі',             icon: Shield,
-    anyPermission: ['manage_roles', 'manage_users'] as Permission[] },
-  { href: '/admin/conversions',  label: 'Офлайн конверсії', icon: TrendingUp,
-    anyPermission: ['manage_conversions', 'manage_users'] as Permission[] },
-  { href: '/admin/conversion-adjustments', label: 'Корекції конверсій', icon: RotateCcw,
-    anyPermission: ['manage_conversions', 'manage_users'] as Permission[] },
-  { href: '/admin/settings',     label: 'Налаштування',     icon: Settings,
-    anyPermission: ['manage_settings'] as Permission[] },
-]
+import { visibleSections } from '@/features/admin/lib/sections'
 
 type AdminSidebarProps = {
   user: { email: string | null }
@@ -52,6 +18,8 @@ type AdminSidebarProps = {
   roleLabel?: string
 }
 
+// Меню адмінки — один масив розділів (features/admin/lib/sections.ts), той самий, що й картки
+// головної: пункт показується, якщо є хоча б одне з прав anyPermission.
 export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміністратор' }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -63,23 +31,12 @@ export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміні
     router.refresh()
   }
 
-  // Відфільтровуємо topNavItems за правами
-  const visibleTopNavItems = topNavItems.filter((item) => {
-    if (!item.permission) return true
-    return permissions.includes(item.permission)
-  })
-
-  // Нижні пункти: ховаємо ті, що вимагають прав, яких немає
-  const visibleBottomNavItems = bottomNavItems.filter((item) => {
-    const anyPerm = (item as { anyPermission?: Permission[] }).anyPermission
-    if (!anyPerm) return true
-    return anyPerm.some((p) => permissions.includes(p))
-  })
+  const items = visibleSections(permissions)
 
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
+        <Link href="/admin" className="flex items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-primary-foreground text-sm font-bold">V</span>
           </div>
@@ -87,7 +44,7 @@ export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміні
             <p className="text-sm font-semibold">VRK Partners</p>
             <p className="text-xs text-muted-foreground">Адмін-панель</p>
           </div>
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>
@@ -95,14 +52,17 @@ export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміні
           <SidebarGroupLabel>Меню</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-
-              {/* ── Верхні пункти: Заявки, (Аналітика за правами) ── */}
-              {visibleTopNavItems.map((item) => (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/admin'}>
+                  <Link href="/admin">
+                    <LayoutGrid className="h-4 w-4" />
+                    <span>Головна</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {items.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(item.href)}
-                  >
+                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
@@ -110,22 +70,6 @@ export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміні
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-
-              {/* ── Нижні пункти: Інтеграції, Користувачі, Ролі, Офлайн конверсії, Налаштування ── */}
-              {visibleBottomNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(item.href)}
-                  >
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

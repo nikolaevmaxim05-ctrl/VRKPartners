@@ -26,6 +26,25 @@ declare global {
     gtag?: (...args: unknown[]) => void;
     /** Конфіг подій з адмінки — інлайниться сервером, може бути відсутнім */
     __analyticsEvents?: AnalyticsEventsConfig;
+    /** send_to Ads-тегів з conversion label (AW-XXX/LABEL) — інлайниться сервером */
+    __awConversions?: string[];
+  }
+}
+
+// --- Конверсія Google Ads при відправці форми (розділ 15) ---
+// gtag('event','conversion',{send_to}) для кожного Ads-тега з conversion label.
+// Лише gtag: у dataLayer і Plausible НЕ дублюється. Викликати ПІСЛЯ gtag('set','user_data')
+// і ДО track('form_submit_success').
+export function fireAdsConversions(): void {
+  if (typeof window === "undefined") return;
+  if (typeof window.gtag !== "function") return;
+  const list = Array.isArray(window.__awConversions) ? window.__awConversions : [];
+  for (const sendTo of list) {
+    try {
+      window.gtag("event", "conversion", { send_to: sendTo });
+    } catch {
+      // Аналітика ніколи не повинна ламати UI
+    }
   }
 }
 

@@ -56,8 +56,10 @@ const PUBLIC_ADMIN_PAGES = ['/admin/login', '/admin/set-password']
 
 const intlMiddleware = createMiddleware(routing)
 
-/** Файлові маршрути (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не сторінки сайту. */
-const isFilePath = (pathname: string) => /\.[^/]+$/.test(pathname)
+/** Файлові маршрути (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не сторінки сайту.
+ * Перевірка ЗА РОЗШИРЕННЯМ (розділ 16): адреса на кшталт /foo.bar лишається сторінкою і йде в next-intl. */
+const STATIC_FILE_RE = /\.(?:ico|png|jpe?g|gif|webp|avif|svg|css|js|map|txt|xml|json|webmanifest|woff2?|ttf|otf|eot|mp4|webm|pdf)$/i
+const isFilePath = (pathname: string) => STATIC_FILE_RE.test(pathname)
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -101,6 +103,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf)$).*)',
+    '/((?!_next|_vercel|.*\\.(?:ico|png|jpe?g|gif|webp|avif|svg|css|js|map|txt|xml|json|webmanifest|woff2?|ttf|otf|eot|mp4|webm|pdf)$).*)',
   ],
 }
