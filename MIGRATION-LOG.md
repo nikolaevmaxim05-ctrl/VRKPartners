@@ -154,4 +154,20 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   Итог сверки с новым `messages/uk.json`: все ключи правок клиента существуют под теми же
   именами, кроме `trust.eyebrow` и `trust.cta` (удалены из дефолтов как не выводимые;
   значения клиента равны дефолтам — текст с сайта не исчезает). Операции MIG-CONTENT-01/02/03
-  — **не применены**, ждут подтверждения владельца (SQL — раздел 4).
+  — на тот момент не применены.
+- **2026-09-11, Фаза 3 (ассистент через Supabase MCP, по решению владельца).** Применены
+  MIG-CONTENT-02, -01, -03 одной сессией:
+  1. Бэкап — строки-копии в той же таблице: `backup:landing:2026-09-11`,
+     `backup:seo:2026-09-11` (полные `data/updated_at/updated_by`). Код их не читает.
+     Откат: `update site_content l set data = b.data from site_content b where b.id = 'backup:landing:2026-09-11' and l.id = 'landing'`
+     (аналогично для `seo`). Удалить бэкапы после стабилизации:
+     `delete from site_content where id like 'backup:%'`.
+  2. MIG-CONTENT-02: `landing.home = {"hidden":["about"]}` — «Про нас» скрыт как правка клиента.
+  3. MIG-CONTENT-01: из `landing.trust` удалены `cta, eyebrow, title, caseHint, ctaSecondary, niches,
+     highlights` (условие равенства дефолтам выполнилось). Осталось `trust = { facts, caseGroups }`
+     (5 ниш, как и было).
+  4. MIG-CONTENT-03: `seo.data` → `{}` (удалены мёртвые `orgEmail`, `orgPhone`).
+  Проверка после: `landing` → `hero, home, site, trust`; `seo` → пусто. `updated_at` строк не
+  менялся (клиентские метки времени сохранены). Старый код на проде (до деплоя Фазы 3) этих
+  изменений не замечает: `home` игнорирует, отсутствующие скаляры `trust.*` берёт из дефолтов
+  с теми же значениями.
