@@ -48,3 +48,8 @@ HANDOVER-checklist.md
 SESSION-SUMMARY.md
 DEPLOY-TODO.md
 SETUP-PLAN.md
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/

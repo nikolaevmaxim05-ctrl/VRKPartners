@@ -67,7 +67,9 @@ Graph, JSON-LD), трекінг-теги (GTM / GA4 / Google Ads) з подія�
 - `supabase/migrations/` — схема БД (застосовувати по порядку)
 - `docs/` — інструкції (зокрема резервне копіювання БД)
 
-Перевірки: `npx tsc --noEmit && npm run lint && npm run test && npm run depcheck && npm run build`.
+Перевірки: `npx tsc --noEmit && npm run lint && npm run test && npm run depcheck && npm run build`,
+потім на прод-збірці: `npx playwright test` (сам стартує `next start --port 3100` з `E2E_CONTENT_OVERRIDES=1`)
+і `node scripts/check-overflow.js http://127.0.0.1:3100`.
 
 ## Налаштування
 
