@@ -98,6 +98,24 @@ describe('validateMessages', () => {
     }
   })
 
+  it('елемент масиву без обовʼязкового вкладеного масиву → порожній масив (не дефолтний); необовʼязковий (approach) не дозаповнюється', () => {
+    const defs = { trust: { caseGroups: [{ id: 'g1', niche: 'N', cases: [{ id: 'c1', client: 'C', title: 'T', metrics: [{ label: 'l', value: 'v' }], approach: ['a'] }, { id: 'c2', client: 'D', title: 'U', metrics: [] }] }] } }
+    const r = validateMessages(defs, { trust: { caseGroups: [{ id: 'g2', niche: 'X' }, { id: 'g3', niche: 'Y', cases: [{ id: 'c9', client: 'K', title: 'Q' }] }] } })
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.value.trust.caseGroups[0]).toEqual({ id: 'g2', niche: 'X', cases: [] })
+      expect(r.value.trust.caseGroups[1].cases[0]).toEqual({ id: 'c9', client: 'K', title: 'Q', metrics: [] })
+    }
+  })
+
+  it('site.telegram і site.telegramCtaUrl — лише t.me/telegram.me (рендеряться в href)', () => {
+    const defs = { site: { telegram: 'https://t.me/a', telegramCtaUrl: 'https://t.me/b' } }
+    expect(validateMessages(defs, { site: { telegram: 'javascript:alert(1)' } }).ok).toBe(false)
+    expect(validateMessages(defs, { site: { telegram: 'https://evil.example/x' } }).ok).toBe(false)
+    expect(validateMessages(defs, { site: { telegram: 'https://telegram.me/vrk' } }).ok).toBe(true)
+    expect(validateMessages(defs, { site: { telegram: '' } }).ok).toBe(true)
+  })
+
   it('перевищення ліміту → помилка зі шляхом', () => {
     const r = validateMessages(defaults, { hero: { title: 'x'.repeat(81) } })
     expect(r.ok).toBe(false)

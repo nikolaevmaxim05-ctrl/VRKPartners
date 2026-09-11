@@ -15,6 +15,7 @@ function setup(over: Partial<Record<string, unknown>> = {}) {
     updateState: vi.fn(async () => dbOk(undefined)),
     markExportedByLead: vi.fn(async () => dbOk(undefined)),
     markPendingByLead: vi.fn(async () => dbOk(undefined)),
+    markRetractedByLead: vi.fn(async () => dbOk(undefined)),
     getExportedAt: vi.fn(async () => null as string | null),
     listPage: vi.fn(),
     countPending: vi.fn(),
@@ -67,13 +68,20 @@ const row: AdjustmentRow = {
   adjustment_time: '2026-01-15T08:30:00.000Z',
 }
 
-describe('recordAdjustment: після RETRACT конверсія знову pending (повторний enter відправить її заново)', () => {
-  it('retract → markPendingByLead; restate → ні', async () => {
+describe('recordAdjustment: після RETRACT конверсія стає retracted (не в черзі масового вивантаження)', () => {
+  it('retract → markRetractedByLead (не pending); restate → ні', async () => {
     const { flow, conversions } = setup()
     await flow.recordAdjustment({ leadId: 'l1', orderNo: 1, conversionAction: 'a', type: 'retract' })
-    expect(conversions.markPendingByLead).toHaveBeenCalledWith('l1')
+    expect(conversions.markRetractedByLead).toHaveBeenCalledWith('l1')
+    expect(conversions.markPendingByLead).not.toHaveBeenCalled()
     await flow.recordAdjustment({ leadId: 'l1', orderNo: 1, conversionAction: 'a', type: 'restate', value: 5 })
-    expect(conversions.markPendingByLead).toHaveBeenCalledTimes(1)
+    expect(conversions.markRetractedByLead).toHaveBeenCalledTimes(1)
+  })
+
+  it('markConversionPendingByLead повертає конверсію в чергу', async () => {
+    const { flow, conversions } = setup()
+    await flow.markConversionPendingByLead('l1')
+    expect(conversions.markPendingByLead).toHaveBeenCalledWith('l1')
   })
 })
 

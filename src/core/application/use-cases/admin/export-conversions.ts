@@ -56,6 +56,10 @@ export function makeConversionExportUseCases(deps: {
     if (!res.ok) return fail('failed', res.error)
     const conv = res.data
     if (!conv?.lead) return fail('not_found', 'Конверсію або відповідного ліда не знайдено')
+    if (conv.export_status === 'retracted') {
+      // Відкликану конверсію не відправляємо вручну — інакше RETRACT у Google буде перебито.
+      return fail('invalid', 'Конверсію відкликано (RETRACT). Повторна відправка — після повернення ліда на конверсійну стадію')
+    }
     const lead = conv.lead
     try {
       const sent = await sheets.sendConversion({

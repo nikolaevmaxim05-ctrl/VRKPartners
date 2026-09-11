@@ -22,6 +22,17 @@ describe('getClientIp — ланцюжок розділу 8', () => {
     expect(getClientIp(h({ 'x-forwarded-for': ' , , ' }))).toBe(UNKNOWN_IP)
   })
 
+  it('не-IP у заголовку (спуфінг/сміття) пропускається — далі ланцюжком, у inet не потрапляє', () => {
+    expect(getClientIp(h({ 'cf-connecting-ip': 'foo', 'x-forwarded-for': '1.2.3.4' }))).toBe('1.2.3.4')
+    expect(getClientIp(h({ 'cf-connecting-ip': '10.0.0.999', 'x-real-ip': '5.5.5.5' }))).toBe('5.5.5.5')
+    expect(getClientIp(h({ 'x-forwarded-for': 'unknown, 1.2.3.4' }))).toBe(UNKNOWN_IP)
+    expect(getClientIp(h({ 'x-forwarded-for': "1.2.3.4' or 1=1" }))).toBe(UNKNOWN_IP)
+  })
+
+  it('IPv6 приймається', () => {
+    expect(getClientIp(h({ 'x-forwarded-for': '2a02:1234::1' }))).toBe('2a02:1234::1')
+  })
+
   it('різні IP → різні ключі', () => {
     expect(getClientIp(h({ 'x-forwarded-for': '1.1.1.1' }))).not.toBe(getClientIp(h({ 'x-forwarded-for': '2.2.2.2' })))
   })

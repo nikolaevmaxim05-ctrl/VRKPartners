@@ -18,7 +18,7 @@ const CONVERSION_LIST_SELECT = `
 `
 
 const CONVERSION_EXPORT_SELECT = `
-  id, lead_id, conversion_value,
+  id, lead_id, export_status, conversion_value,
   lead:leads(
     id, order_no, email, phone, gclid, gbraid, wbraid,
     status:lead_statuses(conversion_action)
@@ -81,6 +81,14 @@ export function makeConversionRepository(db: () => Db): ConversionRepository {
       const { error } = await db()
         .from('offline_conversions')
         .update({ export_status: 'pending', exported_at: null })
+        .eq('lead_id', leadId)
+      return error ? dbFail(error.message) : dbOk(undefined)
+    },
+
+    async markRetractedByLead(leadId) {
+      const { error } = await db()
+        .from('offline_conversions')
+        .update({ export_status: 'retracted', exported_at: null })
         .eq('lead_id', leadId)
       return error ? dbFail(error.message) : dbOk(undefined)
     },

@@ -268,10 +268,11 @@ export default async function SiteLayout({
         />
       )}
 
-      {/* JSON-LD Organization — SEO лендінгу */}
+      {/* JSON-LD Organization — SEO лендінгу. Значення редагує клієнт — «<» екрануємо,
+          щоб «</script>» у тексті не закрив тег (stored XSS). */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       {/* Збір UTM-міток у sessionStorage (атрибуція заявок) */}

@@ -187,7 +187,9 @@ tests/e2e/*.spec.ts, playwright.config.ts              e2e на локально
 scripts/check-overflow.js                              скан переполнения: страницы × ширины
 ```
 
-- Тесты: 35 файлов / 468 юнит-тестов; e2e — 8 сценариев × 2 вьюпорта (+ admin skip).
+- Тесты: 35 файлов / 475 юнит-тестов; e2e — 10 сценариев × 2 вьюпорта (+ admin skip).
+- Ревью после Фазы 6: `offline_conversions.export_status` — три состояния (`pending | exported |
+  retracted`, миграция 034), `presentation/client-ip` валидирует IP, шапка измеряет оба блока копиями.
 
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 

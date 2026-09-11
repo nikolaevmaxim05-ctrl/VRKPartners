@@ -19,7 +19,7 @@ type Conversion = {
   conversion_value: number | null
   conversion_currency: string
   conversion_time: string
-  export_status: 'pending' | 'exported'
+  export_status: 'pending' | 'exported' | 'retracted'
   exported_at: string | null
   lead: {
     id: string
@@ -222,8 +222,8 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
                     {formatTime(conv.conversion_time)}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={conv.export_status === 'exported' ? 'secondary' : 'default'}>
-                      {conv.export_status === 'exported' ? 'Експортовано' : 'Очікує'}
+                    <Badge variant={conv.export_status === 'exported' ? 'secondary' : conv.export_status === 'retracted' ? 'outline' : 'default'}>
+                      {conv.export_status === 'exported' ? 'Експортовано' : conv.export_status === 'retracted' ? 'Відкликано' : 'Очікує'}
                     </Badge>
                     {conv.exported_at && (
                       <div className="text-xs text-muted-foreground mt-0.5">

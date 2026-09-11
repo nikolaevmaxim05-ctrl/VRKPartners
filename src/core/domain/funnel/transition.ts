@@ -94,7 +94,7 @@ export type RecordOutcome =
 
 export type ExistingConversionState = {
   id: string
-  export_status: 'pending' | 'exported'
+  export_status: 'pending' | 'exported' | 'retracted'
   conversion_action: string
 }
 

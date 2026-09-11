@@ -191,3 +191,9 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   `033_rls_unify_fk_indexes` (политики: чтение только активному админу, `site_content` — запись
   только `service_role`; 5 индексов; CHECK `offline_conversions.export_status`). Откат 033 —
   политики из 001/025 (широкое чтение `authenticated`), откат 032 — пересоздать по 001/010.
+- **2026-09-11, ревью после Фазы 6 (ассистент, только SELECT).** `offline_conversions` и
+  `conversion_adjustments` пусты; `site_content.landing.site.telegram = https://t.me/…` (проходит
+  новую проверку t.me). Создан файл `034_offline_conversions_retracted.sql` (CHECK
+  `export_status in ('pending','exported','retracted')`) — **не применён**, ждёт решения владельца;
+  применять до пуша кода. Откат — вернуть CHECK из 033 (строк со статусом `retracted` на момент
+  отката быть не должно: `select count(*) from offline_conversions where export_status='retracted'`).

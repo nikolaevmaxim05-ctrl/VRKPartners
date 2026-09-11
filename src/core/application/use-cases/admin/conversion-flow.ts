@@ -145,6 +145,12 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
     return res.data
   }
 
+  /** Повертає відкликану конверсію в чергу (повторний enter після RETRACT). */
+  async function markConversionPendingByLead(leadId: string): Promise<void> {
+    const res = await conversions.markPendingByLead(leadId)
+    if (!res.ok) console.error('[conversions] mark_pending_failed', res.error)
+  }
+
   /** Помічає конверсію ліда як вивантажену (після успішної відправки в Sheets). */
   async function markConversionExportedByLead(leadId: string): Promise<void> {
     const res = await conversions.markExportedByLead(leadId, clock.now().toISOString())
@@ -198,10 +204,12 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
     }
     console.log('[adjustments] recorded', { id: res.data.id, type: params.type, orderNo: params.orderNo })
     if (params.type === 'retract') {
-      // Відкликана конверсія знову pending: повторний перехід на конверсійну стадію відправить її
-      // заново (рішення власника), а наступний RETRACT дозволений лише після нового експорту.
-      const reset = await conversions.markPendingByLead(params.leadId)
-      if (!reset.ok) console.error('[adjustments] mark_pending_failed', reset.error)
+      // Відкликана конверсія → 'retracted': НЕ в черзі масового вивантаження (інакше «Вивантажити
+      // всі pending» перебʼє RETRACT новою конверсією). Повторний перехід на конверсійну стадію
+      // поверне її в pending і відправить заново (рішення власника); наступний RETRACT дозволений
+      // лише після нового експорту.
+      const reset = await conversions.markRetractedByLead(params.leadId)
+      if (!reset.ok) console.error('[adjustments] mark_retracted_failed', reset.error)
     }
     return res.data
   }
@@ -234,6 +242,7 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
   return {
     recordConversion,
     getConversionByLead,
+    markConversionPendingByLead,
     markConversionExportedByLead,
     recordAdjustment,
     markAdjustmentExported,

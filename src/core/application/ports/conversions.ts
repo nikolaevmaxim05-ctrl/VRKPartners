@@ -9,9 +9,12 @@ export type ConversionState = {
   conversion_type: string | null
 }
 
+/** pending — у черзі вивантаження; exported — у Google; retracted — відкликана (RETRACT), не в черзі. */
+export type ExportStatus = 'pending' | 'exported' | 'retracted'
+
 export type ExistingConversion = {
   id: string
-  export_status: 'pending' | 'exported'
+  export_status: ExportStatus
   conversion_action: string
   conversion_type: string | null
   conversion_value: number | null
@@ -32,6 +35,7 @@ export type ConversionInsert = {
 /** Рядок конверсії з даними ліда — для повторної/масової відправки. */
 export type ConversionExportRow = {
   id: string
+  export_status: ExportStatus
   conversion_value: number | string | null
   lead: {
     id: string
@@ -53,8 +57,10 @@ export interface ConversionRepository {
   insert(row: ConversionInsert): Promise<DbResult<void>>
   updateState(leadId: string, state: { conversion_action: string; conversion_type: string | null; conversion_value: number | null }): Promise<DbResult<void>>
   markExportedByLead(leadId: string, atIso: string): Promise<DbResult<void>>
-  /** Після RETRACT: конверсія знову «не вивантажена» — повторний enter відправить її заново. */
+  /** Повернення в чергу (повторний enter після RETRACT): знову 'pending', exported_at = null. */
   markPendingByLead(leadId: string): Promise<DbResult<void>>
+  /** Після RETRACT: 'retracted' — не в черзі масового вивантаження, доки лід не повернеться на конверсійну стадію. */
+  markRetractedByLead(leadId: string): Promise<DbResult<void>>
   getExportedAt(leadId: string): Promise<string | null>
   listPage(page: number, limit: number): Promise<DbResult<PageResult>>
   countPending(): Promise<number>

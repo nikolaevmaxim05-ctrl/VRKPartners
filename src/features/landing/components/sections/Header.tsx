@@ -16,6 +16,19 @@ import { cn } from "@/shared/lib/utils";
 
 /** Запас між пунктами меню і правим блоком (px), щоб поріг спрацьовував із невеликим люфтом. */
 const NAV_SLACK = 24;
+/** Проміжки бару (gap-4) між логотипом, меню і правим блоком. */
+const BAR_GAPS = 16 * 2;
+
+const PHONE_CLS =
+  "btn-focus inline-flex items-center gap-2 whitespace-nowrap rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]";
+
+function PhoneIcon() {
+  return (
+    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 ring-1 ring-brand/30">
+      <Phone className="h-4 w-4 text-brand" />
+    </span>
+  );
+}
 
 export function Header() {
   const { openLead } = useLeadModal();
@@ -31,7 +44,7 @@ export function Header() {
   const barRef = React.useRef<HTMLDivElement>(null);
   const logoRef = React.useRef<HTMLAnchorElement>(null);
   const measureRef = React.useRef<HTMLDivElement>(null);
-  const actionsRef = React.useRef<HTMLDivElement>(null);
+  const actionsMeasureRef = React.useRef<HTMLDivElement>(null);
 
   // Посилання на прихований блок не виводиться ніде (розділ 9).
   const nav = NAV_ITEMS.filter((item) => vis.shown(item.id) && navLabels[item.id].trim() !== "").map(
@@ -47,17 +60,21 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Вимір: логотип + сума ширин пунктів (невидима копія) + правий блок (телефон, кнопки) > ширини бару → бургер.
+  // Вимір: логотип + сума ширин пунктів + правий блок (телефон, кнопки) > ширини бару → бургер.
+  // Пункти і правий блок міряються НЕВИДИМИМИ КОПІЯМИ (завжди в потоці): справжні блоки в
+  // компактному стані display:none і дали б 0 — поріг «дриґався» б туди-сюди.
   React.useEffect(() => {
     const measure = () => {
       const bar = barRef.current;
       const items = measureRef.current;
-      if (!bar || !items) return;
+      const actions = actionsMeasureRef.current;
+      if (!bar || !items || !actions) return;
       const logoW = logoRef.current?.offsetWidth ?? 0;
-      const actionsW = actionsRef.current?.scrollWidth ?? 0;
-      const gaps = 16 * 2 + 28 * Math.max(nav.length - 1, 0);
-      const needed = logoW + items.scrollWidth + gaps + actionsW + NAV_SLACK;
-      setCompact(needed > bar.clientWidth);
+      const needed = logoW + items.offsetWidth + actions.offsetWidth + BAR_GAPS + NAV_SLACK;
+      // clientWidth бару включає його внутрішні відступи (container-x) — порівнюємо з контентною шириною.
+      const cs = getComputedStyle(bar);
+      const available = bar.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      setCompact(needed > available);
     };
     measure();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
@@ -68,7 +85,6 @@ export function Header() {
       ro?.disconnect();
       window.removeEventListener("resize", measure);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navKey, site.phone, header.consultShort]);
 
   // Scrollspy: активна — остання секція, чий верх перетнув лінію ~35% висоти вікна.
@@ -125,11 +141,24 @@ export function Header() {
           <Logo />
         </a>
 
-        {/* Невидима копія пунктів для виміру сумарної ширини (той самий шрифт/розмір). */}
-        <div ref={measureRef} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 -z-10 h-0 w-0 overflow-hidden whitespace-nowrap text-sm font-medium opacity-0">
-          {nav.map((item) => (
-            <span key={item.href} className="inline-block">{item.label}</span>
-          ))}
+        {/* Невидимі копії пунктів і правого блоку для виміру ширин (той самий шрифт/розмір/проміжки).
+            Зовнішній блок 0×0 з overflow-hidden — не впливає на розкладку; inert — поза фокусом і a11y. */}
+        <div aria-hidden="true" inert className="pointer-events-none absolute left-0 top-0 -z-10 h-0 w-0 overflow-hidden opacity-0">
+          <div className="flex w-max items-center">
+            <div ref={measureRef} className="flex items-center gap-7 whitespace-nowrap text-sm font-medium">
+              {nav.map((item) => (
+                <span key={item.href}>{item.label}</span>
+              ))}
+            </div>
+            <div ref={actionsMeasureRef} className="flex items-center gap-4">
+              <span className={PHONE_CLS}>
+                <PhoneIcon />
+                {site.phone}
+              </span>
+              <Button size="sm" tabIndex={-1}>{header.consultShort}</Button>
+              <TelegramCtaButton placement="header" size="sm" iconOnly />
+            </div>
+          </div>
         </div>
 
         <nav className={cn("items-center gap-7", desktopCls)} aria-label={header.navAria}>
@@ -153,17 +182,15 @@ export function Header() {
           })}
         </nav>
 
-        <div ref={actionsRef} className={cn("items-center gap-4", desktopCls)}>
+        <div className={cn("items-center gap-4", desktopCls)}>
           <CopyContactLink
             value={site.phone}
             type="phone"
             href={site.phoneHref}
             onClick={() => track("header_phone_click", { source: "header_phone" })}
-            className="btn-focus inline-flex items-center gap-2 whitespace-nowrap rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
+            className={PHONE_CLS}
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 ring-1 ring-brand/30">
-              <Phone className="h-4 w-4 text-brand" />
-            </span>
+            <PhoneIcon />
             {site.phone}
           </CopyContactLink>
           <Button size="sm" onClick={handleConsult}>

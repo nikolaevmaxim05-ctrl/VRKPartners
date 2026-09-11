@@ -10,6 +10,7 @@ import { useSiteMessages } from "@/features/landing/lib/messages";
 import { contentList, hasText } from "@core/domain/content/messages";
 import type { CaseItem } from "@core/domain/content/site-messages";
 import { nbHyphen } from "@/shared/lib/nb-hyphen";
+import { fitAll } from "@/features/landing/lib/fit-text";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
 
@@ -20,11 +21,20 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   // Рівень 1 — ніша, Рівень 2 — кейс усередині ніші.
   const [nicheIdx, setNicheIdx] = React.useState(0);
   const [caseIdx, setCaseIdx] = React.useState(0);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+
+  // Панель кейсу пересоздається (key) — нові [data-fit] метрики треба підігнати без resize.
+  React.useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => fitAll(el));
+    return () => cancelAnimationFrame(raf);
+  }, [nicheIdx, caseIdx]);
 
   // Порожні ніші/кейси (без назви) не виводяться; кейси мають опційні task/approach/image.
   const caseGroups = trust.caseGroups
     .filter((g) => hasText(g.niche))
-    .map((g) => ({ ...g, cases: g.cases.filter((c) => hasText(c.client)) }))
+    .map((g) => ({ ...g, cases: (g.cases ?? []).filter((c) => hasText(c.client)) }))
     .filter((g) => g.cases.length > 0);
   const group = caseGroups[nicheIdx] ?? caseGroups[0];
   const current = group?.cases[caseIdx] ?? group?.cases[0];
@@ -32,6 +42,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   const facts = contentList(trust.facts);
   const niches = contentList(trust.niches);
   const highlights = trust.highlights.filter((h) => hasText(h.value));
+  const metrics = (cur?.metrics ?? []).filter((m) => hasText(m.value));
 
   const selectNiche = (i: number) => {
     setNicheIdx(i);
@@ -205,6 +216,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
             {/* Крок 3 — контент кейсу */}
             <div
               key={`${nicheIdx}-${caseIdx}`}
+              ref={panelRef}
               role="tabpanel"
               className="mt-6 animate-fade-up border-t border-bg-line pt-6"
             >
@@ -237,8 +249,8 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
               )}
 
               {/* метрики */}
-              <div data-items={cur.metrics.filter((m) => hasText(m.value)).length} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {cur.metrics.filter((m) => hasText(m.value)).map((m, i) => (
+              <div data-items={metrics.length} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {metrics.map((m, i) => (
                   <div
                     key={i}
                     className="rounded-xl border border-bg-line bg-bg-soft p-3 text-center"

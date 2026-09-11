@@ -151,6 +151,7 @@ function sanitizeValue(
   path: string,
   ns: string,
   fillMissing = true,
+  requiredArrays?: ReadonlySet<string>,
 ): ValidationResult<unknown> {
   if (isPlainObject(def)) {
     if (!isPlainObject(inc)) return { ok: true, value: JSON.parse(JSON.stringify(def)) }
@@ -158,6 +159,10 @@ function sanitizeValue(
     for (const [k, d] of Object.entries(def)) {
       if (!(k in inc)) {
         if (fillMissing) out[k] = JSON.parse(JSON.stringify(d))
+        // Елемент масиву: необовʼязкові ключі лишаються відсутніми, але масиви, які є в КОЖНОГО
+        // дефолтного елемента (cases, metrics), обовʼязкові — дозаповнюємо порожнім (не з
+        // шаблону): компоненти ітерують їх, і рядок без них валив би рендер сторінки.
+        else if (requiredArrays?.has(k) && Array.isArray(d)) out[k] = []
         continue
       }
       const res = sanitizeValue(d, inc[k], k, `${path}.${k}`, ns)
@@ -176,13 +181,14 @@ function sanitizeValue(
     // Шаблон елемента — обʼєднання ключів усіх дефолтних елементів (необовʼязкові поля —
     // icon, href, image, mockup… — є не в кожного); для лімітів беремо найдовший дефолт.
     const template = unionTemplate(def)
+    const required = requiredArrayKeys(def)
     const out: unknown[] = []
     for (let i = 0; i < inc.length; i++) {
       const item = inc[i]
       const tpl = template
       if (isPlainObject(tpl)) {
         if (!isPlainObject(item)) return fail(`${path}[${i}]`, 'Очікується обʼєкт')
-        const res = sanitizeValue(tpl, item, key, `${path}[${i}]`, ns, false)
+        const res = sanitizeValue(tpl, item, key, `${path}[${i}]`, ns, false, required)
         if (!res.ok) return res
         out.push(res.value)
       } else if (tpl === undefined) {
@@ -236,6 +242,17 @@ function unionTemplate(arr: unknown[]): unknown {
   return tpl
 }
 
+/** Ключі-масиви, присутні в кожному дефолтному елементі-обʼєкті (обовʼязкові списки). */
+function requiredArrayKeys(arr: unknown[]): ReadonlySet<string> {
+  const objects = arr.filter(isPlainObject)
+  const out = new Set<string>()
+  if (objects.length === 0) return out
+  for (const k of Object.keys(objects[0])) {
+    if (objects.every((o) => Array.isArray(o[k]))) out.add(k)
+  }
+  return out
+}
+
 function longestString(arr: unknown[]): string | undefined {
   let best: string | undefined
   for (const v of arr) if (typeof v === 'string' && (best === undefined || v.length > best.length)) best = v
@@ -244,8 +261,9 @@ function longestString(arr: unknown[]): string | undefined {
 
 function checkString(v: string, key: string, path: string, def: string | undefined, ns: string): ValidationResult<true> {
   const kind = fieldKind(key)
-  if (path === 'site.telegramCtaUrl' && !isTelegramUrl(v)) {
-    return fail(path, 'Посилання кнопки Telegram — лише https://t.me/… або https://telegram.me/…')
+  // Обидва Telegram-посилання рендеряться в href (футер, фінальний банер, кнопка) — лише t.me.
+  if ((path === 'site.telegramCtaUrl' || path === 'site.telegram') && !isTelegramUrl(v)) {
+    return fail(path, 'Посилання Telegram — лише https://t.me/… або https://telegram.me/…')
   }
   if (kind === 'href' && !isAllowedHref(v)) return fail(path, 'Посилання: лише https:, http:, tel:, mailto: або відносний шлях')
   if (kind === 'image' && !isAllowedImage(v)) return fail(path, 'Зображення: лише /… або власне сховище (https://…supabase.co)')
