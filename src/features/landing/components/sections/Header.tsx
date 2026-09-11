@@ -14,6 +14,9 @@ import { track } from "@/shared/lib/analytics";
 import { NAV_ITEMS } from "@core/domain/content/visibility";
 import { cn } from "@/shared/lib/utils";
 
+/** Запас між пунктами меню і правим блоком (px), щоб поріг спрацьовував із невеликим люфтом. */
+const NAV_SLACK = 24;
+
 export function Header() {
   const { openLead } = useLeadModal();
   const { site, header, nav: navLabels } = useSiteMessages();
@@ -22,12 +25,20 @@ export function Header() {
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [active, setActive] = React.useState("");
+  // Поріг «меню в бургер» — за сумою ширин пунктів (розділ 12, п. 7), а не за шириною екрана:
+  // назви пунктів редагує клієнт. До першого виміру — за CSS-брейкпоінтом md.
+  const [compact, setCompact] = React.useState<boolean | null>(null);
+  const barRef = React.useRef<HTMLDivElement>(null);
+  const logoRef = React.useRef<HTMLAnchorElement>(null);
+  const measureRef = React.useRef<HTMLDivElement>(null);
+  const actionsRef = React.useRef<HTMLDivElement>(null);
 
   // Посилання на прихований блок не виводиться ніде (розділ 9).
   const nav = NAV_ITEMS.filter((item) => vis.shown(item.id) && navLabels[item.id].trim() !== "").map(
     (item) => ({ href: item.anchor, label: navLabels[item.id] })
   );
   const navIds = nav.map((n) => n.href.replace("#", "")).join(",");
+  const navKey = nav.map((n) => n.label).join("|");
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -36,23 +47,42 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Вимір: логотип + сума ширин пунктів (невидима копія) + правий блок (телефон, кнопки) > ширини бару → бургер.
+  React.useEffect(() => {
+    const measure = () => {
+      const bar = barRef.current;
+      const items = measureRef.current;
+      if (!bar || !items) return;
+      const logoW = logoRef.current?.offsetWidth ?? 0;
+      const actionsW = actionsRef.current?.scrollWidth ?? 0;
+      const gaps = 16 * 2 + 28 * Math.max(nav.length - 1, 0);
+      const needed = logoW + items.scrollWidth + gaps + actionsW + NAV_SLACK;
+      setCompact(needed > bar.clientWidth);
+    };
+    measure();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro && barRef.current) ro.observe(barRef.current);
+    window.addEventListener("resize", measure);
+    if (typeof document !== "undefined" && "fonts" in document) document.fonts.ready.then(measure).catch(() => {});
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navKey, site.phone, header.consultShort]);
+
   // Scrollspy: активна — остання секція, чий верх перетнув лінію ~35% висоти вікна.
-  // Позиційний розрахунок дає неперервну підсвітку без «мертвих зон» між секціями.
   React.useEffect(() => {
     const ids = navIds.split(",").filter(Boolean);
-
     const compute = () => {
       const line = window.scrollY + window.innerHeight * 0.35;
       let current = "";
       for (const id of ids) {
         const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top + window.scrollY <= line) {
-          current = id;
-        }
+        if (el && el.getBoundingClientRect().top + window.scrollY <= line) current = id;
       }
       setActive(current);
     };
-
     compute();
     window.addEventListener("scroll", compute, { passive: true });
     window.addEventListener("resize", compute);
@@ -72,6 +102,10 @@ export function Header() {
     });
   };
 
+  // compact === null → поведінка за брейкпоінтом md (до першого виміру / без JS).
+  const desktopCls = compact === null ? "hidden md:flex" : compact ? "hidden" : "flex";
+  const burgerCls = compact === null ? "md:hidden" : compact ? "" : "hidden";
+
   return (
     <header
       className={cn(
@@ -81,16 +115,24 @@ export function Header() {
           : "border-b border-transparent"
       )}
     >
-      <div className="container-x flex h-16 items-center justify-between gap-4">
+      <div ref={barRef} className="container-x flex h-16 items-center justify-between gap-4">
         <a
+          ref={logoRef}
           href="#top"
-          className="btn-focus rounded-lg text-2xl transition-all duration-300 hover:[text-shadow:0_0_16px_rgba(246,247,64,0.6)]"
+          className="btn-focus shrink-0 rounded-lg text-2xl transition-all duration-300 hover:[text-shadow:0_0_16px_rgba(246,247,64,0.6)]"
           aria-label={header.logoAria}
         >
           <Logo />
         </a>
 
-        <nav className="hidden items-center gap-7 md:flex" aria-label={header.navAria}>
+        {/* Невидима копія пунктів для виміру сумарної ширини (той самий шрифт/розмір). */}
+        <div ref={measureRef} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 -z-10 h-0 w-0 overflow-hidden whitespace-nowrap text-sm font-medium opacity-0">
+          {nav.map((item) => (
+            <span key={item.href} className="inline-block">{item.label}</span>
+          ))}
+        </div>
+
+        <nav className={cn("items-center gap-7", desktopCls)} aria-label={header.navAria}>
           {nav.map((item) => {
             const isActive = active === item.href.replace("#", "");
             return (
@@ -99,7 +141,7 @@ export function Header() {
                 href={navHref(item.href, pathname)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "btn-focus rounded text-sm font-medium transition-all duration-300 hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]",
+                  "btn-focus whitespace-nowrap rounded text-sm font-medium transition-all duration-300 hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]",
                   isActive
                     ? "text-brand [text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
                     : "text-white/70"
@@ -111,13 +153,13 @@ export function Header() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div ref={actionsRef} className={cn("items-center gap-4", desktopCls)}>
           <CopyContactLink
             value={site.phone}
             type="phone"
             href={site.phoneHref}
             onClick={() => track("header_phone_click", { source: "header_phone" })}
-            className="btn-focus inline-flex items-center gap-2 rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
+            className="btn-focus inline-flex items-center gap-2 whitespace-nowrap rounded-lg text-[17px] font-bold tracking-normal text-white transition-all duration-300 [font-family:system-ui,'Segoe_UI',Roboto,Arial,sans-serif] [font-variant-numeric:tabular-nums] hover:text-brand hover:[text-shadow:0_0_14px_rgba(246,247,64,0.7)]"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 ring-1 ring-brand/30">
               <Phone className="h-4 w-4 text-brand" />
@@ -132,7 +174,7 @@ export function Header() {
 
         <button
           type="button"
-          className="btn-focus rounded-lg p-2 text-white md:hidden"
+          className={cn("btn-focus rounded-lg p-2 text-white", burgerCls)}
           aria-label={open ? header.menuClose : header.menuOpen}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
@@ -144,7 +186,8 @@ export function Header() {
       <div
         aria-hidden={!open}
         className={cn(
-          "grid overflow-hidden border-t bg-bg/95 backdrop-blur-md transition-all duration-300 ease-in-out md:hidden",
+          "grid overflow-hidden border-t bg-bg/95 backdrop-blur-md transition-all duration-300 ease-in-out",
+          compact === null ? "md:hidden" : compact ? "" : "hidden",
           open
             ? "grid-rows-[1fr] border-bg-line opacity-100"
             : "grid-rows-[0fr] border-transparent opacity-0"

@@ -5,6 +5,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { ModalProvider } from "@/features/landing/components/forms/ModalProvider";
 import { RevealObserver } from "@/features/landing/components/layout/RevealObserver";
+import { FitText } from "@/features/landing/components/layout/FitText";
 import { HashScroll } from "@/features/landing/components/layout/HashScroll";
 import { SiteBackground } from "@/features/landing/components/layout/SiteBackground";
 import { UtmTracker } from "@/features/landing/components/layout/UtmTracker";
@@ -279,9 +280,10 @@ export default async function SiteLayout({
       {/* Тексти сайту (дефолти ⊕ правки клієнта) — клієнтським компонентам через useMessages() */}
       <NextIntlClientProvider locale={locale} messages={messages}>
         <ModalProvider>
-          <div className="relative">
+          <div className="site relative">
             <SiteBackground />
             <RevealObserver />
+            <FitText />
             <HashScroll />
             <Header />
             <main>{children}</main>

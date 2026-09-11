@@ -6,5 +6,9 @@ import { NotFoundContent } from '@/features/landing/components/layout/NotFoundCo
 // Сторінки сайту потрапляють у [locale]/not-found.tsx під шапкою й футером.
 export default async function RootNotFound() {
   const { notFound } = (await getMessages()) as unknown as SiteMessages
-  return <NotFoundContent m={notFound} />
+  return (
+    <main>
+      <NotFoundContent m={notFound} />
+    </main>
+  )
 }

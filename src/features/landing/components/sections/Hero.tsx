@@ -8,6 +8,7 @@ import { useLeadModal } from "@/features/landing/components/forms/ModalProvider"
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { track } from "@/shared/lib/analytics";
 import { hasText } from "@core/domain/content/messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
 export function Hero() {
   const { openLead } = useLeadModal();
@@ -37,12 +38,12 @@ export function Hero() {
   return (
     <section
       id="top"
-      className="relative overflow-hidden pt-24 pb-14 sm:pt-32 lg:pt-36 lg:pb-24"
+      className="sect-sep relative overflow-hidden pt-24 pb-14 sm:pt-32 lg:pt-36 lg:pb-24"
     >
-      <div className="container-x relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-end lg:gap-12">
+      <div className="container-x relative grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-end lg:gap-12">
         <div className="min-w-0 animate-fade-up">
-          <h1 className="text-[1.7rem] font-bold leading-[1.15] sm:text-5xl sm:leading-[1.08] lg:text-[3.4rem]">
-            {hero.title}
+          <h1 data-fit="hero" className="text-[1.7rem] font-bold leading-[1.15] sm:text-5xl sm:leading-[1.08] lg:text-[3.4rem]">
+            {nbHyphen(hero.title)}
           </h1>
 
           {hasText(hero.subtitle) && (
@@ -72,7 +73,7 @@ export function Hero() {
           {/* Пара головних CTA у ряд; Telegram-кнопка — окремим повноширинним
               рядком під ними (три lg-кнопки не влазять у колонку hero). На мобільному
               все — стовпчик на всю ширину, Telegram останньою. */}
-          <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap">
+          <div data-fit-buttons className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap">
             {hasText(hero.primaryCta) && (
               <Button size="lg" onClick={handleConsult} className="sm:flex-1">
                 {hero.primaryCta}

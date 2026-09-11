@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { hasText } from "@core/domain/content/messages";
 import type { AboutMember } from "@core/domain/content/site-messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
 type Labels = { experienceLabel: string; roleLabel: string; skillsLabel: string };
 
@@ -77,13 +78,13 @@ function MemberCard({ m, labels }: { m: AboutMember; labels: Labels }) {
   );
 }
 
-export function About() {
+export function About({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { about } = useSiteMessages();
   const members = about.members.filter((m) => hasText(m.name));
   const labels = { experienceLabel: about.experienceLabel, roleLabel: about.roleLabel, skillsLabel: about.skillsLabel };
 
   return (
-    <section id="about" className="section">
+    <section id="about" className="section sect-sep">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           {hasText(about.eyebrow) && (
@@ -91,13 +92,13 @@ export function About() {
               {about.eyebrow}
             </p>
           )}
-          <h2 className="h2 mt-3">{about.title}</h2>
+          <Title data-fit className="h2 mt-3">{nbHyphen(about.title)}</Title>
           {hasText(about.text) && (
             <p className="mt-4 text-lg text-white/60">{about.text}</p>
           )}
         </div>
 
-        <div className="reveal-stagger mt-10 grid gap-5 sm:grid-cols-2">
+        <div data-items={members.length} className="reveal-stagger mt-10 grid gap-5 sm:grid-cols-2">
           {members.map((m, i) => (
             <MemberCard key={i} m={m} labels={labels} />
           ))}

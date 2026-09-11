@@ -2,8 +2,10 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/shared/lib/utils";
 
+// Кнопки переносять текст (розділ 12, п. 6): без whitespace-nowrap, ширина не більша за
+// батька, висота — мінімальна (довгий підпис клієнта росте у два рядки, а не вилазить).
 const buttonVariants = cva(
-  "btn-focus inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
+  "btn-focus inline-flex max-w-full items-center justify-center gap-2 rounded-xl text-center text-sm font-semibold leading-snug transition-all disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
   {
     variants: {
       variant: {
@@ -20,9 +22,9 @@ const buttonVariants = cva(
           "border border-[#229ED9]/50 bg-transparent text-[#2AABEE] hover:border-[#229ED9] hover:bg-[#2AABEE]/[0.12] hover:text-[#2AABEE]",
       },
       size: {
-        sm: "h-9 px-4",
-        md: "h-11 px-5",
-        lg: "h-[3.25rem] px-7 text-base",
+        sm: "min-h-9 px-4 py-1.5",
+        md: "min-h-11 px-5 py-2",
+        lg: "min-h-[3.25rem] px-7 py-2.5 text-base",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

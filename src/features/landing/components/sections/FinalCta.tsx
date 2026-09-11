@@ -9,6 +9,7 @@ import { useSiteMessages, useHomeVisibility } from "@/features/landing/lib/messa
 import { CopyContactLink } from "@/shared/ui/copy-contact-link";
 import { track } from "@/shared/lib/analytics";
 import { hasText } from "@core/domain/content/messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 import { cn } from "@/shared/lib/utils";
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -59,7 +60,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // Одна секція сайту (#contacts) з двома приховуваними блоками: `finalCta` (заголовок, контакти,
 // нижній CTA) і `faq` (питання). Приховане не потрапляє в DOM; секцію без обох блоків не
 // рендерить page.tsx.
-export function FinalCta() {
+export function FinalCta({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { finalCta, faq, site } = useSiteMessages();
   const vis = useHomeVisibility();
@@ -78,12 +79,12 @@ export function FinalCta() {
   };
 
   return (
-    <section id="contacts" className="section">
+    <section id="contacts" className="section sect-sep">
       <div className="container-x">
         {/* Заголовок */}
         {showCta && (
           <div className="reveal mx-auto max-w-3xl text-center">
-            <h2 className="h2">{finalCta.title}</h2>
+            <Title data-fit className="h2">{nbHyphen(finalCta.title)}</Title>
             {hasText(finalCta.text) && <p className="mt-4 text-lg text-white/60">{finalCta.text}</p>}
           </div>
         )}
@@ -106,7 +107,7 @@ export function FinalCta() {
         {showCta && (
           <>
             {/* Контакти */}
-            <div className="reveal mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div data-items={[site.telegram, site.email, site.phone].filter(hasText).length} className="reveal mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {hasText(site.telegram) && (
                 <a
                   href={site.telegram}
@@ -157,7 +158,7 @@ export function FinalCta() {
             {/* Нижній CTA */}
             {hasText(finalCta.primaryCta) && (
               <div className="reveal mx-auto mt-12 max-w-3xl rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 text-center shadow-card sm:p-8">
-                <h3 className="text-2xl font-bold text-white">{finalCta.primaryCta}</h3>
+                <h3 data-fit className="text-2xl font-bold text-white">{nbHyphen(finalCta.primaryCta)}</h3>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
                   <Button size="lg" onClick={openForm}>
                     {finalCta.primaryCta}

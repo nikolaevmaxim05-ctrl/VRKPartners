@@ -22,7 +22,7 @@ export function Footer() {
   return (
     <footer className="border-t border-bg-line bg-bg-soft/50">
       <div className="container-x py-12 lg:py-14">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1.1fr]">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
           {/* Про нас */}
           <div className="max-w-sm">
             <Logo className="text-xl" />

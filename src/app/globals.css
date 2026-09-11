@@ -93,6 +93,8 @@
        цифри — номер телефону/статистика «стрибають» по вертикалі. */
     font-variant-numeric: lining-nums tabular-nums;
     font-feature-settings: "lnum" 1, "tnum" 1;
+    /* Один успадкований перенос (розділ 12, п. 3): довге слово клієнта ніде не вилізе. */
+    overflow-wrap: anywhere;
   }
   ::selection {
     background: var(--brand);
@@ -104,16 +106,10 @@
     @apply font-bold tracking-tight text-white;
     text-wrap: balance;
   }
-  /* Зменшуємо анімації для користувачів із prefers-reduced-motion */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.001ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.001ms !important;
-      scroll-behavior: auto !important;
-    }
+  /* Підгоняні заголовки спершу зменшуються (fit-text), і лише потім переносяться (розділ 12,
+     п. 1); решта заголовків (картки) успадковує overflow-wrap: anywhere від body. */
+  [data-fit] {
+    overflow-wrap: normal;
   }
 }
 
@@ -135,6 +131,29 @@
   }
   .h2 {
     @apply text-3xl font-bold leading-tight sm:text-4xl lg:text-[2.75rem];
+  }
+  /* Слово з дефісом не рветься по дефісу (розділ 12, п. 9); на мінімальному розмірі — можна. */
+  .nb {
+    white-space: nowrap;
+  }
+  .fit-break {
+    overflow-wrap: anywhere;
+  }
+  .fit-break .nb {
+    white-space: normal;
+  }
+  /* Роздільник секцій: лінія зверху у всіх, крім першої видимої — приховані блоки не лишають
+     висячих ліній (розділ 9). */
+  main > .sect-sep + .sect-sep {
+    border-top: 1px solid rgba(38, 38, 47, 0.6);
+  }
+  /* Сітки не розсуваються (розділ 12, п. 4): діти всіх flex/grid-контейнерів сайту — min-width: 0.
+     Кожен новий flex/grid-контейнер автоматично під правилом (обгортка .site у layout). */
+  .site :is(.grid, .flex, .inline-flex) > * {
+    min-width: 0;
+  }
+  .site :is(.grid, .flex, .inline-flex) > .shrink-0 {
+    min-width: auto;
   }
 }
 
@@ -316,4 +335,40 @@ body::-webkit-scrollbar {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Режим «менше руху» — правило, а не список селекторів (розділ 14). Стоїть НИЖЧЕ всіх
+   правил анімації. Гасимо лише тривалість, не animation: none (шар Radix/shadcn прибирається
+   по завершенню анімації); animation: none — лише для нескінченних циклів. ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .partners-track,
+  .anim-drift,
+  .anim-drift2,
+  .anim-drift3,
+  .anim-spin-slow,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+  /* Поява при скролі: у режимі «менше руху» нічого не ховаємо взагалі — стартовий стан видимий. */
+  .js-reveal .reveal,
+  .js-reveal .reveal-stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  /* Спливаючі шари UI-кита (Radix/shadcn): лише тривалість, позиціонування не чіпаємо. */
+  [data-state][data-side],
+  [data-radix-popper-content-wrapper],
+  [data-state="open"],
+  [data-state="closed"] {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -6,8 +6,9 @@ import { cn } from "@/shared/lib/utils";
 import { ContentIcon } from "@/features/landing/components/layout/ContentIcon";
 import { DEFAULT_USP_ICON_ORDER } from "@/shared/lib/audit-icons";
 import { hasText } from "@core/domain/content/messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
-export function Usp() {
+export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { usp: uspRaw } = useSiteMessages();
   // Порожній пункт (без заголовка) не виводиться; ключі React — за індексом (тексти повторюються).
   const usp = { ...uspRaw, items: uspRaw.items.filter((it) => hasText(it.title)) };
@@ -59,7 +60,7 @@ export function Usp() {
   }, [usp.items.length]);
 
   return (
-    <section id="usp" className="section">
+    <section id="usp" className="section sect-sep">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           {hasText(usp.eyebrow) && (
@@ -67,13 +68,13 @@ export function Usp() {
               {usp.eyebrow}
             </p>
           )}
-          <h2 className="h2 mt-3">{usp.title}</h2>
+          <Title data-fit className="h2 mt-3">{nbHyphen(usp.title)}</Title>
           {hasText(usp.text) && (
             <p className="mt-4 text-lg text-white/60">{usp.text}</p>
           )}
         </div>
 
-        <div className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4">
+        <div data-items={usp.items.length} className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4">
           {usp.items.map((it, i) => {
             const activeNow = i === active;
             return (

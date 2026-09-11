@@ -9,8 +9,9 @@ import { useSiteMessages } from "@/features/landing/lib/messages";
 import { ContentIcon } from "@/features/landing/components/layout/ContentIcon";
 import { DEFAULT_AUDIT_ICON_ORDER } from "@/shared/lib/audit-icons";
 import { contentList, hasText } from "@core/domain/content/messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
-export function Audit() {
+export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { audit } = useSiteMessages();
   const items = audit.items.filter((it) => hasText(it.name));
@@ -36,13 +37,13 @@ export function Audit() {
   };
 
   return (
-    <section id="audit" className="section">
+    <section id="audit" className="section sect-sep">
       <div className="container-x">
         <div className="reveal max-w-2xl">
-          <h2 className="h2">{audit.title}</h2>
+          <Title data-fit className="h2">{nbHyphen(audit.title)}</Title>
         </div>
 
-        <div className="reveal-stagger mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
+        <div data-items={items.length} className="reveal-stagger mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
           {items.map((item, i) => {
             return (
               <article

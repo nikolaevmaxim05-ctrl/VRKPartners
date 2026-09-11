@@ -22,6 +22,7 @@ import { useLeadModal } from "@/features/landing/components/forms/ModalProvider"
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { hasText } from "@core/domain/content/messages";
 import type { ServiceItem } from "@core/domain/content/site-messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
 
@@ -81,7 +82,7 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       className={cn(
-        "relative flex flex-col rounded-2xl border border-bg-line bg-bg-card transition-colors",
+        "relative flex min-w-0 flex-col rounded-2xl border border-bg-line bg-bg-card transition-colors",
         preview && "z-30 border-brand/40"
       )}
     >
@@ -100,11 +101,12 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
               )}
             />
           </div>
-          {/* Велике читабельне превью — зʼявляється після затримки наведення */}
+          {/* Велике читабельне превью — зʼявляється після затримки наведення. Рендериться ЛИШЕ під час
+              наведення: прихований absolute-шар ширший за картку розсував сторінку (скан переповнення). */}
+          {preview && (
           <div
             className={cn(
-              "pointer-events-none absolute top-1/2 z-50 max-w-[92vw] -translate-y-1/2 transition-all duration-300",
-              preview ? "scale-100 opacity-100" : "scale-95 opacity-0",
+              "pointer-events-none absolute top-1/2 z-50 max-w-[92vw] -translate-y-1/2 animate-in fade-in zoom-in-95 duration-300",
               previewPos,
               s.previewWide ? "w-[40rem]" : "w-[22rem]"
             )}
@@ -124,6 +126,7 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
               />
             </div>
           </div>
+          )}
         </>
       ) : (
         <div className="flex h-40 w-full items-center justify-center rounded-t-2xl border-b border-bg-line bg-bg-soft">
@@ -143,7 +146,7 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
   );
 }
 
-export function Services() {
+export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { services } = useSiteMessages();
   // Порожня картка (без назви) не виводиться.
@@ -172,15 +175,15 @@ export function Services() {
   };
 
   return (
-    <section id="services" className="section">
+    <section id="services" className="section sect-sep">
       <div className="container-x">
         <div className="reveal max-w-3xl">
-          <h2 className="h2">{services.title}</h2>
+          <Title data-fit className="h2">{nbHyphen(services.title)}</Title>
           {hasText(services.text) && <p className="mt-4 text-lg text-white/60">{services.text}</p>}
         </div>
 
         {/* Перші 3 — завжди видимі */}
-        <div className="reveal-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-items={previewItems.length} className="reveal-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {previewItems.map(renderCard)}
         </div>
 
@@ -195,7 +198,7 @@ export function Services() {
           )}
         >
           <div className={cn(showAll && expanded ? "overflow-visible" : "overflow-hidden")}>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div data-items={extraItems.length} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {extraItems.map(renderCard)}
             </div>
           </div>

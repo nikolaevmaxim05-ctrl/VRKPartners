@@ -8,12 +8,13 @@ import { useLeadModal } from "@/features/landing/components/forms/ModalProvider"
 import { track } from "@/shared/lib/analytics";
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { hasText } from "@core/domain/content/messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
 // Десктоп: понад стільки кроків — гортаємо сторінками зі стрілками (інакше тісно).
 const DESKTOP_PAGINATE_THRESHOLD = 10;
 const DESKTOP_PAGE_SIZE = 8;
 
-export function Process() {
+export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { workflow } = useSiteMessages();
 
@@ -46,14 +47,14 @@ export function Process() {
   };
 
   return (
-    <section id="process" className="section">
+    <section id="process" className="section sect-sep">
       <div className="container-x">
         <div className="reveal max-w-3xl">
-          <h2 className="h2">{workflow.title}</h2>
+          <Title data-fit className="h2">{nbHyphen(workflow.title)}</Title>
         </div>
 
         {/* Мобільний: компактний вертикальний таймлайн */}
-        <ol className="reveal-stagger relative ml-3 mt-8 space-y-4 border-l-2 border-bg-line lg:hidden">
+        <ol data-items={steps.length} className="reveal-stagger relative ml-3 mt-8 space-y-4 border-l-2 border-bg-line lg:hidden">
           {steps.map((step) => (
             <li key={step.n} className="relative flex min-h-[1.75rem] items-center pl-6">
               <span className="absolute left-0 top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-brand-ink ring-4 ring-bg-soft">
@@ -139,12 +140,12 @@ export function Process() {
 
         {/* Підблок: бонус від Google */}
         <div className="reveal mt-12 overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 sm:p-8">
-          <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
+          <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>
-              <h3 className="text-2xl font-bold text-white">{workflow.bonus.title}</h3>
+              <h3 data-fit className="text-2xl font-bold text-white">{nbHyphen(workflow.bonus.title)}</h3>
               <p className="mt-2 max-w-2xl text-sm text-white/65">{workflow.bonus.desc}</p>
 
-              <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+              <dl data-items={terms.length} className="mt-5 grid gap-3 sm:grid-cols-3">
                 {terms.map((t, ti) => {
                   const parts = t.highlight ? t.value.split(t.highlight) : [t.value];
                   return (

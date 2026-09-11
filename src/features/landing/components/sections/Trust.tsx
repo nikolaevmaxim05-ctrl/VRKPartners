@@ -9,10 +9,11 @@ import { useLeadModal } from "@/features/landing/components/forms/ModalProvider"
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { contentList, hasText } from "@core/domain/content/messages";
 import type { CaseItem } from "@core/domain/content/site-messages";
+import { nbHyphen } from "@/shared/lib/nb-hyphen";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
 
-export function Trust() {
+export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { trust } = useSiteMessages();
 
@@ -59,12 +60,12 @@ export function Trust() {
   const hasCases = !!group && !!current;
 
   return (
-    <section id="cases" className="section">
+    <section id="cases" className="section sect-sep">
       <div className="container-x">
-        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
           {/* Ліва колонка: довіра */}
           <div className="reveal min-w-0">
-            <h2 className="h2">{trust.title}</h2>
+            <Title data-fit className="h2">{nbHyphen(trust.title)}</Title>
 
             <ul className="mt-6 space-y-3">
               {facts.map((f, i) => (
@@ -83,13 +84,13 @@ export function Trust() {
             )}
 
             {/* хайлайти-цифри: рядки на мобільному, колонки на десктопі */}
-            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div data-items={highlights.length} className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {highlights.map((h, i) => (
                 <div
                   key={i}
                   className="flex items-center gap-3 rounded-2xl border border-bg-line bg-bg-card p-4 text-left shadow-card sm:flex-col sm:gap-1 sm:text-center"
                 >
-                  <div className="shrink-0 text-2xl font-bold text-brand">{h.value}</div>
+                  <div data-fit data-fit-row="highlights" className="min-w-0 text-2xl font-bold text-brand">{h.value}</div>
                   <div className="text-xs leading-snug text-white/55">{h.label}</div>
                 </div>
               ))}
@@ -103,7 +104,7 @@ export function Trust() {
                 {niches.map((n, i) => (
                   <li
                     key={i}
-                    className="shrink-0 rounded-full border border-bg-line bg-bg-soft px-3 py-1.5 text-sm text-white/75"
+                    className="min-w-0 max-w-full rounded-full border border-bg-line bg-bg-soft px-3 py-1.5 text-sm text-white/75"
                   >
                     {n}
                   </li>
@@ -144,7 +145,7 @@ export function Trust() {
                     aria-selected={nicheIdx === i}
                     onClick={() => selectNiche(i)}
                     className={cn(
-                      "btn-focus shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                      "btn-focus min-w-0 max-w-full rounded-full px-4 py-2 text-left text-sm font-medium transition-colors",
                       nicheIdx === i
                         ? "bg-brand text-brand-ink"
                         : "border border-bg-line bg-bg-soft text-white/70 hover:text-white"
@@ -154,7 +155,7 @@ export function Trust() {
                     {g.cases.length > 1 && (
                       <span
                         className={cn(
-                          "ml-1.5 rounded-full px-1.5 text-xs",
+                          "ml-1.5 shrink-0 rounded-full px-1.5 text-xs",
                           nicheIdx === i ? "bg-black/15" : "bg-white/10"
                         )}
                       >
@@ -183,7 +184,7 @@ export function Trust() {
                     aria-selected={caseIdx === i}
                     onClick={() => selectCase(i)}
                     className={cn(
-                      "btn-focus inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors",
+                      "btn-focus inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-xl border px-3.5 py-2 text-left text-sm font-medium transition-colors",
                       caseIdx === i
                         ? "border-brand/60 bg-brand/10 text-white"
                         : "border-bg-line bg-bg-soft text-white/60 hover:text-white"
@@ -236,13 +237,13 @@ export function Trust() {
               )}
 
               {/* метрики */}
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div data-items={cur.metrics.filter((m) => hasText(m.value)).length} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {cur.metrics.filter((m) => hasText(m.value)).map((m, i) => (
                   <div
                     key={i}
                     className="rounded-xl border border-bg-line bg-bg-soft p-3 text-center"
                   >
-                    <div className="text-base font-bold leading-tight text-brand sm:text-lg">
+                    <div data-fit data-fit-row="metrics" className="text-base font-bold leading-tight text-brand sm:text-lg">
                       {m.value}
                     </div>
                     <div className="mt-1 text-[11px] leading-tight text-white/50">

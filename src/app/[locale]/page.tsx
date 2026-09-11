@@ -61,16 +61,23 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const messages = (await getMessages()) as unknown as SiteMessages;
   const vis = pageVisibility(HOME_NS, messages.home.hidden);
 
+  // Рівно один h1 (розділ 14): якщо перший екран прихований, h1 отримує перший видимий блок.
+  const order = ["usp", "about", "services", "audit", "cases", "process", "finalCta"] as const;
+  const firstVisible = vis.shown("hero")
+    ? null
+    : order.find((id) => vis.shown(id) || (id === "finalCta" && vis.shown("faq"))) ?? null;
+  const titleAs = (id: (typeof order)[number]) => (firstVisible === id ? "h1" : "h2");
+
   return (
     <>
       {vis.shown("hero") && <Hero />}
-      {vis.shown("usp") && <Usp />}
-      {vis.shown("about") && <About />}
-      {vis.shown("services") && <Services />}
-      {vis.shown("audit") && <Audit />}
-      {vis.shown("cases") && <Trust />}
-      {vis.shown("process") && <Process />}
-      {(vis.shown("faq") || vis.shown("finalCta")) && <FinalCta />}
+      {vis.shown("usp") && <Usp titleAs={titleAs("usp")} />}
+      {vis.shown("about") && <About titleAs={titleAs("about")} />}
+      {vis.shown("services") && <Services titleAs={titleAs("services")} />}
+      {vis.shown("audit") && <Audit titleAs={titleAs("audit")} />}
+      {vis.shown("cases") && <Trust titleAs={titleAs("cases")} />}
+      {vis.shown("process") && <Process titleAs={titleAs("process")} />}
+      {(vis.shown("faq") || vis.shown("finalCta")) && <FinalCta titleAs={titleAs("finalCta")} />}
     </>
   );
 }
