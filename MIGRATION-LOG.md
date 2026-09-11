@@ -78,9 +78,9 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
 |---|---|---|---|
 | `029_leads_locale_ip_index.sql` | `leads.locale` + индекс `(ip_address, created_at desc)`, без backfill | 4 — **применена 2026-09-11** | низкий |
 | `030_drop_rate_limits.sql` | drop `check_rate_limit`, `rate_limits` | 4 — **применена 2026-09-11** (после деплоя) | низкий |
-| `031_tracking_tags_conversion_label.sql` | `tracking_tags.conversion_label` (аддитивная) — **файл создан в Фазе 5**; применять **до** деплоя кода Фазы 5 | 5 | низкий |
-| `032_drop_legacy.sql` | drop `site_contacts`, `lead_statuses.deal_type/result_type`, тип `status_deal_type` — **файл создан в Фазе 5** | 5 | низкий (0 ссылок, 0 строк; откат — пересоздать по 001/010) |
-| `033_rls_unify_fk_indexes.sql` | политики п. 11 (везде `service_role` + `is_active_admin()` на чтение; `site_content` — запись закрыта), индексы FK п. 12, CHECK п. 13, индекс `audit_log(user_id, created_at)` — **файл создан в Фазе 5** | 5 | низкий: браузерный клиент админки читает только `leads` (realtime), политика с 025 сохранена |
+| `031_tracking_tags_conversion_label.sql` | `tracking_tags.conversion_label` | 5 — **применена 2026-09-11** | низкий |
+| `032_drop_legacy.sql` | drop `site_contacts`, `lead_statuses.deal_type/result_type`, тип `status_deal_type` | 5 — **применена 2026-09-11** | низкий |
+| `033_rls_unify_fk_indexes.sql` | RLS-унификация, индексы FK, CHECK, индекс `audit_log` | 5 — **применена 2026-09-11** | низкий |
 | ~~`034_audit_log_indexes.sql`~~ | индекс вошёл в 033 | — | — |
 
 Каждая миграция начинается с комментария «зачем» и ссылкой на фазу; применяется
@@ -185,3 +185,9 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   CHECK/FK-ограничения; подтверждено: `site_content` — ALL для authenticated (закрывается в 033),
   `authenticated_read (true)` на 5 таблицах, `site_contacts` пуста, `audit_log` существует
   (9 колонок, не пишется). Созданы файлы 031/032/033 — **не применены**, ждут решения владельца.
+- **2026-09-11, Фаза 5 (ассистент через Supabase MCP `apply_migration`, по решению владельца, до пуша
+  кода Фазы 5).** Применены `031_tracking_tags_conversion_label` (колонка), `032_drop_legacy`
+  (удалены `site_contacts`, `lead_statuses.deal_type/result_type`, тип `status_deal_type`) и
+  `033_rls_unify_fk_indexes` (политики: чтение только активному админу, `site_content` — запись
+  только `service_role`; 5 индексов; CHECK `offline_conversions.export_status`). Откат 033 —
+  политики из 001/025 (широкое чтение `authenticated`), откат 032 — пересоздать по 001/010.

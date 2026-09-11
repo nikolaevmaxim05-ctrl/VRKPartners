@@ -297,7 +297,13 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       const ocBefore = await conversionFlow.getConversionByLead(id)
       const outcome = await recordConversionSafe(statusConversionAction, statusConversionType)
       await runAdjustment(decideAdjustment({ oldConversionType, newConversionType: statusConversionType, outcome, ocBefore, conversionValue }))
-      if (outcome.outcome === 'inserted' || outcome.outcome === 'updated') await sendConversionRow(statusConversionAction)
+      if (outcome.outcome === 'inserted' || outcome.outcome === 'updated') {
+        await sendConversionRow(statusConversionAction)
+      } else if (outcome.outcome === 'noop' && ocBefore?.export_status === 'pending') {
+        // Той самий стан, але конверсія не вивантажена (після RETRACT або Sheets був недоступний) —
+        // відправляємо заново, щоб Google знову її отримав.
+        await sendConversionRow(statusConversionAction)
+      }
     } else if (change === 'leave') {
       // Пішли з конверсійної стадії: відкликаємо вивантажену конверсію (RETRACT).
       const ocBefore = await conversionFlow.getConversionByLead(id)

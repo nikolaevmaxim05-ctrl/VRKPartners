@@ -53,6 +53,8 @@ export interface ConversionRepository {
   insert(row: ConversionInsert): Promise<DbResult<void>>
   updateState(leadId: string, state: { conversion_action: string; conversion_type: string | null; conversion_value: number | null }): Promise<DbResult<void>>
   markExportedByLead(leadId: string, atIso: string): Promise<DbResult<void>>
+  /** Після RETRACT: конверсія знову «не вивантажена» — повторний enter відправить її заново. */
+  markPendingByLead(leadId: string): Promise<DbResult<void>>
   getExportedAt(leadId: string): Promise<string | null>
   listPage(page: number, limit: number): Promise<DbResult<PageResult>>
   countPending(): Promise<number>

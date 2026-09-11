@@ -8,7 +8,7 @@ const WORK = { id: 'st-work', name: 'В роботі', is_final: false, conversi
 const STATUSES = [DEAL, WORK]
 const actor = { id: 'u1', email: 'a@b.c' }
 
-function setup(opts: { before: { status_id: string | null; deal_amount: number | null }; oc?: { export_status: 'pending' | 'exported' } | null }) {
+function setup(opts: { before: { status_id: string | null; deal_amount: number | null }; oc?: { export_status: 'pending' | 'exported' } | null; noop?: boolean }) {
   const before = { status_id: opts.before.status_id, assigned_to: null, deal_amount: opts.before.deal_amount, deal_profit: null }
   const leads = {
     getState: vi.fn(async () => dbOk(before)),
@@ -23,7 +23,11 @@ function setup(opts: { before: { status_id: string | null; deal_amount: number |
   const conversionFlow = {
     getConversionByLead: vi.fn(async () => oc),
     recordConversion: vi.fn(async (_id: string, value: number | null) =>
-      oc ? { outcome: 'updated' as const, action: 'deal_offline', prevAction: 'deal_offline', prevType: 'deal', prevValue: 100, valueChanged: value !== 100 } : { outcome: 'inserted' as const },
+      opts.noop
+        ? { outcome: 'noop' as const }
+        : oc
+          ? { outcome: 'updated' as const, action: 'deal_offline', prevAction: 'deal_offline', prevType: 'deal', prevValue: 100, valueChanged: value !== 100 }
+          : { outcome: 'inserted' as const },
     ),
     recordAdjustment: vi.fn(async (p: { type: string }) => ({ id: 'adj', lead_id: 'l1', order_no: 1000001, conversion_action: 'deal_offline', adjustment_type: p.type, adjusted_value: null, adjustment_currency: null, adjustment_time: 'now' })),
     dispatchAdjustment: vi.fn(async () => {}),
@@ -70,6 +74,17 @@ describe('updateLead — розділ 6', () => {
     expect(conversionFlow.dispatchAdjustment).toHaveBeenCalledOnce()
     expect(conversionFlow.recordConversion).not.toHaveBeenCalled()
     expect(sheets.sendConversion).not.toHaveBeenCalled()
+  })
+
+  it('enter повторно після RETRACT (стан той самий, конверсія pending) → рядок відправляється заново', async () => {
+    quiet()
+    const { uc, conversionFlow, sheets } = setup({ before: { status_id: 'st-work', deal_amount: 100 }, oc: { export_status: 'pending' }, noop: true })
+    await uc.updateLead('l1', { status_id: 'st-deal' }, actor)
+    expect(conversionFlow.recordAdjustment).not.toHaveBeenCalled()
+    expect(sheets.sendConversion).toHaveBeenCalledOnce()
+    const exported = setup({ before: { status_id: 'st-work', deal_amount: 100 }, oc: { export_status: 'exported' }, noop: true })
+    await exported.uc.updateLead('l1', { status_id: 'st-deal' }, actor)
+    expect(exported.sheets.sendConversion).not.toHaveBeenCalled()
   })
 
   it('leave: конверсія ще pending → нічого не відкликаємо', async () => {

@@ -77,6 +77,14 @@ export function makeConversionRepository(db: () => Db): ConversionRepository {
       return error ? dbFail(error.message) : dbOk(undefined)
     },
 
+    async markPendingByLead(leadId) {
+      const { error } = await db()
+        .from('offline_conversions')
+        .update({ export_status: 'pending', exported_at: null })
+        .eq('lead_id', leadId)
+      return error ? dbFail(error.message) : dbOk(undefined)
+    },
+
     async getExportedAt(leadId) {
       const { data } = await db().from('offline_conversions').select('exported_at').eq('lead_id', leadId).maybeSingle()
       return (data?.exported_at as string | null | undefined) ?? null

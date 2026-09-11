@@ -1,7 +1,7 @@
 // Розділи адмінки (розділ 5 стандарту): один масив для меню сайдбара і карток головної.
 // Пункт показується, якщо в користувача є хоча б одне з прав anyPermission (порожньо — усім).
 import {
-  PhoneCall, Plug, TrendingUp, Users, Shield, Settings, BarChart3, RotateCcw, FileText, Scale,
+  PhoneCall, Plug, TrendingUp, Users, Shield, Settings, BarChart3, RotateCcw, FileText, Scale, History,
   type LucideIcon,
 } from 'lucide-react'
 import type { Permission } from '@core/domain/access/permissions'
@@ -25,6 +25,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { href: '/admin/conversions', label: 'Офлайн конверсії', description: 'Конверсії Google Ads і вивантаження в Google Sheets.', icon: TrendingUp, anyPermission: ['manage_conversions', 'manage_users'] },
   { href: '/admin/conversion-adjustments', label: 'Корекції конверсій', description: 'RETRACT / RESTATE для вивантажених конверсій.', icon: RotateCcw, anyPermission: ['manage_conversions', 'manage_users'] },
   { href: '/admin/settings', label: 'Налаштування', description: 'Стадії, кастомні поля, дедуп, події аналітики, телефонія.', icon: Settings, anyPermission: ['manage_settings'] },
+  { href: '/admin/audit-log', label: 'Журнал дій', description: 'Хто, коли і що змінив в адмінці.', icon: History, anyPermission: ['manage_users'] },
 ]
 
 /** Розділи, доступні з набором прав. */

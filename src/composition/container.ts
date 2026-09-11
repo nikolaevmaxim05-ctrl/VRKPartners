@@ -22,6 +22,7 @@ import { makeConversionExportUseCases } from '@core/application/use-cases/admin/
 import { makeVerifyGa4 } from '@core/application/use-cases/admin/verify-ga4'
 import { makeKeepalive } from '@core/application/use-cases/system/keepalive'
 import { makeAuditLog } from '@core/application/audit'
+import { makeAuditLogUseCases } from '@core/application/use-cases/admin/audit-log'
 import { makeLeadSchema } from '@core/domain/lead/schema'
 
 import { serviceClient } from '@infra/supabase/service'
@@ -90,7 +91,8 @@ const settingsRepo = once(() => makeSettingsRepository(serviceClient))
 const tagRepo = once(() => makeTrackingTagRepository(serviceClient))
 const secretsRepo = once(() => makeIntegrationSecretsRepository(serviceClient, aesGcmCipher))
 // Журнал дій адмінів (audit_log) — один на всі сценарії.
-const auditLog = once(() => makeAuditLog(makeAuditLogRepository(serviceClient)))
+const auditRepo = once(() => makeAuditLogRepository(serviceClient))
+const auditLog = once(() => makeAuditLog(auditRepo()))
 const conversionRepo = once(() => makeConversionRepository(serviceClient))
 const adjustmentRepo = once(() => makeAdjustmentRepository(serviceClient))
 const analyticsRepo = once(() => makeAnalyticsRepository(serviceClient))
@@ -239,6 +241,8 @@ export const getVerifyGa4 = once(() =>
     now: () => Date.now(),
   }),
 )
+
+export const getAuditLogUseCases = once(() => makeAuditLogUseCases({ audit: auditRepo() }))
 
 export const getKeepalive = once(() => makeKeepalive({ health: makeHealthCheck(serviceClient), clock: systemClock }))
 

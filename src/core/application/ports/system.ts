@@ -17,8 +17,11 @@ export type AuditEntry = {
   ip_address: string | null
 }
 
+export type AuditRow = AuditEntry & { id: string; created_at: string }
+
 export interface AuditLogRepository {
   insert(entry: AuditEntry): Promise<DbResult<void>>
+  listPage(page: number, limit: number): Promise<DbResult<{ rows: AuditRow[]; total: number }>>
 }
 
 /** GA4: Measurement Protocol + Realtime Data API (dev-інструмент). */

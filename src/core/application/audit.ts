@@ -12,7 +12,7 @@ export interface AuditLog {
   record(actor: Actor | null | undefined, action: string, resource: string, values?: AuditValues): Promise<void>
 }
 
-export function makeAuditLog(repo: AuditLogRepository): AuditLog {
+export function makeAuditLog(repo: Pick<AuditLogRepository, 'insert'>): AuditLog {
   return {
     async record(actor, action, resource, values = {}) {
       try {

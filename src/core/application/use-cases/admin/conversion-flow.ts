@@ -197,6 +197,12 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
       return null
     }
     console.log('[adjustments] recorded', { id: res.data.id, type: params.type, orderNo: params.orderNo })
+    if (params.type === 'retract') {
+      // Відкликана конверсія знову pending: повторний перехід на конверсійну стадію відправить її
+      // заново (рішення власника), а наступний RETRACT дозволений лише після нового експорту.
+      const reset = await conversions.markPendingByLead(params.leadId)
+      if (!reset.ok) console.error('[adjustments] mark_pending_failed', reset.error)
+    }
     return res.data
   }
 

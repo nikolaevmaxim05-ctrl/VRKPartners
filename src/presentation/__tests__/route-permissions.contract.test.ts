@@ -22,6 +22,7 @@ const EXPECTED: Record<string, Methods> = {
   'analytics/export': { POST: ['view_reports'] },
   'analytics/report': { GET: ['view_reports'] },
   assignees: { GET: [] },
+  'audit-log': { GET: ['manage_users'] },
   content: { GET: ['manage_content'], PUT: ['manage_content'] },
   'content/upload': { POST: ['manage_content'] },
   'conversion-adjustments': { GET: CONV },

@@ -162,6 +162,7 @@ src/
   presentation/admin-route.ts                      Actor.ip из цепочки раздела 8 (для audit_log)
   features/admin/lib/sections.ts                   ADMIN_SECTIONS — меню сайдбара и карточки /admin
   app/admin/(dashboard)/page.tsx                   главная админки (карточки)
+  app/admin/(dashboard)/audit-log + api/admin/audit-log   экран «Журнал дій» (manage_users)
   shared/lib/analytics.ts                          fireAdsConversions() — gtag('event','conversion',{send_to})
   supabase/migrations/031_tracking_tags_conversion_label.sql
   supabase/migrations/032_drop_legacy.sql

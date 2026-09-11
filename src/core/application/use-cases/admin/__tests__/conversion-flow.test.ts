@@ -14,6 +14,7 @@ function setup(over: Partial<Record<string, unknown>> = {}) {
     insert: vi.fn(async () => dbOk(undefined)),
     updateState: vi.fn(async () => dbOk(undefined)),
     markExportedByLead: vi.fn(async () => dbOk(undefined)),
+    markPendingByLead: vi.fn(async () => dbOk(undefined)),
     getExportedAt: vi.fn(async () => null as string | null),
     listPage: vi.fn(),
     countPending: vi.fn(),
@@ -65,6 +66,16 @@ const row: AdjustmentRow = {
   adjustment_currency: null,
   adjustment_time: '2026-01-15T08:30:00.000Z',
 }
+
+describe('recordAdjustment: після RETRACT конверсія знову pending (повторний enter відправить її заново)', () => {
+  it('retract → markPendingByLead; restate → ні', async () => {
+    const { flow, conversions } = setup()
+    await flow.recordAdjustment({ leadId: 'l1', orderNo: 1, conversionAction: 'a', type: 'retract' })
+    expect(conversions.markPendingByLead).toHaveBeenCalledWith('l1')
+    await flow.recordAdjustment({ leadId: 'l1', orderNo: 1, conversionAction: 'a', type: 'restate', value: 5 })
+    expect(conversions.markPendingByLead).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('dispatchAdjustment', () => {
   it('sent === true → exported (await до завершення)', async () => {
