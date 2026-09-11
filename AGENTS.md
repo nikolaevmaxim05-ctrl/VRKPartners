@@ -13,10 +13,12 @@ onion-архитектура + фичи стандарта, поэтапно, in
 - Домен: `vrk.com.ua` (+ `www`). Vercel-проект `vrk-partners`, команда
   `vrksite-1205s-projects`, регион `fra1`, Node 24, деплой из ветки `master`
   репозитория `github.com/vrksite-sudo/VRKPartners` (remote `newrepo`).
-- Supabase: проект `whjkmrnwxfmlffgsboyw` (eu-central-1). Применены миграции `001`–`033`.
+- Supabase: проект `whjkmrnwxfmlffgsboyw` (eu-central-1). Применены миграции `001`–`034`.
 - Клиент активно правит контент из админки (`site_content.landing` обновлён 2026-09-02).
-- Локально `.env.local` содержит только `VERCEL_OIDC_TOKEN` — ключей Supabase нет,
-  поэтому ассистент читает БД через MCP (только SELECT), а не через код проекта.
+- Локально `.env.local` (в `.gitignore`) с 2026-09-11 содержит URL/anon/service-role Supabase и
+  креденшалы тестового админа (`E2E_ADMIN_EMAIL/PASSWORD`) — для функциональных и e2e тестов против
+  **продовой** БД (решение владельца). `ADMIN_ENCRYPTION_KEY` локально нет (шифрование/расшифровка
+  ключей интеграций не проверяется). Тестовые данные помечаются и удаляются после тестов.
 
 ## Стек (зафиксирован, НЕ апгрейдим в рамках перестройки)
 
@@ -387,10 +389,12 @@ src/i18n`.
 Не исправлено (косметика): счётчик лимита в редакторе считает по дефолту того же индекса, сервер —
 по самому длинному дефолту массива; счётчик может покраснеть там, где сервер сохранит.
 
-**Вопрос владельцу:** сайт на Vercel **без** Cloudflare, а `cf-connecting-ip` стоит первым в
-цепочке раздела 8 — клиент может подставить любой валидный IP и обойти rate limit / дедуп по IP.
-Предложение: пока сайта нет за Cloudflare — порядок `x-forwarded-for[0]` (ставит Vercel) →
-`x-real-ip` → `cf-connecting-ip`; либо доверять `cf-connecting-ip` только при env-флаге.
+**Решения владельца (2026-09-11):** миграция 034 применена через MCP до пуша; порядок IP-цепочки
+**не менять** (остаётся по разделу 8, риск подстановки `cf-connecting-ip` принят); **CSP дополнена**
+хостами инструментов, подключаемых GTM клиента: `script-src` + `https://*.ringostat.com
+https://*.clarity.ms https://googleads.g.doubleclick.net`, `connect-src` + `https://*.ringostat.com
+https://*.clarity.ms https://ad.doubleclick.net` (уточнение решения 15: список хостов расширяется по
+инструментам клиента, `img-src https:` и прочее — без изменений).
 
 ## Известные «требует действий владельца»
 
@@ -407,8 +411,5 @@ src/i18n`.
 - Google Ads: в «Інтеграції → Google теги» у тега `AW-…` заполнить Conversion label (иначе конверсия формы не вызывается).
 - После стабилизации Фазы 6: удалить бэкап-строки `backup:*` из `site_content` (решение владельца).
 - Прогнать Lighthouse на проде (цель Accessibility 100, SEO 100) и `npx playwright test` с креденшалами админки.
-- **Миграция 034** (`offline_conversions.export_status` + `'retracted'`) — применить **до** пуша
-  кода ревью (расширение CHECK, старому коду не мешает).
-- CSP на проде блокирует инструменты, которые подключает GTM клиента: `script.ringostat.com`,
-  `www.clarity.ms` (script-src), `googleads.g.doubleclick.net` (script-src),
-  `ad.doubleclick.net` (connect-src). Решение 15 («CSP не трогать») — нужно решение: добавить хосты.
+- После деплоя кода ревью: проверить в консоли прода, что CSP больше не блокирует Ringostat,
+  Clarity и doubleclick (если GTM подключает ещё что-то — добавить хосты тем же способом).

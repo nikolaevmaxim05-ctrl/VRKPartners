@@ -21,16 +21,18 @@ const supabaseHost = supabaseUrl ? new URL(supabaseUrl).origin : ''
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  // Скрипти: GTM, GA4, Google Ads, Plausible, Meta Pixel, TikTok Pixel.
+  // Скрипти: GTM, GA4, Google Ads (+ view-through googleads.g.doubleclick.net), Plausible, Meta Pixel,
+  // TikTok Pixel; через GTM клієнта — Ringostat (підміна номера) і Microsoft Clarity (рішення власника
+  // 2026-09-11 за підсумками ревью: без них інструменти на проді блокувались CSP).
   // У dev — 'unsafe-eval' для HMR Next.js
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://www.google.com https://plausible.io https://connect.facebook.net https://analytics.tiktok.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://connect.facebook.net https://analytics.tiktok.com https://*.ringostat.com https://*.clarity.ms`,
   // + Google Fonts (CSS)
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https: blob:",
   // + Google Fonts (файли шрифтів)
   "font-src 'self' data: https://fonts.gstatic.com",
-  // GA4, Ads, GTM preview, Plausible, Telegram, KeyCRM, Supabase (https + wss)
-  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://api.telegram.org https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, '')}` : ''}`,
+  // GA4, Ads (+ ad.doubleclick.net), GTM preview, Plausible, Ringostat, Clarity, Telegram, KeyCRM, Supabase (https + wss)
+  `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com https://plausible.io https://*.ringostat.com https://*.clarity.ms https://api.telegram.org https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, '')}` : ''}`,
   // td.doubleclick.net — GA4/AW інжектять iframe для cross-domain linker
   'frame-src https://td.doubleclick.net https://www.googletagmanager.com',
   "frame-ancestors 'none'",

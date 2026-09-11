@@ -197,3 +197,6 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   `export_status in ('pending','exported','retracted')`) — **не применён**, ждёт решения владельца;
   применять до пуша кода. Откат — вернуть CHECK из 033 (строк со статусом `retracted` на момент
   отката быть не должно: `select count(*) from offline_conversions where export_status='retracted'`).
+- **2026-09-11, ревью после Фазы 6 (ассистент через Supabase MCP `apply_migration`, по решению
+  владельца, до пуша).** Применена `034_offline_conversions_retracted` (CHECK расширен значением
+  `retracted`). Данные не менялись (таблица пуста).

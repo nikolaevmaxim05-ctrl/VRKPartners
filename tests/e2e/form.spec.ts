@@ -3,15 +3,30 @@
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  // Стаб gtag і фіксований список Ads-тегів (layout інлайнить порожній масив без БД —
-  // сеттер ігнорує це присвоєння). Виклики зберігаємо в sessionStorage — переживають перехід на /thanks.
+  // Зовнішній gtag.js не вантажимо (герметично; інакше він перехоплює dataLayer.push).
+  await page.route('**/*googletagmanager.com/**', (route) => route.abort())
+  // Виклики gtag фіксуємо через dataLayer.push: якщо в БД є Google-теги, layout інлайнить
+  // `function gtag(){dataLayer.push(arguments)}` і перекриває будь-який стаб window.gtag; без тегів
+  // працює наш стаб. Список Ads-тегів фіксований (сеттер ігнорує присвоєння з layout).
+  // Виклики зберігаємо в sessionStorage — переживають перехід на /thanks.
   await page.addInitScript(() => {
     const calls: unknown[][] = []
-    const w = window as unknown as Record<string, unknown>
-    w.gtag = (...args: unknown[]) => {
+    const record = (args: unknown[]) => {
       calls.push(args)
       sessionStorage.setItem('__gtag_calls', JSON.stringify(calls))
     }
+    const dl: unknown[] = []
+    const origPush = dl.push.bind(dl)
+    dl.push = (...items: unknown[]) => {
+      for (const it of items) {
+        if (it && typeof it === 'object' && typeof (it as { length?: unknown }).length === 'number' && !Array.isArray(it)) record(Array.from(it as ArrayLike<unknown>))
+        else if (Array.isArray(it)) record(it)
+      }
+      return origPush(...items)
+    }
+    const w = window as unknown as Record<string, unknown>
+    w.dataLayer = dl
+    w.gtag = (...args: unknown[]) => record(args)
     Object.defineProperty(window, '__awConversions', { get: () => ['AW-123/E2ELABEL'], set: () => {}, configurable: true })
   })
 })
