@@ -40,7 +40,6 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   const current = group?.cases[caseIdx] ?? group?.cases[0];
   const cur = current as CaseItem;
   const facts = contentList(trust.facts);
-  const niches = contentList(trust.niches);
   const highlights = trust.highlights.filter((h) => hasText(h.value));
   const metrics = (cur?.metrics ?? []).filter((m) => hasText(m.value));
 
@@ -107,23 +106,8 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
               ))}
             </div>
 
-            {/* ніші */}
-            {niches.length > 0 && (
-            <div className="mt-8">
-              <p className="text-xs uppercase tracking-widest text-white/35">{trust.nichesTitle}</p>
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {niches.map((n, i) => (
-                  <li
-                    key={i}
-                    className="min-w-0 max-w-full rounded-full border border-bg-line bg-bg-soft px-3 py-1.5 text-sm text-white/75"
-                  >
-                    {n}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            )}
-
+            {/* Блок «Ніші» (підпис + чипи) прибрано за рішенням власника 2026-09-13; перемикач ніш
+                у картці кейсів праворуч лишається. Кнопки стоять на тому ж відступі (mt-8) від цифр. */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               {hasText(trust.ctaSecondary) && <Button onClick={handleConsult}>{trust.ctaSecondary}</Button>}
               <TelegramCtaButton placement="trust" size="md" />
