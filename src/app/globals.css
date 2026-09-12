@@ -346,6 +346,59 @@
   }
 }
 
+/* Вікно послуг на мобільному (< sm, крок 3 мобільних анімацій, уточнення власника 2026-09-12): краї
+   прокрутки розчиняються МАСКОЮ самого вікна до прозорого (як стрічка партнерів), а не накладкою кольору
+   сторінки — накладка поверх «аврори» фону читалася як чорна смуга. Зона затухання — --services-fade;
+   на краю (data-at-start/-end на обгортці, пише компонент Services) відповідна зона стає 0, щоб верх
+   першої / низ останньої картки не «зʼїдалися». @property робить перемикання плавним (Chromium,
+   Safari 16.4+, Firefox 128+); без нього — миттєве (біля краю майже нічого не обрізано). Без JS:
+   at-start=1 → зверху маски немає, знизу є. Маска обрізає box-shadow, тому focus-ring — на обгортці.
+   Смужка-прогрес — сусід вікна в обгортці, поза маскою. Режим «менше руху»: маска лишається (не рух),
+   перехід гаситься загальним правилом нижче. */
+@property --fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@media (max-width: 639.98px) {
+  .services-window {
+    --services-fade: 2.5rem;
+    --fade-top: var(--services-fade);
+    --fade-bottom: var(--services-fade);
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black var(--fade-top),
+      black calc(100% - var(--fade-bottom)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black var(--fade-top),
+      black calc(100% - var(--fade-bottom)),
+      transparent
+    );
+    transition:
+      --fade-top 0.3s ease-out,
+      --fade-bottom 0.3s ease-out;
+  }
+  [data-at-start="1"] > .services-window {
+    --fade-top: 0px;
+  }
+  [data-at-end="1"] > .services-window {
+    --fade-bottom: 0px;
+  }
+}
+.services-wrap:has(> .services-window:focus-visible) {
+  @apply ring-2 ring-brand ring-offset-2 ring-offset-bg;
+}
+
 /* Ховаємо скролбар сторінки (прокрутка лишається — колесо, тачпад, клавіші,
    свайп). Firefox + WebKit/Chromium. */
 html {

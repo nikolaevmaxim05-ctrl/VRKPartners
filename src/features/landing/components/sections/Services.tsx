@@ -226,8 +226,9 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
   const hiddenCount = Math.max(0, items.length - SERVICES_PREVIEW);
 
   // Вікно прокрутки (< sm): висота = WINDOW_CARDS × перша картка + проміжок (CSS-змінна, перемір
-  // ResizeObserver-ом — не у scroll); індикатори: затухання зверху/знизу (data-at-start/-end на обгортці)
-  // і смужка-прогрес справа (бігунок — transform). У scroll: passive → rAF → арифметика + запис стилів.
+  // ResizeObserver-ом — не у scroll); індикатори: затухання країв — маска самого вікна (.services-window
+  // у globals.css; data-at-start/-end на обгортці вимикають зону на відповідному краю) і смужка-прогрес
+  // справа (бігунок — transform). У scroll: passive → rAF → арифметика + запис стилів.
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
   const windowRef = React.useRef<HTMLDivElement | null>(null);
   const thumbRef = React.useRef<HTMLDivElement | null>(null);
@@ -314,7 +315,15 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             overflow-y: auto, скролбар прихований, chaining дозволений: на краях прокрутка передається
             сторінці), висота — CSS-змінна --services-window (1,5 картки; фолбек без JS), не вище 80svh.
             ≥ sm: сітка 2/3 колонки, картки після перших трьох приховані до «Показати більше». */}
-        <div ref={wrapRef} className="group/win relative mt-12" data-at-start="1" data-at-end="0" data-scrollable="0">
+        {/* Обгортка несе стан країв (data-at-start/-end — читає CSS маски) і focus-ring вікна
+            (.services-wrap: маска обрізає box-shadow самого вікна, тому кільце — тут). */}
+        <div
+          ref={wrapRef}
+          className="services-wrap group/win relative mt-12 rounded-2xl"
+          data-at-start="1"
+          data-at-end="0"
+          data-scrollable="0"
+        >
           <div
             ref={windowRef}
             role="region"
@@ -325,8 +334,9 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
               "reveal-stagger gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3",
               "max-sm:flex max-sm:flex-col max-sm:gap-4 max-sm:overflow-y-auto max-sm:overscroll-y-auto max-sm:pr-3",
               "max-sm:h-[var(--services-window,min(34rem,75svh))] max-sm:max-h-[80svh]",
-              // Вільна прокрутка без snap (рішення власника).
-              "no-scrollbar btn-focus rounded-2xl"
+              // Вільна прокрутка без snap (рішення власника). Краї вікна розчиняються маскою
+              // (.services-window, < sm) — не накладкою кольору сторінки поверх кольорового фону.
+              "services-window no-scrollbar outline-none"
             )}
           >
             {items.map((s, i) => (
@@ -334,16 +344,8 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             ))}
           </div>
 
-          {/* Індикатори вікна (< sm, декоративні): затухання зверху/знизу зникає на відповідному краю;
-              смужка-прогрес справа — бігунок за scrollTop (transform). */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-10 rounded-t-2xl bg-gradient-to-b from-bg to-transparent transition-opacity duration-300 group-data-[at-start=1]/win:opacity-0 sm:hidden"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-2xl bg-gradient-to-t from-bg to-transparent transition-opacity duration-300 group-data-[at-end=1]/win:opacity-0 sm:hidden"
-          />
+          {/* Смужка-прогрес справа (< sm, декоративна): поза маскою вікна (сусід в обгортці),
+              бігунок за scrollTop (transform). */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute bottom-1 right-0 top-1 w-0.5 rounded-full bg-white/10 group-data-[scrollable=0]/win:hidden sm:hidden"

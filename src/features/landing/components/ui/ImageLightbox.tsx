@@ -7,6 +7,7 @@
 // щипок двома пальцями 1×–MAX_SCALE, подвійний тап 1× ↔ DOUBLE_TAP_SCALE, перетягування одним
 // пальцем при збільшенні; усе через transform картинки (без layout), pointer events.
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
@@ -93,7 +94,9 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
     };
   }, [mounted, onClose, returnFocusTo]);
 
-  if (!mounted) return null;
+  // Рендеримо в body (портал): у DOM лайтбокс лежить усередині вікна послуг, а маска вікна (< sm) створює
+  // stacking context — без порталу fixed-шар опинявся б під шапкою та обрізався маскою.
+  if (!mounted || typeof document === "undefined") return null;
 
   const onPointerDown = (e: React.PointerEvent) => {
     // Без сумісних mouse-подій: фокус лишається на хрестику, виділення/drag картинки не стартують.
@@ -185,7 +188,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -216,6 +219,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
       >
         <Image src={src} alt={alt} fill sizes="100vw" className="pointer-events-none object-contain p-2" draggable={false} />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

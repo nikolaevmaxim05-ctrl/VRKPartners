@@ -1,7 +1,9 @@
 // Секція послуг. Десктоп (1440×900): 3 картки + «Показати більше», превью після затримки наведення
 // зʼявляється НА МІСЦІ і не виходить за вікно; клік по мініатюрі нічого не відкриває.
 // Мобільний (390×844, touch): усі картки по одному разу у вертикальному вікні з внутрішньою прокруткою
-// (висота ≈ 1,5 картки), індикатори (затухання/смужка), без кнопки; тап по мініатюрі — лайтбокс
+// (висота ≈ 1,5 картки), індикатори: краї розчиняються маскою самого вікна (--fade-top/--fade-bottom:
+// на краю відповідна зона 0), смужка-прогрес; край вікна просвічує фон сторінки, а не малює колір
+// сторінки поверх нього (піксельна перевірка); без кнопки; тап по мініатюрі (і в зоні затухання) — лайтбокс
 // (закриття хрестиком, фоном, Escape; фокус повертається на кнопку); «менше руху» — те саме.
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
@@ -28,6 +30,8 @@ test.describe('десктоп', () => {
     await expect(visible).toHaveCount(3)
     await expect(page.locator('#services article')).toHaveCount(ITEM_COUNT)
     await expect(page.locator('#services [data-zoom-trigger]')).toHaveCount(0)
+    // ≥ sm: маски на сітці немає.
+    expect((await windowState(page)).mask).toBe('')
     await page.locator('#services article').first().locator('.h-40').first().click()
     await page.waitForTimeout(300)
     await expect(page.locator('[data-lightbox]')).toHaveCount(0)
@@ -95,18 +99,49 @@ async function windowState(page: Page) {
     const wrap = document.querySelector<HTMLElement>('#services .group\\/win')!
     const win = wrap.querySelector<HTMLElement>('[role="region"]')!
     const thumb = wrap.querySelector<HTMLElement>('.will-change-transform')!
-    const fades = wrap.querySelectorAll<HTMLElement>(':scope > [aria-hidden="true"]')
+    const cs = getComputedStyle(win)
+    const maskOf = (v: string) => (v && v !== 'none' ? v : '')
     return {
       atStart: wrap.dataset.atStart,
       atEnd: wrap.dataset.atEnd,
       scrollable: wrap.dataset.scrollable,
       scrollTop: win.scrollTop,
       thumbTransform: thumb.style.transform,
-      topFadeOpacity: Number(getComputedStyle(fades[0]).opacity),
-      bottomFadeOpacity: Number(getComputedStyle(fades[1]).opacity),
+      // Маска вікна (Chromium віддає mask-image, старіші WebKit — лише -webkit-mask-image).
+      mask: maskOf(cs.maskImage) || maskOf((cs as unknown as { webkitMaskImage: string }).webkitMaskImage),
+      fadeTop: parseFloat(cs.getPropertyValue('--fade-top')) || 0,
+      fadeBottom: parseFloat(cs.getPropertyValue('--fade-bottom')) || 0,
+      overlays: wrap.querySelectorAll(':scope > [aria-hidden="true"]').length,
     }
   })
 }
+
+type Rgb = [number, number, number]
+
+/** Кольори пікселів вьюпорта в CSS-координатах (скріншот → canvas у сторінці, без залежностей). */
+async function pixels(page: Page, points: Array<{ x: number; y: number }>): Promise<Rgb[]> {
+  const png = (await page.screenshot({ fullPage: false })).toString('base64')
+  return page.evaluate(
+    async ({ png, points }) => {
+      const img = new Image()
+      img.src = `data:image/png;base64,${png}`
+      await img.decode()
+      const scale = img.naturalWidth / window.innerWidth
+      const c = document.createElement('canvas')
+      c.width = img.naturalWidth
+      c.height = img.naturalHeight
+      const ctx = c.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      return points.map(({ x, y }) => {
+        const d = ctx.getImageData(Math.round(x * scale), Math.round(y * scale), 1, 1).data
+        return [d[0], d[1], d[2]] as [number, number, number]
+      })
+    },
+    { png, points }
+  )
+}
+
+const dist = (a: Rgb, b: Rgb) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]))
 
 function mobileWindowTests() {
   test('усі картки один раз у вертикальному вікні; висота ≈ 1,5 картки; індикатори; без кнопки й горизонтального скролу', async ({ page }, testInfo) => {
@@ -146,30 +181,69 @@ function mobileWindowTests() {
     expect(Math.abs(geo.winLeft - geo.titleLeft)).toBeLessThanOrEqual(2)
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
-    // Початок: верхнє затухання приховане, нижнє видиме, смужка є.
+    // Початок: маска на вікні (накладок немає — лише смужка), зверху зона 0, знизу > 0, смужка є.
     let s = await windowState(page)
     expect(s.atStart).toBe('1')
     expect(s.scrollable).toBe('1')
-    expect(s.topFadeOpacity).toBeLessThan(0.05)
-    expect(s.bottomFadeOpacity).toBeGreaterThan(0.95)
+    expect(s.overlays).toBe(1)
+    expect(s.mask).toContain('linear-gradient')
+    expect(s.fadeTop).toBe(0)
+    expect(s.fadeBottom).toBeGreaterThan(30)
     const thumb0 = s.thumbTransform
 
-    // Прокрутка вікна на одну картку: смужка зсунулась, верхнє затухання зʼявилося.
+    // Піксельна перевірка: край вікна розчиняється до фону СТОРІНКИ (маска), а не до кольору сторінки
+    // поверх фону (стара накладка). Фон робимо зеленим і без «аврори»: нижній край вікна на початку
+    // прокрутки лежить на середині другої картки, тож без маски піксель був би темним (#16161D / #0B0B0E).
+    await page.evaluate(() => {
+      document.body.style.backgroundColor = 'rgb(40, 140, 60)'
+      document.querySelector<HTMLElement>('.site > .-z-10')!.style.display = 'none'
+    })
+    await win.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await page.waitForTimeout(200)
+    const wb = (await win.boundingBox())!
+    const x = wb.x + 24
+    const [edge, inside, outside] = await pixels(page, [
+      { x, y: wb.y + wb.height - 1 },
+      { x, y: wb.y + wb.height - 60 },
+      { x, y: wb.y + wb.height + 10 },
+    ])
+    expect(dist(edge, outside), `край ${edge} ≠ фон ${outside}`).toBeLessThanOrEqual(24)
+    expect(dist(inside, outside), `картка ${inside} = фон ${outside}`).toBeGreaterThan(60)
+    await page.evaluate(() => {
+      document.body.style.backgroundColor = ''
+      document.querySelector<HTMLElement>('.site > .-z-10')!.style.display = ''
+    })
+
+    // Прокрутка вікна на одну картку: смужка зсунулась, обидві зони > 0.
     await win.evaluate((el, h) => el.scrollTo({ top: h, behavior: 'instant' }), geo.cardH + geo.gap)
     await page.waitForTimeout(450)
     s = await windowState(page)
     expect(s.atStart).toBe('0')
     expect(s.atEnd).toBe('0')
     expect(s.thumbTransform).not.toBe(thumb0)
-    expect(s.topFadeOpacity).toBeGreaterThan(0.95)
+    expect(s.fadeTop).toBeGreaterThan(30)
+    expect(s.fadeBottom).toBeGreaterThan(30)
 
-    // Кінець: нижнє затухання зникло.
+    // Кінець: нижня зона 0.
     await win.evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' }))
     await page.waitForTimeout(450)
     s = await windowState(page)
     expect(s.atEnd).toBe('1')
-    expect(s.bottomFadeOpacity).toBeLessThan(0.05)
+    expect(s.fadeTop).toBeGreaterThan(30)
+    expect(s.fadeBottom).toBe(0)
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+
+    // Тап по мініатюрі, що лежить у нижній зоні затухання, відкриває лайтбокс (маска не блокує події).
+    await win.evaluate((el) => el.scrollTo({ top: 0, behavior: 'instant' }))
+    await page.waitForTimeout(450)
+    const second = page.locator('#services [data-zoom-trigger]').nth(1)
+    const sb = (await second.boundingBox())!
+    const wb2 = (await win.boundingBox())!
+    expect(sb.y).toBeLessThan(wb2.y + wb2.height)
+    await page.touchscreen.tap(sb.x + sb.width / 2, Math.min(sb.y + sb.height - 4, wb2.y + wb2.height - 8))
+    await expect(page.locator('[data-lightbox]')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-lightbox]')).toHaveCount(0)
   })
 
   test('тап по мініатюрі → лайтбокс із великим скріншотом; закриття хрестиком, фоном, Escape; фокус на кнопку', async ({ page }, testInfo) => {
