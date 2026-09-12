@@ -84,7 +84,7 @@ export function About({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   const labels = { experienceLabel: about.experienceLabel, roleLabel: about.roleLabel, skillsLabel: about.skillsLabel };
 
   return (
-    <section id="about" className="section sect-sep">
+    <section id="about" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           {hasText(about.eyebrow) && (

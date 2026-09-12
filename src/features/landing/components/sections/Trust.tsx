@@ -71,7 +71,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   const hasCases = !!group && !!current;
 
   return (
-    <section id="cases" className="section sect-sep">
+    <section id="cases" className="section">
       <div className="container-x">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
           {/* Ліва колонка: довіра */}

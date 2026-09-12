@@ -60,7 +60,7 @@ export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   }, [usp.items.length]);
 
   return (
-    <section id="usp" className="section sect-sep">
+    <section id="usp" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           {hasText(usp.eyebrow) && (

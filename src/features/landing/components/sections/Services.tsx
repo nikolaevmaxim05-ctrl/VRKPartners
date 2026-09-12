@@ -175,7 +175,7 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
   };
 
   return (
-    <section id="services" className="section sect-sep">
+    <section id="services" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           <Title data-fit className="h2">{nbHyphen(services.title)}</Title>

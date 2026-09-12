@@ -38,7 +38,7 @@ export function Hero() {
   return (
     <section
       id="top"
-      className="sect-sep relative overflow-hidden pt-24 pb-14 sm:pt-32 lg:pt-36 lg:pb-24"
+      className="relative overflow-hidden pt-24 pb-14 sm:pt-32 lg:pt-36 lg:pb-24"
     >
       <div className="container-x relative grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-end lg:gap-12">
         <div className="min-w-0 animate-fade-up">

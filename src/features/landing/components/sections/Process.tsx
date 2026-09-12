@@ -47,7 +47,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
   };
 
   return (
-    <section id="process" className="section sect-sep">
+    <section id="process" className="section">
       <div className="container-x">
         <div className="reveal max-w-3xl">
           <Title data-fit className="h2">{nbHyphen(workflow.title)}</Title>

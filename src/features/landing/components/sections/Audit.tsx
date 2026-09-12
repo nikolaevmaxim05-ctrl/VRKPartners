@@ -37,7 +37,7 @@ export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   };
 
   return (
-    <section id="audit" className="section sect-sep">
+    <section id="audit" className="section">
       <div className="container-x">
         <div className="reveal max-w-2xl">
           <Title data-fit className="h2">{nbHyphen(audit.title)}</Title>

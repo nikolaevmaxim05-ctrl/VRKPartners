@@ -79,7 +79,7 @@ export function FinalCta({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
   };
 
   return (
-    <section id="contacts" className="section sect-sep">
+    <section id="contacts" className="section">
       <div className="container-x">
         {/* Заголовок */}
         {showCta && (
