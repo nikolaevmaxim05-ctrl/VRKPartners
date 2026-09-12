@@ -259,6 +259,14 @@
   color: hsl(var(--foreground));
 }
 
+/* Розгорання слів по мірі прокрутки (крок 4 мобільних анімацій): opacity пише JS (скраб по позиції,
+   features/landing/lib/word-reveal), 100 мс лінійно згладжує сходинки між кадрами (рішення власника).
+   Без JS інлайн-стилю немає — слова яскраві. */
+[data-word-reveal] [data-word],
+[data-word-reveal] [data-word-check] {
+  transition: opacity 0.1s linear;
+}
+
 /* Поява елементів при скролі (вмикається лише коли працює JS) */
 .js-reveal .reveal {
   opacity: 0;
@@ -385,6 +393,11 @@ body::-webkit-scrollbar {
   .js-reveal .reveal-stagger > * {
     opacity: 1 !important;
     transform: none !important;
+  }
+  /* Розгорання слів: усі слова й галочки яскраві (JS у цьому режимі ефект не вмикає — страховка). */
+  [data-word-reveal] [data-word],
+  [data-word-reveal] [data-word-check] {
+    opacity: 1 !important;
   }
   /* Спливаючі шари UI-кита (Radix/shadcn): лише тривалість, позиціонування не чіпаємо. */
   [data-state][data-side],

@@ -10,6 +10,7 @@ import { ContentIcon } from "@/features/landing/components/layout/ContentIcon";
 import { DEFAULT_AUDIT_ICON_ORDER } from "@/shared/lib/audit-icons";
 import { contentList, hasText } from "@core/domain/content/messages";
 import { nbHyphen } from "@/shared/lib/nb-hyphen";
+import { SplitWords } from "@/shared/lib/split-words";
 
 export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
@@ -43,7 +44,10 @@ export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
           <Title data-fit className="h2">{nbHyphen(audit.title)}</Title>
         </div>
 
-        <div data-items={items.length} className="reveal-stagger mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
+        {/* Крок 4 мобільних анімацій: замість появи карток (reveal-stagger) — слова пунктів розгораються
+            по мірі прокрутки ([data-word-reveal] → features/landing/lib/word-reveal). Рішення власника:
+            виїзд карток прибрано, іконка/назва/опис завжди яскраві. */}
+        <div data-items={items.length} data-word-reveal className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
           {items.map((item, i) => {
             return (
               <article
@@ -65,8 +69,10 @@ export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
                       key={pi}
                       className="flex items-start gap-1.5 text-xs text-white/70 sm:gap-2 sm:text-sm"
                     >
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand sm:h-4 sm:w-4" />
-                      <span>{p}</span>
+                      <Check data-word-check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand sm:h-4 sm:w-4" />
+                      <span>
+                        <SplitWords text={p} />
+                      </span>
                     </li>
                   ))}
                 </ul>

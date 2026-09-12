@@ -6,6 +6,8 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { ModalProvider } from "@/features/landing/components/forms/ModalProvider";
 import { RevealObserver } from "@/features/landing/components/layout/RevealObserver";
 import { FitText } from "@/features/landing/components/layout/FitText";
+import { WordReveal } from "@/features/landing/components/layout/WordReveal";
+import { WordRevealTuner } from "@/features/landing/components/layout/WordRevealTuner";
 import { HashScroll } from "@/features/landing/components/layout/HashScroll";
 import { SiteBackground } from "@/features/landing/components/layout/SiteBackground";
 import { UtmTracker } from "@/features/landing/components/layout/UtmTracker";
@@ -285,6 +287,9 @@ export default async function SiteLayout({
             <SiteBackground />
             <RevealObserver />
             <FitText />
+            <WordReveal />
+            {/* Тимчасова панель підбору параметрів розгорання (лише /?tune-words=1) — прибрати після підбору. */}
+            <WordRevealTuner />
             <HashScroll />
             <Header />
             <main>{children}</main>
