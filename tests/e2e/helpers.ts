@@ -86,11 +86,13 @@ export async function overflowingElements(page: Page): Promise<string[]> {
     const out: string[] = []
     const vw = document.documentElement.clientWidth
     const els = document.querySelectorAll<HTMLElement>('main *, header *, footer *')
+    // Обрізані/прокручувані контейнери (hidden/clip/auto/scroll) не дають вмісту вилізти за вікно:
+    // горизонтальний трек (карусель послуг) тримає картки поза екраном навмисно.
     const clipped = (el: HTMLElement): boolean => {
       let cur = el.parentElement
       while (cur && cur !== document.body) {
         const ox = getComputedStyle(cur).overflowX
-        if (ox === 'hidden' || ox === 'clip') return true
+        if (ox === 'hidden' || ox === 'clip' || ox === 'auto' || ox === 'scroll') return true
         cur = cur.parentElement
       }
       return false
