@@ -36,6 +36,8 @@ export type ServicesMessages = {
   submitLabel: string
   showMore: string
   showLess: string
+  /** aria-label кнопки збільшення мініатюри (тач, лайтбокс). */
+  zoomLabel: string
   popup: { title: string; note: string }
   items: ServiceItem[]
 }

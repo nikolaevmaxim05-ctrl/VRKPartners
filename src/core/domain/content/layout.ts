@@ -66,7 +66,7 @@ export const PAGE_BLOCKS: Record<string, PageBlock[]> = {
     {
       id: 'services',
       title: 'Послуги',
-      parts: [{ ns: 'services', keys: ['title', 'text', 'items', 'showMore', 'showLess', 'cta', 'submitLabel', 'popup'] }],
+      parts: [{ ns: 'services', keys: ['title', 'text', 'items', 'showMore', 'showLess', 'zoomLabel', 'cta', 'submitLabel', 'popup'] }],
     },
     {
       id: 'audit',
@@ -231,6 +231,7 @@ export const KEY_LABELS: Record<string, string> = {
   // services
   showMore: 'Кнопка «Показати більше»',
   showLess: 'Кнопка «Згорнути»',
+  zoomLabel: 'Кнопка «Збільшити зображення» (тач) — підпис',
   popup: 'Модалка консультації',
   note: 'Підпис',
   mockup: 'Мініатюра (зображення)',
