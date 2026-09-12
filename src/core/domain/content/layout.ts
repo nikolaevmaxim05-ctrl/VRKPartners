@@ -80,7 +80,7 @@ export const PAGE_BLOCKS: Record<string, PageBlock[]> = {
         {
           ns: 'trust',
           keys: [
-            'title', 'facts', 'partnerLabel', 'highlights', 'nichesTitle', 'niches', 'ctaSecondary', 'modalTitle',
+            'title', 'facts', 'partnerLabel', 'highlights', 'ctaSecondary', 'modalTitle',
             'modalDescription', 'submitLabel', 'casesTitle', 'caseHint', 'nicheStep', 'nichesAria', 'caseStep', 'casesAria',
             'taskLabel', 'imageAlt', 'approachTitle', 'caseGroups',
           ],
@@ -244,8 +244,6 @@ export const KEY_LABELS: Record<string, string> = {
   facts: 'Факти',
   partnerLabel: 'Бейдж «Google Partner»',
   highlights: 'Ключові цифри',
-  nichesTitle: 'Підпис «Ніші»',
-  niches: 'Ніші (теги)',
   casesTitle: 'Заголовок картки кейсів',
   caseHint: 'Підказка під заголовком кейсів',
   nicheStep: 'Крок 1 — підпис',

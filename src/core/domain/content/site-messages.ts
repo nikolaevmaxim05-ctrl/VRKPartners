@@ -70,8 +70,6 @@ export type TrustMessages = {
   facts: string[]
   partnerLabel: string
   highlights: CaseMetric[]
-  nichesTitle: string
-  niches: string[]
   ctaSecondary: string
   modalTitle: string
   modalDescription: string

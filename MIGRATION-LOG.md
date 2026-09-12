@@ -146,6 +146,14 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
 6. После каждой операции: `select id, jsonb_object_keys(data) from site_content;` и
    визуальная проверка лендинга (контакты, кейсы, hero.trust).
 
+- **2026-09-13, блок «Ніші» (ассистент, только SELECT).** Перед удалением ключей `trust.nichesTitle`/
+  `trust.niches` из дефолтов (блок в левой колонке кейсов убран по решению владельца):
+  `select id, data->'trust'->'niches', data->'trust'->'nichesTitle' from site_content where id = 'landing'`
+  → оба `null`; `select id from site_content where (data->'trust') ? 'niches'` → только
+  `backup:landing:2026-09-11` (значение равно дефолтам; бэкап-строка и так подлежит удалению).
+  Правок клиента по этим ключам **нет** — данные не менялись, удалять ничего не нужно; если ключи
+  появятся в правках позже, мерж их проигнорирует (чужие ключи, раздел 9).
+
 ## 5. Записи о применённых операциях
 
 - **2026-09-11, Фаза 3 (ассистент, только SELECT).** Проверка перед переносом ключей:
