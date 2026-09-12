@@ -180,7 +180,7 @@ src/
   core/domain/layout/{hyphen,fit-text}.ts             правила: слова с дефисом, подгонка (60 %, ряды, высота)
   shared/lib/nb-hyphen.tsx                             <span class="nb"> в подгоняемых заголовках (SSR)
   features/landing/lib/fit-text.ts + layout/FitText.tsx  DOM-подгонка [data-fit] / [data-fit-row] / hero
-  features/landing/components/sections/*               titleAs, data-fit, data-items, .sect-sep, minmax-сетки
+  features/landing/components/sections/*               titleAs, data-fit, data-items, minmax-сетки
   features/landing/components/sections/Header.tsx      бургер по сумме ширин пунктов
   i18n/request.ts                                      E2E_CONTENT_OVERRIDES=1 → cookie/файл поверх дефолтов
 tests/e2e/*.spec.ts, playwright.config.ts              e2e на локальной прод-сборке (порт 3100)
