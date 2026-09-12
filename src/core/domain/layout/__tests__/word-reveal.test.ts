@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { WORD_REVEAL_DEFAULTS, normalizeParams, readingLineY, wordOpacity, splitWords } from '../word-reveal'
 
+// Усі числа — від дефолтних параметрів, щоб тести не залежали від конкретних значень констант.
 const VH = 1000
 const MAX = 5000 // довга сторінка: кінець далеко
-const P = WORD_REVEAL_DEFAULTS // line 600, band 140, spread 60, min 0.28
+const P = WORD_REVEAL_DEFAULTS
+const LINE = P.readingLine * VH // базова лінія читання, px від верху
+const BAND = P.band * VH // смуга розгорання, px
+const SPREAD = P.spread * VH // зсув правого краю рядка, px
+const TAIL = VH - LINE // останні пікселі прокрутки, на яких лінія опускається
 
 describe('splitWords', () => {
   it('пробіли — окремі частини; конкатенація дорівнює оригіналу', () => {
@@ -22,15 +27,23 @@ describe('splitWords', () => {
 })
 
 describe('readingLineY', () => {
+  it('дефолт — трохи нижче від центру (0.70–0.75 vh, уточнення власника)', () => {
+    expect(P.readingLine).toBeGreaterThanOrEqual(0.7)
+    expect(P.readingLine).toBeLessThanOrEqual(0.75)
+  })
   it('далеко від кінця — базова лінія', () => {
-    expect(readingLineY(0, VH, MAX)).toBe(600)
-    expect(readingLineY(2000, VH, MAX)).toBe(600)
+    expect(readingLineY(0, VH, MAX)).toBeCloseTo(LINE)
+    expect(readingLineY(2000, VH, MAX)).toBeCloseTo(LINE)
   })
   it('на останніх (1 − line) × vh пікселях опускається до низу; у кінці = vh', () => {
-    expect(readingLineY(MAX - 400, VH, MAX)).toBe(600)
-    expect(readingLineY(MAX - 200, VH, MAX)).toBeCloseTo(800)
+    expect(readingLineY(MAX - TAIL, VH, MAX)).toBeCloseTo(LINE)
+    expect(readingLineY(MAX - TAIL / 2, VH, MAX)).toBeCloseTo(LINE + TAIL / 2)
     expect(readingLineY(MAX, VH, MAX)).toBe(VH)
     expect(readingLineY(MAX + 50, VH, MAX)).toBe(VH)
+  })
+  it('запас у кінці (endOvershoot): лінія опускається до vh + запас', () => {
+    expect(readingLineY(MAX, VH, MAX, P.readingLine, 60)).toBe(VH + 60)
+    expect(readingLineY(MAX - TAIL, VH, MAX, P.readingLine, 60)).toBeCloseTo(LINE)
   })
   it('сторінка без прокрутки — лінія внизу', () => {
     expect(readingLineY(0, VH, 0)).toBe(VH)
@@ -41,14 +54,14 @@ describe('readingLineY', () => {
 describe('wordOpacity (скраб по позиції)', () => {
   it('дефолт: нижче лінії — рівно 0 (невидиме), на лінії та вище — рівно 1', () => {
     expect(P.minOpacity).toBe(0)
-    expect(wordOpacity(600, 0, 0, VH, MAX)).toBe(1)
+    expect(wordOpacity(LINE, 0, 0, VH, MAX)).toBe(1)
     expect(wordOpacity(100, 0, 0, VH, MAX)).toBe(1)
-    expect(wordOpacity(740, 0, 0, VH, MAX)).toBe(0)
+    expect(wordOpacity(LINE + BAND, 0, 0, VH, MAX)).toBe(0)
     expect(wordOpacity(2000, 0, 0, VH, MAX)).toBe(0)
   })
   it('усередині band — строго монотонно від 0 до 1', () => {
     let prev = -1
-    for (let top = 740; top >= 600; top -= 10) {
+    for (let top = LINE + BAND; top >= LINE; top -= 10) {
       const o = wordOpacity(top, 0, 0, VH, MAX)
       expect(o).toBeGreaterThan(prev)
       expect(o).toBeGreaterThanOrEqual(0)
@@ -57,39 +70,42 @@ describe('wordOpacity (скраб по позиції)', () => {
     }
   })
   it('нестандартний мінімум (панель): нижче лінії — саме він', () => {
-    expect(wordOpacity(740, 0, 0, VH, MAX, { ...P, minOpacity: 0.3 })).toBeCloseTo(0.3)
+    expect(wordOpacity(LINE + BAND, 0, 0, VH, MAX, { ...P, minOpacity: 0.3 })).toBeCloseTo(0.3)
   })
   it('посередині band — середина між мінімумом і 1; монотонно зростає з прокруткою', () => {
-    expect(wordOpacity(670, 0, 0, VH, MAX)).toBeCloseTo(P.minOpacity + (1 - P.minOpacity) * 0.5)
-    const a = wordOpacity(1500, 0, 800, VH, MAX)
-    const b = wordOpacity(1500, 0, 850, VH, MAX)
-    const c = wordOpacity(1500, 0, 900, VH, MAX)
+    expect(wordOpacity(LINE + BAND / 2, 0, 0, VH, MAX)).toBeCloseTo(P.minOpacity + (1 - P.minOpacity) * 0.5)
+    const top = 1500
+    const a = wordOpacity(top, 0, top - LINE - BAND + 20, VH, MAX)
+    const b = wordOpacity(top, 0, top - LINE - BAND + 70, VH, MAX)
+    const c = wordOpacity(top, 0, top - LINE, VH, MAX)
     expect(a).toBeLessThan(b)
     expect(b).toBeLessThan(c)
     expect(c).toBe(1)
   })
   it('прокрутка назад — обернений хід (та сама функція позиції)', () => {
-    expect(wordOpacity(1500, 0, 900, VH, MAX)).toBe(1)
-    expect(wordOpacity(1500, 0, 700, VH, MAX)).toBeCloseTo(P.minOpacity)
+    const top = 1500
+    expect(wordOpacity(top, 0, top - LINE, VH, MAX)).toBe(1)
+    expect(wordOpacity(top, 0, top - LINE - BAND - 100, VH, MAX)).toBe(0)
   })
   it('у рядку праве слово розгорається пізніше лівого', () => {
-    const left = wordOpacity(650, 0, 0, VH, MAX)
-    const right = wordOpacity(650, 1, 0, VH, MAX)
+    const top = LINE + BAND / 3
+    const left = wordOpacity(top, 0, 0, VH, MAX)
+    const right = wordOpacity(top, 1, 0, VH, MAX)
     expect(right).toBeLessThan(left)
-    // зсув = spread × vh = 60px: праве слово на 650 ≡ ліве на 710
-    expect(right).toBeCloseTo(wordOpacity(710, 0, 0, VH, MAX))
+    // зсув = spread × vh: праве слово на top ≡ ліве на top + SPREAD
+    expect(right).toBeCloseTo(wordOpacity(top + SPREAD, 0, 0, VH, MAX))
   })
   it('кінець сторінки: при максимальній прокрутці яскраве все у вікні', () => {
     const maxScroll = 3000
     const wordTop = maxScroll + VH - 20 // останній рядок біля низу вікна
     expect(wordOpacity(wordTop, 1, maxScroll, VH, maxScroll)).toBe(1)
-    // а до кінця — ще тьмяне
-    expect(wordOpacity(wordTop, 1, maxScroll - 600, VH, maxScroll)).toBeCloseTo(P.minOpacity)
+    // а до кінця (за межами хвоста) — ще невидиме
+    expect(wordOpacity(wordTop, 1, maxScroll - TAIL - BAND - SPREAD - 50, VH, maxScroll)).toBe(0)
   })
   it('сміття → 1 (безпечно: текст видно)', () => {
     expect(wordOpacity(NaN, 0, 0, VH, MAX)).toBe(1)
-    expect(wordOpacity(600, NaN, 0, VH, MAX)).toBe(1)
-    expect(wordOpacity(600, 0, 0, 0, MAX)).toBe(1)
+    expect(wordOpacity(LINE, NaN, 0, VH, MAX)).toBe(1)
+    expect(wordOpacity(LINE, 0, 0, 0, MAX)).toBe(1)
   })
 })
 

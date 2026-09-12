@@ -22,7 +22,8 @@ export type WordRevealParams = {
 }
 
 export const WORD_REVEAL_DEFAULTS: WordRevealParams = {
-  readingLine: 0.6,
+  // 0.72 — трохи нижче від центру, ближче до низу вьюпорту (уточнення власника 2026-09-12; було 0.6).
+  readingLine: 0.72,
   // 0 — слово повністю невидиме, поки лінія читання до нього не дійшла (уточнення власника 2026-09-12).
   minOpacity: 0,
   band: 0.14,
