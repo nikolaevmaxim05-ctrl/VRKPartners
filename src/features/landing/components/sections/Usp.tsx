@@ -7,40 +7,56 @@ import { ContentIcon } from "@/features/landing/components/layout/ContentIcon";
 import { DEFAULT_USP_ICON_ORDER } from "@/shared/lib/audit-icons";
 import { hasText } from "@core/domain/content/messages";
 import { nbHyphen } from "@/shared/lib/nb-hyphen";
+import {
+  USP_ACTIVE_SCALE,
+  USP_DIMMED_BLUR_PX,
+  USP_DIMMED_OPACITY,
+  USP_MOBILE_MAX_WIDTH,
+  cardState,
+  pickActive,
+} from "@core/domain/layout/usp-focus";
+
+// Значення ефекту з ядра — у CSS-змінні контейнера; правила — globals.css (.usp-card[data-state]).
+const EFFECT_VARS = {
+  "--usp-scale": String(USP_ACTIVE_SCALE),
+  "--usp-blur": `${USP_DIMMED_BLUR_PX}px`,
+  "--usp-dim": String(USP_DIMMED_OPACITY),
+} as React.CSSProperties;
 
 export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { usp: uspRaw } = useSiteMessages();
   // Порожній пункт (без заголовка) не виводиться; ключі React — за індексом (тексти повторюються).
   const usp = { ...uspRaw, items: uspRaw.items.filter((it) => hasText(it.title)) };
   const cardsRef = React.useRef<Array<HTMLDivElement | null>>([]);
-  // Активна картка на мобільному — та, що найближча до центру екрана під час скролу.
-  // На десктопі підсвітка керується :hover, тож active = -1.
+  // Активна картка на мобільному — та, що найближча до центру екрана під час скролу (з гістерезисом,
+  // правила — core/domain/layout/usp-focus). На десктопі підсвітка керується :hover, тож active = -1.
   const [active, setActive] = React.useState(-1);
+  const activeRef = React.useRef(-1);
 
   React.useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
+    const mq = window.matchMedia(`(max-width: ${USP_MOBILE_MAX_WIDTH}px)`);
     let raf = 0;
+
+    const apply = (next: number) => {
+      if (next === activeRef.current) return;
+      activeRef.current = next;
+      setActive(next);
+    };
 
     const update = () => {
       raf = 0;
       if (!mq.matches) {
-        setActive((a) => (a === -1 ? a : -1));
+        apply(-1);
         return;
       }
-      const center = window.innerHeight / 2;
-      let best = -1;
-      let bestDist = Infinity;
-      cardsRef.current.forEach((el, idx) => {
-        if (!el) return;
+      const vh = window.innerHeight;
+      const center = vh / 2;
+      const distances = cardsRef.current.map((el) => {
+        if (!el) return Infinity;
         const r = el.getBoundingClientRect();
-        const cardCenter = r.top + r.height / 2;
-        const dist = Math.abs(cardCenter - center);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = idx;
-        }
+        return Math.abs(r.top + r.height / 2 - center);
       });
-      setActive(best);
+      apply(pickActive(distances, activeRef.current, vh));
     };
 
     const onScroll = () => {
@@ -74,7 +90,11 @@ export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
           )}
         </div>
 
-        <div data-items={usp.items.length} className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4">
+        <div
+          data-items={usp.items.length}
+          style={EFFECT_VARS}
+          className="reveal-stagger mt-10 flex flex-wrap justify-center gap-4"
+        >
           {usp.items.map((it, i) => {
             const activeNow = i === active;
             return (
@@ -94,11 +114,11 @@ export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
                   )}
                 />
 
+                {/* Ефект на мобільному (масштаб активної, розмиття решти) — на <article>, не на обгортці:
+                    обгортка вже несе transform/transition появи (.reveal-stagger > *). */}
                 <article
-                  className={cn(
-                    "relative overflow-hidden rounded-2xl border border-bg-line bg-bg-card p-6 transition-transform duration-500 ease-out group-hover:-translate-y-1",
-                    activeNow && "-translate-y-1"
-                  )}
+                  data-state={cardState(i, active, usp.items.length)}
+                  className="usp-card relative overflow-hidden rounded-2xl border border-bg-line bg-bg-card p-6 transition-transform duration-500 ease-out group-hover:-translate-y-1"
                 >
                   <div className="relative">
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30">

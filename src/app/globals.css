@@ -310,6 +310,28 @@
   transition-delay: 480ms;
 }
 
+/* Активна картка USP на мобільному (≤640px, крок 2 мобільних анімацій): data-state ставить компонент
+   Usp (найближча до центру екрана, з гістерезисом — core/domain/layout/usp-focus), значення — CSS-змінні
+   контейнера (--usp-scale/--usp-blur/--usp-dim з ядра). Ефект на <article>, а не на обгортці, бо обгортка
+   несе transform/transition появи (.reveal-stagger > *). Без JS атрибута немає — нейтральний стан.
+   На десктопі data-state не ставиться (active = -1) і медіазапит не збігається — працює лише :hover. */
+@media (max-width: 640px) {
+  .usp-card {
+    transform-origin: center;
+    transition:
+      transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+      filter 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+      opacity 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .usp-card[data-state="active"] {
+    transform: scale(var(--usp-scale, 1.04));
+  }
+  .usp-card[data-state="dimmed"] {
+    filter: blur(var(--usp-blur, 1.5px));
+    opacity: var(--usp-dim, 0.8);
+  }
+}
+
 /* Ховаємо скролбар сторінки (прокрутка лишається — колесо, тачпад, клавіші,
    свайп). Firefox + WebKit/Chromium. */
 html {
@@ -351,6 +373,12 @@ body::-webkit-scrollbar {
   .anim-spin-slow,
   .animate-pulse-glow {
     animation: none !important;
+  }
+  /* Активна картка USP: ні масштабу, ні розмиття (розмитий текст гірше читається) — лише свічення. */
+  .usp-card[data-state] {
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
   }
   /* Поява при скролі: у режимі «менше руху» нічого не ховаємо взагалі — стартовий стан видимий. */
   .js-reveal .reveal,
