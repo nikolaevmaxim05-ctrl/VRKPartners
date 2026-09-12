@@ -39,11 +39,25 @@ describe('readingLineY', () => {
 })
 
 describe('wordOpacity (скраб по позиції)', () => {
-  it('на лінії та вище — 1; нижче лінії на band і далі — мінімум', () => {
+  it('дефолт: нижче лінії — рівно 0 (невидиме), на лінії та вище — рівно 1', () => {
+    expect(P.minOpacity).toBe(0)
     expect(wordOpacity(600, 0, 0, VH, MAX)).toBe(1)
     expect(wordOpacity(100, 0, 0, VH, MAX)).toBe(1)
-    expect(wordOpacity(740, 0, 0, VH, MAX)).toBeCloseTo(P.minOpacity)
-    expect(wordOpacity(2000, 0, 0, VH, MAX)).toBeCloseTo(P.minOpacity)
+    expect(wordOpacity(740, 0, 0, VH, MAX)).toBe(0)
+    expect(wordOpacity(2000, 0, 0, VH, MAX)).toBe(0)
+  })
+  it('усередині band — строго монотонно від 0 до 1', () => {
+    let prev = -1
+    for (let top = 740; top >= 600; top -= 10) {
+      const o = wordOpacity(top, 0, 0, VH, MAX)
+      expect(o).toBeGreaterThan(prev)
+      expect(o).toBeGreaterThanOrEqual(0)
+      expect(o).toBeLessThanOrEqual(1)
+      prev = o
+    }
+  })
+  it('нестандартний мінімум (панель): нижче лінії — саме він', () => {
+    expect(wordOpacity(740, 0, 0, VH, MAX, { ...P, minOpacity: 0.3 })).toBeCloseTo(0.3)
   })
   it('посередині band — середина між мінімумом і 1; монотонно зростає з прокруткою', () => {
     expect(wordOpacity(670, 0, 0, VH, MAX)).toBeCloseTo(P.minOpacity + (1 - P.minOpacity) * 0.5)
@@ -87,5 +101,8 @@ describe('normalizeParams', () => {
       minOpacity: 0.9,
       readingLine: 0.5,
     })
+    // Нуль (повна невидимість) проходить, відʼємне — обрізається до 0.
+    expect(normalizeParams({ minOpacity: 0 }).minOpacity).toBe(0)
+    expect(normalizeParams({ minOpacity: -1 }).minOpacity).toBe(0)
   })
 })

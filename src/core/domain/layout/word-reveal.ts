@@ -13,7 +13,7 @@
 export type WordRevealParams = {
   /** Лінія читання: частка висоти вьюпорту від верху. */
   readingLine: number
-  /** Мінімальна прозорість тьмяного слова (текст лишається читабельним). */
+  /** Прозорість слова, до якого лінія ще не дійшла (0 — невидиме; панель дозволяє 0…0.9). */
   minOpacity: number
   /** Відстань (частка vh), на якій слово проходить min → 1. */
   band: number
@@ -23,7 +23,8 @@ export type WordRevealParams = {
 
 export const WORD_REVEAL_DEFAULTS: WordRevealParams = {
   readingLine: 0.6,
-  minOpacity: 0.28,
+  // 0 — слово повністю невидиме, поки лінія читання до нього не дійшла (уточнення власника 2026-09-12).
+  minOpacity: 0,
   band: 0.14,
   spread: 0.06,
 }
@@ -31,7 +32,7 @@ export const WORD_REVEAL_DEFAULTS: WordRevealParams = {
 /** Межі параметрів (панель налаштування, localStorage): поза межами — обрізаємо. */
 export const WORD_REVEAL_RANGES: Record<keyof WordRevealParams, [number, number]> = {
   readingLine: [0.3, 0.9],
-  minOpacity: [0.05, 0.9],
+  minOpacity: [0, 0.9],
   band: [0.02, 0.5],
   spread: [0, 0.3],
 }

@@ -281,6 +281,16 @@ export default async function SiteLayout({
       <UtmTracker />
 
       {/* Тексти сайту (дефолти ⊕ правки клієнта) — клієнтським компонентам через useMessages() */}
+      {/* Розгорання слів (крок 4): до гідрації слова в [data-word-reveal] приховані класом на <html>,
+          щоб текст не блимав яскравим і не «зникав» після першого розрахунку (рішення власника).
+          Виконується до розбору розмітки сайту (перед першим кадром); «менше руху» / без JS — без класу,
+          текст видимий. Клас знімає features/landing/lib/word-reveal при вимкненні ефекту. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('js-word-reveal')}catch(e){}",
+        }}
+      />
       <NextIntlClientProvider locale={locale} messages={messages}>
         <ModalProvider>
           <div className="site relative">

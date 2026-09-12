@@ -45,8 +45,9 @@ export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
         </div>
 
         {/* Крок 4 мобільних анімацій: замість появи карток (reveal-stagger) — слова пунктів розгораються
-            по мірі прокрутки ([data-word-reveal] → features/landing/lib/word-reveal). Рішення власника:
-            виїзд карток прибрано, іконка/назва/опис завжди яскраві. */}
+            по мірі прокрутки ([data-word-reveal] → features/landing/lib/word-reveal). Рішення власника
+            (уточнення 2026-09-12): виїзд карток прибрано; розгорається ВЕСЬ текст картки — назва, опис
+            і пункти (слова до лінії читання невидимі, opacity 0); іконка картки — не текст, завжди видима. */}
         <div data-items={items.length} data-word-reveal className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
           {items.map((item, i) => {
             return (
@@ -58,10 +59,12 @@ export function Audit({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
                   <ContentIcon icon={item.icon} index={i} order={DEFAULT_AUDIT_ICON_ORDER} className="h-4 w-4 text-brand sm:h-5 sm:w-5" />
                 </div>
                 <h3 className="mt-3 text-sm font-semibold leading-snug text-white sm:mt-4 sm:text-lg">
-                  {item.name}
+                  <SplitWords text={item.name} />
                 </h3>
                 {hasText(item.desc) && (
-                  <p className="mt-1 text-xs text-white/55 sm:mt-1.5 sm:text-sm">{item.desc}</p>
+                  <p className="mt-1 text-xs text-white/55 sm:mt-1.5 sm:text-sm">
+                    <SplitWords text={item.desc} />
+                  </p>
                 )}
                 <ul className="mt-3 space-y-1.5 sm:mt-4 sm:space-y-2">
                   {contentList(item.points).map((p, pi) => (

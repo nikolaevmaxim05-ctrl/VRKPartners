@@ -22,6 +22,8 @@ export type WordRevealController = {
 }
 
 const REDUCED = '(prefers-reduced-motion: reduce)'
+/** Клас на <html>: слова в контейнерах приховані CSS до першого розрахунку (ставить інлайн-скрипт layout). */
+const HTML_CLASS = 'js-word-reveal'
 /** Запас гейта: контейнер вважається «поруч» за 50 % висоти вікна від краю. */
 const GATE_MARGIN = '50% 0px 50% 0px'
 const EPS = 0.02
@@ -41,7 +43,8 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
   const write = (e: Entry, value: number) => {
     if (Math.abs(value - e.last) < EPS && !(value === 1 && e.last !== 1)) return
     e.last = value
-    const v = value >= 1 ? '' : String(Math.round(value * 1000) / 1000)
+    // Явна «1» (не порожній рядок): до гідрації клас html.js-word-reveal тримає слова на opacity 0.
+    const v = value >= 1 ? '1' : String(Math.round(value * 1000) / 1000)
     e.el.style.opacity = v
     if (e.check) e.check.style.opacity = v
   }
@@ -105,6 +108,9 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
   const enable = () => {
     if (active) return
     active = true
+    // Клас «до гідрації» (інлайн-скрипт у layout) — тримаємо, поки ефект активний; нові слова після
+    // клієнтської навігації теж стартують прихованими до першого розрахунку.
+    document.documentElement.classList.add(HTML_CLASS)
     containers = Array.from(root.querySelectorAll<HTMLElement>('[data-word-reveal]'))
     near.clear()
     io?.disconnect()
@@ -137,6 +143,7 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
   const disable = () => {
     if (!active) return
     active = false
+    document.documentElement.classList.remove(HTML_CLASS)
     window.removeEventListener('scroll', schedule)
     window.removeEventListener('resize', scheduleMeasure)
     io?.disconnect()

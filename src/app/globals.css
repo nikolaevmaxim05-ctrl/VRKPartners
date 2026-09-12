@@ -266,6 +266,12 @@
 [data-word-reveal] [data-word-check] {
   transition: opacity 0.1s linear;
 }
+/* До гідрації (клас ставить інлайн-скрипт у layout сайту до першого кадру): слова приховані, поки JS
+   не запише реальні значення; без JS / «менше руху» класу немає — текст видимий. */
+.js-word-reveal [data-word-reveal] [data-word],
+.js-word-reveal [data-word-reveal] [data-word-check] {
+  opacity: 0;
+}
 
 /* Поява елементів при скролі (вмикається лише коли працює JS) */
 .js-reveal .reveal {
