@@ -41,8 +41,18 @@ const icons: Record<string, LucideIcon> = {
 const SERVICES_PREVIEW = 3;
 // Час, який курсор має затриматись на картці, перш ніж зʼявиться збільшене превью.
 const PREVIEW_HOVER_DELAY_MS = 500;
+// Велике hover-превью — лише там, де є справжнє наведення і сітка (≥ sm). На тачі тап викликає
+// mouseenter, а в каруселі (overflow-x: auto) absolute-превью обрізалося б або розширювало трек.
+const PREVIEW_MEDIA = "(hover: hover) and (min-width: 640px)";
+// Брейкпоінт «мобільна карусель» (< sm): збігається з переходом сітки на 2 колонки.
+const CAROUSEL_MEDIA = "(max-width: 639.98px)";
 
-function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
+/** Початок слайда в треку = внутрішній відступ треку (= scroll-padding): картка стає врівень із заголовком. */
+function slideStart(track: HTMLElement): number {
+  return parseFloat(getComputedStyle(track).paddingLeft) || 0;
+}
+
+function ServiceCard({ s, i, collapsed }: { s: ServiceItem; i: number; collapsed: boolean }) {
   // Показ великого превью керуємо станом: вмикаємо через таймер, вимикаємо одразу.
   const [preview, setPreview] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,6 +65,7 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
   };
   const handleEnter = () => {
     clearTimer();
+    if (!window.matchMedia(PREVIEW_MEDIA).matches) return;
     timerRef.current = setTimeout(() => setPreview(true), PREVIEW_HOVER_DELAY_MS);
   };
   const handleLeave = () => {
@@ -81,8 +92,13 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
     <article
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
+      data-service-card
       className={cn(
         "relative flex min-w-0 flex-col rounded-2xl border border-bg-line bg-bg-card transition-colors",
+        // < sm: слайд каруселі — 84 % ширини треку (край наступної картки «визирає»), snap по лівому краю.
+        "max-sm:w-[84%] max-sm:shrink-0 max-sm:snap-start",
+        // ≥ sm: згорнуті картки (після перших трьох) приховані; при розгортанні — коротка поява.
+        collapsed ? "sm:hidden" : i >= SERVICES_PREVIEW && "sm:animate-in sm:fade-in sm:slide-in-from-top-2 sm:duration-500",
         preview && "z-30 border-brand/40"
       )}
     >
@@ -153,18 +169,55 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
   const { services } = useSiteMessages();
   // Порожня картка (без назви) не виводиться.
   const items = services.items.filter((s) => hasText(s.name));
+  // ≥ sm: перші 3 картки + «Показати більше»; < sm: усі картки в одному горизонтальному треку
+  // (крок 3 мобільних анімацій) — showAll там не використовується, кнопки немає в DOM.
   const [showAll, setShowAll] = React.useState(false);
-  // Після завершення анімації розгортання знімаємо overflow-hidden,
-  // щоб збільшене превью карток не обрізалося контейнером.
-  const [expanded, setExpanded] = React.useState(false);
+  const hiddenCount = Math.max(0, items.length - SERVICES_PREVIEW);
 
-  const previewItems = items.slice(0, SERVICES_PREVIEW);
-  const extraItems = items.slice(SERVICES_PREVIEW);
-  const hiddenCount = extraItems.length;
+  // Карусель (< sm): активна точка — картка, найближча до лівого краю треку (scroll → rAF).
+  const trackRef = React.useRef<HTMLDivElement | null>(null);
+  const [activeSlide, setActiveSlide] = React.useState(0);
 
-  const renderCard = (s: ServiceItem, i: number) => (
-    <ServiceCard key={i} s={s} i={i} />
-  );
+  React.useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const mq = window.matchMedia(CAROUSEL_MEDIA);
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      if (!mq.matches) return;
+      const left = track.scrollLeft;
+      let best = 0;
+      let bestDist = Infinity;
+      track.querySelectorAll<HTMLElement>("[data-service-card]").forEach((el, idx) => {
+        const dist = Math.abs(el.offsetLeft - slideStart(track) - left);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = idx;
+        }
+      });
+      setActiveSlide((a) => (a === best ? a : best));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    track.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      track.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [items.length]);
+
+  const scrollToSlide = (idx: number) => {
+    const track = trackRef.current;
+    const card = track?.querySelectorAll<HTMLElement>("[data-service-card]")[idx];
+    if (!track || !card) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    track.scrollTo({ left: card.offsetLeft - slideStart(track), behavior: reduced ? "auto" : "smooth" });
+  };
 
   const handleCta = () => {
     track("services_cta_click", { source: "services" });
@@ -184,35 +237,54 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
           {hasText(services.text) && <p className="mt-4 text-lg text-white/60">{services.text}</p>}
         </div>
 
-        {/* Перші 3 — завжди видимі */}
-        <div data-items={previewItems.length} className="reveal-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {previewItems.map(renderCard)}
-        </div>
-
-        {/* Решта — плавно розгортаються / згортаються */}
+        {/* Один список карток. < sm: горизонтальний трек зі snap на всю ширину екрана (винос на
+            бокові відступи .container-x, scroll-padding = ті самі відступи), скролбар прихований;
+            трек сам обрізає вміст, тож сторінка не отримує горизонтального скролу.
+            ≥ sm: сітка 2/3 колонки, картки після перших трьох приховані до «Показати більше». */}
         <div
-          onTransitionEnd={() => {
-            if (showAll) setExpanded(true);
-          }}
+          ref={trackRef}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label={services.title}
+          tabIndex={0}
+          data-items={items.length}
           className={cn(
-            "grid transition-all duration-500 ease-in-out",
-            showAll ? "mt-5 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+            "reveal-stagger relative mt-12 gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3",
+            // pb-5 — запас під translateY(20px) появи дітей (.reveal-stagger > *), щоб трек їх не обрізав.
+            "max-sm:-mx-5 max-sm:flex max-sm:gap-4 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:px-5 max-sm:pb-5 max-sm:scroll-px-5",
+            "max-sm:snap-x max-sm:snap-mandatory max-sm:overscroll-x-contain no-scrollbar btn-focus rounded-2xl"
           )}
         >
-          <div className={cn(showAll && expanded ? "overflow-visible" : "overflow-hidden")}>
-            <div data-items={extraItems.length} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {extraItems.map(renderCard)}
-            </div>
-          </div>
+          {items.map((s, i) => (
+            <ServiceCard key={i} s={s} i={i} collapsed={i >= SERVICES_PREVIEW && !showAll} />
+          ))}
         </div>
 
+        {/* Точки каруселі (< sm): по одній на картку, активна — найближча до лівого краю. Декоративні
+            (aria-hidden, не в табі): трек прокручується свайпом і клавіатурою. */}
+        {items.length > 1 && (
+          <div aria-hidden="true" className="mt-1 flex justify-center gap-2 sm:hidden">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                tabIndex={-1}
+                onClick={() => scrollToSlide(i)}
+                className={cn(
+                  "h-2 rounded-full transition-all duration-300",
+                  i === activeSlide ? "w-5 bg-brand" : "w-2 bg-white/25"
+                )}
+              />
+            ))}
+          </div>
+        )}
+
         {hiddenCount > 0 && (
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 hidden justify-center sm:flex">
             {showAll ? (
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setExpanded(false);
                   setShowAll(false);
                   document
                     .getElementById("services")
