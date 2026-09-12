@@ -102,18 +102,20 @@ function ServiceCard({ s, i }: { s: ServiceItem; i: number }) {
             />
           </div>
           {/* Велике читабельне превью — зʼявляється після затримки наведення. Рендериться ЛИШЕ під час
-              наведення: прихований absolute-шар ширший за картку розсував сторінку (скан переповнення). */}
+              наведення: прихований absolute-шар ширший за картку розсував сторінку (скан переповнення).
+              Позиція (translate) і анімація появи (animate-in — кейфрейм enter пише transform) — на РІЗНИХ
+              елементах: на одному кейфрейм перебивав -translate-x/y-1/2, і превью «приїжджало» збоку. */}
           {preview && (
           <div
             className={cn(
-              "pointer-events-none absolute top-1/2 z-50 max-w-[92vw] -translate-y-1/2 animate-in fade-in zoom-in-95 duration-300",
+              "pointer-events-none absolute top-1/2 z-50 max-w-[92vw] -translate-y-1/2",
               previewPos,
               s.previewWide ? "w-[40rem]" : "w-[22rem]"
             )}
           >
             <div
               className={cn(
-                "relative w-full overflow-hidden rounded-xl border border-bg-line bg-white shadow-2xl ring-1 ring-black/40",
+                "relative w-full origin-center overflow-hidden rounded-xl border border-bg-line bg-white shadow-2xl ring-1 ring-black/40 animate-in fade-in zoom-in-95 duration-300",
                 s.previewWide ? "h-[22rem]" : "h-[32rem]"
               )}
             >
