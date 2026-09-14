@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink } from "lucide-react";
+import { BadgeCheck, Check, Quote, ChevronRight, ExternalLink, ZoomIn } from "lucide-react";
 import { Button } from "@/features/landing/components/ui/Button";
+import { ImageLightbox } from "@/features/landing/components/ui/ImageLightbox";
+import { attachCaseImageZoom } from "@/features/landing/lib/case-image-zoom";
 import { TelegramCtaButton } from "@/features/landing/components/ui/TelegramCtaButton";
 import { useLeadModal } from "@/features/landing/components/forms/ModalProvider";
 import { useSiteMessages } from "@/features/landing/lib/messages";
@@ -16,7 +18,7 @@ import { cn } from "@/shared/lib/utils";
 
 export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
-  const { trust } = useSiteMessages();
+  const { trust, services } = useSiteMessages();
 
   // Рівень 1 — ніша, Рівень 2 — кейс усередині ніші.
   const [nicheIdx, setNicheIdx] = React.useState(0);
@@ -30,6 +32,23 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
     const raf = requestAnimationFrame(() => fitAll(el));
     return () => cancelAnimationFrame(raf);
   }, [nicheIdx, caseIdx]);
+
+  // Крок 5 мобільних анімацій: скріншот кейсу збільшується до ширини екрана при наближенні до центру
+  // (< sm; DOM — features/landing/lib/case-image-zoom). Блок кейсу перемонтовується (key), тому
+  // ефект підключається заново на кожну зміну ніші/кейсу. Тап по картинці — лайтбокс (усі пристрої:
+  // hover-превью в кейсів немає), кнопка-тригер зʼявляється після монтування (SSR — div).
+  const zoomRef = React.useRef<HTMLDivElement>(null);
+  const zoomBtnRef = React.useRef<HTMLButtonElement>(null);
+  const [zoomable, setZoomable] = React.useState(false);
+  const [lightbox, setLightbox] = React.useState(false);
+  React.useEffect(() => setZoomable(true), []);
+  React.useEffect(() => {
+    const el = zoomRef.current;
+    if (!el) return;
+    const ctrl = attachCaseImageZoom(el);
+    return () => ctrl.destroy();
+  }, [nicheIdx, caseIdx]);
+  const closeLightbox = React.useCallback(() => setLightbox(false), []);
 
   // Порожні ніші/кейси (без назви) не виводяться; кейси мають опційні task/approach/image.
   const caseGroups = trust.caseGroups
@@ -69,8 +88,10 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
 
   const hasCases = !!group && !!current;
 
+  // < sm: overflow-x: clip на секції (не hidden — не створює скрол-контейнер, якір scroll-margin
+  // працює) — страховка від горизонтального скролу при збільшеному скріншоті кейсу.
   return (
-    <section id="cases" className="section">
+    <section id="cases" className="section max-sm:overflow-x-clip">
       <div className="container-x">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
           {/* Ліва колонка: довіра */}
@@ -253,15 +274,57 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
 
               {/* скрін результатів */}
               {cur.image && (
-                <div className="mt-5 overflow-hidden rounded-xl border border-bg-line bg-white">
-                  <Image
-                    src={cur.image}
-                    alt={`${trust.imageAlt} — ${cur.client}`}
-                    width={1400}
-                    height={285}
-                    className="h-auto w-full"
-                  />
-                </div>
+                <>
+                  {/* Обгортка [data-case-zoom] масштабується на мобільному (transform, запас по вертикалі
+                      через --case-zoom-reserve); усередині — кнопка-тригер лайтбокса (після гідрації). */}
+                  <div ref={zoomRef} data-case-zoom className="case-zoom relative mt-5">
+                    {(() => {
+                      const inner = (
+                        <>
+                          <Image
+                            src={cur.image}
+                            alt={`${trust.imageAlt} — ${cur.client}`}
+                            width={1400}
+                            height={285}
+                            className="h-auto w-full"
+                          />
+                          {zoomable && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/20"
+                            >
+                              <ZoomIn className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </>
+                      );
+                      const cls = "case-zoom-inner relative block w-full overflow-hidden rounded-xl border border-bg-line bg-white";
+                      return zoomable ? (
+                        <button
+                          ref={zoomBtnRef}
+                          type="button"
+                          data-zoom-trigger
+                          aria-label={`${services.zoomLabel}: ${cur.client}`}
+                          onClick={() => setLightbox(true)}
+                          className={cn(cls, "btn-focus text-left")}
+                        >
+                          {inner}
+                        </button>
+                      ) : (
+                        <div className={cls}>{inner}</div>
+                      );
+                    })()}
+                  </div>
+                  {zoomable && (
+                    <ImageLightbox
+                      open={lightbox}
+                      onClose={closeLightbox}
+                      src={cur.image}
+                      alt={`${trust.imageAlt} — ${cur.client}`}
+                      returnFocusTo={zoomBtnRef.current}
+                    />
+                  )}
+                </>
               )}
 
               {/* підходи */}
