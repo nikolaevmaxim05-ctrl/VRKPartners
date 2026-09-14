@@ -1,10 +1,10 @@
 // Секція послуг. Десктоп (1440×900): 3 картки + «Показати більше», превью після затримки наведення
 // зʼявляється НА МІСЦІ і не виходить за вікно; клік по мініатюрі нічого не відкриває.
-// Мобільний (390×844, touch; крок 3 мобільних анімацій — горизонтальна карусель, повернута рішенням
-// власника 2026-09-14): усі картки по одному разу в горизонтальному треку зі snap на всю ширину екрана,
-// кнопки «Показати більше» немає, сторінка без горизонтального скролу на початку/посередині/у кінці,
-// краї розчиняються маскою (--fade-left/--fade-right: на першому слайді ліва зона 0, на останньому —
-// права), точки-індикатор; тап по мініатюрі — лайтбокс (крестик/фон/Escape, фокус); «менше руху» — те саме.
+// Мобільний (390×844, touch; крок 3 мобільних анімацій — горизонтальна ЦИКЛІЧНА карусель, рішення власника
+// 2026-09-15): N реальних карток + 2K клонів-буферів (aria-hidden, поза табуляцією) у треку зі snap на всю
+// ширину екрана; старт — перша реальна по центру; крок за останню/першу → після телепорту по центру реальна
+// картка тієї ж послуги; точки за модулем N; постійна маска країв; кнопки «Показати більше» немає; сторінка
+// без горизонтального скролу; тап по мініатюрі — лайтбокс (крестик/фон/Escape, фокус); «менше руху» — те саме.
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import { horizontalOverflow } from './helpers'
@@ -94,94 +94,123 @@ test.describe('десктоп', () => {
 
 async function trackState(page: Page) {
   return page.evaluate(() => {
-    const wrap = document.querySelector<HTMLElement>('#services .services-wrap')!
-    const track = wrap.querySelector<HTMLElement>('.services-track')!
+    const track = document.querySelector<HTMLElement>('#services .services-track')!
     const cs = getComputedStyle(track)
-    const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-service-card]'))
-    const pad = parseFloat(cs.paddingLeft) || 0
+    const all = Array.from(track.querySelectorAll<HTMLElement>('[data-service-card]'))
+    const center = track.scrollLeft + track.clientWidth / 2
+    let nearest: HTMLElement | null = null
+    let bd = Infinity
+    for (const c of all) {
+      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center)
+      if (d < bd) {
+        bd = d
+        nearest = c
+      }
+    }
+    const nr = nearest!.getBoundingClientRect()
+    const dots = Array.from(document.querySelectorAll<HTMLElement>('#services [data-carousel-dots] > button'))
     const d = document.documentElement
     return {
-      atStart: wrap.dataset.atStart,
-      atEnd: wrap.dataset.atEnd,
+      loop: track.dataset.loop ?? null,
+      real: all.filter((c) => !c.dataset.clone).length,
+      clones: all.filter((c) => c.dataset.clone).map((c) => ({ side: c.dataset.clone, slide: c.dataset.slide, ariaHidden: c.getAttribute('aria-hidden'), tab: c.querySelector('[data-zoom-trigger]')?.getAttribute('tabindex') })),
       scrollLeft: track.scrollLeft,
-      scrollable: track.scrollWidth > track.clientWidth,
       snap: cs.scrollSnapType,
       hasMask: (cs.maskImage || (cs as CSSStyleDeclaration & { webkitMaskImage?: string }).webkitMaskImage || 'none') !== 'none',
-      fadeLeft: parseFloat(cs.getPropertyValue('--fade-left')) || 0,
-      fadeRight: parseFloat(cs.getPropertyValue('--fade-right')) || 0,
-      pad,
+      nearestSlide: Number(nearest!.dataset.slide),
+      nearestIsClone: !!nearest!.dataset.clone,
+      nearestCenter: nr.left + nr.width / 2,
+      step: all[0].offsetWidth + (parseFloat(cs.columnGap) || 0),
+      activeDot: dots.findIndex((b) => b.className.includes('bg-brand')),
+      dots: dots.length,
       trackLeft: track.getBoundingClientRect().left,
       trackRight: track.getBoundingClientRect().right,
-      cardLefts: cards.map((c) => Math.round(c.getBoundingClientRect().left)),
-      cardRights: cards.map((c) => Math.round(c.getBoundingClientRect().right)),
-      cardCenters: cards.map((c) => {
-        const r = c.getBoundingClientRect()
-        return r.left + r.width / 2
-      }),
-      titleLeft: document.querySelector<HTMLElement>('#services h2, #services h1')!.getBoundingClientRect().left,
       vw: innerWidth,
       pageOverflow: Math.max(d.scrollWidth, document.body.scrollWidth) - d.clientWidth,
     }
   })
 }
 
+/** Крок на один слайд (миттєво) і пауза на телепорт (scrollend / таймер). */
+async function stepSlides(page: Page, dir: number) {
+  await page.evaluate((dir) => {
+    const t = document.querySelector<HTMLElement>('#services .services-track')!
+    const c = t.querySelector<HTMLElement>('[data-service-card]')!
+    const gap = parseFloat(getComputedStyle(t).columnGap) || 0
+    t.scrollBy({ left: dir * (c.offsetWidth + gap), behavior: 'instant' })
+  }, dir)
+  await page.waitForTimeout(450)
+}
+
 function mobileTests() {
-  test('усі картки в горизонтальному треку зі snap і маскою; без кнопки; сторінка без горизонтального скролу', async ({ page }, testInfo) => {
+  test('циклічна карусель: клони поза деревом доступності, старт на першій, цикл в обидва боки, точки за модулем, без горизонтального скролу', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'карусель — лише < 640px')
     await page.goto('/')
-    await page.evaluate(() => document.querySelectorAll('.reveal, .reveal-stagger').forEach((e) => e.classList.add('is-visible')))
+    await page.evaluate(() => {
+      document.documentElement.style.scrollBehavior = 'auto'
+      document.querySelectorAll('.reveal, .reveal-stagger').forEach((e) => e.classList.add('is-visible'))
+    })
     const track = page.locator('#services [aria-roledescription="carousel"]')
     await expect(track).toHaveCount(1)
     await expect(track).toHaveAttribute('aria-label', uk.services.title)
-    await expect(page.locator('#services article')).toHaveCount(ITEM_COUNT)
-    await expect(page.locator('#services article').filter({ visible: true })).toHaveCount(ITEM_COUNT)
+    await expect(track).toHaveAttribute('data-loop', '1')
+    // N реальних + 2K клонів; клони aria-hidden, кнопка лайтбокса в клоні поза табуляцією.
+    await expect(page.locator('#services article:not([data-clone])')).toHaveCount(ITEM_COUNT)
+    await expect(page.locator('#services article[data-clone]')).toHaveCount(4)
     await expect(page.locator('#services button', { hasText: uk.services.showMore })).toBeHidden()
 
-    // Початок: трек на всю ширину екрана, перша картка ПО ЦЕНТРУ (зауваження власника), край наступної
-    // «визирає» справа, ліва зона маски = 0, права — є.
     let s = await trackState(page)
-    expect(s.scrollable).toBe(true)
+    expect(s.real).toBe(ITEM_COUNT)
+    expect(s.clones.every((c) => c.ariaHidden === 'true' && c.tab === '-1')).toBe(true)
+    expect(s.clones.map((c) => `${c.side}:${c.slide}`).sort()).toEqual(['left:7', 'left:8', 'right:0', 'right:1'])
     expect(s.snap).toContain('x')
     expect(s.hasMask).toBe(true)
     expect(s.trackLeft).toBeCloseTo(0, 0)
     expect(s.trackRight).toBeCloseTo(s.vw, 0)
-    expect(Math.abs(s.cardCenters[0] - s.vw / 2)).toBeLessThanOrEqual(2)
-    expect(s.cardLefts[1]).toBeLessThan(s.vw)
-    expect(s.atStart).toBe('1')
-    expect(s.fadeLeft).toBe(0)
-    expect(s.fadeRight).toBeGreaterThan(0)
+    // Старт: перша РЕАЛЬНА картка по центру, активна точка — перша.
+    expect(s.nearestSlide).toBe(0)
+    expect(s.nearestIsClone).toBe(false)
+    expect(Math.abs(s.nearestCenter - s.vw / 2)).toBeLessThanOrEqual(2)
+    expect(s.dots).toBe(ITEM_COUNT)
+    expect(s.activeDot).toBe(0)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
 
-    // Точки: по одній на картку, активна — перша.
-    const dots = page.locator('#services [aria-hidden="true"].flex > button')
-    await expect(dots).toHaveCount(ITEM_COUNT)
-    await expect(dots.nth(0)).toHaveClass(/bg-brand/)
-
-    // Прокрутка на одну картку: друга по центру, сусіди «визирають» з обох боків, обидві зони маски є,
-    // точка — друга.
-    await track.evaluate((el) => {
-      const cards = el.querySelectorAll<HTMLElement>('[data-service-card]')
-      const c = cards[1]
-      el.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, behavior: 'instant' })
-    })
-    await page.waitForTimeout(450)
+    // Крок вліво з першої → після телепорту по центру остання РЕАЛЬНА, точка N−1.
+    await stepSlides(page, -1)
     s = await trackState(page)
-    expect(Math.abs(s.cardCenters[1] - s.vw / 2)).toBeLessThanOrEqual(2)
-    expect(s.cardRights[0]).toBeGreaterThan(0)
-    expect(s.cardLefts[2]).toBeLessThan(s.vw)
-    expect(s.atStart).toBe('0')
-    expect(s.atEnd).toBe('0')
-    expect(s.fadeLeft).toBeGreaterThan(0)
-    expect(s.fadeRight).toBeGreaterThan(0)
+    expect(s.nearestSlide).toBe(ITEM_COUNT - 1)
+    expect(s.nearestIsClone).toBe(false)
+    expect(Math.abs(s.nearestCenter - s.vw / 2)).toBeLessThanOrEqual(2)
+    expect(s.activeDot).toBe(ITEM_COUNT - 1)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
-    await expect(dots.nth(1)).toHaveClass(/bg-brand/)
-    await expect(dots.nth(0)).not.toHaveClass(/bg-brand/)
 
-    // Клік по останній точці: остання картка по центру, права зона маски = 0.
-    // Плавна прокрутка через весь трек триває > 1 с — чекаємо, поки scrollLeft перестане змінюватися.
-    // Програмний click: перевіряємо scrollToSlide, а не hit-test (координатний клік у частині прогонів
-    // перехоплював інший шар).
-    await dots.nth(ITEM_COUNT - 1).evaluate((el) => (el as HTMLElement).click())
+    // Крок вправо з останньої → перша, точка 0.
+    await stepSlides(page, 1)
+    s = await trackState(page)
+    expect(s.nearestSlide).toBe(0)
+    expect(s.nearestIsClone).toBe(false)
+    expect(s.activeDot).toBe(0)
+
+    // Середина треку — теж без переповнення.
+    await stepSlides(page, 1)
+    await stepSlides(page, 1)
+    s = await trackState(page)
+    expect(s.nearestSlide).toBe(2)
+    expect(s.activeDot).toBe(2)
+    expect(s.pageOverflow).toBeLessThanOrEqual(0)
+
+    // З останньої клік по точці 0 — один крок вправо (до клона), потім телепорт на реальну першу.
+    await stepSlides(page, -3)
+    s = await trackState(page)
+    expect(s.nearestSlide).toBe(ITEM_COUNT - 1)
+    const before = s.scrollLeft
+    await page.locator('#services [data-carousel-dots] > button').nth(0).evaluate((el) => (el as HTMLElement).click())
+    await page.waitForTimeout(120)
+    const during = await trackState(page)
+    // Рух у бік збільшення scrollLeft (вправо на один слайд), а не назад через весь трек. У режимі
+    // «менше руху» прокрутка миттєва і телепорт уже відбувся — перевіряємо лише кінцевий стан.
+    const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
+    if (!reduced) expect(during.scrollLeft).toBeGreaterThanOrEqual(before - 1)
     await track.evaluate(async (el) => {
       let prev = -1
       for (let i = 0; i < 40; i++) {
@@ -190,20 +219,28 @@ function mobileTests() {
         prev = el.scrollLeft
       }
     })
-    await page.waitForTimeout(350)
+    await page.waitForTimeout(400)
     s = await trackState(page)
-    expect(Math.abs(s.cardCenters[ITEM_COUNT - 1] - s.vw / 2)).toBeLessThanOrEqual(2)
-    expect(s.atEnd).toBe('1')
-    expect(s.fadeRight).toBe(0)
+    expect(s.nearestSlide).toBe(0)
+    expect(s.nearestIsClone).toBe(false)
+    expect(s.activeDot).toBe(0)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
-    await expect(dots.nth(ITEM_COUNT - 1)).toHaveClass(/bg-brand/)
+
+    // Клавіатура: стрілка вліво з першої — snap на клон останньої, телепорт → по центру реальна остання.
+    await track.focus()
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForTimeout(900)
+    s = await trackState(page)
+    expect(s.nearestSlide).toBe(ITEM_COUNT - 1)
+    expect(s.nearestIsClone).toBe(false)
+    expect(s.activeDot).toBe(ITEM_COUNT - 1)
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })
 
-  test('тап по мініатюрі → лайтбокс із великим скріншотом; закриття хрестиком, фоном, Escape; фокус на кнопку', async ({ page }, testInfo) => {
+  test('тап по мініатюрі (реальна картка) → лайтбокс; закриття хрестиком, фоном, Escape; фокус на кнопку', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'лайтбокс — лише без hover-превью')
     await page.goto('/')
-    const trigger = page.locator('#services [data-zoom-trigger]').first()
+    const trigger = page.locator('#services article:not([data-clone]) [data-zoom-trigger]').first()
     await expect(trigger).toHaveCount(1)
     await expect(trigger).toHaveAttribute('aria-label', new RegExp(`^${uk.services.zoomLabel}`))
     await trigger.scrollIntoViewIfNeeded()
@@ -234,7 +271,7 @@ function mobileTests() {
   })
 }
 
-test.describe('мобільний: карусель послуг і лайтбокс', () => {
+test.describe('мобільний: циклічна карусель послуг і лайтбокс', () => {
   mobileTests()
 })
 
