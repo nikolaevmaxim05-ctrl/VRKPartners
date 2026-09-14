@@ -369,52 +369,34 @@
   }
 }
 
-/* Карусель послуг на мобільному (< sm, крок 3 мобільних анімацій, горизонтальний трек повернуто
-   рішенням власника 2026-09-14): краї прокрутки розчиняються ГОРИЗОНТАЛЬНОЮ МАСКОЮ самого треку до
-   прозорого (як стрічка партнерів), а не накладкою кольору сторінки — накладка поверх «аврори» фону
-   читалася як чорна смуга. Зона затухання — --services-fade; на краю (data-at-start/-end на обгортці,
-   пише компонент Services за scrollLeft) відповідна зона стає 0, щоб перша/остання картка не
-   «зʼїдалися». @property робить перемикання плавним (Chromium, Safari 16.4+, Firefox 128+); без нього —
-   миттєве. Без JS: at-start=1 → зліва маски немає, справа є. Маска обрізає box-shadow, тому focus-ring
-   — на обгортці. Режим «менше руху»: маска лишається (не рух), перехід гаситься загальним правилом. */
-@property --fade-left {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-@property --fade-right {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
+/* Карусель послуг на мобільному (< sm, крок 3 мобільних анімацій; циклічна з 2026-09-15): краї треку
+   розчиняються ГОРИЗОНТАЛЬНОЮ МАСКОЮ самого треку до прозорого (як стрічка партнерів), а не накладкою
+   кольору сторінки — накладка поверх «аврори» фону читалася як чорна смуга. Маска постійна з обох боків
+   (у циклі «країв» немає; без JS клонів немає — перша/остання картка стоять по центру завдяки
+   внутрішнім відступам треку, тож зона затухання їх не «зʼїдає»). Маска обрізає box-shadow, тому
+   focus-ring — на обгортці. Клони-буфери ([data-clone]) — без анімації появи: видимі одразу. */
 @media (max-width: 639.98px) {
   .services-track {
     --services-fade: 2.5rem;
-    --fade-left: var(--services-fade);
-    --fade-right: var(--services-fade);
     -webkit-mask-image: linear-gradient(
       to right,
       transparent,
-      black var(--fade-left),
-      black calc(100% - var(--fade-right)),
+      black var(--services-fade),
+      black calc(100% - var(--services-fade)),
       transparent
     );
     mask-image: linear-gradient(
       to right,
       transparent,
-      black var(--fade-left),
-      black calc(100% - var(--fade-right)),
+      black var(--services-fade),
+      black calc(100% - var(--services-fade)),
       transparent
     );
-    transition:
-      --fade-left 0.3s ease-out,
-      --fade-right 0.3s ease-out;
   }
-  [data-at-start="1"] > .services-track {
-    --fade-left: 0px;
-  }
-  [data-at-end="1"] > .services-track {
-    --fade-right: 0px;
+  .js-reveal .reveal-stagger > [data-clone] {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 .services-wrap:has(> .services-track:focus-visible) {

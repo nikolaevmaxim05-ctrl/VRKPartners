@@ -55,7 +55,30 @@ function centerOffset(track: HTMLElement, card: HTMLElement): number {
   return Math.max(0, Math.min(target, track.scrollWidth - track.clientWidth));
 }
 
-function ServiceCard({ s, i, collapsed, zoomLabel }: { s: ServiceItem; i: number; collapsed: boolean; zoomLabel: string }) {
+// Клони-буфери каруселі (< sm): K останніх карток перед першою і K перших після останньої, щоб сусіди
+// були видні з обох боків і цикл не мав «упору». Після зупинки на клоні трек телепортується на
+// відповідну реальну картку (features: див. useEffect у Services).
+const LOOP_CLONES = 2;
+/** Пауза після останнього scroll, коли немає події scrollend (iOS Safari), мс. */
+const SCROLL_SETTLE_MS = 120;
+
+function ServiceCard({
+  s,
+  i,
+  collapsed,
+  zoomLabel,
+  clone = false,
+  side,
+}: {
+  s: ServiceItem;
+  i: number;
+  collapsed: boolean;
+  zoomLabel: string;
+  /** Клон-буфер каруселі: поза деревом доступності й табуляцією, без reveal-анімації; лайтбокс працює. */
+  clone?: boolean;
+  /** Клон зліва (order: -1 — у DOM після реальних карток, візуально перед ними) чи справа. */
+  side?: "left" | "right";
+}) {
   // Показ великого превью керуємо станом: вмикаємо через таймер, вимикаємо одразу.
   const [preview, setPreview] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,8 +132,14 @@ function ServiceCard({ s, i, collapsed, zoomLabel }: { s: ServiceItem; i: number
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       data-service-card
+      data-slide={i}
+      data-clone={clone ? side : undefined}
+      aria-hidden={clone ? "true" : undefined}
       className={cn(
         "relative flex min-w-0 flex-col rounded-2xl border border-bg-line bg-bg-card transition-colors",
+        // Клон зліва: у DOM — після всіх, візуально — перед першою (order), щоб nth-child затримки
+        // появи реальних карток не зсувалися.
+        clone && side === "left" && "order-first",
         // < sm: слайд каруселі — 82 % ширини екрана, ПО ЦЕНТРУ (snap-center), сусіди симетрично
         // «визирають» з обох боків (зауваження власника: картка стояла зліва, а не по центру).
         "max-sm:w-[82vw] max-sm:shrink-0 max-sm:snap-center",
@@ -154,6 +183,8 @@ function ServiceCard({ s, i, collapsed, zoomLabel }: { s: ServiceItem; i: number
                 type="button"
                 data-zoom-trigger
                 aria-label={`${zoomLabel}: ${s.name}`}
+                // Клон: поза табуляцією (aria-hidden на картці), але тап відкриває той самий лайтбокс.
+                tabIndex={clone ? -1 : undefined}
                 onClick={() => setLightbox(true)}
                 className={cn(cls, "btn-focus text-left")}
               >
@@ -230,60 +261,126 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
   const [showAll, setShowAll] = React.useState(false);
   const hiddenCount = Math.max(0, items.length - SERVICES_PREVIEW);
 
-  // Карусель (< sm): активна точка — картка, найближча до лівого краю треку; стан країв
-  // (data-at-start/-end на обгортці — читає CSS маски .services-track у globals.css: на першому слайді
-  // ліва зона затухання = 0, на останньому — права). У scroll: passive → rAF → арифметика + запис.
-  const wrapRef = React.useRef<HTMLDivElement | null>(null);
+  // Карусель (< sm), циклічна (рішення власника 2026-09-15): клони-буфери по краях (loop = true після
+  // гідрації, лише при TRACK_MEDIA; SSR і десктоп — без клонів), активна точка — слайд, центр якого
+  // найближчий до центру треку, індекс за модулем N; після зупинки прокрутки на клоні (scrollend або
+  // пауза SCROLL_SETTLE_MS) — миттєвий телепорт на відповідну реальну картку (однакова ширина слайдів
+  // і gap → кадр не змінюється). У scroll: passive → rAF → арифметика + setState лише при зміні.
   const trackRef = React.useRef<HTMLDivElement | null>(null);
   const [activeSlide, setActiveSlide] = React.useState(0);
+  const [loop, setLoop] = React.useState(false);
+  const n = items.length;
+  const k = n > LOOP_CLONES ? LOOP_CLONES : 0;
+
+  // Чи вмикати цикл: за брейкпоінтом, після монтування (до першого кадру — useLayoutEffect).
+  React.useLayoutEffect(() => {
+    const mq = window.matchMedia(TRACK_MEDIA);
+    const sync = () => setLoop(mq.matches && k > 0);
+    sync();
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, [k]);
+
+  // Старт: коли клони змонтовано — миттєво стати на першу РЕАЛЬНУ картку (до paint, без стрибка).
+  React.useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (!loop) {
+      track.scrollTo({ left: 0, behavior: "auto" });
+      return;
+    }
+    const first = track.querySelector<HTMLElement>('[data-service-card]:not([data-clone])');
+    if (first) track.scrollTo({ left: centerOffset(track, first), behavior: "auto" });
+  }, [loop]);
 
   React.useEffect(() => {
-    const wrap = wrapRef.current;
     const track = trackRef.current;
-    if (!wrap || !track) return;
+    if (!track) return;
     const mq = window.matchMedia(TRACK_MEDIA);
     let raf = 0;
-    const update = () => {
-      raf = 0;
-      if (!mq.matches) return;
-      const left = track.scrollLeft;
-      const max = track.scrollWidth - track.clientWidth;
-      wrap.dataset.atStart = left <= 1 ? "1" : "0";
-      wrap.dataset.atEnd = left >= max - 1 ? "1" : "0";
-      // Активна — картка, центр якої найближчий до центру треку.
-      const center = left + track.clientWidth / 2;
-      let best = 0;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    let teleporting = false;
+
+    /** Найближчий до центру треку слайд (реальний або клон). */
+    const nearest = () => {
+      const center = track.scrollLeft + track.clientWidth / 2;
+      let best: HTMLElement | null = null;
       let bestDist = Infinity;
-      track.querySelectorAll<HTMLElement>("[data-service-card]").forEach((el, idx) => {
+      track.querySelectorAll<HTMLElement>("[data-service-card]").forEach((el) => {
         const dist = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
         if (dist < bestDist) {
           bestDist = dist;
-          best = idx;
+          best = el;
         }
       });
-      setActiveSlide((a) => (a === best ? a : best));
+      return best as HTMLElement | null;
     };
+
+    const update = () => {
+      raf = 0;
+      if (!mq.matches) return;
+      const el = nearest();
+      if (!el) return;
+      const idx = Number(el.dataset.slide) || 0; // у клона data-slide = індекс реальної картки
+      setActiveSlide((a) => (a === idx ? a : idx));
+    };
+
+    // Телепорт із клона на реальну картку тієї ж послуги (той самий кадр).
+    const settle = () => {
+      settleTimer = null;
+      if (!mq.matches || teleporting) return;
+      const el = nearest();
+      if (!el || !el.dataset.clone) return;
+      const real = track.querySelector<HTMLElement>(`[data-service-card][data-slide="${el.dataset.slide}"]:not([data-clone])`);
+      if (!real) return;
+      const delta = real.offsetLeft - el.offsetLeft;
+      teleporting = true;
+      track.scrollTo({ left: track.scrollLeft + delta, behavior: "auto" });
+      requestAnimationFrame(() => {
+        teleporting = false;
+      });
+    };
+
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
+      if (!("onscrollend" in window)) {
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(settle, SCROLL_SETTLE_MS);
+      }
     };
+    const onScrollEnd = () => settle();
+
     update();
     track.addEventListener("scroll", onScroll, { passive: true });
+    track.addEventListener("scrollend", onScrollEnd);
     window.addEventListener("resize", onScroll);
-    mq.addEventListener?.("change", onScroll);
     return () => {
       track.removeEventListener("scroll", onScroll);
+      track.removeEventListener("scrollend", onScrollEnd);
       window.removeEventListener("resize", onScroll);
-      mq.removeEventListener?.("change", onScroll);
       if (raf) cancelAnimationFrame(raf);
+      if (settleTimer) clearTimeout(settleTimer);
     };
-  }, [items.length]);
+  }, [n, loop]);
 
+  /** Прокрутка до слайда idx — до найближчого екземпляра (реального чи клона): з останньої на першу — один крок. */
   const scrollToSlide = (idx: number) => {
     const track = trackRef.current;
-    const card = track?.querySelectorAll<HTMLElement>("[data-service-card]")[idx];
-    if (!track || !card) return;
+    if (!track) return;
+    const candidates = Array.from(track.querySelectorAll<HTMLElement>(`[data-service-card][data-slide="${idx}"]`));
+    if (candidates.length === 0) return;
+    const current = track.scrollLeft;
+    let best = candidates[0];
+    let bestDist = Infinity;
+    for (const c of candidates) {
+      const dist = Math.abs(centerOffset(track, c) - current);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = c;
+      }
+    }
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    track.scrollTo({ left: centerOffset(track, card), behavior: reduced ? "auto" : "smooth" });
+    track.scrollTo({ left: centerOffset(track, best), behavior: reduced ? "auto" : "smooth" });
   };
 
   const handleCta = () => {
@@ -310,14 +407,9 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             трек сам обрізає вміст — сторінка не отримує горизонтального скролу; краї розчиняються
             горизонтальною маскою (.services-track, як стрічка партнерів). ≥ sm: сітка 2/3 колонки,
             картки після перших трьох приховані до «Показати більше». */}
-        {/* Обгортка несе стан країв (data-at-start/-end — читає CSS маски) і focus-ring треку
-            (.services-wrap: маска обрізає box-shadow самого треку, тому кільце — тут). */}
-        <div
-          ref={wrapRef}
-          className="services-wrap group/win relative mt-12 rounded-2xl max-sm:-mx-5"
-          data-at-start="1"
-          data-at-end="0"
-        >
+        {/* Обгортка несе focus-ring треку (.services-wrap: маска обрізає box-shadow самого треку, тому
+            кільце — тут). Маска країв постійна з обох боків (цикл — «країв» немає). */}
+        <div className="services-wrap relative mt-12 rounded-2xl max-sm:-mx-5">
           <div
             ref={trackRef}
             role="region"
@@ -325,6 +417,7 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             aria-label={services.title}
             tabIndex={0}
             data-items={items.length}
+            data-loop={loop ? "1" : undefined}
             className={cn(
               "reveal-stagger gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3",
               // pb-5 — запас під translateY(20px) появи дітей (.reveal-stagger > *), щоб трек їх не обрізав.
@@ -336,13 +429,23 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             {items.map((s, i) => (
               <ServiceCard key={i} s={s} i={i} collapsed={i >= SERVICES_PREVIEW && !showAll} zoomLabel={services.zoomLabel} />
             ))}
+            {/* Клони-буфери (лише loop): K перших — після останньої; K останніх — у DOM теж після, але
+                візуально перед першою (order-first), щоб nth-child затримки появи реальних не зсувалися. */}
+            {loop &&
+              items.slice(0, k).map((s, i) => (
+                <ServiceCard key={`clone-r-${i}`} s={s} i={i} collapsed={false} zoomLabel={services.zoomLabel} clone side="right" />
+              ))}
+            {loop &&
+              items.slice(n - k).map((s, j) => (
+                <ServiceCard key={`clone-l-${j}`} s={s} i={n - k + j} collapsed={false} zoomLabel={services.zoomLabel} clone side="left" />
+              ))}
           </div>
         </div>
 
         {/* Точки каруселі (< sm): по одній на картку, активна — найближча до лівого краю. Декоративні
             (aria-hidden, не в табі): трек прокручується свайпом і клавіатурою. */}
         {items.length > 1 && (
-          <div aria-hidden="true" className="mt-1 flex justify-center gap-2 sm:hidden">
+          <div aria-hidden="true" data-carousel-dots className="mt-1 flex justify-center gap-2 sm:hidden">
             {items.map((_, i) => (
               <button
                 key={i}
