@@ -369,56 +369,55 @@
   }
 }
 
-/* Вікно послуг на мобільному (< sm, крок 3 мобільних анімацій, уточнення власника 2026-09-12): краї
-   прокрутки розчиняються МАСКОЮ самого вікна до прозорого (як стрічка партнерів), а не накладкою кольору
-   сторінки — накладка поверх «аврори» фону читалася як чорна смуга. Зона затухання — --services-fade;
-   на краю (data-at-start/-end на обгортці, пише компонент Services) відповідна зона стає 0, щоб верх
-   першої / низ останньої картки не «зʼїдалися». @property робить перемикання плавним (Chromium,
-   Safari 16.4+, Firefox 128+); без нього — миттєве (біля краю майже нічого не обрізано). Без JS:
-   at-start=1 → зверху маски немає, знизу є. Маска обрізає box-shadow, тому focus-ring — на обгортці.
-   Смужка-прогрес — сусід вікна в обгортці, поза маскою. Режим «менше руху»: маска лишається (не рух),
-   перехід гаситься загальним правилом нижче. */
-@property --fade-top {
+/* Карусель послуг на мобільному (< sm, крок 3 мобільних анімацій, горизонтальний трек повернуто
+   рішенням власника 2026-09-14): краї прокрутки розчиняються ГОРИЗОНТАЛЬНОЮ МАСКОЮ самого треку до
+   прозорого (як стрічка партнерів), а не накладкою кольору сторінки — накладка поверх «аврори» фону
+   читалася як чорна смуга. Зона затухання — --services-fade; на краю (data-at-start/-end на обгортці,
+   пише компонент Services за scrollLeft) відповідна зона стає 0, щоб перша/остання картка не
+   «зʼїдалися». @property робить перемикання плавним (Chromium, Safari 16.4+, Firefox 128+); без нього —
+   миттєве. Без JS: at-start=1 → зліва маски немає, справа є. Маска обрізає box-shadow, тому focus-ring
+   — на обгортці. Режим «менше руху»: маска лишається (не рух), перехід гаситься загальним правилом. */
+@property --fade-left {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
-@property --fade-bottom {
+@property --fade-right {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
 @media (max-width: 639.98px) {
-  .services-window {
+  .services-track {
     --services-fade: 2.5rem;
-    --fade-top: var(--services-fade);
-    --fade-bottom: var(--services-fade);
+    --fade-left: var(--services-fade);
+    --fade-right: var(--services-fade);
     -webkit-mask-image: linear-gradient(
-      to bottom,
+      to right,
       transparent,
-      black var(--fade-top),
-      black calc(100% - var(--fade-bottom)),
+      black var(--fade-left),
+      black calc(100% - var(--fade-right)),
       transparent
     );
     mask-image: linear-gradient(
-      to bottom,
+      to right,
       transparent,
-      black var(--fade-top),
-      black calc(100% - var(--fade-bottom)),
+      black var(--fade-left),
+      black calc(100% - var(--fade-right)),
       transparent
     );
     transition:
-      --fade-top 0.3s ease-out,
-      --fade-bottom 0.3s ease-out;
+      --fade-left 0.3s ease-out,
+      --fade-right 0.3s ease-out;
   }
-  [data-at-start="1"] > .services-window {
-    --fade-top: 0px;
+  [data-at-start="1"] > .services-track {
+    --fade-left: 0px;
   }
-  [data-at-end="1"] > .services-window {
-    --fade-bottom: 0px;
+  [data-at-end="1"] > .services-track {
+    --fade-right: 0px;
   }
 }
-.services-wrap:has(> .services-window:focus-visible) {
+.services-wrap:has(> .services-track:focus-visible) {
   @apply ring-2 ring-brand ring-offset-2 ring-offset-bg;
 }
 

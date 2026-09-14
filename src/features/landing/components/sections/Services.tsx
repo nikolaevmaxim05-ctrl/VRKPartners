@@ -46,10 +46,14 @@ const PREVIEW_HOVER_DELAY_MS = 500;
 // Велике hover-превью — лише там, де є справжнє наведення і сітка (≥ sm). На тачі тап викликає
 // mouseenter, а в каруселі (overflow-x: auto) absolute-превью обрізалося б або розширювало трек.
 const PREVIEW_MEDIA = "(hover: hover) and (min-width: 640px)";
-// Брейкпоінт «мобільне вікно прокрутки» (< sm): збігається з переходом сітки на 2 колонки.
-const WINDOW_MEDIA = "(max-width: 639.98px)";
-// Висота вікна = WINDOW_CARDS карток (одна цілком + верх наступної як підказка) + проміжок.
-const WINDOW_CARDS = 1.5;
+// Брейкпоінт «мобільна карусель» (< sm): збігається з переходом сітки на 2 колонки.
+const TRACK_MEDIA = "(max-width: 639.98px)";
+
+/** Прокрутка, за якої картка стоїть по центру треку (обмежена діапазоном прокрутки). */
+function centerOffset(track: HTMLElement, card: HTMLElement): number {
+  const target = card.offsetLeft + card.offsetWidth / 2 - track.clientWidth / 2;
+  return Math.max(0, Math.min(target, track.scrollWidth - track.clientWidth));
+}
 
 function ServiceCard({ s, i, collapsed, zoomLabel }: { s: ServiceItem; i: number; collapsed: boolean; zoomLabel: string }) {
   // Показ великого превью керуємо станом: вмикаємо через таймер, вимикаємо одразу.
@@ -107,8 +111,9 @@ function ServiceCard({ s, i, collapsed, zoomLabel }: { s: ServiceItem; i: number
       data-service-card
       className={cn(
         "relative flex min-w-0 flex-col rounded-2xl border border-bg-line bg-bg-card transition-colors",
-        // < sm: рядок вертикального вікна прокрутки — не стискається по висоті.
-        "max-sm:shrink-0",
+        // < sm: слайд каруселі — 82 % ширини екрана, ПО ЦЕНТРУ (snap-center), сусіди симетрично
+        // «визирають» з обох боків (зауваження власника: картка стояла зліва, а не по центру).
+        "max-sm:w-[82vw] max-sm:shrink-0 max-sm:snap-center",
         // ≥ sm: згорнуті картки (після перших трьох) приховані; при розгортанні — коротка поява.
         collapsed ? "sm:hidden" : i >= SERVICES_PREVIEW && "sm:animate-in sm:fade-in sm:slide-in-from-top-2 sm:duration-500",
         preview && "z-30 border-brand/40"
@@ -219,79 +224,67 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
   const { services } = useSiteMessages();
   // Порожня картка (без назви) не виводиться.
   const items = services.items.filter((s) => hasText(s.name));
-  // ≥ sm: перші 3 картки + «Показати більше»; < sm: усі картки у вертикальному вікні з внутрішньою
-  // прокруткою (крок 3 мобільних анімацій, уточнення власника) — showAll там не використовується,
-  // кнопки немає в DOM.
+  // ≥ sm: перші 3 картки + «Показати більше»; < sm: усі картки в одному горизонтальному треку
+  // (крок 3 мобільних анімацій — горизонтальна карусель повернута рішенням власника 2026-09-14) —
+  // showAll там не використовується, кнопки немає в DOM.
   const [showAll, setShowAll] = React.useState(false);
   const hiddenCount = Math.max(0, items.length - SERVICES_PREVIEW);
 
-  // Вікно прокрутки (< sm): висота = WINDOW_CARDS × перша картка + проміжок (CSS-змінна, перемір
-  // ResizeObserver-ом — не у scroll); індикатори: затухання країв — маска самого вікна (.services-window
-  // у globals.css; data-at-start/-end на обгортці вимикають зону на відповідному краю) і смужка-прогрес
-  // справа (бігунок — transform). У scroll: passive → rAF → арифметика + запис стилів.
+  // Карусель (< sm): активна точка — картка, найближча до лівого краю треку; стан країв
+  // (data-at-start/-end на обгортці — читає CSS маски .services-track у globals.css: на першому слайді
+  // ліва зона затухання = 0, на останньому — права). У scroll: passive → rAF → арифметика + запис.
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
-  const windowRef = React.useRef<HTMLDivElement | null>(null);
-  const thumbRef = React.useRef<HTMLDivElement | null>(null);
+  const trackRef = React.useRef<HTMLDivElement | null>(null);
+  const [activeSlide, setActiveSlide] = React.useState(0);
 
   React.useEffect(() => {
     const wrap = wrapRef.current;
-    const win = windowRef.current;
-    const thumb = thumbRef.current;
-    if (!wrap || !win || !thumb) return;
-    const mq = window.matchMedia(WINDOW_MEDIA);
+    const track = trackRef.current;
+    if (!wrap || !track) return;
+    const mq = window.matchMedia(TRACK_MEDIA);
     let raf = 0;
-
     const update = () => {
       raf = 0;
       if (!mq.matches) return;
-      const st = win.scrollTop;
-      const sh = win.scrollHeight;
-      const ch = win.clientHeight;
-      const scrollable = sh - ch > 1;
-      wrap.dataset.scrollable = scrollable ? "1" : "0";
-      wrap.dataset.atStart = st <= 1 ? "1" : "0";
-      wrap.dataset.atEnd = st + ch >= sh - 1 ? "1" : "0";
-      if (scrollable) {
-        const thumbH = Math.max(16, (ch * ch) / sh);
-        const y = (st / (sh - ch)) * (ch - thumbH);
-        thumb.style.height = `${thumbH}px`;
-        thumb.style.transform = `translate3d(0, ${y}px, 0)`;
-      }
+      const left = track.scrollLeft;
+      const max = track.scrollWidth - track.clientWidth;
+      wrap.dataset.atStart = left <= 1 ? "1" : "0";
+      wrap.dataset.atEnd = left >= max - 1 ? "1" : "0";
+      // Активна — картка, центр якої найближчий до центру треку.
+      const center = left + track.clientWidth / 2;
+      let best = 0;
+      let bestDist = Infinity;
+      track.querySelectorAll<HTMLElement>("[data-service-card]").forEach((el, idx) => {
+        const dist = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = idx;
+        }
+      });
+      setActiveSlide((a) => (a === best ? a : best));
     };
-    const schedule = () => {
+    const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
     };
-
-    // Висота вікна за першою карткою; поза брейкпоінтом змінну знімаємо (сітка ≥ sm без обмежень).
-    const measure = () => {
-      if (!mq.matches) {
-        win.style.removeProperty("--services-window");
-        return;
-      }
-      const first = win.querySelector<HTMLElement>("[data-service-card]");
-      const gap = parseFloat(getComputedStyle(win).rowGap) || 0;
-      if (first && first.offsetHeight > 0) {
-        win.style.setProperty("--services-window", `${Math.round(WINDOW_CARDS * first.offsetHeight + gap)}px`);
-      }
-      schedule();
-    };
-
-    measure();
-    win.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", measure);
-    mq.addEventListener?.("change", measure);
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    const first = win.querySelector<HTMLElement>("[data-service-card]");
-    if (first) ro?.observe(first);
-    ro?.observe(win);
+    update();
+    track.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    mq.addEventListener?.("change", onScroll);
     return () => {
-      win.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", measure);
-      mq.removeEventListener?.("change", measure);
-      ro?.disconnect();
+      track.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      mq.removeEventListener?.("change", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [items.length]);
+
+  const scrollToSlide = (idx: number) => {
+    const track = trackRef.current;
+    const card = track?.querySelectorAll<HTMLElement>("[data-service-card]")[idx];
+    if (!track || !card) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    track.scrollTo({ left: centerOffset(track, card), behavior: reduced ? "auto" : "smooth" });
+  };
 
   const handleCta = () => {
     track("services_cta_click", { source: "services" });
@@ -311,48 +304,59 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
           {hasText(services.text) && <p className="mt-4 text-lg text-white/60">{services.text}</p>}
         </div>
 
-        {/* Один список карток. < sm: вертикальне вікно з внутрішньою прокруткою (колонка карток,
-            overflow-y: auto, скролбар прихований, chaining дозволений: на краях прокрутка передається
-            сторінці), висота — CSS-змінна --services-window (1,5 картки; фолбек без JS), не вище 80svh.
-            ≥ sm: сітка 2/3 колонки, картки після перших трьох приховані до «Показати більше». */}
-        {/* Обгортка несе стан країв (data-at-start/-end — читає CSS маски) і focus-ring вікна
-            (.services-wrap: маска обрізає box-shadow самого вікна, тому кільце — тут). */}
+        {/* Один список карток. < sm: горизонтальний трек зі snap на всю ширину екрана (винос на
+            бокові відступи .container-x; внутрішні відступи по 9vw — щоб перша/остання картка стояли
+            по центру, як і решта), скролбар прихований;
+            трек сам обрізає вміст — сторінка не отримує горизонтального скролу; краї розчиняються
+            горизонтальною маскою (.services-track, як стрічка партнерів). ≥ sm: сітка 2/3 колонки,
+            картки після перших трьох приховані до «Показати більше». */}
+        {/* Обгортка несе стан країв (data-at-start/-end — читає CSS маски) і focus-ring треку
+            (.services-wrap: маска обрізає box-shadow самого треку, тому кільце — тут). */}
         <div
           ref={wrapRef}
-          className="services-wrap group/win relative mt-12 rounded-2xl"
+          className="services-wrap group/win relative mt-12 rounded-2xl max-sm:-mx-5"
           data-at-start="1"
           data-at-end="0"
-          data-scrollable="0"
         >
           <div
-            ref={windowRef}
+            ref={trackRef}
             role="region"
+            aria-roledescription="carousel"
             aria-label={services.title}
             tabIndex={0}
             data-items={items.length}
             className={cn(
               "reveal-stagger gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3",
-              "max-sm:flex max-sm:flex-col max-sm:gap-4 max-sm:overflow-y-auto max-sm:overscroll-y-auto max-sm:pr-3",
-              "max-sm:h-[var(--services-window,min(34rem,75svh))] max-sm:max-h-[80svh]",
-              // Вільна прокрутка без snap (рішення власника). Краї вікна розчиняються маскою
-              // (.services-window, < sm) — не накладкою кольору сторінки поверх кольорового фону.
-              "services-window no-scrollbar outline-none"
+              // pb-5 — запас під translateY(20px) появи дітей (.reveal-stagger > *), щоб трек їх не обрізав.
+              "max-sm:flex max-sm:gap-4 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:px-[9vw] max-sm:pb-5",
+              "max-sm:snap-x max-sm:snap-mandatory max-sm:overscroll-x-contain",
+              "services-track no-scrollbar outline-none"
             )}
           >
             {items.map((s, i) => (
               <ServiceCard key={i} s={s} i={i} collapsed={i >= SERVICES_PREVIEW && !showAll} zoomLabel={services.zoomLabel} />
             ))}
           </div>
-
-          {/* Смужка-прогрес справа (< sm, декоративна): поза маскою вікна (сусід в обгортці),
-              бігунок за scrollTop (transform). */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute bottom-1 right-0 top-1 w-0.5 rounded-full bg-white/10 group-data-[scrollable=0]/win:hidden sm:hidden"
-          >
-            <div ref={thumbRef} className="w-full rounded-full bg-brand/70 will-change-transform" style={{ height: "25%" }} />
-          </div>
         </div>
+
+        {/* Точки каруселі (< sm): по одній на картку, активна — найближча до лівого краю. Декоративні
+            (aria-hidden, не в табі): трек прокручується свайпом і клавіатурою. */}
+        {items.length > 1 && (
+          <div aria-hidden="true" className="mt-1 flex justify-center gap-2 sm:hidden">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                tabIndex={-1}
+                onClick={() => scrollToSlide(i)}
+                className={cn(
+                  "h-2 rounded-full transition-all duration-300",
+                  i === activeSlide ? "w-5 bg-brand" : "w-2 bg-white/25"
+                )}
+              />
+            ))}
+          </div>
+        )}
 
         {hiddenCount > 0 && (
           <div className="mt-8 hidden justify-center sm:flex">
