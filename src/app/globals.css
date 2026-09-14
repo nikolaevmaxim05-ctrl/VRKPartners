@@ -329,6 +329,29 @@
    контейнера (--usp-scale/--usp-blur/--usp-dim з ядра). Ефект на <article>, а не на обгортці, бо обгортка
    несе transform/transition появи (.reveal-stagger > *). Без JS атрибута немає — нейтральний стан.
    На десктопі data-state не ставиться (active = -1) і медіазапит не збігається — працює лише :hover. */
+/* Скріншот кейсу на мобільному (крок 5 мобільних анімацій): обгортка [data-case-zoom] масштабується
+   до ширини екрана при наближенні до центру (transform пише features/landing/lib/case-image-zoom,
+   запас по вертикалі — --case-zoom-reserve від JS, щоб збільшена картинка не наїжджала на сусідів);
+   при масштабі > 1 — поверх рамки картки (z-index) і з мʼякою тінню. Без JS змінної/transform немає. */
+@media (max-width: 639.98px) {
+  .case-zoom {
+    transform-origin: center;
+    /* Запас під збільшення додається до штатного відступу mt-5 (1.25rem), а не замінює його. */
+    margin-top: calc(1.25rem + var(--case-zoom-reserve, 0px));
+    margin-bottom: var(--case-zoom-reserve, 0px);
+  }
+  .case-zoom[data-zoomed="1"] {
+    position: relative;
+    z-index: 10;
+    will-change: transform;
+  }
+  .case-zoom-inner {
+    transition: box-shadow 0.2s ease-out;
+  }
+  .case-zoom[data-zoomed="1"] .case-zoom-inner {
+    box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
+  }
+}
 @media (max-width: 640px) {
   .usp-card {
     transform-origin: center;
@@ -446,6 +469,10 @@ body::-webkit-scrollbar {
     transform: none !important;
     filter: none !important;
     opacity: 1 !important;
+  }
+  /* Скріншот кейсу: без автозбільшення (JS у цьому режимі ефект не вмикає — страховка). */
+  .case-zoom {
+    transform: none !important;
   }
   /* Поява при скролі: у режимі «менше руху» нічого не ховаємо взагалі — стартовий стан видимий. */
   .js-reveal .reveal,
