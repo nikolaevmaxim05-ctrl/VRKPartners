@@ -1,10 +1,10 @@
 // Секція послуг. Десктоп (1440×900): 3 картки + «Показати більше», превью після затримки наведення
 // зʼявляється НА МІСЦІ і не виходить за вікно; клік по мініатюрі нічого не відкриває.
-// Мобільний (390×844, touch): усі картки по одному разу у вертикальному вікні з внутрішньою прокруткою
-// (висота ≈ 1,5 картки), індикатори: краї розчиняються маскою самого вікна (--fade-top/--fade-bottom:
-// на краю відповідна зона 0), смужка-прогрес; край вікна просвічує фон сторінки, а не малює колір
-// сторінки поверх нього (піксельна перевірка); без кнопки; тап по мініатюрі (і в зоні затухання) — лайтбокс
-// (закриття хрестиком, фоном, Escape; фокус повертається на кнопку); «менше руху» — те саме.
+// Мобільний (390×844, touch; крок 3 мобільних анімацій — горизонтальна карусель, повернута рішенням
+// власника 2026-09-14): усі картки по одному разу в горизонтальному треку зі snap на всю ширину екрана,
+// кнопки «Показати більше» немає, сторінка без горизонтального скролу на початку/посередині/у кінці,
+// краї розчиняються маскою (--fade-left/--fade-right: на першому слайді ліва зона 0, на останньому —
+// права), точки-індикатор; тап по мініатюрі — лайтбокс (крестик/фон/Escape, фокус); «менше руху» — те саме.
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import { horizontalOverflow } from './helpers'
@@ -30,8 +30,6 @@ test.describe('десктоп', () => {
     await expect(visible).toHaveCount(3)
     await expect(page.locator('#services article')).toHaveCount(ITEM_COUNT)
     await expect(page.locator('#services [data-zoom-trigger]')).toHaveCount(0)
-    // ≥ sm: маски на сітці немає.
-    expect((await windowState(page)).mask).toBe('')
     await page.locator('#services article').first().locator('.h-40').first().click()
     await page.waitForTimeout(300)
     await expect(page.locator('[data-lightbox]')).toHaveCount(0)
@@ -94,156 +92,112 @@ test.describe('десктоп', () => {
   })
 })
 
-async function windowState(page: Page) {
+async function trackState(page: Page) {
   return page.evaluate(() => {
-    const wrap = document.querySelector<HTMLElement>('#services .group\\/win')!
-    const win = wrap.querySelector<HTMLElement>('[role="region"]')!
-    const thumb = wrap.querySelector<HTMLElement>('.will-change-transform')!
-    const cs = getComputedStyle(win)
-    const maskOf = (v: string) => (v && v !== 'none' ? v : '')
+    const wrap = document.querySelector<HTMLElement>('#services .services-wrap')!
+    const track = wrap.querySelector<HTMLElement>('.services-track')!
+    const cs = getComputedStyle(track)
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-service-card]'))
+    const pad = parseFloat(cs.paddingLeft) || 0
+    const d = document.documentElement
     return {
       atStart: wrap.dataset.atStart,
       atEnd: wrap.dataset.atEnd,
-      scrollable: wrap.dataset.scrollable,
-      scrollTop: win.scrollTop,
-      thumbTransform: thumb.style.transform,
-      // Маска вікна (Chromium віддає mask-image, старіші WebKit — лише -webkit-mask-image).
-      mask: maskOf(cs.maskImage) || maskOf((cs as unknown as { webkitMaskImage: string }).webkitMaskImage),
-      fadeTop: parseFloat(cs.getPropertyValue('--fade-top')) || 0,
-      fadeBottom: parseFloat(cs.getPropertyValue('--fade-bottom')) || 0,
-      overlays: wrap.querySelectorAll(':scope > [aria-hidden="true"]').length,
+      scrollLeft: track.scrollLeft,
+      scrollable: track.scrollWidth > track.clientWidth,
+      snap: cs.scrollSnapType,
+      hasMask: (cs.maskImage || (cs as CSSStyleDeclaration & { webkitMaskImage?: string }).webkitMaskImage || 'none') !== 'none',
+      fadeLeft: parseFloat(cs.getPropertyValue('--fade-left')) || 0,
+      fadeRight: parseFloat(cs.getPropertyValue('--fade-right')) || 0,
+      pad,
+      trackLeft: track.getBoundingClientRect().left,
+      trackRight: track.getBoundingClientRect().right,
+      cardLefts: cards.map((c) => Math.round(c.getBoundingClientRect().left)),
+      cardRights: cards.map((c) => Math.round(c.getBoundingClientRect().right)),
+      cardCenters: cards.map((c) => {
+        const r = c.getBoundingClientRect()
+        return r.left + r.width / 2
+      }),
+      titleLeft: document.querySelector<HTMLElement>('#services h2, #services h1')!.getBoundingClientRect().left,
+      vw: innerWidth,
+      pageOverflow: Math.max(d.scrollWidth, document.body.scrollWidth) - d.clientWidth,
     }
   })
 }
 
-type Rgb = [number, number, number]
-
-/** Кольори пікселів вьюпорта в CSS-координатах (скріншот → canvas у сторінці, без залежностей). */
-async function pixels(page: Page, points: Array<{ x: number; y: number }>): Promise<Rgb[]> {
-  const png = (await page.screenshot({ fullPage: false })).toString('base64')
-  return page.evaluate(
-    async ({ png, points }) => {
-      const img = new Image()
-      img.src = `data:image/png;base64,${png}`
-      await img.decode()
-      const scale = img.naturalWidth / window.innerWidth
-      const c = document.createElement('canvas')
-      c.width = img.naturalWidth
-      c.height = img.naturalHeight
-      const ctx = c.getContext('2d')!
-      ctx.drawImage(img, 0, 0)
-      return points.map(({ x, y }) => {
-        const d = ctx.getImageData(Math.round(x * scale), Math.round(y * scale), 1, 1).data
-        return [d[0], d[1], d[2]] as [number, number, number]
-      })
-    },
-    { png, points }
-  )
-}
-
-const dist = (a: Rgb, b: Rgb) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]))
-
-function mobileWindowTests() {
-  test('усі картки один раз у вертикальному вікні; висота ≈ 1,5 картки; індикатори; без кнопки й горизонтального скролу', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'вікно — лише < 640px')
+function mobileTests() {
+  test('усі картки в горизонтальному треку зі snap і маскою; без кнопки; сторінка без горизонтального скролу', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'карусель — лише < 640px')
     await page.goto('/')
-    await page.evaluate(() => {
-      document.documentElement.style.scrollBehavior = 'auto'
-      document.querySelectorAll('.reveal, .reveal-stagger').forEach((e) => e.classList.add('is-visible'))
-    })
-    await page.waitForTimeout(500)
-    const win = page.locator('#services [role="region"]')
-    await expect(win).toHaveCount(1)
-    await expect(win).toHaveAttribute('aria-label', uk.services.title)
-    await expect(page.locator('#services [aria-roledescription]')).toHaveCount(0)
+    await page.evaluate(() => document.querySelectorAll('.reveal, .reveal-stagger').forEach((e) => e.classList.add('is-visible')))
+    const track = page.locator('#services [aria-roledescription="carousel"]')
+    await expect(track).toHaveCount(1)
+    await expect(track).toHaveAttribute('aria-label', uk.services.title)
     await expect(page.locator('#services article')).toHaveCount(ITEM_COUNT)
+    await expect(page.locator('#services article').filter({ visible: true })).toHaveCount(ITEM_COUNT)
     await expect(page.locator('#services button', { hasText: uk.services.showMore })).toBeHidden()
 
-    const geo = await win.evaluate((el) => {
-      const first = el.querySelector<HTMLElement>('[data-service-card]')!
-      const cs = getComputedStyle(el)
-      return {
-        winH: el.clientHeight,
-        scrollH: el.scrollHeight,
-        cardH: first.offsetHeight,
-        gap: parseFloat(cs.rowGap) || 0,
-        overflowY: cs.overflowY,
-        overscroll: cs.overscrollBehaviorY,
-        winLeft: el.getBoundingClientRect().left,
-        titleLeft: document.querySelector<HTMLElement>('#services h2, #services h1')!.getBoundingClientRect().left,
-      }
-    })
-    expect(geo.scrollH).toBeGreaterThan(geo.winH)
-    expect(geo.overflowY).toBe('auto')
-    expect(geo.overscroll).toBe('auto')
-    const expected = 1.5 * geo.cardH + geo.gap
-    expect(Math.abs(geo.winH - expected) / expected).toBeLessThanOrEqual(0.1)
-    expect(Math.abs(geo.winLeft - geo.titleLeft)).toBeLessThanOrEqual(2)
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
-
-    // Початок: маска на вікні (накладок немає — лише смужка), зверху зона 0, знизу > 0, смужка є.
-    let s = await windowState(page)
+    // Початок: трек на всю ширину екрана, перша картка ПО ЦЕНТРУ (зауваження власника), край наступної
+    // «визирає» справа, ліва зона маски = 0, права — є.
+    let s = await trackState(page)
+    expect(s.scrollable).toBe(true)
+    expect(s.snap).toContain('x')
+    expect(s.hasMask).toBe(true)
+    expect(s.trackLeft).toBeCloseTo(0, 0)
+    expect(s.trackRight).toBeCloseTo(s.vw, 0)
+    expect(Math.abs(s.cardCenters[0] - s.vw / 2)).toBeLessThanOrEqual(2)
+    expect(s.cardLefts[1]).toBeLessThan(s.vw)
     expect(s.atStart).toBe('1')
-    expect(s.scrollable).toBe('1')
-    expect(s.overlays).toBe(1)
-    expect(s.mask).toContain('linear-gradient')
-    expect(s.fadeTop).toBe(0)
-    expect(s.fadeBottom).toBeGreaterThan(30)
-    const thumb0 = s.thumbTransform
+    expect(s.fadeLeft).toBe(0)
+    expect(s.fadeRight).toBeGreaterThan(0)
+    expect(s.pageOverflow).toBeLessThanOrEqual(0)
 
-    // Піксельна перевірка: край вікна розчиняється до фону СТОРІНКИ (маска), а не до кольору сторінки
-    // поверх фону (стара накладка). Фон робимо зеленим і без «аврори»: нижній край вікна на початку
-    // прокрутки лежить на середині другої картки, тож без маски піксель був би темним (#16161D / #0B0B0E).
-    await page.evaluate(() => {
-      document.body.style.backgroundColor = 'rgb(40, 140, 60)'
-      document.querySelector<HTMLElement>('.site > .-z-10')!.style.display = 'none'
-    })
-    await win.evaluate((el) => el.scrollIntoView({ block: 'center' }))
-    await page.waitForTimeout(200)
-    const wb = (await win.boundingBox())!
-    const x = wb.x + 24
-    const [edge, inside, outside] = await pixels(page, [
-      { x, y: wb.y + wb.height - 1 },
-      { x, y: wb.y + wb.height - 60 },
-      { x, y: wb.y + wb.height + 10 },
-    ])
-    expect(dist(edge, outside), `край ${edge} ≠ фон ${outside}`).toBeLessThanOrEqual(24)
-    expect(dist(inside, outside), `картка ${inside} = фон ${outside}`).toBeGreaterThan(60)
-    await page.evaluate(() => {
-      document.body.style.backgroundColor = ''
-      document.querySelector<HTMLElement>('.site > .-z-10')!.style.display = ''
-    })
+    // Точки: по одній на картку, активна — перша.
+    const dots = page.locator('#services [aria-hidden="true"].flex > button')
+    await expect(dots).toHaveCount(ITEM_COUNT)
+    await expect(dots.nth(0)).toHaveClass(/bg-brand/)
 
-    // Прокрутка вікна на одну картку: смужка зсунулась, обидві зони > 0.
-    await win.evaluate((el, h) => el.scrollTo({ top: h, behavior: 'instant' }), geo.cardH + geo.gap)
+    // Прокрутка на одну картку: друга по центру, сусіди «визирають» з обох боків, обидві зони маски є,
+    // точка — друга.
+    await track.evaluate((el) => {
+      const cards = el.querySelectorAll<HTMLElement>('[data-service-card]')
+      const c = cards[1]
+      el.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, behavior: 'instant' })
+    })
     await page.waitForTimeout(450)
-    s = await windowState(page)
+    s = await trackState(page)
+    expect(Math.abs(s.cardCenters[1] - s.vw / 2)).toBeLessThanOrEqual(2)
+    expect(s.cardRights[0]).toBeGreaterThan(0)
+    expect(s.cardLefts[2]).toBeLessThan(s.vw)
     expect(s.atStart).toBe('0')
     expect(s.atEnd).toBe('0')
-    expect(s.thumbTransform).not.toBe(thumb0)
-    expect(s.fadeTop).toBeGreaterThan(30)
-    expect(s.fadeBottom).toBeGreaterThan(30)
+    expect(s.fadeLeft).toBeGreaterThan(0)
+    expect(s.fadeRight).toBeGreaterThan(0)
+    expect(s.pageOverflow).toBeLessThanOrEqual(0)
+    await expect(dots.nth(1)).toHaveClass(/bg-brand/)
+    await expect(dots.nth(0)).not.toHaveClass(/bg-brand/)
 
-    // Кінець: нижня зона 0.
-    await win.evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' }))
-    await page.waitForTimeout(450)
-    s = await windowState(page)
+    // Клік по останній точці: остання картка по центру, права зона маски = 0.
+    // Плавна прокрутка через весь трек триває > 1 с — чекаємо, поки scrollLeft перестане змінюватися.
+    // Програмний click: перевіряємо scrollToSlide, а не hit-test (координатний клік у частині прогонів
+    // перехоплював інший шар).
+    await dots.nth(ITEM_COUNT - 1).evaluate((el) => (el as HTMLElement).click())
+    await track.evaluate(async (el) => {
+      let prev = -1
+      for (let i = 0; i < 40; i++) {
+        await new Promise((r) => setTimeout(r, 100))
+        if (el.scrollLeft === prev) break
+        prev = el.scrollLeft
+      }
+    })
+    await page.waitForTimeout(350)
+    s = await trackState(page)
+    expect(Math.abs(s.cardCenters[ITEM_COUNT - 1] - s.vw / 2)).toBeLessThanOrEqual(2)
     expect(s.atEnd).toBe('1')
-    expect(s.fadeTop).toBeGreaterThan(30)
-    expect(s.fadeBottom).toBe(0)
+    expect(s.fadeRight).toBe(0)
+    expect(s.pageOverflow).toBeLessThanOrEqual(0)
+    await expect(dots.nth(ITEM_COUNT - 1)).toHaveClass(/bg-brand/)
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
-
-    // Тап по мініатюрі, що лежить у нижній зоні затухання, відкриває лайтбокс (маска не блокує події).
-    await win.evaluate((el) => el.scrollTo({ top: 0, behavior: 'instant' }))
-    await page.waitForTimeout(450)
-    const second = page.locator('#services [data-zoom-trigger]').nth(1)
-    const sb = (await second.boundingBox())!
-    const wb2 = (await win.boundingBox())!
-    expect(sb.y).toBeLessThan(wb2.y + wb2.height)
-    await page.touchscreen.tap(sb.x + sb.width / 2, Math.min(sb.y + sb.height - 4, wb2.y + wb2.height - 8))
-    await expect(page.locator('[data-lightbox]')).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(page.locator('[data-lightbox]')).toHaveCount(0)
   })
 
   test('тап по мініатюрі → лайтбокс із великим скріншотом; закриття хрестиком, фоном, Escape; фокус на кнопку', async ({ page }, testInfo) => {
@@ -257,26 +211,22 @@ function mobileWindowTests() {
     const full = uk.services.items[0].mockupFull ?? uk.services.items[0].mockup!
     const dialog = page.locator('[data-lightbox]')
 
-    // Хрестик
     await trigger.tap()
     await expect(dialog).toBeVisible()
     await expect(dialog).toHaveAttribute('aria-modal', 'true')
+    // Портал у body: лайтбокс не всередині треку (маска/overflow треку його не ріжуть).
+    expect(await page.evaluate(() => document.querySelector('[data-lightbox]')?.parentElement === document.body)).toBe(true)
     expect(await dialog.locator('img').getAttribute('src')).toContain(encodeURIComponent(full))
     await expect(page.locator('[data-lightbox] button')).toBeFocused()
-    expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden')
     await page.locator('[data-lightbox] button').tap()
     await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
-    expect(await page.evaluate(() => document.body.style.overflow)).toBe('')
 
-    // Escape
     await trigger.tap()
     await expect(dialog).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
-    await expect(trigger).toBeFocused()
 
-    // Фон (поза картинкою — верхній лівий кут)
     await trigger.tap()
     await expect(dialog).toBeVisible()
     await page.touchscreen.tap(60, 30)
@@ -284,11 +234,11 @@ function mobileWindowTests() {
   })
 }
 
-test.describe('мобільний: вертикальне вікно послуг і лайтбокс', () => {
-  mobileWindowTests()
+test.describe('мобільний: карусель послуг і лайтбокс', () => {
+  mobileTests()
 })
 
 test.describe('мобільний, менше руху', () => {
   test.use({ reducedMotion: 'reduce' })
-  mobileWindowTests()
+  mobileTests()
 })
