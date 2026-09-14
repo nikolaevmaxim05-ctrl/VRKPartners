@@ -114,9 +114,11 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
             </div>
           </div>
 
-          {/* Права колонка: кейси — ніша → кейс → контент (без кейсів — не виводиться) */}
+          {/* Права колонка: кейси — ніша → кейс → контент (без кейсів — не виводиться).
+              Жовта обводка зі свіченням кольору бренду по периметру (токен shadow-glowSoft) — рішення
+              власника 2026-09-14; сіра рамка на аврора-фоні читалася як білясте свічення. */}
           {hasCases && (
-          <div className="reveal min-w-0 rounded-2xl border border-bg-line bg-bg-card p-5 shadow-card sm:p-7">
+          <div className="reveal min-w-0 rounded-2xl border border-brand/40 bg-bg-card p-5 shadow-glowSoft sm:p-7">
             <div className="flex items-center gap-2">
               <Quote className="h-5 w-5 text-brand" />
               <h3 className="text-lg font-bold text-white">{trust.casesTitle}</h3>
