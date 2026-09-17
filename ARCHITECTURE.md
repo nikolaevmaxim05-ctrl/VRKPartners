@@ -183,6 +183,8 @@ src/
   features/landing/components/sections/*               titleAs, data-fit, data-items, minmax-сетки
   features/landing/components/sections/Header.tsx      бургер по сумме ширин пунктов
   features/landing/components/sections/Benefits.tsx    блок «Що ви отримуєте?» (2026-09-17): пункты «X замість Y», тексты benefits.*
+  core/domain/layout/slide-in.ts                       правило выезда пунктов слева скрабом (линия ввода, BAND, STAGGER, DISTANCE, конец страницы)
+  features/landing/lib/slide-in.ts + layout/SlideIn.tsx DOM-скраб [data-slide-in] / [data-slide-part] (кэш, rAF, IO-гейт, класс js-slide-in до гидрации)
   i18n/request.ts                                      E2E_CONTENT_OVERRIDES=1 → cookie/файл поверх дефолтов
 tests/e2e/*.spec.ts, playwright.config.ts              e2e на локальной прод-сборке (порт 3100)
 scripts/check-overflow.js                              скан переполнения: страницы × ширины

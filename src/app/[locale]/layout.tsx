@@ -7,6 +7,7 @@ import { ModalProvider } from "@/features/landing/components/forms/ModalProvider
 import { RevealObserver } from "@/features/landing/components/layout/RevealObserver";
 import { FitText } from "@/features/landing/components/layout/FitText";
 import { WordReveal } from "@/features/landing/components/layout/WordReveal";
+import { SlideIn } from "@/features/landing/components/layout/SlideIn";
 import { WordRevealTuner } from "@/features/landing/components/layout/WordRevealTuner";
 import { HashScroll } from "@/features/landing/components/layout/HashScroll";
 import { SiteBackground } from "@/features/landing/components/layout/SiteBackground";
@@ -281,14 +282,16 @@ export default async function SiteLayout({
       <UtmTracker />
 
       {/* Тексти сайту (дефолти ⊕ правки клієнта) — клієнтським компонентам через useMessages() */}
-      {/* Розгорання слів (крок 4): до гідрації слова в [data-word-reveal] приховані класом на <html>,
-          щоб текст не блимав яскравим і не «зникав» після першого розрахунку (рішення власника).
-          Виконується до розбору розмітки сайту (перед першим кадром); «менше руху» / без JS — без класу,
-          текст видимий. Клас знімає features/landing/lib/word-reveal при вимкненні ефекту. */}
+      {/* Розгорання слів (крок 4) і виїзд пунктів «Що ви отримуєте?»: до гідрації слова в
+          [data-word-reveal] і частини [data-slide-part] приховані класами на <html>, щоб текст не блимав
+          яскравим і не «зникав» після першого розрахунку (рішення власника). Два класи, а не один:
+          кожен ефект знімає свій при вимкненні. Виконується до розбору розмітки сайту (перед першим
+          кадром); «менше руху» / без JS — без класів, текст видимий. Класи знімають
+          features/landing/lib/word-reveal і features/landing/lib/slide-in при вимкненні ефекту. */}
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('js-word-reveal')}catch(e){}",
+            "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('js-word-reveal','js-slide-in')}catch(e){}",
         }}
       />
       <NextIntlClientProvider locale={locale} messages={messages}>
@@ -298,6 +301,7 @@ export default async function SiteLayout({
             <RevealObserver />
             <FitText />
             <WordReveal />
+            <SlideIn />
             {/* Тимчасова панель підбору параметрів розгорання (лише /?tune-words=1) — прибрати після підбору. */}
             <WordRevealTuner />
             <HashScroll />

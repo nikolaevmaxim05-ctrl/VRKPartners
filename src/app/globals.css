@@ -287,9 +287,26 @@
   opacity: 1;
   transform: none;
 }
-/* Друга частина пункту «Що ви отримуєте?» («замість …») спливає із затримкою після першої. */
-.js-reveal .reveal.reveal-late {
-  transition-delay: 0.3s;
+
+/* Виїзд пунктів «Що ви отримуєте?» зліва по мірі прокрутки (уточнення власника 2026-09-17):
+   transform/opacity частин [data-slide-part] пише JS (скраб по позиції, features/landing/lib/slide-in),
+   100 мс лінійно згладжує сходинки між кадрами (як у розгоранні слів). До гідрації (клас js-slide-in з
+   інлайн-скрипта layout) частини приховані й зсунуті на відстань виїзду (= SLIDE_IN_DEFAULTS.distance*
+   у core/domain/layout/slide-in: 64px < sm, 112px від sm), поки JS не запише реальні значення; без JS /
+   «менше руху» класу немає — усе на місці. */
+[data-slide-in] [data-slide-part] {
+  transition:
+    transform 0.1s linear,
+    opacity 0.1s linear;
+}
+.js-slide-in [data-slide-in] [data-slide-part] {
+  opacity: 0;
+  transform: translate3d(-64px, 0, 0);
+}
+@media (min-width: 640px) {
+  .js-slide-in [data-slide-in] [data-slide-part] {
+    transform: translate3d(-112px, 0, 0);
+  }
 }
 
 /* Контейнер зі сходинковою появою дочірніх елементів */
@@ -470,6 +487,11 @@ body::-webkit-scrollbar {
   [data-word-reveal] [data-word],
   [data-word-reveal] [data-word-check] {
     opacity: 1 !important;
+  }
+  /* Виїзд пунктів «Що ви отримуєте?»: усе на місці (JS у цьому режимі ефект не вмикає — страховка). */
+  [data-slide-in] [data-slide-part] {
+    opacity: 1 !important;
+    transform: none !important;
   }
   /* Спливаючі шари UI-кита (Radix/shadcn): лише тривалість, позиціонування не чіпаємо. */
   [data-state][data-side],

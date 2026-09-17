@@ -1,12 +1,52 @@
 // Блок «Що ви отримуєте?» (2026-09-17, варіант D без закреслення): секція між #cases і #process,
-// h2 у порядку заголовків, N пунктів (порожній не виводиться), пункт меню веде на #benefits; поява при
-// скролі — рядок одразу, друга частина («замість …») із затримкою; «менше руху» і без JS — усе видно;
-// без горизонтального скролу на 390 і 1440. Контент — дефолти (герметично до правок клієнта).
-import { test, expect } from '@playwright/test'
+// h2 у порядку заголовків, N пунктів (порожній не виводиться), пункт меню веде на #benefits.
+// Анімація (уточнення власника 2026-09-17): частини пункту (номер → жовта → сіра) виїжджають зліва
+// скрабом по позиції — нижче лінії вводу зсунуті й прозорі, лінія пройшла — на місці, проміжний прогрес —
+// сіра відстає від жовтої, назад — знову зсунуті; кінець сторінки (benefits — останній блок) — усе на
+// місці; «менше руху» і без JS — інлайн-стилів немає, усе видно; без горизонтального скролу в будь-якій
+// фазі на 320/360/390/430 (mobile) і 1440 (desktop). Контент — дефолти (герметично до правок клієнта).
+import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
+import { SLIDE_IN_DEFAULTS as P, slideDistance } from '../../src/core/domain/layout/slide-in'
 import { setContent, horizontalOverflow } from './helpers'
 
 const ITEMS = uk.benefits.items.filter((it) => it.title.trim())
+
+type PartState = { o: number; x: number; inline: boolean }
+
+/** Стан частин пункту idx: opacity, translateX (px) з computed transform, чи є інлайн-стиль. */
+async function parts(page: Page, idx = 1): Promise<PartState[]> {
+  return page.evaluate((idx) => {
+    const li = document.querySelectorAll<HTMLElement>('#benefits [data-slide-in]')[idx]!
+    return Array.from(li.querySelectorAll<HTMLElement>('[data-slide-part]')).map((el) => {
+      const cs = getComputedStyle(el)
+      return { o: Number(cs.opacity), x: new DOMMatrix(cs.transform).m41, inline: el.style.opacity !== '' || el.style.transform !== '' }
+    })
+  }, idx)
+}
+
+/** Ставить верх пункту idx на frac висоти вьюпорту й чекає кадр + згладжування (100 мс). */
+async function placeItem(page: Page, idx: number, frac: number) {
+  await page.evaluate(
+    ({ idx, frac }) => {
+      document.documentElement.style.scrollBehavior = 'auto'
+      const li = document.querySelectorAll<HTMLElement>('#benefits [data-slide-in]')[idx]!
+      window.scrollTo(0, Math.round(li.getBoundingClientRect().top + scrollY - frac * innerHeight))
+    },
+    { idx, frac },
+  )
+  await page.waitForTimeout(300)
+}
+
+/** Чекає гідрації ефекту: клас js-slide-in ставить інлайн-скрипт ще до гідрації, а інлайн-стилі частин пише лише JS. */
+async function ready(page: Page) {
+  await page.waitForFunction(() => document.documentElement.classList.contains('js-slide-in'))
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('#benefits [data-slide-part]')?.style.opacity !== '')
+}
+
+async function distance(page: Page) {
+  return slideDistance(page.viewportSize()!.width)
+}
 
 test.beforeEach(async ({ context }) => {
   await setContent(context, { benefits: uk.benefits, nav: uk.nav, home: { hidden: [] } })
@@ -19,12 +59,14 @@ test('секція на місці, пункти й меню; порядок с�
   await expect(section.locator('h2')).toHaveText(uk.benefits.title)
   await expect(section.locator('ol > li')).toHaveCount(ITEMS.length)
   await expect(section.locator('ol')).toHaveAttribute('data-items', String(ITEMS.length))
-  // Кожен пункт: жовта частина + підпис «замість» + сіра частина.
+  // Кожен пункт: жовта частина + підпис «замість» + сіра частина; три частини виїзду.
   for (let i = 0; i < ITEMS.length; i++) {
     const li = section.locator('ol > li').nth(i)
     await expect(li).toContainText(ITEMS[i].title)
     await expect(li).toContainText(uk.benefits.instead)
     await expect(li).toContainText(ITEMS[i].text)
+    expect(await li.getAttribute('data-slide-in')).not.toBeNull()
+    await expect(li.locator('[data-slide-part]')).toHaveCount(3)
   }
   const ids = await page.evaluate(() => Array.from(document.querySelectorAll('main section')).map((s) => s.id))
   expect(ids.indexOf('benefits')).toBe(ids.indexOf('cases') + 1)
@@ -35,49 +77,90 @@ test('секція на місці, пункти й меню; порядок с�
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test('поява при скролі: рядок одразу, друга частина — із затримкою; далі все видно', async ({ page }) => {
+test('скраб: нижче лінії — зсунуті й прозорі; проміжний прогрес — сіра відстає; лінія пройшла — на місці; назад — знову зсунуті', async ({ page }) => {
   await page.goto('/')
-  const opacities = () =>
-    page.evaluate(() => {
-      const li = document.querySelector<HTMLElement>('#benefits ol > li')!
-      const late = li.querySelector<HTMLElement>('.reveal-late')!
-      return {
-        li: Number(getComputedStyle(li).opacity),
-        late: Number(getComputedStyle(late).opacity),
-        delay: getComputedStyle(late).transitionDelay,
-        debug: `cls=${li.className} html=${document.documentElement.className} top=${Math.round(li.getBoundingClientRect().top)} scrollY=${scrollY} rm=${matchMedia('(prefers-reduced-motion: reduce)').matches}`,
-      }
-    })
-  // До появи — приховано (після гідрації: клас js-reveal на <html>; секція за екраном).
-  await page.waitForFunction(() => document.documentElement.classList.contains('js-reveal'))
-  // Клас вмикає перехід 1 → 0 (0.7 s) — чекаємо, поки рядок стане прозорим.
-  await page.waitForFunction(
-    () => {
-      const li = document.querySelector('#benefits ol > li')!
-      const late = li.querySelector('.reveal-late')!
-      return Number(getComputedStyle(li).opacity) < 0.05 && Number(getComputedStyle(late).opacity) < 0.05
-    },
-    null,
-    { timeout: 5000 },
-  )
-  const before = await opacities()
-  expect(before.li, before.debug).toBeLessThan(0.05)
-  expect(before.late).toBeLessThan(0.05)
-  expect(parseFloat(before.delay)).toBeGreaterThanOrEqual(0.25)
-  // Секція у вікні: рядок уже проявляється, друга частина ще ні (затримка 0.3 s).
-  await page.evaluate(() => {
-    document.documentElement.style.scrollBehavior = 'auto'
-    const s = document.querySelector('#benefits')!
-    window.scrollTo(0, s.getBoundingClientRect().top + scrollY + 40)
-  })
-  await page.waitForTimeout(150)
-  const mid = await opacities()
-  expect(mid.li).toBeGreaterThan(mid.late)
-  await page.waitForTimeout(1300)
-  const after = await opacities()
-  expect(after.li).toBeGreaterThan(0.98)
-  expect(after.late).toBeGreaterThan(0.98)
+  await ready(page)
+  const d = await distance(page)
+
+  // Пункт нижче лінії вводу: усі частини прозорі й зсунуті на відстань виїзду.
+  await placeItem(page, 1, P.enterLine + 0.05)
+  let s = await parts(page)
+  expect(s).toHaveLength(3)
+  for (const p of s) {
+    expect(p.o).toBeLessThan(0.1)
+    expect(p.x).toBeLessThan(-d * 0.8)
+    expect(p.inline).toBe(true)
+  }
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+
+  // Проміжний прогрес (половина шляху): сходинки — номер ≥ жовта > сіра; сіра ще зсунута.
+  await placeItem(page, 1, P.enterLine - 0.5 * P.band)
+  s = await parts(page)
+  expect(s[0].o).toBeGreaterThanOrEqual(s[1].o)
+  expect(s[1].o).toBeGreaterThan(s[2].o)
+  expect(s[2].o).toBeLessThan(0.95)
+  expect(s[2].x).toBeLessThan(s[1].x)
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+
+  // Лінія пройшла пункт на весь шлях: усе на місці.
+  await placeItem(page, 1, P.enterLine - P.band - 0.05)
+  s = await parts(page)
+  for (const p of s) {
+    expect(p.o).toBeGreaterThan(0.99)
+    expect(Math.abs(p.x)).toBeLessThan(0.5)
+  }
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+
+  // Назад — чистий скраб по позиції: знову зсунуті й прозорі.
+  await placeItem(page, 1, P.enterLine + 0.05)
+  s = await parts(page)
+  for (const p of s) {
+    expect(p.o).toBeLessThan(0.1)
+    expect(p.x).toBeLessThan(-d * 0.8)
+  }
+})
+
+test('кінець сторінки: benefits — останній блок → при максимальній прокрутці все на місці', async ({ page, context }) => {
+  await setContent(context, { benefits: uk.benefits, home: { hidden: ['process', 'faq', 'finalCta'] } })
+  await page.goto('/')
+  await ready(page)
+  const ids = await page.evaluate(() => Array.from(document.querySelectorAll('main section')).map((s) => s.id))
+  expect(ids[ids.length - 1]).toBe('benefits')
+  // Двічі: висота сторінки осідає після завантаження шрифтів — друга прокрутка ловить справжній низ.
+  for (let k = 0; k < 2; k++) {
+    await page.evaluate(() => {
+      document.documentElement.style.scrollBehavior = 'auto'
+      window.scrollTo(0, document.documentElement.scrollHeight)
+    })
+    await page.waitForTimeout(400)
+  }
+  for (let i = 0; i < ITEMS.length; i++) {
+    const inView = await page.evaluate((i) => {
+      const r = document.querySelectorAll('#benefits [data-slide-in]')[i]!.getBoundingClientRect()
+      return r.top < innerHeight
+    }, i)
+    if (!inView) continue
+    for (const p of await parts(page, i)) {
+      expect(p.o, `пункт ${i}`).toBeGreaterThan(0.99)
+      expect(Math.abs(p.x), `пункт ${i}`).toBeLessThan(0.5)
+    }
+  }
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+})
+
+test('без горизонтального скролу в будь-якій фазі на всіх ширинах', async ({ page }, testInfo) => {
+  const widths = testInfo.project.name === 'mobile' ? [320, 360, 390, 430] : [1440]
+  await page.goto('/')
+  await ready(page)
+  for (const w of widths) {
+    await page.setViewportSize({ width: w, height: testInfo.project.name === 'mobile' ? 844 : 900 })
+    await page.waitForTimeout(200)
+    for (const frac of [P.enterLine + 0.05, P.enterLine - 0.5 * P.band, P.enterLine - P.band - 0.05]) {
+      await placeItem(page, 1, frac)
+      expect(await horizontalOverflow(page), `${w}px @ ${frac}`).toBeLessThanOrEqual(0)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth)).toBe(true)
+    }
+  }
 })
 
 test('порожній пункт не виводиться; без пунктів — секції немає, меню без посилання', async ({ page, context }) => {
@@ -91,26 +174,30 @@ test('порожній пункт не виводиться; без пункті
 
 test.describe('менше руху', () => {
   test.use({ reducedMotion: 'reduce' })
-  test('усе видно одразу', async ({ page }) => {
+  test('усе на місці одразу, інлайн-стилів і класу html.js-slide-in немає', async ({ page }) => {
     await page.goto('/')
-    const o = await page.evaluate(() => {
-      const li = document.querySelector<HTMLElement>('#benefits ol > li')!
-      return [Number(getComputedStyle(li).opacity), Number(getComputedStyle(li.querySelector('.reveal-late')!).opacity)]
-    })
-    expect(o).toEqual([1, 1])
+    await page.waitForTimeout(500)
+    expect(await page.evaluate(() => document.documentElement.classList.contains('js-slide-in'))).toBe(false)
+    await placeItem(page, 1, P.enterLine + 0.05)
+    for (const p of await parts(page)) {
+      expect(p.o).toBe(1)
+      expect(p.x).toBe(0)
+      expect(p.inline).toBe(false)
+    }
   })
 })
 
 test.describe('без JS', () => {
   test.use({ javaScriptEnabled: false })
-  test('усе видно, текст пунктів на місці', async ({ page }) => {
+  test('усе видно, класу немає, текст пунктів на місці', async ({ page }) => {
     await page.goto('/')
-    const o = await page.evaluate(() => {
-      const li = document.querySelector<HTMLElement>('#benefits ol > li')!
-      return [Number(getComputedStyle(li).opacity), Number(getComputedStyle(li.querySelector('.reveal-late')!).opacity), li.textContent ?? '']
-    })
-    expect(o[0]).toBe(1)
-    expect(o[1]).toBe(1)
-    expect(String(o[2])).toContain(ITEMS[0].title)
+    expect(await page.evaluate(() => document.documentElement.classList.contains('js-slide-in'))).toBe(false)
+    for (const p of await parts(page, 0)) {
+      expect(p.o).toBe(1)
+      expect(p.x).toBe(0)
+      expect(p.inline).toBe(false)
+    }
+    const text = await page.evaluate(() => document.querySelector('#benefits ol > li')?.textContent ?? '')
+    expect(text).toContain(ITEMS[0].title)
   })
 })
