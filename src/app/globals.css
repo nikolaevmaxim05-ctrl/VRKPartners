@@ -80,6 +80,7 @@
   #services,
   #audit,
   #cases,
+  #benefits,
   #process,
   #faq,
   #contacts {
@@ -285,6 +286,10 @@
 .js-reveal .reveal.is-visible {
   opacity: 1;
   transform: none;
+}
+/* Друга частина пункту «Що ви отримуєте?» («замість …») спливає із затримкою після першої. */
+.js-reveal .reveal.reveal-late {
+  transition-delay: 0.3s;
 }
 
 /* Контейнер зі сходинковою появою дочірніх елементів */

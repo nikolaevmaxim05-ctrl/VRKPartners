@@ -6,6 +6,7 @@ import { About } from "@/features/landing/components/sections/About";
 import { Services } from "@/features/landing/components/sections/Services";
 import { Audit } from "@/features/landing/components/sections/Audit";
 import { Trust } from "@/features/landing/components/sections/Trust";
+import { Benefits } from "@/features/landing/components/sections/Benefits";
 import { Process } from "@/features/landing/components/sections/Process";
 import { FinalCta } from "@/features/landing/components/sections/FinalCta";
 import { siteUrl } from "@/shared/config/site";
@@ -62,7 +63,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const vis = pageVisibility(HOME_NS, messages.home.hidden);
 
   // Рівно один h1 (розділ 14): якщо перший екран прихований, h1 отримує перший видимий блок.
-  const order = ["usp", "about", "services", "audit", "cases", "process", "finalCta"] as const;
+  const order = ["usp", "about", "services", "audit", "cases", "benefits", "process", "finalCta"] as const;
   const firstVisible = vis.shown("hero")
     ? null
     : order.find((id) => vis.shown(id) || (id === "finalCta" && vis.shown("faq"))) ?? null;
@@ -76,6 +77,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {vis.shown("services") && <Services titleAs={titleAs("services")} />}
       {vis.shown("audit") && <Audit titleAs={titleAs("audit")} />}
       {vis.shown("cases") && <Trust titleAs={titleAs("cases")} />}
+      {vis.shown("benefits") && <Benefits titleAs={titleAs("benefits")} />}
       {vis.shown("process") && <Process titleAs={titleAs("process")} />}
       {(vis.shown("faq") || vis.shown("finalCta")) && <FinalCta titleAs={titleAs("finalCta")} />}
     </>
