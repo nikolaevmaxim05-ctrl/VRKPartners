@@ -6,7 +6,11 @@
 // offsetParent — transform частин на нього не впливає); перемір — resize, document.fonts.ready,
 // ResizeObserver батька пунктів (ol) і body (контент вище досчитується після гідрації і зсуває блок,
 // не змінюючи його розміру), зміна маршруту (refresh). У scroll (passive → rAF) — лише арифметика по
-// кешу і запис transform/opacity на частинах, коли значення змінилося помітно. Поки батько пунктів
+// кешу і запис ЦІЛЬОВОГО transform/opacity на частинах, коли значення змінилося помітно; показаний стан
+// наздоганяє ціль з інерцією — CSS-перехід easeOutExpo тривалістю smoothTransitionMs(smoothMs) на
+// композиторі (колесо миші крутить сторінку сходинками по ~100 px, без інерції частини «стрибали» б;
+// покадровий запис із JS давав той самий рух, але на слабких пристроях — кадри > 20 мс). Перша
+// установка і вхід/вихід із гейта — без переходу. Поки батько пунктів
 // далеко від вьюпорту (IntersectionObserver-гейт із запасом 50 % vh), кадр пропускається; на
 // вході/виході з гейта стан дораховується один раз (швидка прокрутка «наскрізь» не лишає застарілих
 // значень) і вмикається/знімається will-change: transform. «Менше руху» — ефект вимкнено: інлайн-стилі
@@ -18,10 +22,11 @@ import {
   partProgress,
   partState,
   slideDistance,
+  smoothTransitionMs,
   type SlideInParams,
 } from '@core/domain/layout/slide-in'
 
-type Part = { el: HTMLElement; index: number; lastX: number; lastO: number }
+type Part = { el: HTMLElement; index: number; lastX: number; lastO: number; animated: boolean | null }
 type Item = { el: HTMLElement; gate: HTMLElement; top: number; parts: Part[] }
 
 export type SlideInController = {
@@ -39,6 +44,8 @@ const HTML_CLASS = 'js-slide-in'
 const GATE_MARGIN = '50% 0px 50% 0px'
 const EPS_X = 0.5
 const EPS_O = 0.01
+/** Крива easeOutExpo (наближення 1 − 2^(−10t)) — відповідає експоненційній інерції. */
+const EASE_OUT_EXPO = 'cubic-bezier(0.16, 1, 0.3, 1)'
 
 /** Верх елемента в документі за ланцюжком offsetParent (без впливу transform нащадків). */
 function offsetTopInPage(el: HTMLElement): number {
@@ -64,14 +71,29 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
   let measureRaf = 0
   let active = false
 
-  const write = (part: Part, x: number, opacity: number) => {
+  // Перехід частин: easeOutExpo з тривалістю smoothTransitionMs(smoothMs) — інерція на композиторі.
+  const transitionCss = () => {
+    const d = smoothTransitionMs(params.smoothMs)
+    return d > 0 ? `transform ${d}ms ${EASE_OUT_EXPO}, opacity ${d}ms ${EASE_OUT_EXPO}` : 'none'
+  }
+
+  /** snap — поставити одразу, без переходу (завантаження, гейт); інакше значення доганяє ціль переходом. */
+  const write = (part: Part, x: number, opacity: number, snap: boolean) => {
     const xr = Math.round(x * 10) / 10
     const o = opacity >= 0.995 ? 1 : Math.round(opacity * 1000) / 1000
     if (Math.abs(xr - part.lastX) < EPS_X && Math.abs(o - part.lastO) < EPS_O && !(o === 1 && part.lastO !== 1)) return
+    const first = Number.isNaN(part.lastX)
     part.lastX = xr
     part.lastO = o
+    const animated = !(snap || first)
+    if (animated !== part.animated) {
+      part.animated = animated
+      part.el.style.transition = animated ? transitionCss() : 'none'
+    }
     // Явні значення (не порожній рядок): до гідрації клас html.js-slide-in тримає частини прихованими.
-    part.el.style.transform = xr === 0 || o === 1 ? 'none' : `translate3d(${xr}px, 0, 0)`
+    // У спокої — none (текст не тримає зайвий композитний шар); перехід матриця → none інтерполюється
+    // як до одиничної матриці.
+    part.el.style.transform = xr === 0 ? 'none' : `translate3d(${xr}px, 0, 0)`
     part.el.style.opacity = String(o)
   }
 
@@ -80,13 +102,15 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
       for (const p of it.parts) {
         p.el.style.transform = ''
         p.el.style.opacity = ''
+        p.el.style.transition = ''
         p.el.style.willChange = ''
         p.lastX = NaN
         p.lastO = NaN
+        p.animated = null
       }
   }
 
-  const compute = (all: boolean) => {
+  const compute = (all: boolean, snap: boolean) => {
     if (!active || items.length === 0) return
     if (!all && near.size === 0) return
     const scrollY = window.scrollY
@@ -97,19 +121,19 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
       if (!all && !near.has(it.gate)) continue
       const ip = itemProgress(it.top, scrollY, vh, maxScroll, params)
       for (const p of it.parts) {
-        const s = partState(partProgress(ip, p.index, params), distance)
-        write(p, s.x, s.opacity)
+        const st = partState(partProgress(ip, p.index, params), distance)
+        write(p, st.x, st.opacity, snap)
       }
     }
   }
 
   const apply = () => {
     raf = 0
-    compute(false)
+    compute(false, false)
   }
   const applyAll = () => {
     forceRaf = 0
-    compute(true)
+    compute(true, true)
   }
   const schedule = () => {
     if (!raf) raf = requestAnimationFrame(apply)
@@ -128,7 +152,9 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
         p.lastO = NaN
       }
     }
-    compute(true)
+    // Без snap: перша установка й так миттєва (last ще NaN), а перемір посеред руху (resize, зміна
+    // висоти сторінки) не смикає частини — вони доганяють нову ціль переходом.
+    compute(true, false)
   }
   const scheduleMeasure = () => {
     if (!measureRaf) measureRaf = requestAnimationFrame(measure)
@@ -148,7 +174,7 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
       const parts: Part[] = []
       el.querySelectorAll<HTMLElement>('[data-slide-part]').forEach((pe) => {
         const index = Number(pe.dataset.slidePart)
-        parts.push({ el: pe, index: Number.isFinite(index) ? index : 0, lastX: NaN, lastO: NaN })
+        parts.push({ el: pe, index: Number.isFinite(index) ? index : 0, lastX: NaN, lastO: NaN, animated: null })
       })
       if (parts.length === 0) return
       const gate = el.parentElement ?? el

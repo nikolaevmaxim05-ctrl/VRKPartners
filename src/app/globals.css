@@ -289,16 +289,12 @@
 }
 
 /* Виїзд пунктів «Що ви отримуєте?» зліва по мірі прокрутки (уточнення власника 2026-09-17):
-   transform/opacity частин [data-slide-part] пише JS (скраб по позиції, features/landing/lib/slide-in),
-   100 мс лінійно згладжує сходинки між кадрами (як у розгоранні слів). До гідрації (клас js-slide-in з
+   цільові transform/opacity частин [data-slide-part] пише JS (скраб по позиції,
+   features/landing/lib/slide-in), а плавність дає перехід easeOutExpo, який JS ставить інлайном
+   (тривалість — з SLIDE_IN_DEFAULTS.smoothMs, тому правила transition тут немає). До гідрації (клас js-slide-in з
    інлайн-скрипта layout) частини приховані й зсунуті на відстань виїзду (= SLIDE_IN_DEFAULTS.distance*
    у core/domain/layout/slide-in: 64px < sm, 112px від sm), поки JS не запише реальні значення; без JS /
    «менше руху» класу немає — усе на місці. */
-[data-slide-in] [data-slide-part] {
-  transition:
-    transform 0.1s linear,
-    opacity 0.1s linear;
-}
 .js-slide-in [data-slide-in] [data-slide-part] {
   opacity: 0;
   transform: translate3d(-64px, 0, 0);

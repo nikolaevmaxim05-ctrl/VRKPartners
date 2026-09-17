@@ -8,6 +8,7 @@ import {
   itemProgress,
   partProgress,
   partState,
+  smoothTransitionMs,
 } from '../slide-in'
 
 const VH = 844
@@ -106,5 +107,20 @@ describe('partState', () => {
     expect(mid.x).toBeCloseTo(-40)
     expect(partState(0.25, 80).opacity).toBeLessThan(0.25) // повільний старт
     expect(partState(0.75, 80).opacity).toBeGreaterThan(0.75) // повільний фініш
+  })
+})
+
+describe('smoothTransitionMs', () => {
+  it('D = τ · 10 · ln 2 (easeOutExpo ↔ експонента зі сталою часу τ)', () => {
+    expect(smoothTransitionMs(220)).toBe(Math.round(220 * 10 * Math.LN2))
+    expect(smoothTransitionMs(SLIDE_IN_DEFAULTS.smoothMs)).toBeGreaterThan(1000)
+    // За час τ easeOutExpo проходить ті самі 1 − 1/e шляху, що й експонента.
+    const D = smoothTransitionMs(220)
+    expect(1 - Math.pow(2, (-10 * 220) / D)).toBeCloseTo(1 - 1 / Math.E, 2)
+  })
+  it('τ ≤ 0 або сміття → 0 (без переходу)', () => {
+    expect(smoothTransitionMs(0)).toBe(0)
+    expect(smoothTransitionMs(-5)).toBe(0)
+    expect(smoothTransitionMs(NaN)).toBe(0)
   })
 })

@@ -2,15 +2,17 @@
 // h2 у порядку заголовків, N пунктів (порожній не виводиться), пункт меню веде на #benefits.
 // Анімація (уточнення власника 2026-09-17): частини пункту (номер → жовта → сіра) виїжджають зліва
 // скрабом по позиції — нижче лінії вводу зсунуті й прозорі, лінія пройшла — на місці, проміжний прогрес —
-// сіра відстає від жовтої, назад — знову зсунуті; кінець сторінки (benefits — останній блок) — усе на
+// сіра відстає від жовтої, назад — знову зсунуті (показаний стан наздоганяє позицію з інерцією smoothMs); кінець сторінки (benefits — останній блок) — усе на
 // місці; «менше руху» і без JS — інлайн-стилів немає, усе видно; без горизонтального скролу в будь-якій
 // фазі на 320/360/390/430 (mobile) і 1440 (desktop). Контент — дефолти (герметично до правок клієнта).
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
-import { SLIDE_IN_DEFAULTS as P, slideDistance } from '../../src/core/domain/layout/slide-in'
+import { SLIDE_IN_DEFAULTS as P, slideDistance, smoothTransitionMs } from '../../src/core/domain/layout/slide-in'
 import { setContent, horizontalOverflow } from './helpers'
 
 const ITEMS = uk.benefits.items.filter((it) => it.title.trim())
+/** Повна тривалість переходу інерції + запас: після неї показаний стан дорівнює цільовому. */
+const SETTLE_MS = smoothTransitionMs(P.smoothMs) + 150
 
 type PartState = { o: number; x: number; inline: boolean }
 
@@ -25,7 +27,7 @@ async function parts(page: Page, idx = 1): Promise<PartState[]> {
   }, idx)
 }
 
-/** Ставить верх пункту idx на frac висоти вьюпорту й чекає кадр + згладжування (100 мс). */
+/** Ставить верх пункту idx на frac висоти вьюпорту й чекає, поки частини доїдуть (перехід інерції). */
 async function placeItem(page: Page, idx: number, frac: number) {
   await page.evaluate(
     ({ idx, frac }) => {
@@ -35,7 +37,7 @@ async function placeItem(page: Page, idx: number, frac: number) {
     },
     { idx, frac },
   )
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(SETTLE_MS)
 }
 
 /** Чекає гідрації ефекту: клас js-slide-in ставить інлайн-скрипт ще до гідрації, а інлайн-стилі частин пише лише JS. */
@@ -132,7 +134,7 @@ test('кінець сторінки: benefits — останній блок → 
       document.documentElement.style.scrollBehavior = 'auto'
       window.scrollTo(0, document.documentElement.scrollHeight)
     })
-    await page.waitForTimeout(400)
+    await page.waitForTimeout(SETTLE_MS)
   }
   for (let i = 0; i < ITEMS.length; i++) {
     const inView = await page.evaluate((i) => {

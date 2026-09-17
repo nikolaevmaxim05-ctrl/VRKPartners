@@ -23,6 +23,12 @@ export type SlideInParams = {
   /** Відстань виїзду, px: < SLIDE_IN_DESKTOP_MIN_WIDTH — mobile, інакше — desktop. */
   distanceMobile: number
   distanceDesktop: number
+  /**
+   * Інерція (мс): стала часу, з якою показаний стан частини наздоганяє цільовий (позицію прокрутки).
+   * Колесо миші крутить сторінку сходинками по ~100 px — без інерції частини «стрибають»; з нею рух
+   * плавний, як у scroll.locomotive.ca, але нативна прокрутка не підміняється. 0 — без інерції.
+   */
+  smoothMs: number
 }
 
 // Набір «різкіше» — вибір власника за превʼю 2026-09-17 (альтернатива «мʼякше»: 0.85 / 0.25 / 0.12 /
@@ -33,6 +39,8 @@ export const SLIDE_IN_DEFAULTS: SlideInParams = {
   stagger: 0.1,
   distanceMobile: 64,
   distanceDesktop: 112,
+  // 220 мс — вибір власника за превʼю 2026-09-17 (варіанти 140 / 220 / 320).
+  smoothMs: 220,
 }
 
 /** Кількість частин пункту (номер, жовта фраза, сіра частина) — шкала сходинок рахується від неї. */
@@ -78,6 +86,18 @@ export function partProgress(itemP: number, part: number, p: SlideInParams = SLI
   const span = 1 - p.stagger * (parts - 1)
   if (!(span > 0)) return clamp01(itemP)
   return clamp01((clamp01(itemP) - i * p.stagger) / span)
+}
+
+/**
+ * Тривалість CSS-переходу (мс), що відтворює інерцію зі сталою часу tau: крива easeOutExpo
+ * (1 − 2^(−10t)) — це експонента 1 − e^(−t/τ) з τ = D / (10·ln 2), тож D = τ · 10 · ln 2.
+ * Експонента «без памʼяті»: перезапуск переходу з поточного значення до нової цілі дає той самий рух,
+ * що й покадрове наближення, але рахує його композитор (покадровий запис із JS на слабких пристроях
+ * давав кадри > 20 мс). tau ≤ 0 або сміття → 0 (без переходу).
+ */
+export function smoothTransitionMs(tauMs: number): number {
+  if (!(tauMs > 0) || !Number.isFinite(tauMs)) return 0
+  return Math.round(tauMs * 10 * Math.LN2)
 }
 
 export type PartState = { x: number; opacity: number }
