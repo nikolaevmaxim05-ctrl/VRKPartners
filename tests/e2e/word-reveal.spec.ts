@@ -81,7 +81,8 @@ test('скраб: слова вище лінії яскраві, нижче — 
 })
 
 test('кінець сторінки: audit — останній блок → при максимальній прокрутці все у вікні яскраве', async ({ page, context }) => {
-  await setContent(context, { home: { hidden: ['cases', 'process', 'faq', 'finalCta'] } })
+  // benefits (блок «Що ви отримуєте?», з 2026-09-17 між cases і process) теж ховаємо — audit має бути останнім.
+  await setContent(context, { home: { hidden: ['cases', 'benefits', 'process', 'faq', 'finalCta'] } })
   await page.goto('/')
   await page.waitForTimeout(300)
   await page.evaluate(() => {

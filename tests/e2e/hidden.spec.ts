@@ -27,6 +27,16 @@ test('приховані faq і finalCta разом: секція #contacts не
   await expect(page.locator('#top')).toHaveCount(1)
 })
 
+test('прихований benefits («Що ви отримуєте?»): секції немає, пункт меню не виводиться, сусіди на місці', async ({ page, context }) => {
+  await setContent(context, { home: { hidden: ['benefits'] } })
+  await page.goto('/')
+  await expect(page.locator('#benefits')).toHaveCount(0)
+  await expect(page.locator('header nav a[href="#benefits"], header nav a[href="/#benefits"]')).toHaveCount(0)
+  await expect(page.locator('footer nav a[href="#benefits"], footer nav a[href="/#benefits"]')).toHaveCount(0)
+  await expect(page.locator('#cases')).toHaveCount(1)
+  await expect(page.locator('#process')).toHaveCount(1)
+})
+
 test('правка контенту (як з адмінки) доїжджає до сайту: заголовок і пункт меню', async ({ page, context }) => {
   await setContent(context, { hero: { title: 'E2E заголовок з адмінки' }, nav: { services: 'E2E-послуги' } })
   await page.goto('/')

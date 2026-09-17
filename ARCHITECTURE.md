@@ -182,6 +182,7 @@ src/
   features/landing/lib/fit-text.ts + layout/FitText.tsx  DOM-подгонка [data-fit] / [data-fit-row] / hero
   features/landing/components/sections/*               titleAs, data-fit, data-items, minmax-сетки
   features/landing/components/sections/Header.tsx      бургер по сумме ширин пунктов
+  features/landing/components/sections/Benefits.tsx    блок «Що ви отримуєте?» (2026-09-17): пункты «X замість Y», тексты benefits.*
   i18n/request.ts                                      E2E_CONTENT_OVERRIDES=1 → cookie/файл поверх дефолтов
 tests/e2e/*.spec.ts, playwright.config.ts              e2e на локальной прод-сборке (порт 3100)
 scripts/check-overflow.js                              скан переполнения: страницы × ширины
