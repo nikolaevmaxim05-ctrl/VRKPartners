@@ -115,7 +115,7 @@ export function countChanges(defaults: unknown, current: unknown): number {
  * (`pageMeta`) — вона живе в окремому рядку `seo` (відхилення 2).
  */
 export const EDITABLE_NAMESPACES = [
-  'site', 'nav', 'header', 'hero', 'usp', 'about', 'services', 'audit', 'trust', 'workflow',
+  'site', 'nav', 'header', 'hero', 'usp', 'about', 'services', 'audit', 'trust', 'benefits', 'workflow',
   'finalCta', 'faq', 'footer', 'form', 'thanks', 'notFound', 'legal', 'home',
 ] as const
 

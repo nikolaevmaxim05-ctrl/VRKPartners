@@ -87,6 +87,7 @@ export const PAGE_BLOCKS: Record<string, PageBlock[]> = {
         },
       ],
     },
+    { id: 'benefits', title: 'Що ви отримуєте', parts: [{ ns: 'benefits', keys: ['title', 'instead', 'items'] }] },
     { id: 'process', title: 'Процес', parts: [{ ns: 'workflow', keys: ['title', 'steps', 'prevAria', 'nextAria', 'bonus'] }] },
     { id: 'faq', title: 'FAQ', parts: [{ ns: 'faq', keys: [] }] },
     {
@@ -111,7 +112,7 @@ export const PAGE_BLOCKS: Record<string, PageBlock[]> = {
         },
       ],
     },
-    { id: 'nav', title: 'Меню', parts: [{ ns: 'nav', keys: ['usp', 'about', 'services', 'audit', 'cases', 'process', 'faq'] }] },
+    { id: 'nav', title: 'Меню', parts: [{ ns: 'nav', keys: ['usp', 'about', 'services', 'audit', 'cases', 'benefits', 'process', 'faq'] }] },
     {
       id: 'header',
       title: 'Шапка',
@@ -171,6 +172,7 @@ export const KEY_LABELS: Record<string, string> = {
   modalTitle: 'Заголовок модалки',
   modalDescription: 'Підпис у модалці заявки',
   items: 'Пункти',
+  instead: 'Підпис «замість»',
   name: 'Назва',
   icon: 'Іконка',
   points: 'Пункти списку',
@@ -194,6 +196,7 @@ export const KEY_LABELS: Record<string, string> = {
   'nav.services': 'Пункт «Послуги»',
   'nav.audit': 'Пункт «Аудит»',
   'nav.cases': 'Пункт «Кейси»',
+  'nav.benefits': 'Пункт «Що отримуєте»',
   'nav.process': 'Пункт «Процес»',
   'nav.faq': 'Пункт «FAQ»',
   // header

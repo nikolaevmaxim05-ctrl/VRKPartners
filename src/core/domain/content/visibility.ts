@@ -20,6 +20,7 @@ export const HIDEABLE_BLOCKS: Record<string, HideableBlock[]> = {
     { id: 'services', label: 'Послуги' },
     { id: 'audit', label: 'Аудит' },
     { id: 'cases', label: 'Кейси' },
+    { id: 'benefits', label: 'Що ви отримуєте' },
     { id: 'process', label: 'Процес' },
     { id: 'faq', label: 'FAQ' },
     { id: 'finalCta', label: 'Фінальний блок (CTA та контакти)' },
@@ -27,12 +28,13 @@ export const HIDEABLE_BLOCKS: Record<string, HideableBlock[]> = {
 }
 
 /** Пункти меню (шапка + футер) → блок, на який ведуть. Посилання на прихований блок не виводиться. */
-export const NAV_ITEMS: readonly { id: 'usp' | 'about' | 'services' | 'audit' | 'cases' | 'process' | 'faq'; anchor: string }[] = [
+export const NAV_ITEMS: readonly { id: 'usp' | 'about' | 'services' | 'audit' | 'cases' | 'benefits' | 'process' | 'faq'; anchor: string }[] = [
   { id: 'usp', anchor: '#usp' },
   { id: 'about', anchor: '#about' },
   { id: 'services', anchor: '#services' },
   { id: 'audit', anchor: '#audit' },
   { id: 'cases', anchor: '#cases' },
+  { id: 'benefits', anchor: '#benefits' },
   { id: 'process', anchor: '#process' },
   { id: 'faq', anchor: '#faq' },
 ]

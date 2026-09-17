@@ -130,7 +130,7 @@ export type SiteInfoMessages = {
   telegramCtaText: string
 }
 
-export type NavId = 'usp' | 'about' | 'services' | 'audit' | 'cases' | 'process' | 'faq'
+export type NavId = 'usp' | 'about' | 'services' | 'audit' | 'cases' | 'benefits' | 'process' | 'faq'
 
 export type HeaderMessages = {
   logoAria: string
@@ -211,6 +211,15 @@ export type PageMetaMessages = {
   orgDescription: string
 }
 
+/** Блок «Що ви отримуєте?»: пункти «X замість Y» (title — що отримуєте, text — замість чого). */
+export type BenefitItem = { title: string; text: string }
+export type BenefitsMessages = {
+  title: string
+  /** Підпис перед другою частиною пункту («замість»). */
+  instead: string
+  items: BenefitItem[]
+}
+
 export type SiteMessages = {
   site: SiteInfoMessages
   nav: Record<NavId, string>
@@ -221,6 +230,7 @@ export type SiteMessages = {
   services: ServicesMessages
   audit: AuditMessages
   trust: TrustMessages
+  benefits: BenefitsMessages
   workflow: WorkflowMessages
   finalCta: FinalCtaMessages
   faq: FaqItem[]
