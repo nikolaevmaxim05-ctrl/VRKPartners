@@ -61,12 +61,14 @@ test('/api/admin/* без сесії → 401 JSON для всіх методів
   }
 })
 
-test('/api/cron/keepalive без секрету або з чужим → 401', async ({ request }) => {
+test('/api/cron/keepalive без секрету, з чужим або з "Bearer undefined" (CRON_SECRET не задано) → 401', async ({ request }) => {
   const r1 = await request.get('/api/cron/keepalive')
   expect(r1.status()).toBe(401)
   expect(await r1.json()).toEqual({ error: 'Unauthorized' })
   const r2 = await request.get('/api/cron/keepalive', { headers: { authorization: 'Bearer wrong-secret' } })
   expect(r2.status()).toBe(401)
+  const r3 = await request.get('/api/cron/keepalive', { headers: { authorization: 'Bearer undefined' } })
+  expect(r3.status(), 'без CRON_SECRET роут закритий, а не «Bearer undefined»').toBe(401)
 })
 
 async function countLeads(): Promise<number | null> {

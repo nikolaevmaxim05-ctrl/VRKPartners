@@ -64,8 +64,9 @@ async function create() {
   if (error) throw error
   let full = admin.role ? roles.find((r) => r.name === admin.role) : roles.find((r) => !r.is_system && ALL_PERMISSIONS.every((p) => r.permissions.includes(p)))
   if (!full) {
-    const maxOrder = Math.max(0, ...roles.map((r) => Number(r.hierarchy_order ?? 0)))
-    const ins = await db.from('admin_roles').insert({ name: 'e2e-full', permissions: ALL_PERMISSIONS, is_system: false, hierarchy_order: maxOrder + 1 }).select('id, name').single()
+    // Рівень 0 — одразу під системним admin (-1), вище за всі клієнтські ролі: тестовий адмін має
+    // право запрошувати/редагувати користувачів з ролями нижче за свою (перевіряється в e2e).
+    const ins = await db.from('admin_roles').insert({ name: 'e2e-full', permissions: ALL_PERMISSIONS, is_system: false, hierarchy_order: 0 }).select('id, name').single()
     if (ins.error) throw ins.error
     full = ins.data
     console.log(`created role e2e-full (${full.id})`)

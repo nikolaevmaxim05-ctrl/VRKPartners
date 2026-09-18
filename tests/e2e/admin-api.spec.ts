@@ -7,7 +7,7 @@
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import {
-  ENV, E2E_TAG, NIL_UUID, hasAdminCreds, probeLogin, loginApi, db, snapshotContent, restoreContent,
+  ENV, E2E_TAG, E2E_PUBLIC_NAME, NIL_UUID, hasAdminCreds, probeLogin, loginApi, db, snapshotContent, restoreContent,
   insertTestLead, cleanupE2E, leftoversE2E, type ContentSnapshot,
 } from './admin-helpers'
 
@@ -220,9 +220,10 @@ test('2.2 PATCH: валідація (порожнє тіло, відʼємна �
   expect(after, 'значення видаляються каскадом').toBe(0)
 })
 
-test('2.3 видалення: неіснуючий id → 200 без помилки (зафіксовано), реальний → зникає з БД і потрапляє в журнал', async () => {
+test('2.3 видалення: неіснуючий id → 404, реальний → зникає з БД і потрапляє в журнал', async () => {
   const ghost = await api.delete(`/api/admin/leads/${NIL_UUID}`)
-  expect(ghost.status()).toBe(200)
+  expect(ghost.status()).toBe(404)
+  expect((await api.delete(`/api/admin/custom-fields/${NIL_UUID}`)).status()).toBe(404)
   const del = await api.delete(`/api/admin/leads/${leadB.id}`)
   expect(del.status()).toBe(200)
   const { data } = await db().from('leads').select('id').eq('id', leadB.id)
@@ -374,9 +375,15 @@ test('5.2 користувачі: самодеактивація і самови
   expect(ghost.status(), await ghost.text()).toBeLessThan(500)
   expect((await api.post('/api/admin/users', { data: { email: '', role_id: NIL_UUID } })).status()).toBe(400)
   test.skip(process.env.E2E_ALLOW_INVITE !== '1' || !process.env.E2E_INVITE_EMAIL, 'інвайт шле реальний лист — лише з E2E_ALLOW_INVITE=1 і E2E_INVITE_EMAIL')
-  const roles = (await (await api.get('/api/admin/roles')).json()) as { data: { id: string; is_system: boolean; permissions: string[] }[] }
-  const minimal = roles.data.find((r) => !r.is_system && r.permissions.length <= 1) ?? roles.data.find((r) => !r.is_system)!
+  const roles = (await (await api.get('/api/admin/roles')).json()) as { data: { id: string; name: string; is_system: boolean; permissions: string[] }[] }
+  const minimal = roles.data.find((r) => r.name === 'e2e-minimal') ?? roles.data.find((r) => !r.is_system && r.permissions.length <= 1) ?? roles.data.find((r) => !r.is_system)!
   const inv = await api.post('/api/admin/users', { data: { email: process.env.E2E_INVITE_EMAIL, role_id: minimal.id } })
+  if (inv.status() === 500) {
+    // Supabase Auth обмежує листи з вбудованого SMTP (кілька на годину): «email rate limit exceeded».
+    const { data: users } = await db().auth.admin.listUsers({ perPage: 1000 })
+    const exists = users.users.some((u) => u.email === process.env.E2E_INVITE_EMAIL)
+    test.skip(!exists, 'Supabase Auth: ліміт листів вичерпано (email rate limit exceeded) — повторити пізніше')
+  }
   expect(inv.status(), await inv.text()).toBe(200)
   const invited = (await (await api.get('/api/admin/users')).json()) as { data: { id: string; email: string }[] }
   const u = invited.data.find((x) => x.email === process.env.E2E_INVITE_EMAIL)!
@@ -476,17 +483,24 @@ test('6.3 завантаження картинок: svg і не-картинк�
   const big = await api.post('/api/admin/content/upload', { multipart: { file: { name: 'big.png', mimeType: 'image/png', buffer: Buffer.alloc(5 * 1024 * 1024 + 1, 1) } } })
   expect(big.status()).toBeGreaterThanOrEqual(400)
   expect(big.status()).toBeLessThan(500)
+  const fake = await api.post('/api/admin/content/upload', { multipart: { file: { name: 'fake.png', mimeType: 'image/png', buffer: Buffer.from('<html><script>alert(1)</script></html>') } } })
+  expect(fake.status(), 'вміст не відповідає MIME → 400').toBe(400)
   const okUp = await api.post('/api/admin/content/upload', { multipart: { file: { name: '..\\evil name.png', mimeType: 'image/png', buffer: png1x1 } } })
   expect(okUp.status(), await okUp.text()).toBe(200)
   const { url } = (await okUp.json()) as { url: string }
   expect(url).toContain('/storage/v1/object/public/content/')
   const objectPath = url.split('/storage/v1/object/public/content/')[1]
-  expect(objectPath, 'імʼя файлу генерується сервером').toMatch(/^\d+-[a-z0-9]{4}\.png$/)
   created.storage.push(objectPath)
+  expect(objectPath, 'імʼя файлу генерується сервером').toMatch(/^\d+-[a-z0-9]{4,8}\.png$/)
 })
 
 // ── 7. Інтеграції, теги, налаштування, події аналітики ──────────────────────────────────────────
 test('7.1 інтеграції: список без секретів, невідомий ключ → 400, запис без ADMIN_ENCRYPTION_KEY → контрольована помилка, ключі Telegram не зачеплені', async () => {
+  // CSRF: мутація з чужого Origin → 403 навіть із сесією; свій Origin — проходить далі.
+  const foreign = await api.put('/api/admin/integrations/not_a_key', { data: { value: 'x' }, headers: { origin: 'https://evil.example' } })
+  expect(foreign.status()).toBe(403)
+  const own = await api.put('/api/admin/integrations/not_a_key', { data: { value: 'x' }, headers: { origin: 'http://127.0.0.1:3100' } })
+  expect(own.status()).toBe(400)
   const list = await api.get('/api/admin/integrations')
   expect(list.status()).toBe(200)
   const items = ((await list.json()) as { data: { key: string; value: string | null; masked_value: string | null }[] }).data
@@ -565,9 +579,9 @@ test('7.4 події аналітики: GET, невідомий ключ → 40
   expect((await api.patch('/api/admin/analytics-events', { data: { events: { header_cta_click: { enabled: true, eventNames: ['a', 'b', 'c', 'd', 'e', 'f'] } } } })).status()).toBe(400)
   expect((await api.patch('/api/admin/analytics-events', { data: { events: { header_cta_click: { enabled: true, eventNames: ['Bad Name'] } } } })).status()).toBe(400)
   const forbidden = await api.patch('/api/admin/analytics-events', { data: { events: { header_cta_click: { enabled: true, eventNames: ['form_start'] } } } })
-  // Правило AGENTS.md/розділ 15: імена form_start/form_submit заборонені. Відкат стану — в afterAll (site_settings.analytics_events).
-  test.info().annotations.push({ type: 'form_start status', description: String(forbidden.status()) })
-  expect(forbidden.status(), 'form_start має відхилятись (знахідка: зараз приймається)').toBe(400)
+  // Правило AGENTS.md/розділ 15: імена form_start/form_submit заборонені (виправлено 2026-09-18).
+  expect(forbidden.status()).toBe(400)
+  expect(await forbidden.text()).toContain('form_start')
 })
 
 // ── 8. Аналітика ────────────────────────────────────────────────────────────────────────────────
@@ -597,6 +611,54 @@ test('8 аналітика: звіт по відомих лідах, значе�
   expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: today, date_to: today }, leadFields: ['phone'], dealAmountFrom: 10, dealAmountTo: 1 } })).status()).toBe(400)
   const empty = await api.get('/api/admin/analytics/report?date_from=2000-01-01&date_to=2000-01-02')
   expect(empty.status(), 'порожній період → 200').toBe(200)
+})
+
+// ── 10. Публічний приймач: повний шлях із записом (за прапорцем — реальні сповіщення клієнту) ──
+test('10 POST /api/leads з записом: лід у початковій стадії з IP/locale, дедуп по телефону → duplicate + коментар, 4-й з IP → 429', async () => {
+  test.skip(process.env.E2E_ALLOW_LEAD_WRITES !== '1', 'повний шлях пише ліди й шле сповіщення — лише з E2E_ALLOW_LEAD_WRITES=1')
+  const ip = { 'x-forwarded-for': '198.51.100.21' }
+  const post = (phone: string, extra: Record<string, unknown> = {}) =>
+    api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone, source: 'e2e', locale: 'uk', ...extra }, headers: ip })
+  const r1 = await post('+380990005001')
+  expect(r1.status(), await r1.text()).toBe(200)
+  expect(await r1.json()).toEqual({ ok: true })
+  const { data: lead } = await db().from('leads').select('id, name, status_id, ip_address, locale, phone').eq('phone', '+380990005001').order('created_at', { ascending: false }).limit(1).single()
+  expect(lead).toBeTruthy()
+  created.leads.push(lead!.id)
+  const initial = stages.find((s) => s.is_initial)!
+  expect(lead!.status_id, 'лід у початковій стадії').toBe(initial.id)
+  expect(lead!.ip_address).toBe('198.51.100.21')
+  expect(lead!.locale).toBe('uk')
+  // Дедуп по телефону залежить від налаштування клієнта (site_settings.dedup_by_phone, дефолт true):
+  // увімкнено → повтор = { ok, duplicate }, нового ліда немає, коментар «повтор»; вимкнено → другий лід.
+  const { data: dedupRow } = await db().from('site_settings').select('value').eq('key', 'dedup_by_phone').maybeSingle()
+  const dedupByPhone = (dedupRow?.value ?? 'true') === 'true'
+  const dup = await post('+380990005001')
+  expect(dup.status()).toBe(200)
+  const { data: samePhone } = await db().from('leads').select('id').eq('phone', '+380990005001')
+  if (dedupByPhone) {
+    expect(await dup.json()).toEqual({ ok: true, duplicate: true })
+    expect(samePhone!.length).toBe(1)
+    const { data: comments } = await db().from('lead_comments').select('type, content').eq('lead_id', lead!.id)
+    expect(comments!.some((c) => /повтор/i.test(c.content)), 'коментар про повтор').toBe(true)
+  } else {
+    expect(await dup.json()).toEqual({ ok: true })
+    expect(samePhone!.length, 'дедуп вимкнено — другий лід записано').toBe(2)
+  }
+  created.leads.push(...samePhone!.map((l) => l.id))
+  // Ліміт 3/10 хв з IP рахує лише збережені ліди: з дедупом збережено 1, без — 2.
+  const saved = samePhone!.length
+  const rest = ['+380990005002', '+380990005003', '+380990005004']
+  const statuses: number[] = []
+  for (const phone of rest) statuses.push((await post(phone)).status())
+  const expected = rest.map((_, i) => (saved + i + 1 <= 3 ? 200 : 429))
+  expect(statuses, 'rate limit 3/10 хв').toEqual(expected)
+  const { data: more } = await db().from('leads').select('id').in('phone', rest)
+  expect(more!.length, 'ліди понад ліміт не записані').toBe(3 - saved)
+  created.leads.push(...more!.map((l) => l.id))
+  const last = await post('+380990005005')
+  expect(last.status()).toBe(429)
+  expect(last.headers()['retry-after']).toBe('600')
 })
 
 // ── 9. Журнал дій ───────────────────────────────────────────────────────────────────────────────

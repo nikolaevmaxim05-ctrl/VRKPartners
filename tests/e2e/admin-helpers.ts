@@ -5,6 +5,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { request as playwrightRequest, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 
 export const E2E_TAG = '[E2E]'
+/** Імʼя для публічного приймача (Zod не пускає дужки/цифри): теж маркер тестових даних. */
+export const E2E_PUBLIC_NAME = 'Тест Автотест'
 export const E2E_PHONE_PREFIX = '+38099000'
 export const NIL_UUID = '00000000-0000-0000-0000-000000000000'
 
@@ -103,7 +105,7 @@ export type CleanupReport = Record<string, number | string | boolean>
 export async function cleanupE2E(opts: { sinceIso: string; userIds?: string[] }): Promise<CleanupReport> {
   const report: CleanupReport = {}
   const client = db()
-  const { data: leads } = await client.from('leads').select('id').like('name', `${E2E_TAG}%`)
+  const { data: leads } = await client.from('leads').select('id').or(`name.like.${E2E_TAG}%,name.eq.${E2E_PUBLIC_NAME}`)
   const ids = (leads ?? []).map((l) => l.id as string)
   if (ids.length) {
     for (const t of ['conversion_adjustments', 'offline_conversions', 'lead_status_history', 'lead_comments', 'lead_custom_field_values']) {
@@ -132,5 +134,7 @@ export async function leftoversE2E(): Promise<Record<string, number>> {
     const { count } = await client.from(table).select('id', { count: 'exact', head: true }).like(col, `${E2E_TAG}%`)
     out[table] = count ?? 0
   }
+  const { count: pub } = await client.from('leads').select('id', { count: 'exact', head: true }).eq('name', E2E_PUBLIC_NAME)
+  out.leads += pub ?? 0
   return out
 }
