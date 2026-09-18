@@ -95,23 +95,28 @@ test('редактор контенту: кнопка збереження вн�
   await login(page)
   await page.goto('/admin/content')
   await expect(page.locator('h1')).toHaveText('Контент сайту')
-  const save = page.getByRole('button', { name: /Зберегти/ })
+  await expect(page.getByRole('button', { name: /Зберегти зміни/ }), 'без змін кнопки немає').toHaveCount(0)
+  // Кнопка збереження зʼявляється лише за наявності змін: відкриваємо блок, правимо перше поле.
+  await page.getByRole('button', { name: /Перший екран/ }).first().click()
+  const input = page.locator('main input:not([type="number"]):not([type="hidden"]), main textarea').first()
+  await input.fill('Ж'.repeat(120))
+  await expect(page.getByText(/120 \/ \d+/).first()).toBeVisible()
+  const save = page.getByRole('button', { name: /Зберегти зміни/ })
   await expect(save).toBeVisible()
   const box = await save.boundingBox()
   const vw = page.viewportSize()!
   expect(box!.x + box!.width, 'кнопка праворуч').toBeGreaterThan(vw.width * 0.5)
   expect(box!.y + box!.height, 'кнопка внизу (закріплена)').toBeGreaterThan(vw.height * 0.6)
-  await page.getByRole('button', { name: /1\. Перший екран/ }).click()
-  const input = page.locator('main input[type="text"], main textarea').first()
-  await input.fill('Ж'.repeat(120))
-  await expect(page.getByText(/120 \/ \d+/).first()).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+  // Нічого не зберігаємо: перезавантаження скидає незбережені зміни.
   await page.reload()
+  await expect(page.getByRole('button', { name: /Зберегти зміни/ })).toHaveCount(0)
 })
 
-test('вихід: після logout сторінки адмінки знову вимагають вхід', async ({ page }) => {
+test('вихід: після logout сторінки адмінки знову вимагають вхід', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'на 390 сайдбар з кнопкою виходу схований у шторці')
   await login(page)
-  const logout = page.locator('aside button[aria-label*="Вийти"], aside a[aria-label*="Вийти"], button:has-text("Вийти"), a:has-text("Вийти")').first()
+  const logout = page.getByTitle('Вийти')
   await logout.click()
   await page.waitForURL(/\/admin\/login/, { timeout: 30_000 })
   await page.goto('/admin/leads')
