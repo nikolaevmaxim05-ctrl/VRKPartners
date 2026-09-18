@@ -1,5 +1,5 @@
 import { getRoleUseCases, getUserUseCases } from '@composition/container'
-import { getAdminAccess } from '@/presentation/admin-page'
+import { requireSectionAccess } from '@/presentation/admin-page'
 import { effectiveRank } from '@core/domain/access/permissions'
 import { UsersTable } from '@/features/admin/components/users-table'
 
@@ -7,11 +7,9 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Користувачі | Адмін' }
 
 export default async function UsersPage() {
-  const [{ actor, roleInfo, permissions }, usersRes, rolesRes] = await Promise.all([
-    getAdminAccess(),
-    getUserUseCases().listUsers(),
-    getRoleUseCases().listRoles(),
-  ])
+  // Список користувачів (email, ролі) — лише з правом manage_users (розділ 5).
+  const { actor, roleInfo, permissions } = await requireSectionAccess(['manage_users'])
+  const [usersRes, rolesRes] = await Promise.all([getUserUseCases().listUsers(), getRoleUseCases().listRoles()])
 
   const users = usersRes.ok ? usersRes.value : []
   const adminRoles = (rolesRes.ok ? rolesRes.value : []).map((r) => ({
@@ -41,7 +39,7 @@ export default async function UsersPage() {
       <UsersTable
         initialUsers={users}
         adminRoles={adminRoles}
-        currentUserId={actor?.id ?? ''}
+        currentUserId={actor.id}
         canManageUsers={canManageUsers}
         actorRank={actorRank}
         roleRanks={roleRanks}

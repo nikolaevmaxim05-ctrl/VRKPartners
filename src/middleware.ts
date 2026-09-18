@@ -56,6 +56,26 @@ function applySecurityHeaders(response: NextResponse) {
 
 const PUBLIC_ADMIN_PAGES = ['/admin/login', '/admin/set-password']
 
+/** Методи без побічних ефектів — Origin не перевіряємо. */
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
+/**
+ * CSRF (розділ 16): мутація /api/admin/* з чужого Origin → 403. Браузер завжди шле Origin для
+ * cross-site POST/PUT/PATCH/DELETE (у т.ч. multipart без preflight); запити без Origin (curl,
+ * серверні) — не з браузера, їх захищає сесія. Порівнюємо хост Origin з хостом запиту.
+ */
+function isForeignOrigin(request: NextRequest): boolean {
+  if (SAFE_METHODS.has(request.method)) return false
+  const origin = request.headers.get('origin')
+  if (!origin) return false
+  try {
+    const host = request.headers.get('host') ?? request.nextUrl.host
+    return new URL(origin).host !== host
+  } catch {
+    return true
+  }
+}
+
 const intlMiddleware = createMiddleware(routing)
 
 /** Файлові маршрути (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не сторінки сайту.
@@ -82,6 +102,7 @@ export async function middleware(request: NextRequest) {
 
     if (isAdminApi) {
       if (!userId) return applySecurityHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      if (isForeignOrigin(request)) return applySecurityHeaders(NextResponse.json({ error: 'Forbidden origin' }, { status: 403 }))
       return applySecurityHeaders(response)
     }
 

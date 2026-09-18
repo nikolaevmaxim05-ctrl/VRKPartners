@@ -52,7 +52,6 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
 
     const inv = await users.invite(email, `${redirectOrigin}/admin/set-password`)
     if (!inv.ok) return fail('failed', inv.error)
-    await audit.record(actor, 'user.invite', `user_roles/${inv.data?.id ?? 'unknown'}`, { new: { email, role_id: roleId ?? null } })
 
     let roleAssigned = false
     if (roleId && inv.data?.id) {
@@ -60,6 +59,8 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
       if (!r.ok) console.error('[admin/users] assign_role_on_invite_failed', r.error)
       else roleAssigned = true
     }
+    // Журнал — після призначення: фіксуємо факт, а не намір.
+    await audit.record(actor, 'user.invite', `user_roles/${inv.data?.id ?? 'unknown'}`, { new: { email, role_id: roleAssigned ? roleId : null } })
 
     const invited = inv.data
       ? {

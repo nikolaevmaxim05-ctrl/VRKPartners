@@ -10,12 +10,8 @@ import * as SETS from '@/presentation/permissions'
 
 const PAGES_ROOT = path.resolve(process.cwd(), 'src', 'app', 'admin', '(dashboard)')
 
-/**
- * Сторінки, які зараз НЕ викликають requireSectionAccess (лише сесія через layout):
- * дані беруться з API під withAdmin, але сам розділ відкривається будь-кому із сесією.
- * Прибрати звідси після рішення власника про гард.
- */
-const KNOWN_UNGUARDED = ['/admin/leads', '/admin/leads/[id]', '/admin/users']
+/** Сторінки без гарду розділу. Порожньо з 2026-09-18 (виправлення за тестуванням адмінки). */
+const KNOWN_UNGUARDED: string[] = []
 
 function pageFiles(dir: string): string[] {
   const out: string[] = []

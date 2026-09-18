@@ -1,5 +1,7 @@
 // Детальна сторінка лида /admin/leads/[id]
-// Серверний shell — auth-guard виконує layout. Дані тягне клієнтський LeadDetail.
+// Серверний shell: сесія — layout, право на розділ — requireSectionAccess. Дані тягне клієнтський LeadDetail.
+import { requireSectionAccess } from '@/presentation/admin-page'
+import { LEAD_VIEW_PERMISSIONS } from '@/presentation/permissions'
 import { LeadDetail } from '@/features/admin/components/lead-detail'
 
 export const dynamic = 'force-dynamic'
@@ -9,6 +11,7 @@ export default async function LeadDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireSectionAccess(LEAD_VIEW_PERMISSIONS)
   const { id } = await params
   return <LeadDetail leadId={id} />
 }

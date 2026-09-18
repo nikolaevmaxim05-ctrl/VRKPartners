@@ -7,10 +7,10 @@ import { errorResponse, readJson } from '@/presentation/http'
 export const runtime = 'nodejs'
 
 export const POST = (request: NextRequest) =>
-  withAdmin(['view_reports'], async () => {
+  withAdmin(['view_reports'], async (actor) => {
     const body = await readJson(request, 'Невалідний JSON')
     if (!body.ok) return body.response
-    const result = await getExportAnalytics()(body.body)
+    const result = await getExportAnalytics()(body.body, actor)
     if (!result.ok) return errorResponse(result)
     const file = result.value
     return new NextResponse(file.body, {

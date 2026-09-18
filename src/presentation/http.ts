@@ -18,8 +18,15 @@ export function statusOf(code: AppErrorCode): number {
   return STATUS[code]
 }
 
-/** { error, ...details } зі статусом за кодом помилки. */
+/** Текст 500 для клієнта: справжня причина (часто сирий текст PostgREST) — лише в лог сервера. */
+export const GENERIC_FAILED_MESSAGE = 'Помилка сервера. Спробуйте ще раз пізніше.'
+
+/** { error, ...details } зі статусом за кодом помилки; для failed — узагальнене повідомлення. */
 export function errorResponse(err: Err): NextResponse {
+  if (err.code === 'failed') {
+    console.error('[api] failed:', err.message)
+    return NextResponse.json({ error: GENERIC_FAILED_MESSAGE, ...(err.details ?? {}) }, { status: 500 })
+  }
   return NextResponse.json({ error: err.message, ...(err.details ?? {}) }, { status: STATUS[err.code] })
 }
 
@@ -38,6 +45,15 @@ export async function readJson<T = Record<string, unknown>>(
   } catch {
     return { ok: false, response: NextResponse.json({ error: message }, { status: 400 }) }
   }
+}
+
+/** Ідентифікатор у шляху має бути UUID: інакше 404 одразу (Postgres на «not-a-uuid» дав би 500). */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+export function isUuid(value: string): boolean {
+  return UUID_RE.test(value)
+}
+export function notFound(message = 'Not found'): NextResponse {
+  return NextResponse.json({ error: message }, { status: 404 })
 }
 
 /** Геттер query-параметра для сценаріїв. */

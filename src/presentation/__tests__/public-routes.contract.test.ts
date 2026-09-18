@@ -27,7 +27,9 @@ describe('контракт публічних роутів', () => {
 
   it('/api/cron/keepalive — лише Bearer CRON_SECRET, без withAdmin', () => {
     const src = read('cron', 'keepalive', 'route.ts')
-    expect(src).toContain('`Bearer ${getCronSecret()}`')
+    expect(src).toMatch(/const secret = getCronSecret\(\)/)
+    expect(src).toMatch(/!secret \|\| !safeEqual\(/)
+    expect(src).toContain('timingSafeEqual')
     expect(src).not.toContain('withAdmin(')
     expect(src).toMatch(/status: 401/)
   })

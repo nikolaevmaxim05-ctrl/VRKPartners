@@ -22,6 +22,8 @@ import {
   seoOverridesSchema,
   legalOverridesSchema,
   validateImageUpload,
+  validateImageBytes,
+  IMAGE_MAX_BYTES,
   buildUploadPath,
   extractOwnObjectPath,
 } from '../../../domain/content/validation'
@@ -156,14 +158,18 @@ export function makeContentUseCases(deps: {
 
   // ── Картинки ───────────────────────────────────────────────────────────────
   async function uploadImage(
-    file: { type: string; size: number; bytes: Uint8Array },
+    file: { type: string; size: number; read: () => Promise<Uint8Array> },
     previousUrl: string | null,
   ): Promise<Result<{ url: string }>> {
+    // Тип і розмір — ДО читання тіла (велике тіло не буферизується); вміст — за магічними байтами.
     const v = validateImageUpload(file.type, file.size)
-    if (!v.ok) return fail('invalid', v.message)
+    if (!v.ok) return fail(file.size > IMAGE_MAX_BYTES ? 'too_large' : 'invalid', v.message)
+    const bytes = await file.read()
+    const b = validateImageBytes(file.type, bytes)
+    if (!b.ok) return fail('invalid', b.message)
     const path = buildUploadPath(clock.now().getTime(), Math.random().toString(36).slice(2, 8), v.value.ext)
 
-    const up = await storage.upload(path, file.bytes, file.type)
+    const up = await storage.upload(path, bytes, file.type)
     if (!up.ok) return fail('failed', 'Не вдалося завантажити файл')
 
     // C14: видаляємо попередній файл НАШОГО bucket при заміні.

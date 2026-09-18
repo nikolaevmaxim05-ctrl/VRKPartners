@@ -1,6 +1,8 @@
 // use-cases/admin/export-analytics — конструктор вивантаження (ліди / зведення, CSV / XLSX).
 // Перенесено з /api/admin/analytics/export без зміни вмісту файлів.
 import { ok, fail, type Result } from '../../result'
+import type { Actor } from '../../ports/common'
+import { noopAudit, type AuditLog } from '../../audit'
 import type { AnalyticsRepository, SpreadsheetFileBuilder } from '../../ports/analytics'
 import type { UserRepository } from '../../ports/access'
 import type { ReportUseCases } from './build-report'
@@ -36,8 +38,10 @@ export function makeExportAnalytics(deps: {
   users: UserRepository
   reports: ReportUseCases
   xlsx: SpreadsheetFileBuilder
+  audit?: AuditLog
 }) {
   const { analytics, users, reports, xlsx } = deps
+  const audit = deps.audit ?? noopAudit
 
   async function exportLeads(body: ExportBody & { tab: 'leads' }): Promise<Result<ExportFile>> {
     const { filters, leadFields, dealAmountFrom, dealAmountTo, format } = body
@@ -133,7 +137,7 @@ export function makeExportAnalytics(deps: {
     return ok({ fileName, contentType: XLSX_TYPE, body: await xlsx.summaryXlsx(periods, effectiveColumns, breakdown) })
   }
 
-  return async function exportAnalytics(rawBody: unknown): Promise<Result<ExportFile>> {
+  return async function exportAnalytics(rawBody: unknown, actor?: Actor): Promise<Result<ExportFile>> {
     const parsed = exportBodySchema.safeParse(rawBody)
     if (!parsed.success) {
       return fail('invalid', parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '))
@@ -144,7 +148,13 @@ export function makeExportAnalytics(deps: {
       if (daf != null && dat != null && daf > dat) return fail('invalid', 'dealAmountFrom не може бути більше dealAmountTo')
     }
     try {
-      return body.tab === 'leads' ? await exportLeads(body) : await exportSummary(body)
+      const file = body.tab === 'leads' ? await exportLeads(body) : await exportSummary(body)
+      if (file.ok) {
+        await audit.record(actor, 'analytics.export', 'analytics', {
+          new: { tab: body.tab, format: body.format, date_from: body.filters.date_from, date_to: body.filters.date_to },
+        })
+      }
+      return file
     } catch (err) {
       console.error('[admin/analytics/export] generation_failed', err)
       return fail('failed', 'Помилка генерації файлу')

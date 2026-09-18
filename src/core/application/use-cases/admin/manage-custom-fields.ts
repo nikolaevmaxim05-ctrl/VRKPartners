@@ -47,12 +47,14 @@ export function makeCustomFieldUseCases(deps: { customFields: CustomFieldReposit
   }
 
   async function deleteField(id: string, actor?: Actor): Promise<Result<void>> {
+    const current = await customFields.get(id)
+    if (!current) return fail('not_found', 'Поле не знайдено')
     const res = await customFields.delete(id)
     if (!res.ok) {
       console.error('[admin/custom-fields/[id]] delete_failed', res.error)
       return fail('failed', res.error)
     }
-    await audit.record(actor, 'custom_field.delete', `lead_custom_fields/${id}`)
+    await audit.record(actor, 'custom_field.delete', `lead_custom_fields/${id}`, { old: current })
     return ok(undefined)
   }
 

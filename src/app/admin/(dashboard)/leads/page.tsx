@@ -1,11 +1,11 @@
-import { getAdminAccess } from '@/presentation/admin-page'
-import { LEAD_DELETE_PERMISSIONS } from '@/presentation/permissions'
+import { requireSectionAccess } from '@/presentation/admin-page'
+import { LEAD_DELETE_PERMISSIONS, LEAD_VIEW_PERMISSIONS } from '@/presentation/permissions'
 import { LeadsTable } from '@/features/admin/components/leads-table'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LeadsPage() {
-  const { permissions } = await getAdminAccess()
+  const { permissions } = await requireSectionAccess(LEAD_VIEW_PERMISSIONS)
   const canDelete = LEAD_DELETE_PERMISSIONS.some((p) => permissions.includes(p))
   return (
     <div className="space-y-6">

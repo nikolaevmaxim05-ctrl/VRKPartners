@@ -76,6 +76,15 @@ export function planCustomFieldPatch(
  * Нормалізація і валідація значення поля: '' → null; довжина ≤ 1000; number — скінченне;
  * date — YYYY-MM-DD і справжня дата; select — лише з опцій.
  */
+/** YYYY-MM-DD і справжня календарна дата (2026-02-30 → false; Date.parse «перекочує» такі дати). */
+export function isCalendarDate(value: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!m) return false
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  const date = new Date(Date.UTC(y, mo - 1, d))
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d
+}
+
 export function validateCustomFieldValue(
   field: { type: string; options: unknown },
   raw: unknown,
@@ -91,7 +100,7 @@ export function validateCustomFieldValue(
   if (field.type === 'number' && !Number.isFinite(Number(value))) {
     return { ok: false, message: 'Невірне число' }
   }
-  if (field.type === 'date' && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value)))) {
+  if (field.type === 'date' && !isCalendarDate(value)) {
     return { ok: false, message: 'Невірна дата (YYYY-MM-DD)' }
   }
   if (field.type === 'select') {

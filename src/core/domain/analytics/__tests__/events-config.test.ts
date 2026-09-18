@@ -109,11 +109,12 @@ describe('validateEventsPatch', () => {
 
   // AGENTS.md: «Имена form_start / form_submit запрещены» — коментар у registry.ts:39-41 каже
   // «form_start/form_submit НЕ використовуємо — конфлікт з GA4 Enhanced Measurement»,
-  // але validateEventsPatch це не перевіряє: імена відповідають патерну й проходять.
-  it('заборонені імена form_start / form_submit зараз ПРОХОДЯТЬ валідацію (документуємо поточну поведінку)', () => {
-    expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['form_start'] } }).ok).toBe(true)
-    expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['form_submit'] } }).ok).toBe(true)
+  // з 2026-09-18 validateEventsPatch відхиляє їх (RESERVED_EVENT_NAMES у registry.ts).
+  it('заборонені імена form_start / form_submit відхиляються (розділ 15, виправлено 2026-09-18)', () => {
+    expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['form_start'] } }).ok).toBe(false)
+    expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['cta_click', 'form_submit'] } }).ok).toBe(false)
+    expect(validateEventsPatch({ [KEY]: { enabled: true, eventName: 'form_submit' } }).ok).toBe(false)
+    expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['form_started'] } }).ok).toBe(true)
   })
 
-  it.todo('validateEventsPatch має відхиляти form_start / form_submit (правило AGENTS.md; коментар src/core/domain/analytics/registry.ts:39-41 — runtime-перевірки немає, src/core/domain/analytics/events-config.ts:49-50 приймає їх як валідні)')
 })

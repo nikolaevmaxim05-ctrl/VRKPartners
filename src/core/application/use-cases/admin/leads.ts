@@ -336,6 +336,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
 
   // ── Видалення ──────────────────────────────────────────────────────────────
   async function deleteLead(id: string, actor?: Actor): Promise<Result<void>> {
+    if (!(await leads.exists(id))) return fail('not_found', 'Лід не знайдено')
     const res = await leads.delete(id)
     if (!res.ok) {
       console.error('[admin/leads/:id] delete_failed', res.error)
@@ -364,6 +365,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       console.error('[admin/leads/[id]/comments] insert_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'lead.comment', `leads/${leadId}`, { new: { type: v.type, comment_id: res.data.id } })
     return ok(res.data)
   }
 
@@ -371,6 +373,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
   async function setCustomFieldValue(
     leadId: string,
     body: { field_id?: string; value?: string | null },
+    actor?: Actor,
   ): Promise<Result<{ field_id: string; value: string | null }>> {
     const fieldId = (body.field_id ?? '').trim()
     if (!fieldId) return fail('invalid', 'field_id обовʼязковий')
@@ -388,6 +391,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       console.error('[admin/leads/[id]/custom-fields] upsert_failed', res.error)
       return fail('failed', res.error)
     }
+    await audit.record(actor, 'lead.custom_field', `leads/${leadId}`, { new: { field_id: fieldId, value: v.value } })
     return ok(res.data)
   }
 

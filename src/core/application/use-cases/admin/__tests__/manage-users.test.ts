@@ -84,7 +84,7 @@ describe('inviteUser', () => {
     expect(users.invite).not.toHaveBeenCalled()
   })
 
-  it('успіх: invite з redirect /admin/set-password, assignRoleOnInvite, audit user.invite; журнал пишеться ДО призначення ролі', async () => {
+  it('успіх: invite з redirect /admin/set-password, assignRoleOnInvite, audit user.invite ПІСЛЯ призначення ролі (факт, а не намір)', async () => {
     const { uc, users, audit } = setup()
     const r = await uc.inviteUser({ email: '  new@vrk.test ', role_id: 'r-view' }, manager, ORIGIN)
     expect(r.ok).toBe(true)
@@ -93,11 +93,10 @@ describe('inviteUser', () => {
     expect(audit.record).toHaveBeenCalledWith(manager, 'user.invite', 'user_roles/u-new', {
       new: { email: 'new@vrk.test', role_id: 'r-view' },
     })
-    // Спостереження: audit.record викликається перед assignRoleOnInvite, тобто запис у журналі
-    // фіксує намір призначити роль, а не факт (при збої призначення запис уже є).
+    // Журнал пишеться після призначення ролі: при збої призначення role_id у записі = null.
     const auditOrder = audit.record.mock.invocationCallOrder[0]
     const assignOrder = users.assignRoleOnInvite.mock.invocationCallOrder[0]
-    expect(auditOrder).toBeLessThan(assignOrder)
+    expect(auditOrder).toBeGreaterThan(assignOrder)
     expect(r.ok && r.value).toEqual({
       ok: true,
       user: {

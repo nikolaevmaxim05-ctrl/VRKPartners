@@ -148,8 +148,10 @@ describe('validateCustomFieldValue', () => {
 
   // Date.parse('2026-02-30') у V8 не дає NaN (дата «перекочується» на 2 березня),
   // тож перевірка «справжня дата» з doc-коментаря не спрацьовує для неіснуючих днів місяця.
-  it('date: неіснуючий день місяця (2026-02-30) зараз ПРОХОДИТЬ (документуємо поточну поведінку)', () => {
-    expect(validateCustomFieldValue({ type: 'date', options: null }, '2026-02-30')).toEqual({ ok: true, value: '2026-02-30' })
+  it('date: неіснуючий день місяця (2026-02-30, 2026-04-31) відхиляється; 2024-02-29 — так', () => {
+    expect(validateCustomFieldValue({ type: 'date', options: null }, '2026-02-30').ok).toBe(false)
+    expect(validateCustomFieldValue({ type: 'date', options: null }, '2026-04-31').ok).toBe(false)
+    expect(validateCustomFieldValue({ type: 'date', options: null }, '2024-02-29')).toEqual({ ok: true, value: '2024-02-29' })
   })
 
   it.todo('date: 2026-02-30 / 2026-04-31 мають відхилятися як неіснуючі дати (src/core/domain/lead/custom-fields.ts:94 — Date.parse не ловить переповнення дня; потрібна перевірка компонентів через Date.UTC і порівняння назад)')

@@ -69,12 +69,15 @@ describe('makeCustomFieldUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'custom_field.update', 'lead_custom_fields/cf-1', { new: { options: ['a', 'b'], position: 2 } })
   })
 
-  it('deleteField: ok → delete + audit custom_field.delete без значень; помилка → failed', async () => {
+  it('deleteField: ok → delete + audit custom_field.delete зі старим визначенням; неіснуюче → not_found; помилка → failed', async () => {
     quiet()
     const { uc, customFields, audit } = setupFields()
     expect(await uc.deleteField('cf-1', actor)).toEqual({ ok: true, value: undefined })
     expect(customFields.delete).toHaveBeenCalledWith('cf-1')
-    expect(audit.record).toHaveBeenCalledWith(actor, 'custom_field.delete', 'lead_custom_fields/cf-1')
+    expect(audit.record).toHaveBeenCalledWith(actor, 'custom_field.delete', 'lead_custom_fields/cf-1', { old: expect.objectContaining({ id: 'cf-1' }) })
+    const missing = setupFields({ get: vi.fn(async () => null) })
+    expect(await missing.uc.deleteField('cf-x', actor)).toMatchObject({ ok: false, code: 'not_found' })
+    expect(missing.customFields.delete).not.toHaveBeenCalled()
     const f = setupFields({ delete: vi.fn(async () => dbFail('boom')) })
     expect(await f.uc.deleteField('cf-1', actor)).toMatchObject({ ok: false, code: 'failed' })
     expect(f.audit.record).not.toHaveBeenCalled()

@@ -20,7 +20,7 @@ export const POST = (request: NextRequest) =>
 
     const previous = form.get('previous')
     const result = await getContentUseCases().uploadImage(
-      { type: file.type, size: file.size, bytes: new Uint8Array(await file.arrayBuffer()) },
+      { type: file.type, size: file.size, read: async () => new Uint8Array(await file.arrayBuffer()) },
       typeof previous === 'string' && previous ? previous : null,
     )
     return respond(result, ({ url }) => ({ ok: true, url }))

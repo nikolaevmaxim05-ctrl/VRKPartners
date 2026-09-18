@@ -112,6 +112,9 @@ export const ANALYTICS_EVENT_NAME_PATTERN = /^[a-z0-9_]{1,40}$/
 /** Максимум імен подій на одну точку взаємодії */
 export const MAX_EVENT_NAMES_PER_KEY = 5
 
+/** Заборонені імена (розділ 15): збігаються з автоподіями GA4 Enhanced Measurement. */
+export const RESERVED_EVENT_NAMES: ReadonlySet<string> = new Set(['form_start', 'form_submit'])
+
 export function isValidEventName(value: unknown): value is string {
   return typeof value === 'string' && ANALYTICS_EVENT_NAME_PATTERN.test(value)
 }

@@ -215,7 +215,7 @@ export const getReportUseCases = once(() =>
 )
 
 export const getExportAnalytics = once(() =>
-  makeExportAnalytics({ analytics: analyticsRepo(), users: userRepo(), reports: getReportUseCases(), xlsx: excelBuilder }),
+  makeExportAnalytics({ analytics: analyticsRepo(), users: userRepo(), reports: getReportUseCases(), xlsx: excelBuilder, audit: auditLog() }),
 )
 
 export const getConversionExportUseCases = once(() =>

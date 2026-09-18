@@ -13,8 +13,9 @@ export const POST = (request: NextRequest) =>
   withAdmin(['manage_users'], async (actor) => {
     const body = await readJson<{ email?: string; role_id?: string }>(request)
     if (!body.ok) return body.response
-    // Посилання із листа веде на /admin/set-password цього ж сайту.
-    const origin = request.headers.get('origin') ?? getPublicSiteUrl() ?? new URL(request.url).origin
+    // Посилання із листа веде на /admin/set-password цього ж сайту. Заголовок Origin запиту НЕ
+    // використовуємо: він керується клієнтом і міг би відвести токени інвайту на чужий домен.
+    const origin = getPublicSiteUrl() ?? new URL(request.url).origin
     const result = await getUserUseCases().inviteUser(body.body, actor, origin)
     return result.ok ? NextResponse.json(result.value) : errorResponse(result)
   })
