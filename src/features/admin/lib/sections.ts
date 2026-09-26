@@ -1,7 +1,7 @@
 // Розділи адмінки (розділ 5 стандарту): один масив для меню сайдбара і карток головної.
 // Пункт показується, якщо в користувача є хоча б одне з прав anyPermission (порожньо — усім).
 import {
-  PhoneCall, Plug, TrendingUp, Users, Shield, Settings, BarChart3, RotateCcw, FileText, Scale, History,
+  PhoneCall, Plug, TrendingUp, Users, Shield, Settings, BarChart3, RotateCcw, FileText, Scale, History, Handshake,
   type LucideIcon,
 } from 'lucide-react'
 import type { Permission } from '@core/domain/access/permissions'
@@ -17,6 +17,7 @@ export type AdminSection = {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { href: '/admin/leads', label: 'Заявки', description: 'Ліди, стадії воронки, відповідальні, коментарі.', icon: PhoneCall, anyPermission: ['manage_leads', 'view_reports', 'export_data', 'manage_conversions'] },
   { href: '/admin/analytics', label: 'Аналітика', description: 'Звіти за джерелами, стадіями та подіями.', icon: BarChart3, anyPermission: ['view_reports'] },
+  { href: '/admin/referral-links', label: 'Реферальні посилання', description: 'Посилання для компаній-партнерів і заявки, що прийшли за ними.', icon: Handshake, anyPermission: ['manage_referrals'] },
   { href: '/admin/content', label: 'Контент', description: 'Тексти сайту, приховування блоків, метадані (SEO).', icon: FileText, anyPermission: ['manage_content'] },
   { href: '/admin/legal', label: 'Юридичні документи', description: 'Політика конфіденційності та публічна оферта.', icon: Scale, anyPermission: ['manage_content'] },
   { href: '/admin/integrations', label: 'Інтеграції', description: 'Telegram, KeyCRM, пошта, Google Sheets, Google-теги.', icon: Plug, anyPermission: ['manage_settings', 'manage_integrations'] },

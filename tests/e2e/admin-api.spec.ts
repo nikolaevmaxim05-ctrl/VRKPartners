@@ -77,6 +77,8 @@ const READ_ROUTES: [string, string[]][] = [
   ['/api/admin/conversions', ['manage_conversions', 'manage_users']],
   ['/api/admin/conversion-adjustments', ['manage_conversions', 'manage_users']],
   ['/api/admin/audit-log', ['manage_users']],
+  ['/api/admin/referral-links', ['manage_leads', 'view_reports', 'export_data', 'manage_conversions', 'manage_referrals']],
+  ['/api/admin/referral-links/stats', ['manage_referrals']],
   ['/api/admin/analytics/report?date_from=2026-01-01&date_to=2026-01-02', ['view_reports']],
   ['/api/admin/analytics/dimension-values?dimension=utm_source&date_from=2026-01-01&date_to=2026-01-02', ['view_reports']],
 ]
@@ -106,6 +108,8 @@ test('1.2 мінімальна роль (лише manage_leads): довідни�
     ['/api/admin/settings', 'put', { items: [{ key: 'internal_currency', value: 'UAH' }] }],
     ['/api/admin/content', 'put', { overrides: {} }],
     ['/api/admin/tracking-tags', 'post', { type: 'aw', tag_id: 'AW-1' }],
+    ['/api/admin/referral-links', 'post', { name: `${E2E_TAG} x` }],
+    [`/api/admin/referral-links/${NIL_UUID}`, 'delete', undefined],
     ['/api/admin/integrations/smtp_from', 'put', { value: 'x' }],
     [`/api/admin/leads/${NIL_UUID}`, 'delete', undefined],
     ['/api/admin/conversions/export-pending', 'post', undefined],
@@ -153,8 +157,10 @@ test('2.1 список і фільтри: пошук за маркером, ст
   const initial = stages.find((s) => s.is_initial)!
   const byStatus = (await (await api.get(`/api/admin/leads?search=${encodeURIComponent(E2E_TAG)}&status_id=${initial.id}`)).json()) as { total: number }
   expect(byStatus.total).toBe(2)
-  const today = new Date().toISOString().slice(0, 10)
-  const byDate = (await (await api.get(`/api/admin/leads?search=${encodeURIComponent(E2E_TAG)}&date_from=${today}&date_to=${today}`)).json()) as { total: number }
+  // Межі дат сервер рахує за Києвом — беремо вікно ±1 день, щоб тест не залежав від часу доби.
+  const dayFrom = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+  const dayTo = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+  const byDate = (await (await api.get(`/api/admin/leads?search=${encodeURIComponent(E2E_TAG)}&date_from=${dayFrom}&date_to=${dayTo}`)).json()) as { total: number }
   expect(byDate.total).toBe(2)
   const noDate = (await (await api.get(`/api/admin/leads?search=${encodeURIComponent(E2E_TAG)}&date_from=2000-01-01&date_to=2000-01-02`)).json()) as { total: number }
   expect(noDate.total).toBe(0)
@@ -332,6 +338,42 @@ test('4 стадії: валідація, унікальність, стадія
   expect((await api.delete(`/api/admin/lead-statuses/${NIL_UUID}`)).status()).toBe(404)
   const after = ((await (await api.get('/api/admin/lead-statuses')).json()) as { data: { id: string; position: number }[] }).data
   expect(after.map((s) => [s.id, s.position])).toEqual(cur.filter((s) => s.id !== stage.id).map((s) => [s.id, s.position]))
+})
+
+// ── 4b. Реферальні посилання ────────────────────────────────────────────────────────────────────
+test('4b реферальні посилання: валідація, створення з кодом сервера, 409 назва, код незмінний, 404, із заявкою не видаляється, статистика, довідник', async () => {
+  expect((await api.post('/api/admin/referral-links', { data: { name: '' } })).status()).toBe(400)
+  expect((await api.post('/api/admin/referral-links', { data: { name: 'x'.repeat(81) } })).status()).toBe(400)
+  const create = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер`, notes: 'e2e' } })
+  expect(create.status(), await create.text()).toBe(200)
+  const link = ((await create.json()) as { data: { id: string; code: string; is_active: boolean; name: string } }).data
+  expect(link.code).toMatch(/^[a-z0-9]{8}$/)
+  expect(link.is_active).toBe(true)
+  expect((await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} партнер` } })).status(), 'дубль назви без урахування регістру').toBe(409)
+  expect((await api.patch(`/api/admin/referral-links/${link.id}`, { data: { code: 'newcode1' } })).status(), 'код незмінний').toBe(400)
+  expect((await api.patch(`/api/admin/referral-links/${link.id}`, { data: {} })).status()).toBe(400)
+  expect((await api.patch(`/api/admin/referral-links/${NIL_UUID}`, { data: { name: 'x' } })).status()).toBe(404)
+  expect((await api.patch('/api/admin/referral-links/not-a-uuid', { data: { name: 'x' } })).status()).toBe(404)
+  const off = await api.patch(`/api/admin/referral-links/${link.id}`, { data: { is_active: false, notes: 'off' } })
+  expect(off.status(), await off.text()).toBe(200)
+  expect(((await off.json()) as { data: { is_active: boolean; notes: string } }).data).toMatchObject({ is_active: false, notes: 'off' })
+
+  // Лід із посиланням → видалення заборонено, статистика бачить заявку.
+  const bind = await db().from('leads').update({ referral_link_id: link.id, referral_code: link.code }).eq('id', leadA.id)
+  expect(bind.error).toBeNull()
+  const del = await api.delete(`/api/admin/referral-links/${link.id}`)
+  expect(del.status()).toBe(409)
+  expect(await del.text()).toContain('вимкніть')
+  const stats = (await (await api.get('/api/admin/referral-links/stats')).json()) as { data: { link_id: string; total: number; last30: number }[]; truncated: boolean }
+  expect(stats.data.find((s) => s.link_id === link.id)).toMatchObject({ total: 1, last30: 1 })
+  await db().from('leads').update({ referral_link_id: null, referral_code: null }).eq('id', leadA.id)
+
+  const refs = (await (await api.get('/api/admin/referral-links')).json()) as { data: { id: string; name: string; code: string; is_active: boolean }[] }
+  expect(refs.data.find((r) => r.id === link.id)).toEqual({ id: link.id, name: `${E2E_TAG} Партнер`, code: link.code, is_active: false })
+  const full = (await (await api.get('/api/admin/referral-links?full=1')).json()) as { data: { id: string; notes: string | null }[] }
+  expect(full.data.find((r) => r.id === link.id)?.notes).toBe('off')
+  expect((await api.delete(`/api/admin/referral-links/${link.id}`)).status()).toBe(200)
+  expect((await api.delete(`/api/admin/referral-links/${NIL_UUID}`)).status()).toBe(404)
 })
 
 // ── 5. Ролі та користувачі ──────────────────────────────────────────────────────────────────────
@@ -586,29 +628,31 @@ test('7.4 події аналітики: GET, невідомий ключ → 40
 
 // ── 8. Аналітика ────────────────────────────────────────────────────────────────────────────────
 test('8 аналітика: звіт по відомих лідах, значення вимірів, експорт CSV (екранування), невалідні дати → 400', async () => {
-  const today = new Date().toISOString().slice(0, 10)
+  // Межі дат сервер рахує за Києвом — беремо вікно ±1 день, щоб тест не залежав від часу доби.
+  const dayFrom = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+  const dayTo = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
   const extra = await insertTestLead({ utm_source: 'e2e-src', name: `${E2E_TAG} Кома, "лапки"\nрядок` })
   created.leads.push(extra.id)
-  const report = await api.get(`/api/admin/analytics/report?date_from=${today}&date_to=${today}&group_by=utm_source&filter_utm_source=e2e-src`)
+  const report = await api.get(`/api/admin/analytics/report?date_from=${dayFrom}&date_to=${dayTo}&group_by=utm_source&filter_utm_source=e2e-src`)
   expect(report.status(), await report.text()).toBe(200)
   const rep = (await report.json()) as { total: { total: number } }
   expect(rep.total.total, 'два ліди [E2E] з utm_source=e2e-src (leadA + extra)').toBe(2)
   expect((await api.get('/api/admin/analytics/report?date_from=2026-13-40&date_to=x')).status()).toBe(400)
-  expect((await api.get(`/api/admin/analytics/report?date_from=${today}&date_to=${today}&group_by=custom_field`)).status(), 'custom_field без id → 400').toBe(400)
-  const dims = (await (await api.get(`/api/admin/analytics/dimension-values?dimension=utm_source&date_from=${today}&date_to=${today}`)).json()) as { data: { value: string }[] }
+  expect((await api.get(`/api/admin/analytics/report?date_from=${dayFrom}&date_to=${dayTo}&group_by=custom_field`)).status(), 'custom_field без id → 400').toBe(400)
+  const dims = (await (await api.get(`/api/admin/analytics/dimension-values?dimension=utm_source&date_from=${dayFrom}&date_to=${dayTo}`)).json()) as { data: { value: string }[] }
   expect(dims.data.some((d) => d.value === 'e2e-src')).toBe(true)
 
-  const csv = await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: today, date_to: today, filter_utm_source: 'e2e-src' }, leadFields: ['dates', 'phone', 'status', 'utm_source'] } })
+  const csv = await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: dayFrom, date_to: dayTo, filter_utm_source: 'e2e-src' }, leadFields: ['dates', 'phone', 'status', 'utm_source'] } })
   expect(csv.status(), await csv.text()).toBe(200)
   expect(csv.headers()['content-type']).toMatch(/csv/)
   expect(csv.headers()['content-disposition']).toMatch(/attachment/)
   const body = await csv.text()
   expect(body).toContain('e2e-src')
   expect((body.match(/\n/g) ?? []).length, 'рядок з переводом рядка у значенні не ламає CSV (рядки: заголовок + 2)').toBeGreaterThanOrEqual(2)
-  const summary = await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'summary', filters: { date_from: today, date_to: today }, summaryColumns: ['total'] } })
+  const summary = await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'summary', filters: { date_from: dayFrom, date_to: dayTo }, summaryColumns: ['total'] } })
   expect(summary.status(), await summary.text()).toBe(200)
-  expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: today, date_to: today }, leadFields: [] } })).status()).toBe(400)
-  expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: today, date_to: today }, leadFields: ['phone'], dealAmountFrom: 10, dealAmountTo: 1 } })).status()).toBe(400)
+  expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: dayFrom, date_to: dayTo }, leadFields: [] } })).status()).toBe(400)
+  expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: dayFrom, date_to: dayTo }, leadFields: ['phone'], dealAmountFrom: 10, dealAmountTo: 1 } })).status()).toBe(400)
   const empty = await api.get('/api/admin/analytics/report?date_from=2000-01-01&date_to=2000-01-02')
   expect(empty.status(), 'порожній період → 200').toBe(200)
 })
@@ -668,7 +712,7 @@ test('9 журнал дій: усі дії цього прогону є в жу�
   const json = (await page1.json()) as { data: { action: string; user_email: string | null; resource: string; old_value: unknown; new_value: unknown; created_at: string }[]; total: number; totalPages: number }
   const mine = json.data.filter((r) => r.user_email === ENV.email && r.created_at >= startIso)
   const actions = new Set(mine.map((r) => r.action))
-  for (const a of ['lead.update', 'lead.delete', 'stage.create', 'stage.update', 'stage.delete', 'stage.reorder', 'custom_field.create', 'custom_field.delete', 'role.create', 'role.update', 'role.delete', 'role.reorder', 'content.save', 'seo.save', 'legal.save', 'tracking_tag.create', 'tracking_tag.delete', 'settings.update']) {
+  for (const a of ['lead.update', 'lead.delete', 'stage.create', 'stage.update', 'stage.delete', 'stage.reorder', 'custom_field.create', 'custom_field.delete', 'role.create', 'role.update', 'role.delete', 'role.reorder', 'content.save', 'seo.save', 'legal.save', 'tracking_tag.create', 'tracking_tag.delete', 'settings.update', 'referral_link.create', 'referral_link.update', 'referral_link.delete']) {
     expect(actions.has(a), `немає запису ${a}`).toBe(true)
   }
   const integ = mine.filter((r) => r.action.startsWith('integration.'))

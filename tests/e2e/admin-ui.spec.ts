@@ -8,6 +8,7 @@ const PAGES: [string, RegExp][] = [
   ['/admin', /Головна/],
   ['/admin/leads', /Заявки/],
   ['/admin/analytics', /Аналітика/],
+  ['/admin/referral-links', /Реферальні посилання/],
   ['/admin/content', /Контент/],
   ['/admin/legal', /Юридичні/],
   ['/admin/integrations', /Інтеграції/],

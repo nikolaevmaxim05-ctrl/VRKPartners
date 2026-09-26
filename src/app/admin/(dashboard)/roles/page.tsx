@@ -63,7 +63,8 @@ export default async function RolesPage() {
           <strong>Інтеграції</strong> — Telegram, CRM, Google-теги (GTM/GA4/Google Ads).<br />
           <strong>Редагування контенту лендингу</strong> — тексти, послуги, кейси, FAQ, контакти.<br />
           <strong>Офлайн конверсії</strong> — перегляд і вивантаження конверсій у Google Ads.<br />
-          <strong>Перегляд звітів</strong> — доступ до аналітики та звітів.
+          <strong>Перегляд звітів</strong> — доступ до аналітики та звітів.<br />
+          <strong>Реферальні посилання</strong> — посилання партнерів, вимкнення, статистика заявок за ними.
         </p>
       </div>
     </div>

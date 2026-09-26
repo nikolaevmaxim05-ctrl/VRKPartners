@@ -115,7 +115,8 @@ export async function cleanupE2E(opts: { sinceIso: string; userIds?: string[] })
     const { error, count } = await client.from('leads').delete({ count: 'exact' }).in('id', ids)
     report.leads = error ? `ERR ${error.message}` : (count ?? 0)
   } else report.leads = 0
-  for (const [table, col] of [['lead_custom_fields', 'name'], ['lead_statuses', 'name'], ['tracking_tags', 'label'], ['admin_roles', 'name']] as const) {
+  // referral_links — після лідів (FK on delete restrict).
+  for (const [table, col] of [['lead_custom_fields', 'name'], ['lead_statuses', 'name'], ['tracking_tags', 'label'], ['admin_roles', 'name'], ['referral_links', 'name']] as const) {
     const { error, count } = await client.from(table).delete({ count: 'exact' }).like(col, `${E2E_TAG}%`)
     report[table] = error ? `ERR ${error.message}` : (count ?? 0)
   }
@@ -130,7 +131,7 @@ export async function cleanupE2E(opts: { sinceIso: string; userIds?: string[] })
 export async function leftoversE2E(): Promise<Record<string, number>> {
   const client = db()
   const out: Record<string, number> = {}
-  for (const [table, col] of [['leads', 'name'], ['lead_custom_fields', 'name'], ['lead_statuses', 'name'], ['tracking_tags', 'label'], ['admin_roles', 'name']] as const) {
+  for (const [table, col] of [['leads', 'name'], ['lead_custom_fields', 'name'], ['lead_statuses', 'name'], ['tracking_tags', 'label'], ['admin_roles', 'name'], ['referral_links', 'name']] as const) {
     const { count } = await client.from(table).select('id', { count: 'exact', head: true }).like(col, `${E2E_TAG}%`)
     out[table] = count ?? 0
   }

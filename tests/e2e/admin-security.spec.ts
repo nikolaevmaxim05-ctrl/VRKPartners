@@ -124,7 +124,7 @@ test('RLS напряму через REST з anon-ключем: таблиці з
   test.skip(!SUPABASE_URL || !ANON_KEY, 'немає NEXT_PUBLIC_SUPABASE_URL / ANON_KEY')
   const headers = { apikey: ANON_KEY!, authorization: `Bearer ${ANON_KEY!}` }
   // Таблиці, де точно є рядки (site_settings, admin_roles, lead_statuses, audit_log, integrations, site_content).
-  for (const table of ['site_settings', 'admin_roles', 'lead_statuses', 'audit_log', 'integrations', 'leads', 'user_roles', 'tracking_tags', 'offline_conversions']) {
+  for (const table of ['site_settings', 'admin_roles', 'lead_statuses', 'audit_log', 'integrations', 'leads', 'user_roles', 'tracking_tags', 'offline_conversions', 'referral_links']) {
     const r = await request.get(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=5`, { headers })
     expect(r.status(), `${table}: ${await r.text()}`).toBe(200)
     expect(await r.json(), `${table}: anon бачить рядки`).toEqual([])
