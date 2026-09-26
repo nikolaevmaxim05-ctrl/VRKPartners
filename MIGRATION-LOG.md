@@ -5,8 +5,9 @@
 мержа кода); всё, что трогает контент клиента (`site_content`), — запись здесь **до**
 применения: что, зачем, SQL проверки до/после, SQL отката.
 
-Проект Supabase: `whjkmrnwxfmlffgsboyw`. Применено: `001`–`028` (в панели Supabase
-`004–014` и `015–025` применены пакетами, локальные файлы — по одному).
+Проект Supabase: `whjkmrnwxfmlffgsboyw`. Применено: `001`–`034` (в панели Supabase
+`004–014` и `015–025` применены пакетами, `029`–`034` — через MCP по одной; локальные файлы —
+по одному). Созданы, **не применены**: `035`, `036` (реферальная система, см. раздел 6).
 
 ## 1. Снимок данных клиента (аудит 2026-09-10, только SELECT)
 
@@ -154,6 +155,27 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
   Правок клиента по этим ключам **нет** — данные не менялись, удалять ничего не нужно; если ключи
   появятся в правках позже, мерж их проигнорирует (чужие ключи, раздел 9).
 
+## 6. Реферальная система (2026-09-27): миграции 035/036
+
+**035 `referral_links`** — только схема, аддитивно, идемпотентно; применять **до** деплоя кода
+(новый код встраивает `referral_links` в выборку лидов и пишет `leads.referral_link_id/referral_code`;
+старый код колонки не читает). Создаёт таблицу `referral_links` (name, code unique
+`^[a-z0-9]{3,40}$`, is_active, notes ≤ 500, created_by → auth.users set null, created_at/updated_at;
+уникальный индекс `lower(name)`), колонки `leads.referral_link_id` (FK **on delete restrict**) и
+`leads.referral_code`, индекс по `referral_link_id`, RLS по паттерну 033. Данные клиента не трогает.
+Проверка после: `select count(*) from referral_links;` → 0; `select column_name from
+information_schema.columns where table_name='leads' and column_name like 'referral%'` → 2 строки.
+Откат: `alter table leads drop column if exists referral_link_id, drop column if exists referral_code;
+drop table if exists referral_links;` (колонки лидов пусты, пока код не задеплоен).
+
+**036 `admin_role_manage_referrals`** — **клиентские данные** `admin_roles`: добавляет ключ
+`manage_referrals` в `permissions` ролей `admin` (системная, из UI не редактируется) и `e2e-full`
+(тестовая). Остальные роли клиента не меняются — право выдаёт владелец из «Ролі». Идемпотентно
+(`not (permissions ? 'manage_referrals')`). Проверка до/после: `select name, permissions from
+admin_roles where name in ('admin','e2e-full')`. Откат: `update admin_roles set permissions =
+permissions - 'manage_referrals' where name in ('admin','e2e-full')`. Применять только по явному
+«применяй» владельца.
+
 ## 5. Записи о применённых операциях
 
 - **2026-09-11, Фаза 3 (ассистент, только SELECT).** Проверка перед переносом ключей:
@@ -208,3 +230,7 @@ conversion_action/requires_amount/amount_is_profit`, `lead_status_history`,
 - **2026-09-11, ревью после Фазы 6 (ассистент через Supabase MCP `apply_migration`, по решению
   владельца, до пуша).** Применена `034_offline_conversions_retracted` (CHECK расширен значением
   `retracted`). Данные не менялись (таблица пуста).
+- **2026-09-27, реферальная система (ассистент, только SELECT).** `referral_links` нет, колонок
+  `leads.referral_*` нет, последняя применённая миграция — 034. Созданы файлы `035_referral_links.sql`
+  и `036_admin_role_manage_referrals.sql` — **не применены**, ждут «применяй» владельца (раздел 6).
+  Синтаксис 035 проверен в транзакции с откатом.

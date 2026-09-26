@@ -194,6 +194,22 @@ scripts/check-overflow.js                              скан переполн
 - Ревью после Фазы 6: `offline_conversions.export_status` — три состояния (`pending | exported |
   retracted`, миграция 034), `presentation/client-ip` валидирует IP, шапка измеряет оба блока копиями.
 
+## Реферальная система (2026-09-27, план модулей; отклонение 11)
+
+```
+src/
+  core/domain/referral/{code,attribution,link-rules}.ts   код (regex, генерация), выбор кода cookie→тело→?ref, правила ссылки
+  core/application/ports/referrals.ts                     ReferralLinkRepository (list, get, findByCode, insert, update, delete, leadStats)
+  core/application/use-cases/admin/manage-referral-links.ts  CRUD + аудит referral_link.*
+  infrastructure/supabase/repositories/referral-links.ts  таблица referral_links (миграция 035)
+  app/api/admin/referral-links/{route,[id]/route,stats/route}.ts
+  app/admin/(dashboard)/referral-links/page.tsx + features/admin/components/referral-links-section.tsx
+  middleware.ts (ветка 3): /r/<code> → 302 /?ref=<code>; ?ref → Set-Cookie lead_ref
+  features/landing/lib/referral.ts                        зеркало ?ref в localStorage, ref в теле формы
+  core/application/use-cases/public/submit-lead.ts        резолв кода после honeypot/rate-limit, до дедупа
+  core/domain/analytics/*                                 group_by/breakdown referral_link, фильтр, экспорт
+```
+
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**
