@@ -1,6 +1,7 @@
 // core/domain/lead/dedup — правила дедуплікації заявок (раздел 8).
 // Чиста частина: налаштування та текст system-коментаря про повтор.
 // Пошук дубля в БД і маркування — в інфраструктурі/use-case.
+import { describeReferral, type ReferralNote } from '../referral/link-rules'
 
 export type DedupSettings = {
   dedupByPhone: boolean
@@ -32,6 +33,7 @@ export type RepeatPayload = {
   message?: string | null
   utm?: Record<string, string | undefined> | null
   source?: string | null
+  referral?: ReferralNote | null
 }
 
 /** Текст system-коментаря до оригінального ліда про повторне звернення. */
@@ -49,5 +51,6 @@ export function buildRepeatComment(payload: RepeatPayload): string {
     for (const [k, v] of utmPairs) lines.push(`• ${k}: ${v}`)
   }
   if (payload.source) lines.push(`Сторінка: ${payload.source}`)
+  if (payload.referral) lines.push(describeReferral(payload.referral))
   return lines.join('\n')
 }

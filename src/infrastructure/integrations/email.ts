@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer'
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier, LeadNotification } from '@core/application/ports/notifications'
 import { formatUtmSummary } from '@core/domain/lead/utm'
+import { describeReferral } from '@core/domain/referral/link-rules'
 import { getServiceLabel } from '@core/domain/lead/services'
 import { escapeHtml, kyivNow } from './format'
 
@@ -54,6 +55,7 @@ export function buildAdminEmailHtml(data: LeadNotification, serviceLabel: string
     ['Телефон', escapeHtml(data.phone)],
     ['Послуга', escapeHtml(serviceLabel)],
     ...(data.comment ? [['Коментар', escapeHtml(data.comment)]] : []),
+    ...(data.referral ? [['Партнер', escapeHtml(describeReferral(data.referral))]] : []),
     ['Джерело', utmSummary ? escapeHtml(utmSummary) : 'Лендінг vrkpartners.com'],
     ...(data.utm?.referrer ? [['Referrer', escapeHtml(data.utm.referrer)]] : []),
     ...(data.utm?.gclid ? [['gclid', escapeHtml(data.utm.gclid)]] : []),

@@ -140,6 +140,7 @@ export const getIntegrationConfig = integrationConfig
 // ── Сценарії ─────────────────────────────────────────────────────────────────
 export const getSubmitLead = once(() =>
   makeSubmitLead({
+    referrals: referralRepo(),
     // Тексти помилок Zod на сервері — з дефолтів (клієнту віддається лише 400 Invalid data).
     schema: makeLeadSchema(getDefaultMessages().form),
     integrationConfig: integrationConfig(),

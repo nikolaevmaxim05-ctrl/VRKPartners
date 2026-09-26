@@ -22,6 +22,9 @@ import {
   type DedupReason,
 } from '../../../domain/lead/dedup'
 import { LEAD_DELIVERY_KEYS } from '../../../domain/integrations/keys'
+import { pickReferralCode } from '../../../domain/referral/attribution'
+import type { ReferralNote } from '../../../domain/referral/link-rules'
+import type { ReferralLinkRepository } from '../../ports/referrals'
 
 /** Rate limit форми: не більше 3 заявок з одного IP за 10 хвилин (розділ 8). */
 export const LEAD_RATE_LIMIT = { max: 3, windowMs: 10 * 60 * 1000 } as const
@@ -40,10 +43,17 @@ export type SubmitLeadDeps = {
   clock: Clock
   /** Байпас ліміту для тестів поза production (RATE_LIMIT_DISABLED=1). */
   rateLimitBypass?: () => boolean
+  /** Реферальні посилання (відхилення 11); без репозиторію код лише зберігається у referral_code. */
+  referrals?: Pick<ReferralLinkRepository, 'findByCode'>
 }
 
 /** ip — з ланцюжка заголовків (розділ 8); 'unknown' = не визначено (ліміт і дедуп за IP пропускаються). */
-export type SubmitLeadContext = { ip: string; userAgent: string | null }
+export type SubmitLeadContext = {
+  ip: string
+  userAgent: string | null
+  /** Значення cookie lead_ref (HttpOnly, ставить middleware) або null. */
+  referralCookie?: string | null
+}
 
 export type SubmitLeadValue = { duplicate: boolean }
 
@@ -95,6 +105,27 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     }
   }
 
+  /**
+   * Реферал: код — cookie → тіло → ?ref сторінки; активне посилання зараховується (id), неактивне
+   * або невідоме — лише код (рішення власника 2). Помилка пошуку заявку не блокує.
+   */
+  async function resolveReferral(code: string | null): Promise<{ linkId: string | null; note: ReferralNote | undefined }> {
+    if (!code) return { linkId: null, note: undefined }
+    let note: ReferralNote = { code, name: null, state: 'unknown' }
+    if (!deps.referrals) return { linkId: null, note }
+    try {
+      const r = await deps.referrals.findByCode(code)
+      if (!r.ok) console.error('[lead] referral_lookup_failed (без привʼязки)', r.error)
+      else if (r.data) {
+        note = { code, name: r.data.name, state: r.data.is_active ? 'active' : 'inactive' }
+        return { linkId: r.data.is_active ? r.data.id : null, note }
+      }
+    } catch (err) {
+      console.error('[lead] referral_lookup_threw (без привʼязки)', err instanceof Error ? err.message : err)
+    }
+    return { linkId: null, note }
+  }
+
   /** Запис ліда; винятки адаптера → помилка (а не 500 без тіла). */
   async function insertLead(row: LeadInsert): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
@@ -127,6 +158,10 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       console.warn('[lead] rate_limit_skipped: клієнтський IP не визначено із заголовків')
     }
 
+    // 4. Реферал — СТРОГО після honeypot і ліміту (боти не ходять у БД), до дедупу (для «[ПОВТОР]»).
+    const refCode = pickReferralCode({ cookie: ctx.referralCookie, body: lead.ref, pageUrl: lead.page })
+    const referral = await resolveReferral(refCode)
+
     // 5. Нормалізація: телефон уже E.164 (Zod transform), email — trim + lowercase.
     const email = lead.email ? normalizeEmail(lead.email) : null
     const message = buildLeadMessage(lead)
@@ -138,6 +173,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       comment: message ?? undefined,
       utm: lead.utm,
       source: lead.page || undefined,
+      referral: referral.note,
     }
 
     // Ключі всіх каналів доставки — одним запитом у кеш.
@@ -160,6 +196,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
             message,
             utm: leadData.utm ?? null,
             source: leadData.source ?? null,
+            referral: referral.note ?? null,
           }),
         },
       ])
@@ -196,6 +233,8 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       user_agent: ctx.userAgent,
       status_id: statusId,
       locale: lead.locale || DEFAULT_LEAD_LOCALE,
+      referral_link_id: referral.linkId,
+      referral_code: refCode,
     }
     const saved = await insertLead(row)
     if (saved.ok) console.log('[lead] channel_ok channel=supabase')

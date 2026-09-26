@@ -1,5 +1,6 @@
 // core/application/ports/notifications — канали сповіщень про заявку (Telegram, KeyCRM, email).
 import type { UtmData } from '../../domain/lead/utm'
+import type { ReferralNote } from '../../domain/referral/link-rules'
 
 /** Дані заявки для сповіщення (без PII-логування в адаптерах). */
 export type LeadNotification = {
@@ -11,6 +12,8 @@ export type LeadNotification = {
   utm?: UtmData
   /** URL сторінки заявки. */
   source?: string
+  /** Реферальний код/партнер (відхилення 11): active — зараховано, inactive/unknown — лише код. */
+  referral?: ReferralNote
 }
 
 export type NotifyResult = { ok: boolean; error?: string }

@@ -703,6 +703,30 @@ test('10 POST /api/leads з записом: лід у початковій ст�
   const last = await post('+380990005005')
   expect(last.status()).toBe(429)
   expect(last.headers()['retry-after']).toBe('600')
+
+  // Реферал: cookie lead_ref з активним посиланням → referral_link_id; невідомий ref у тілі → лише код;
+  // вимкнене посилання → лише код. Інші IP — щоб не впертися в ліміт.
+  const linkRes = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер cookie` } })
+  expect(linkRes.status(), await linkRes.text()).toBe(200)
+  const link = ((await linkRes.json()) as { data: { id: string; code: string } }).data
+  const withCookie = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005011', source: 'e2e', locale: 'uk' }, headers: { 'x-forwarded-for': '198.51.100.31', cookie: `lead_ref=${link.code}` } })
+  expect(withCookie.status(), await withCookie.text()).toBe(200)
+  const { data: l1 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005011').single()
+  expect(l1).toMatchObject({ referral_link_id: link.id, referral_code: link.code })
+  created.leads.push(l1!.id)
+  const unknownRef = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005012', source: 'e2e', locale: 'uk', ref: 'zzzz9999' }, headers: { 'x-forwarded-for': '198.51.100.32' } })
+  expect(unknownRef.status()).toBe(200)
+  const { data: l2 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005012').single()
+  expect(l2).toMatchObject({ referral_link_id: null, referral_code: 'zzzz9999' })
+  created.leads.push(l2!.id)
+  expect((await api.patch(`/api/admin/referral-links/${link.id}`, { data: { is_active: false } })).status()).toBe(200)
+  const inactive = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005013', source: 'e2e', locale: 'uk', ref: link.code }, headers: { 'x-forwarded-for': '198.51.100.33' } })
+  expect(inactive.status()).toBe(200)
+  const { data: l3 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005013').single()
+  expect(l3, 'вимкнене посилання не зараховує').toMatchObject({ referral_link_id: null, referral_code: link.code })
+  created.leads.push(l3!.id)
+  // Посилання із заявкою не видаляється — приберемо в afterAll після лідів.
+  expect((await api.delete(`/api/admin/referral-links/${link.id}`)).status()).toBe(409)
 })
 
 // ── 9. Журнал дій ───────────────────────────────────────────────────────────────────────────────

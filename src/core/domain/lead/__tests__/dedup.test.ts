@@ -15,6 +15,13 @@ describe('parseDedupSettings', () => {
 })
 
 describe('buildRepeatComment', () => {
+  it('реферал: «Партнер» / код зі станом', () => {
+    expect(buildRepeatComment({ reason: 'phone', referral: { code: 'abcd1234', name: 'Агенція', state: 'active' } })).toContain('Партнер: Агенція')
+    expect(buildRepeatComment({ reason: 'phone', referral: { code: 'abcd1234', name: null, state: 'unknown' } })).toContain('Реф. код: abcd1234 — посилання не знайдено')
+    expect(buildRepeatComment({ reason: 'ip', referral: { code: 'abcd1234', name: 'Старий', state: 'inactive' } })).toContain('вимкнене (Старий)')
+    expect(buildRepeatComment({ reason: 'ip' })).not.toContain('Реф. код')
+  })
+
   it('формує system-коментар із причиною, полями та UTM', () => {
     const text = buildRepeatComment({ reason: 'phone', service: 'Аудит', message: 'Привіт', utm: { utm_source: 'google', utm_medium: '' }, source: 'https://vrk.com.ua/' })
     expect(text.split('\n')).toEqual([

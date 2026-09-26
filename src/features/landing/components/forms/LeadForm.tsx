@@ -10,6 +10,7 @@ import { makeLeadSchema, leadDefaults, type LeadInput } from "@core/domain/lead/
 import { track, fireAdsConversions } from "@/shared/lib/analytics";
 import { setEnhancedConversionUserData } from "@/features/landing/lib/enhanced-conversions";
 import { getStoredUtm } from "@/features/landing/lib/utm";
+import { getStoredRef } from "@/features/landing/lib/referral";
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { Button } from "@/features/landing/components/ui/Button";
 import { Field, Input } from "@/features/landing/components/ui/Field";
@@ -78,11 +79,13 @@ export function LeadForm({
     // Атрибуція: UTM-мітки із sessionStorage + URL поточної сторінки
     const utm = getStoredUtm();
     const page = typeof window !== "undefined" ? window.location.href : undefined;
+    // Реферальний код: сервер бере cookie → це поле → ?ref сторінки (невалідний ігнорується).
+    const ref = getStoredRef();
     try {
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, utm, page, locale }),
+        body: JSON.stringify({ ...data, utm, page, locale, ref }),
       });
       if (!res.ok) {
         // Розрізняємо типи помилок сервера, щоб не втрачати ліди мовчазним «щось пішло не так».

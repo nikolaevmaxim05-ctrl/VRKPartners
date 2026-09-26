@@ -66,6 +66,13 @@ describe("makeLeadSchema", () => {
     expect(leadSchema.safeParse({ ...validLead, email: "not-an-email" }).error?.flatten().fieldErrors.email?.[0]).toBe(T.errorEmailInvalid);
   });
 
+  it("ref: нормалізується; невалідний/задовгий/не рядок → undefined, ніколи не помилка", () => {
+    expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567", ref: " ABC123 " }).ref).toBe("abc123");
+    expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567", ref: "x".repeat(200) }).ref).toBeUndefined();
+    expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567", ref: 42 }).ref).toBeUndefined();
+    expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567" }).ref).toBeUndefined();
+  });
+
   it("honeypot `company` проходить Zod (рішення — у сценарії, фейковий успіх)", () => {
     const result = leadSchema.safeParse({ ...validLead, company: "Spam Inc" });
     expect(result.success).toBe(true);

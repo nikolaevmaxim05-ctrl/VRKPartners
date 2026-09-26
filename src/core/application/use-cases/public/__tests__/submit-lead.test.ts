@@ -17,7 +17,9 @@ const T = {
   errorEmailInvalid: 'email',
 }
 
-function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean } = {}) {
+type RefOpt = { id: string; name: string; is_active: boolean } | null | 'error' | 'throw'
+
+function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean; referral?: RefOpt } = {}) {
   const leads = {
     findFirstIdByPhone: vi.fn(async (phone: string) => dbOk(phone === STORED_PHONE ? 'orig-1' : null)),
     findFirstIdByIpSince: vi.fn(async () => dbOk(null)),
@@ -37,8 +39,15 @@ function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: bo
     notifiers,
     clock: { now: () => NOW },
     rateLimitBypass: () => opts.bypass ?? false,
+    referrals: {
+      findByCode: vi.fn(async () => {
+        if (opts.referral === 'error') return dbFail('db down')
+        if (opts.referral === 'throw') throw new Error('boom')
+        return dbOk(opts.referral ?? null)
+      }),
+    },
   }
-  return { submit: makeSubmitLead(deps as never), deps, leads, notifiers }
+  return { submit: makeSubmitLead(deps as never), deps, leads, notifiers, referrals: deps.referrals }
 }
 
 const quiet = () => {
@@ -149,6 +158,8 @@ describe('submit-lead', () => {
         locale: 'uk',
         gclid: 'g1',
         message: 'Форма: hero',
+        referral_link_id: null,
+        referral_code: null,
       }),
     )
     expect(notifiers.keycrm.send).toHaveBeenCalledOnce()
@@ -190,5 +201,66 @@ describe('submit-lead', () => {
     const { submit, leads } = setup({ notifyOk: false })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
     expect(leads.insert).toHaveBeenCalledOnce()
+  })
+})
+
+describe('submit-lead — реферал (відхилення 11)', () => {
+  const ACTIVE = { id: 'link-1', name: 'Агенція', is_active: true }
+
+  it('4. пріоритет cookie → тіло → ?ref сторінки; активне посилання → referral_link_id + код, «Партнер» у сповіщенні', async () => {
+    quiet()
+    const { submit, leads, referrals, notifiers } = setup({ referral: ACTIVE })
+    await submit({ ...valid, ref: 'bodycode', page: 'https://vrk.com.ua/?ref=pagecode' }, { ...ctx, referralCookie: 'COOKIE12' })
+    expect(referrals.findByCode).toHaveBeenCalledWith('cookie12')
+    expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: 'link-1', referral_code: 'cookie12' }))
+    expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'cookie12', name: 'Агенція', state: 'active' } }))
+
+    const noCookie = setup({ referral: ACTIVE })
+    await noCookie.submit({ ...valid, ref: 'bodycode', page: 'https://vrk.com.ua/?ref=pagecode' }, ctx)
+    expect(noCookie.referrals.findByCode).toHaveBeenCalledWith('bodycode')
+    const pageOnly = setup({ referral: ACTIVE })
+    await pageOnly.submit({ ...valid, page: 'https://vrk.com.ua/?ref=pagecode' }, ctx)
+    expect(pageOnly.referrals.findByCode).toHaveBeenCalledWith('pagecode')
+  })
+
+  it('4. невідомий код → id null, код збережено; вимкнене посилання → id null, код і назва в сповіщенні', async () => {
+    quiet()
+    const unknown = setup({ referral: null })
+    await unknown.submit({ ...valid, ref: 'nope1234' }, ctx)
+    expect(unknown.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: 'nope1234' }))
+    expect(unknown.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'nope1234', name: null, state: 'unknown' } }))
+    const inactive = setup({ referral: { id: 'link-2', name: 'Старий', is_active: false } })
+    await inactive.submit({ ...valid, ref: 'old12345' }, ctx)
+    expect(inactive.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: 'old12345' }))
+    expect(inactive.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'old12345', name: 'Старий', state: 'inactive' } }))
+  })
+
+  it('4. помилка або виняток пошуку → лід записаний без привʼязки, відповідь ok', async () => {
+    quiet()
+    for (const referral of ['error', 'throw'] as const) {
+      const { submit, leads } = setup({ referral })
+      expect(await submit({ ...valid, ref: 'abcd1234' }, ctx)).toEqual({ ok: true, value: { duplicate: false } })
+      expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: 'abcd1234' }))
+    }
+  })
+
+  it('4. без коду → findByCode не викликається; honeypot і ліміт → теж ні; дубль → пошук є, «Партнер» у коментарі [ПОВТОР]', async () => {
+    quiet()
+    const plain = setup({ referral: ACTIVE })
+    await plain.submit(valid, ctx)
+    expect(plain.referrals.findByCode).not.toHaveBeenCalled()
+    const bot = setup({ referral: ACTIVE })
+    await bot.submit({ ...valid, ref: 'abcd1234', company: 'bot' }, ctx)
+    expect(bot.referrals.findByCode).not.toHaveBeenCalled()
+    const limited = setup({ referral: ACTIVE, count: LEAD_RATE_LIMIT.max })
+    await limited.submit({ ...valid, ref: 'abcd1234' }, ctx)
+    expect(limited.referrals.findByCode).not.toHaveBeenCalled()
+    const dup = setup({ referral: ACTIVE })
+    const r = await dup.submit({ ...valid, phone: STORED_PHONE, ref: 'abcd1234' }, ctx)
+    expect(r).toEqual({ ok: true, value: { duplicate: true } })
+    expect(dup.referrals.findByCode).toHaveBeenCalledWith('abcd1234')
+    const comment = (dup.deps.comments.insertMany.mock.calls[0] as unknown as [{ content: string }[]])[0][0].content
+    expect(comment).toContain('Партнер: Агенція')
+    expect(dup.leads.insert).not.toHaveBeenCalled()
   })
 })

@@ -2,6 +2,7 @@
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier } from '@core/application/ports/notifications'
 import { hasUtm, utmEntries } from '@core/domain/lead/utm'
+import { describeReferral } from '@core/domain/referral/link-rules'
 import { getServiceLabel } from '@core/domain/lead/services'
 import { escapeHtml, kyivNow } from './format'
 
@@ -29,6 +30,7 @@ export function makeTelegramNotifier(deps: { config: IntegrationConfig; siteName
         `<b>Послуга:</b> ${escapeHtml(getServiceLabel(data.service))}`,
       ]
       if (data.comment) lines.push(`<b>Коментар:</b> ${escapeHtml(data.comment)}`)
+      if (data.referral) lines.push(`<b>🤝 ${escapeHtml(describeReferral(data.referral))}</b>`)
       if (hasUtm(data.utm)) {
         lines.push(``, `<b>📊 UTM:</b>`)
         for (const [label, value] of utmEntries(data.utm)) lines.push(`• ${escapeHtml(label)}: ${escapeHtml(value)}`)

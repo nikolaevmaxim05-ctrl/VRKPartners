@@ -7,12 +7,15 @@ import {
   normalizeUtm,
   type UtmData,
 } from "@/features/landing/lib/utm";
+import { captureRefFromUrl } from "@/features/landing/lib/referral";
 
 // Невидимий компонент: на маунті зчитує UTM-мітки з URL і складає їх у sessionStorage.
 // Логіка last-touch: нові мітки з URL перезаписують збережені (тільки ті ключі, що є в URL).
 // referrer фіксується один раз — на першому візиті в сесії.
 export function UtmTracker() {
   useEffect(() => {
+    // Реферальний код із ?ref= — дзеркало HttpOnly-cookie (відхилення 11).
+    captureRefFromUrl();
     try {
       const params = new URLSearchParams(window.location.search);
 

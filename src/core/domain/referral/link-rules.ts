@@ -24,6 +24,16 @@ export type ReferralLinkStats = {
   last_at: string | null
 }
 
+/** Що знаємо про реферал заявки для сповіщень і коментаря «[ПОВТОР]». */
+export type ReferralNote = { code: string; name: string | null; state: 'active' | 'inactive' | 'unknown' }
+
+/** Рядок для Telegram/KeyCRM/email/коментаря: «Партнер: <назва>» або код зі станом. */
+export function describeReferral(ref: ReferralNote): string {
+  if (ref.state === 'active' && ref.name) return `Партнер: ${ref.name}`
+  if (ref.state === 'inactive') return `Реф. код: ${ref.code} — посилання вимкнене${ref.name ? ` (${ref.name})` : ''}`
+  return `Реф. код: ${ref.code} — посилання не знайдено`
+}
+
 export const REF_NAME_MAX = 80
 export const REF_NOTES_MAX = 500
 

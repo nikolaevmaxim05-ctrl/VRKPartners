@@ -5,6 +5,7 @@
 // мову, а клієнт редагує їх з адмінки. Поля форми: імʼя + телефон (+ honeypot `company`);
 // email/service/comment — необовʼязкові (форма їх не показує, API приймає).
 import { z } from 'zod'
+import { normalizeRefCode } from '../referral/code'
 import { normalizePhone } from './phone'
 
 export type LeadSchemaMessages = {
@@ -71,6 +72,8 @@ export function makeLeadSchema(t: LeadSchemaMessages) {
     page: z.string().max(2048).optional(),
     // Мова сторінки (leads.locale)
     locale: z.string().max(10).optional(),
+    // Реферальний код партнера (дзеркало cookie lead_ref): невалідний → undefined, ніколи не 400.
+    ref: z.unknown().optional().transform((v) => normalizeRefCode(v) ?? undefined),
   })
 }
 

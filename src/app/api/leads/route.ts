@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSubmitLead } from '@composition/container'
 import { errorResponse, readJson } from '@/presentation/http'
 import { getClientIp, logIpHeaders } from '@/presentation/client-ip'
+import { REF_COOKIE } from '@core/domain/referral/code'
 
 export const runtime = 'nodejs'
 
@@ -16,7 +17,11 @@ export async function POST(request: NextRequest) {
 
   let result
   try {
-    result = await getSubmitLead()(parsed.body, { ip, userAgent: request.headers.get('user-agent') })
+    result = await getSubmitLead()(parsed.body, {
+      ip,
+      userAgent: request.headers.get('user-agent'),
+      referralCookie: request.cookies.get(REF_COOKIE)?.value ?? null,
+    })
   } catch (err) {
     // Несподіваний виняток (напр. збірка контейнера без env) — відповідь зі стандартним тілом, не порожній 500.
     console.error('[lead] unexpected', err)

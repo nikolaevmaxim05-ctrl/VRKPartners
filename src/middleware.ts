@@ -12,6 +12,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { getSessionUserId } from '@infra/supabase/session'
 import { routing } from '@/i18n/routing'
+import { refCodeFromPath, normalizeRefCode, REF_COOKIE, REF_QUERY_KEY, REF_TTL_DAYS } from '@core/domain/referral/code'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -78,6 +79,20 @@ function isForeignOrigin(request: NextRequest): boolean {
 
 const intlMiddleware = createMiddleware(routing)
 
+/**
+ * Реферальна cookie (відхилення 11): HttpOnly, без PII, last-touch, `secure` за протоколом запиту
+ * (e2e ходять по http://127.0.0.1). Ставиться лише на сторінках сайту (гілка 3) і лише для валідного коду.
+ */
+function setReferralCookie(response: NextResponse, code: string, request: NextRequest): void {
+  response.cookies.set(REF_COOKIE, code, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: REF_TTL_DAYS * 24 * 3600,
+    secure: request.nextUrl.protocol === 'https:',
+  })
+}
+
 /** Файлові маршрути (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не сторінки сайту.
  * Перевірка ЗА РОЗШИРЕННЯМ (розділ 16): адреса на кшталт /foo.bar лишається сторінкою і йде в next-intl. */
 const STATIC_FILE_RE = /\.(?:ico|png|jpe?g|gif|webp|avif|svg|css|js|map|txt|xml|json|webmanifest|woff2?|ttf|otf|eot|mp4|webm|pdf)$/i
@@ -121,7 +136,21 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Гілка 3: сайт → next-intl (внутрішній rewrite у сегмент [locale]) + security headers ──
-  return applySecurityHeaders(intlMiddleware(request))
+  // /r/<code> — канонічне посилання партнера: 302 на головну з ?ref=<code> і рештою query (UTM
+  // партнера зберігаються); шлях фіксований — без open redirect. Невалідний код → штатний 404 сайту.
+  const refFromPath = refCodeFromPath(pathname)
+  if (refFromPath) {
+    const target = new URL('/', request.nextUrl.origin)
+    request.nextUrl.searchParams.forEach((value, key) => target.searchParams.append(key, value))
+    target.searchParams.set(REF_QUERY_KEY, refFromPath)
+    const redirect = NextResponse.redirect(target, 302)
+    setReferralCookie(redirect, refFromPath, request)
+    return applySecurityHeaders(redirect)
+  }
+  const siteResponse = intlMiddleware(request)
+  const refFromQuery = normalizeRefCode(request.nextUrl.searchParams.get(REF_QUERY_KEY))
+  if (refFromQuery) setReferralCookie(siteResponse, refFromQuery, request)
+  return applySecurityHeaders(siteResponse)
 }
 
 export const config = {

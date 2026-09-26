@@ -112,6 +112,33 @@ test('приймач заявок без запису: невалідний JSON
   if (before !== null) expect(after, 'honeypot не створює лідів').toBe(before)
 })
 
+test('реферальні переходи: /r/<code> → 302 на /?ref=…&utm (з security-заголовками і HttpOnly cookie), /r/Bad..code → 404, задовгий ?ref → без Set-Cookie, /admin і /api без cookie', async ({ request }) => {
+  const r = await request.get('/r/E2Eabc12?utm_source=p&utm_campaign=c', { maxRedirects: 0 })
+  expect(r.status()).toBe(302)
+  const loc = new URL(r.headers()['location'], 'http://127.0.0.1:3100')
+  expect(loc.pathname).toBe('/')
+  expect(loc.searchParams.get('ref')).toBe('e2eabc12')
+  expect(loc.searchParams.get('utm_source')).toBe('p')
+  expect(loc.searchParams.get('utm_campaign')).toBe('c')
+  expectSecurityHeaders(r.headers(), '/r/<code>')
+  const setCookie = r.headers()['set-cookie'] ?? ''
+  expect(setCookie).toMatch(/lead_ref=e2eabc12/)
+  expect(setCookie).toMatch(/HttpOnly/i)
+  expect(setCookie).toMatch(/SameSite=Lax/i)
+  expect(setCookie).toMatch(/Max-Age=7776000/)
+  expect(setCookie, 'http → без Secure (за протоколом запиту)').not.toMatch(/Secure/i)
+
+  const bad = await request.get('/r/Bad..code', { maxRedirects: 0 })
+  expect(bad.status()).toBe(404)
+  const long = await request.get('/?ref=' + 'x'.repeat(200), { maxRedirects: 0 })
+  expect(long.status()).toBe(200)
+  expect(long.headers()['set-cookie'] ?? '').not.toContain('lead_ref')
+  const home = await request.get('/?ref=abcd1234', { maxRedirects: 0 })
+  expect(home.headers()['set-cookie'] ?? '').toContain('lead_ref=abcd1234')
+  const admin = await request.get('/admin/login?ref=abcd1234')
+  expect(admin.headers()['set-cookie'] ?? '', 'адмінка cookie не ставить').not.toContain('lead_ref')
+})
+
 test('CORS/Origin: відповіді публічного API без Access-Control-Allow-Origin (чужий origin у браузері не прочитає відповідь; сам запит не блокується — зафіксовано)', async ({ request }) => {
   const r = await postLead(request, '/api/leads', { name: 'Тест Бот', phone: '+380990001099', company: 'bot' }, { origin: 'https://evil.example', 'x-forwarded-for': '198.51.100.8' })
   expect(r.status()).toBe(200)

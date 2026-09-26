@@ -3,6 +3,7 @@
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier } from '@core/application/ports/notifications'
 import { utmEntries, type UtmData } from '@core/domain/lead/utm'
+import { describeReferral, type ReferralNote } from '@core/domain/referral/link-rules'
 import { getServiceLabel } from '@core/domain/lead/services'
 
 const KEYCRM_API_URL = 'https://openapi.keycrm.app/v1'
@@ -24,7 +25,7 @@ export function makeKeycrmNotifier(deps: {
 
       const serviceLabel = getServiceLabel(data.service)
       const utm = data.utm
-      const note = buildKeyCRMNote(data.comment, utm)
+      const note = buildKeyCRMNote(data.comment, utm, data.referral)
 
       const payload = {
         pipeline_id: Number(pipelineId),
@@ -62,9 +63,10 @@ export function makeKeycrmNotifier(deps: {
 }
 
 /** note: коментар клієнта + розшифровка UTM; undefined — якщо нема ні того, ні іншого. */
-function buildKeyCRMNote(comment: string | undefined, utm: UtmData | undefined): string | undefined {
+function buildKeyCRMNote(comment: string | undefined, utm: UtmData | undefined, referral?: ReferralNote): string | undefined {
   const parts: string[] = []
   if (comment) parts.push(comment)
+  if (referral) parts.push(describeReferral(referral))
   const entries = utmEntries(utm)
   if (entries.length > 0) {
     parts.push(`UTM:\n${entries.map(([label, value]) => `- ${label}: ${value}`).join('\n')}`)
