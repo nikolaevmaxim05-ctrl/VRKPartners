@@ -160,6 +160,14 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
         .eq('status_id', statusId)
       return count ?? 0
     },
+
+    async countByReferralLink(linkId) {
+      const { count } = await db()
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('referral_link_id', linkId)
+      return count ?? 0
+    },
   }
 }
 

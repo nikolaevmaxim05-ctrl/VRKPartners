@@ -13,6 +13,7 @@ export type Permission =
   | 'manage_integrations'
   | 'manage_content'
   | 'manage_conversions'
+  | 'manage_referrals'
 
 export const ALL_PERMISSIONS: Permission[] = [
   'manage_leads',
@@ -25,6 +26,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'manage_integrations',
   'manage_content',
   'manage_conversions',
+  'manage_referrals',
 ]
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -38,6 +40,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   manage_integrations: 'Інтеграції',
   manage_content: 'Редагування контенту сайту',
   manage_conversions: 'Офлайн конверсії',
+  manage_referrals: 'Реферальні посилання',
 }
 
 // Пояснення для кожного права (показуються підказками в редакторі ролей).
@@ -52,6 +55,7 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   manage_integrations: 'Telegram, CRM, Google-теги та інші інтеграції.',
   manage_content: 'Редагування контенту лендингу: тексти, послуги, кейси, FAQ, контакти.',
   manage_conversions: 'Перегляд офлайн-конверсій та вивантаження в Google Ads.',
+  manage_referrals: 'Реферальні посилання партнерів: створення, вимкнення, статистика заявок.',
 }
 
 export type UserRoleInfo = {

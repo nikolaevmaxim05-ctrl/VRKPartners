@@ -26,6 +26,9 @@ export type LeadInsert = {
   status_id: string | null
   /** Мова сторінки заявки (leads.locale, міграція 029). */
   locale?: string | null
+  /** Реферальне посилання (міграція 035): id активного посилання; код — знімок на момент заявки. */
+  referral_link_id?: string | null
+  referral_code?: string | null
 }
 
 export type LeadListFilters = {
@@ -40,6 +43,8 @@ export type LeadListFilters = {
   assignedTo: string
   dateFrom: string
   dateTo: string
+  /** uuid посилання | 'none' (без посилання) | '' (усі). */
+  referralLinkId?: string
 }
 
 export type LeadRow = Record<string, unknown> & { id: string; assigned_to: string | null }
@@ -74,6 +79,8 @@ export interface LeadRepository {
   exists(id: string): Promise<boolean>
   getClickIds(id: string): Promise<DbResult<{ gclid: string | null; gbraid: string | null; wbraid: string | null } | null>>
   countByStatus(statusId: string): Promise<number>
+  /** Заявки, зараховані посиланню (заборона видалення посилання). */
+  countByReferralLink(linkId: string): Promise<number>
 }
 
 // ── Стадії ───────────────────────────────────────────────────────────────────

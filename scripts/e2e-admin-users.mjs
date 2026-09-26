@@ -27,7 +27,7 @@ const service = process.env.SUPABASE_SERVICE_ROLE_KEY
 const admin = { email: process.env.E2E_ADMIN_EMAIL, password: process.env.E2E_ADMIN_PASSWORD, role: process.env.E2E_ADMIN_ROLE }
 const minimal = { email: process.env.E2E_ADMIN2_EMAIL, password: process.env.E2E_ADMIN2_PASSWORD }
 const MINIMAL_ROLE = 'e2e-minimal'
-const ALL_PERMISSIONS = ['manage_leads', 'manage_users', 'manage_settings', 'view_reports', 'manage_roles', 'export_data', 'delete_leads', 'manage_integrations', 'manage_content', 'manage_conversions']
+const ALL_PERMISSIONS = ['manage_leads', 'manage_users', 'manage_settings', 'view_reports', 'manage_roles', 'export_data', 'delete_leads', 'manage_integrations', 'manage_content', 'manage_conversions', 'manage_referrals']
 
 if (!url || !service) {
   console.error('Потрібні NEXT_PUBLIC_SUPABASE_URL і SUPABASE_SERVICE_ROLE_KEY')

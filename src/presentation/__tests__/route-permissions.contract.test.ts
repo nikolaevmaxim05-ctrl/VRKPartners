@@ -12,6 +12,8 @@ const VIEW = SETS.LEAD_VIEW_PERMISSIONS
 const CONV = SETS.CONVERSION_PERMISSIONS
 const INT = SETS.INTEGRATION_PERMISSIONS
 const ROLE = SETS.ROLE_PERMISSIONS
+const REF = SETS.REFERRAL_PERMISSIONS
+const REF_READ = SETS.REFERRAL_READ_PERMISSIONS
 
 type Methods = Partial<Record<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', string[] | null>>
 
@@ -56,6 +58,9 @@ const EXPECTED: Record<string, Methods> = {
   'tracking-tags/[id]': { PATCH: INT, DELETE: INT },
   users: { GET: [], POST: ['manage_users'] },
   'users/[id]': { PATCH: ['manage_users'], DELETE: ['manage_users'] },
+  'referral-links': { GET: REF_READ, POST: REF },
+  'referral-links/[id]': { PATCH: REF, DELETE: REF },
+  'referral-links/stats': { GET: REF },
 }
 
 function routeFiles(dir: string): string[] {

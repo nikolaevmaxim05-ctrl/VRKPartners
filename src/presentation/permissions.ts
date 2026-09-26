@@ -15,3 +15,9 @@ export const INTEGRATION_PERMISSIONS: Permission[] = ['manage_settings', 'manage
 
 /** Ролі: окреме manage_roles АБО загальне manage_users. */
 export const ROLE_PERMISSIONS: Permission[] = ['manage_roles', 'manage_users']
+
+/** Реферальні посилання (відхилення 11): мутації — лише окреме право, без фолбека на manage_users. */
+export const REFERRAL_PERMISSIONS: Permission[] = ['manage_referrals']
+
+/** Довідник назв партнерів (фільтри заявок, бейджі, аналітика) — усі, хто бачить заявки/звіти. */
+export const REFERRAL_READ_PERMISSIONS: Permission[] = ['manage_leads', 'view_reports', 'export_data', 'manage_conversions', 'manage_referrals']

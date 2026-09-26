@@ -14,6 +14,7 @@ import { makeUserUseCases } from '@core/application/use-cases/admin/manage-users
 import { makeContentUseCases } from '@core/application/use-cases/admin/manage-content'
 import { makeIntegrationUseCases } from '@core/application/use-cases/admin/manage-integrations'
 import { makeTrackingTagUseCases } from '@core/application/use-cases/admin/manage-tracking-tags'
+import { makeReferralLinkUseCases } from '@core/application/use-cases/admin/manage-referral-links'
 import { makeSettingsUseCases } from '@core/application/use-cases/admin/update-settings'
 import { makeAnalyticsEventsUseCases } from '@core/application/use-cases/admin/analytics-events'
 import { makeReportUseCases } from '@core/application/use-cases/admin/build-report'
@@ -36,6 +37,7 @@ import { makeUserRepository } from '@infra/supabase/repositories/users'
 import { makeContentRepository } from '@infra/supabase/repositories/content'
 import { makeSettingsRepository } from '@infra/supabase/repositories/settings'
 import { makeTrackingTagRepository } from '@infra/supabase/repositories/tracking-tags'
+import { makeReferralLinkRepository } from '@infra/supabase/repositories/referral-links'
 import {
   makeIntegrationSecretsRepository,
   readEncryptedRow,
@@ -56,6 +58,7 @@ import { makeIntegrationTester } from '@infra/integrations/tester'
 import { ga4Client } from '@infra/integrations/ga4'
 import { excelBuilder } from '@infra/export/excel'
 import { systemClock } from '@infra/clock'
+import { randomInt } from 'node:crypto'
 
 import { getDefaultMessages, getDefaultSeo, getDefaultLegalContent } from '@/shared/content/defaults'
 
@@ -89,6 +92,7 @@ const userRepo = once(() => makeUserRepository(serviceClient))
 const contentRepo = once(() => makeContentRepository(serviceClient))
 const settingsRepo = once(() => makeSettingsRepository(serviceClient))
 const tagRepo = once(() => makeTrackingTagRepository(serviceClient))
+const referralRepo = once(() => makeReferralLinkRepository(serviceClient))
 const secretsRepo = once(() => makeIntegrationSecretsRepository(serviceClient, aesGcmCipher))
 // Журнал дій адмінів (audit_log) — один на всі сценарії.
 const auditRepo = once(() => makeAuditLogRepository(serviceClient))
@@ -171,6 +175,10 @@ export const getStageUseCases = once(() =>
 export const getCustomFieldUseCases = once(() => makeCustomFieldUseCases({ customFields: customFieldRepo(), audit: auditLog() }))
 
 export const getRoleUseCases = once(() => makeRoleUseCases({ roles: roleRepo(), users: userRepo(), audit: auditLog() }))
+
+export const getReferralLinkUseCases = once(() =>
+  makeReferralLinkUseCases({ links: referralRepo(), leads: leadRepo(), clock: systemClock, randomInt: (max) => randomInt(max), audit: auditLog() }),
+)
 
 export const getUserUseCases = once(() =>
   makeUserUseCases({ users: userRepo(), roles: roleRepo(), clock: systemClock, audit: auditLog() }),
