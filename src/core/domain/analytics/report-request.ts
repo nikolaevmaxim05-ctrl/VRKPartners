@@ -19,6 +19,8 @@ export interface ReportServerParams {
   filter_assignee_ids?: string
   filter_status_ids: string       // UUID через кому
   filter_gclid: 'any' | 'with' | 'without'
+  /** Реферальне посилання: UUID, 'none' (без посилання) або порожньо (всі). */
+  filter_referral_link_id?: string
   /** Фільтр по конкретному значенню поточного розрізу (group_by). */
   filter_group_value?: string
   /** Розбивка графіка по виміру. */
@@ -29,13 +31,22 @@ export interface ReportServerParams {
   breakdown_metrics?: string
 }
 
+/** Фільтр реферального посилання: '' (всі) | 'none' (без посилання) | UUID. */
+export const referralLinkFilterSchema = z
+  .string()
+  .optional()
+  .default('')
+  .refine((v) => v === '' || v === 'none' || UUID_REGEX.test(v), {
+    message: "filter_referral_link_id має бути UUID або 'none'",
+  })
+
 export const reportParamsSchema = z.object({
   date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date_from має бути YYYY-MM-DD'),
   date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date_to має бути YYYY-MM-DD'),
   group_by: z
     .enum([
       'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-      'status', 'service', 'assigned_to',
+      'status', 'service', 'assigned_to', 'referral_link',
       'day', 'week', 'month',
       'custom_field',
     ])
@@ -48,10 +59,11 @@ export const reportParamsSchema = z.object({
   filter_assignee_ids: z.string().optional().default(''),
   filter_status_ids:   z.string().optional().default(''),
   filter_gclid:        z.enum(['any', 'with', 'without']).default('any'),
+  filter_referral_link_id: referralLinkFilterSchema,
   filter_group_value:  z.string().optional().default(''),
   breakdown: z
     .enum(['none', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-           'status', 'service', 'assigned_to'])
+           'status', 'service', 'assigned_to', 'referral_link'])
     .optional()
     .default('none'),
   breakdown_metric: z
@@ -90,6 +102,7 @@ export function parseReportQuery(
     filter_assignee_ids: get('filter_assignee_ids') ?? '',
     filter_status_ids:   get('filter_status_ids')   ?? '',
     filter_gclid:        get('filter_gclid')        ?? 'any',
+    filter_referral_link_id: get('filter_referral_link_id') ?? '',
     filter_group_value:  get('filter_group_value')  ?? '',
     breakdown:           get('breakdown')           ?? 'none',
     breakdown_metric:    get('breakdown_metric')    ?? 'total',

@@ -1,7 +1,7 @@
 // core/domain/analytics/export-request — тіло запиту вивантаження (Zod), порядок полів, імʼя файлу.
 // Перенесено з /api/admin/analytics/export без зміни поведінки.
 import { z } from 'zod'
-import type { ReportServerParams } from './report-request'
+import { referralLinkFilterSchema, type ReportServerParams } from './report-request'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -14,10 +14,11 @@ export const exportFiltersSchema = z.object({
   filter_assignee_ids: z.array(z.string()).optional().default([]),
   filter_status_ids:   z.array(z.string()).optional().default([]),
   filter_gclid:        z.enum(['any', 'with', 'without']).optional().default('any'),
+  filter_referral_link_id: referralLinkFilterSchema,
 })
 
 export const leadExportFieldSchema = z.enum([
-  'dates', 'utm_source', 'all_utm', 'status', 'custom_fields',
+  'dates', 'utm_source', 'referral_link', 'all_utm', 'status', 'custom_fields',
   'manager_history', 'comments', 'phone', 'email', 'service',
   'assigned_to', 'deal_amount', 'was_target', 'was_non_target',
 ])
@@ -29,7 +30,7 @@ export type ExportFilters = z.infer<typeof exportFiltersSchema>
 export const LEAD_FIELD_ORDER: LeadExportField[] = [
   'dates', 'phone', 'email', 'service', 'status', 'assigned_to',
   'deal_amount', 'was_target', 'was_non_target',
-  'utm_source', 'all_utm', 'custom_fields', 'manager_history', 'comments',
+  'utm_source', 'referral_link', 'all_utm', 'custom_fields', 'manager_history', 'comments',
 ]
 
 export function orderLeadFields(fields: LeadExportField[]): LeadExportField[] {
@@ -100,5 +101,6 @@ export function filtersToReportParams(
     filter_assignee_ids: (filters.filter_assignee_ids ?? []).join(','),
     filter_status_ids:   (filters.filter_status_ids ?? []).join(','),
     filter_gclid:        filters.filter_gclid ?? 'any',
+    filter_referral_link_id: filters.filter_referral_link_id ?? '',
   }
 }

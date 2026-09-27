@@ -41,6 +41,7 @@ export type GroupBy =
   | 'status'        // Стадія
   | 'service'       // Послуга
   | 'assigned_to'   // Відповідальний
+  | 'referral_link' // Реферальне посилання (партнер)
   | 'day'           // День
   | 'week'          // Тиждень
   | 'month'         // Місяць
@@ -76,6 +77,8 @@ export interface ReportParams {
   filterStatusIds?: string[]
   /** Доп. фільтр: наявність gclid. Default: 'any'. */
   filterGclid?: 'any' | 'with' | 'without'
+  /** Доп. фільтр: реферальне посилання — UUID або 'none' (без посилання). Порожній = всі. */
+  filterReferralLinkId?: string
   /**
    * Доп. фільтр по КОНКРЕТНОМУ значенню поточного розрізу (groupBy).
    * Напр. groupBy='utm_campaign' + filterGroupValue='spring_sale' → лишити
@@ -116,6 +119,12 @@ export interface LeadForAggregation {
   status_id: string | null
   /** Колір стадії — для UI. */
   status_color: string | null
+  /** Реферальне посилання (партнер), за яким прийшла заявка; null — без посилання. */
+  referral_link_id: string | null
+  /** Назва партнера з embed referral_links (для міток розрізу/розбивки). */
+  referral_link_name: string | null
+  /** Код з переходу, якщо посилання не знайдено/вимкнене на момент заявки. */
+  referral_code: string | null
   /**
    * Значення обраного кастомного поля для цього ліда.
    * Підставляється route-ом при group_by=custom_field або відповідних фільтрах.
@@ -248,7 +257,13 @@ export type BreakdownDimension =
   | 'status'
   | 'service'
   | 'assigned_to'
+  | 'referral_link'
   | 'custom_field'
+
+/** Ключ групи «без реферального посилання» (розріз/розбивка referral_link). */
+export const NO_REFERRAL_KEY = '(без посилання)'
+/** Підпис групи «без реферального посилання» в UI/експорті. */
+export const NO_REFERRAL_LABEL = 'Без посилання'
 
 /**
  * Повна відповідь GET /api/admin/analytics/report.
@@ -431,6 +446,8 @@ export function getGroupKey(lead: LeadForAggregation, groupBy: GroupBy): string 
       return lead.assigned_to ?? '(невідомо)'
     case 'status':
       return lead.status_id ?? '(невідомо)'
+    case 'referral_link':
+      return lead.referral_link_id ?? NO_REFERRAL_KEY
     case 'day':
       return toKyivDateKey(lead.created_at)
     case 'week':
@@ -673,6 +690,7 @@ export function filterLeads(
     | 'filterAssigneeIds'
     | 'filterStatusIds'
     | 'filterGclid'
+    | 'filterReferralLinkId'
     | 'filterGroupValue'
   > & { groupBy?: GroupBy },
 ): LeadForAggregation[] {
@@ -695,6 +713,13 @@ export function filterLeads(
     // Фільтр по gclid
     if (params.filterGclid === 'with' && !lead.gclid)   return false
     if (params.filterGclid === 'without' && !!lead.gclid) return false
+
+    // Фільтр по реферальному посиланню: 'none' — лише без посилання, інакше — конкретне
+    if (params.filterReferralLinkId === 'none') {
+      if (lead.referral_link_id) return false
+    } else if (params.filterReferralLinkId && lead.referral_link_id !== params.filterReferralLinkId) {
+      return false
+    }
 
     // Універсальний фільтр по значенню поточного розрізу.
     // getGroupKey коректно витягує значення для будь-якого виміру

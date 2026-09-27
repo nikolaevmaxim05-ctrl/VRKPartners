@@ -1,6 +1,6 @@
 // core/domain/analytics/export-leads — побудова таблиці вивантаження лідів (заголовки + рядки).
 // Чиста логіка з /api/admin/analytics/export (handleLeadsExport) без зміни поведінки.
-import type { DbLeadRow } from './report-breakdown'
+import { referralNameOf, type DbLeadRow } from './report-breakdown'
 import type { LeadExportField } from './export-request'
 import { wasTargetPredicate, wasNonTargetPredicate } from './export'
 import { formatKyivDateTime } from './format'
@@ -104,6 +104,9 @@ export function buildLeadExportTable(input: LeadExportTableInput): { headers: st
       case 'utm_source':
         headers.push('Джерело (utm_source)')
         break
+      case 'referral_link':
+        headers.push('Реферальне посилання')
+        break
       case 'all_utm':
         headers.push('UTM Medium', 'UTM Campaign', 'UTM Term', 'UTM Content', 'GCLId', 'FBCLId', 'TTCLId', 'Referrer')
         break
@@ -172,6 +175,10 @@ export function buildLeadExportTable(input: LeadExportTableInput): { headers: st
         }
         case 'utm_source':
           cells.push(row.utm_source)
+          break
+        case 'referral_link':
+          // Назва партнера; лише код — посилання не знайдено/вимкнене на момент заявки.
+          cells.push(referralNameOf(row) ?? (row.referral_code ? `${row.referral_code} (не знайдено або вимкнене)` : null))
           break
         case 'all_utm':
           cells.push(

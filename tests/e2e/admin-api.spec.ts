@@ -663,6 +663,31 @@ test('8 аналітика: звіт по відомих лідах, значе�
   expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: dayFrom, date_to: dayTo }, leadFields: ['phone'], dealAmountFrom: 10, dealAmountTo: 1 } })).status()).toBe(400)
   const empty = await api.get('/api/admin/analytics/report?date_from=2000-01-01&date_to=2000-01-02')
   expect(empty.status(), 'порожній період → 200').toBe(200)
+
+  // Реферальне посилання: розріз, розбивка, фільтр (UUID | none | невалідний → 400), колонка CSV.
+  const refLinkRes = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер аналітика` } })
+  expect(refLinkRes.status(), await refLinkRes.text()).toBe(200)
+  const refLink = ((await refLinkRes.json()) as { data: { id: string; code: string; name: string } }).data
+  expect((await db().from('leads').update({ referral_link_id: refLink.id, referral_code: refLink.code }).eq('id', extra.id)).error).toBeNull()
+  const byRef = (await (await api.get(`/api/admin/analytics/report?date_from=${dayFrom}&date_to=${dayTo}&group_by=referral_link&filter_referral_link_id=${refLink.id}`)).json()) as { total: { total: number }; rows: { key: string; label: string; total: number }[] }
+  expect(byRef.total.total, 'фільтр по посиланню — лише extra').toBe(1)
+  expect(byRef.rows).toHaveLength(1)
+  expect(byRef.rows[0]).toMatchObject({ key: refLink.id, label: refLink.name, total: 1 })
+  const grouped = (await (await api.get(`/api/admin/analytics/report?date_from=${dayFrom}&date_to=${dayTo}&group_by=referral_link&breakdown=referral_link&breakdown_metrics=total&filter_utm_source=e2e-src`)).json()) as { rows: { key: string; label: string; total: number }[]; timeseriesBreakdown: { series: { label: string }[] } }
+  expect(grouped.rows.map((r) => [r.label, r.total])).toEqual(expect.arrayContaining([[refLink.name, 1], ['Без посилання', 1]]))
+  expect(grouped.timeseriesBreakdown.series.map((s) => s.label)).toEqual(expect.arrayContaining([refLink.name, 'Без посилання']))
+  const noneRep = (await (await api.get(`/api/admin/analytics/report?date_from=${dayFrom}&date_to=${dayTo}&filter_utm_source=e2e-src&filter_referral_link_id=none`)).json()) as { total: { total: number } }
+  expect(noneRep.total.total, 'none → лише leadA без посилання').toBe(1)
+  expect((await api.get(`/api/admin/analytics/report?date_from=${dayFrom}&date_to=${dayTo}&filter_referral_link_id=abc`)).status(), 'невалідний фільтр → 400').toBe(400)
+  const refCsv = await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: dayFrom, date_to: dayTo, filter_referral_link_id: refLink.id }, leadFields: ['phone', 'referral_link'] } })
+  expect(refCsv.status(), await refCsv.text()).toBe(200)
+  const refBody = await refCsv.text()
+  expect(refBody).toContain('Реферальне посилання')
+  expect(refBody).toContain(refLink.name)
+  expect((refBody.match(/\n/g) ?? []).length, 'заголовок + 1 рядок').toBeLessThanOrEqual(2)
+  expect((await api.post('/api/admin/analytics/export', { data: { format: 'csv', tab: 'leads', filters: { date_from: dayFrom, date_to: dayTo, filter_referral_link_id: 'abc' }, leadFields: ['phone'] } })).status()).toBe(400)
+  expect((await db().from('leads').update({ referral_link_id: null, referral_code: null }).eq('id', extra.id)).error).toBeNull()
+  expect((await api.delete(`/api/admin/referral-links/${refLink.id}`)).status()).toBe(200)
 })
 
 // ── 10. Публічний приймач: повний шлях із записом (за прапорцем — реальні сповіщення клієнту) ──

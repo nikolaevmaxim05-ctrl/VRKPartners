@@ -29,24 +29,9 @@ import { DatePicker } from '@/shared/ui/date-picker'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group'
 import type { TsGranularity } from '@core/domain/analytics/report'
+import type { LeadExportField as LeadField } from '@core/domain/analytics/export-request'
 
 // ─── Типи ────────────────────────────────────────────────────────────────────
-
-type LeadField =
-  | 'dates'
-  | 'utm_source'
-  | 'all_utm'
-  | 'status'
-  | 'custom_fields'
-  | 'manager_history'
-  | 'comments'
-  | 'phone'
-  | 'email'
-  | 'service'
-  | 'assigned_to'
-  | 'deal_amount'
-  | 'was_target'
-  | 'was_non_target'
 
 type SummaryColumn =
   | 'total'
@@ -77,6 +62,8 @@ export type ExportBuilderProps = {
   filterService: string
   filterAssigneeIds: string[]
   filterStatusIds: string[]
+  /** 'all' | 'none' | UUID реферального посилання */
+  filterReferralLinkId: string
   filterGclid: 'any' | 'with' | 'without'
   /** Поточна гранулярність на сторінці (використовується як дефолт для вкладки 2) */
   granularity: TsGranularity
@@ -209,6 +196,13 @@ function LeadsTab({
           checked={fields.includes('utm_source')}
           onCheckedChange={() => toggle('utm_source')}
           label="Джерело (utm_source)"
+        />
+        <CheckboxRow
+          id="field-referral_link"
+          checked={fields.includes('referral_link')}
+          onCheckedChange={() => toggle('referral_link')}
+          label="Реферальне посилання"
+          description="Назва партнера; лише код — якщо посилання не знайдено або вимкнене"
         />
         <CheckboxRow
           id="field-all_utm"
@@ -603,6 +597,7 @@ export function ExportBuilderDialog({
   filterService,
   filterAssigneeIds,
   filterStatusIds,
+  filterReferralLinkId,
   filterGclid,
   granularity,
   flags,
@@ -742,6 +737,7 @@ export function ExportBuilderDialog({
     if (filterService && filterService !== 'all') filters.filter_service = filterService
     if (filterAssigneeIds.length > 0) filters.filter_assignee_ids = filterAssigneeIds
     if (filterStatusIds.length > 0) filters.filter_status_ids = filterStatusIds
+    if (filterReferralLinkId && filterReferralLinkId !== 'all') filters.filter_referral_link_id = filterReferralLinkId
     if (filterGclid !== 'any') filters.filter_gclid = filterGclid
 
     // Тіло запиту

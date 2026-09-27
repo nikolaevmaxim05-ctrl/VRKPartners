@@ -43,6 +43,7 @@ describe('parseReportQuery', () => {
         filter_assignee_ids: '',
         filter_status_ids: '',
         filter_gclid: 'any',
+        filter_referral_link_id: '',
         filter_group_value: '',
         breakdown: 'none',
         breakdown_metric: 'total',
@@ -79,6 +80,14 @@ describe('parseReportQuery', () => {
     expect(ok.ok && ok.params).toMatchObject({ group_by: 'custom_field', custom_field_id: UUID })
     // UUID без вимоги — не перевіряється
     expect(parseReportQuery(getFrom({ group_by: 'status', custom_field_id: 'abc' }), NOW).ok).toBe(true)
+  })
+
+  it("referral_link: розріз і розбивка приймаються; filter_referral_link_id — '' | 'none' | UUID, інакше помилка", () => {
+    const ok = parseReportQuery(getFrom({ group_by: 'referral_link', breakdown: 'referral_link', filter_referral_link_id: UUID }), NOW)
+    expect(ok.ok && ok.params).toMatchObject({ group_by: 'referral_link', breakdown: 'referral_link', filter_referral_link_id: UUID })
+    expect(parseReportQuery(getFrom({ filter_referral_link_id: 'none' }), NOW).ok).toBe(true)
+    const bad = parseReportQuery(getFrom({ filter_referral_link_id: 'abc' }), NOW)
+    expect(bad).toEqual({ ok: false, message: "filter_referral_link_id має бути UUID або 'none'" })
   })
 
   it('UUID_REGEX — нечутливий до регістру', () => {
@@ -144,8 +153,10 @@ describe('exportFiltersSchema', () => {
     expect(r.success && r.data).toEqual({
       ...filters,
       filter_utm_source: '', filter_service: '', filter_assigned_to: '',
-      filter_assignee_ids: [], filter_status_ids: [], filter_gclid: 'any',
+      filter_assignee_ids: [], filter_status_ids: [], filter_gclid: 'any', filter_referral_link_id: '',
     })
+    expect(exportFiltersSchema.safeParse({ ...filters, filter_referral_link_id: 'none' }).success).toBe(true)
+    expect(exportFiltersSchema.safeParse({ ...filters, filter_referral_link_id: 'abc' }).success).toBe(false)
     expect(exportFiltersSchema.safeParse({ date_from: 'x', date_to: '2026-01-31' }).success).toBe(false)
     expect(exportFiltersSchema.safeParse({ ...filters, filter_status_ids: 'a,b' }).success).toBe(false)
     expect(exportFiltersSchema.safeParse({ ...filters, filter_gclid: 'maybe' }).success).toBe(false)
@@ -218,7 +229,7 @@ describe('buildExportFileName / orderLeadFields / filtersToReportParams', () => 
     expect(filtersToReportParams(f, 'week')).toEqual({
       date_from: '2026-01-01', date_to: '2026-01-31', group_by: 'week', ts_granularity: 'week',
       filter_utm_source: '', filter_service: '', filter_assigned_to: '',
-      filter_assignee_ids: 'a,b', filter_status_ids: 's', filter_gclid: 'any',
+      filter_assignee_ids: 'a,b', filter_status_ids: 's', filter_gclid: 'any', filter_referral_link_id: '',
     })
     expect(filtersToReportParams(f).group_by).toBe('day')
   })

@@ -1,7 +1,7 @@
 // core/domain/analytics/report-breakdown — чисті частини lib/analytics-report-server.ts:
 // конвертація Київ→UTC, маппінг рядків БД у LeadForAggregation, розбивка часового ряду.
 // Отримання даних з БД лишається в серверному модулі (Фаза 2 → use-case build-report).
-import { toKyivDateKey, toKyivWeekKey, toKyivMonthKey, generateBuckets } from './report'
+import { toKyivDateKey, toKyivWeekKey, toKyivMonthKey, generateBuckets, NO_REFERRAL_KEY, NO_REFERRAL_LABEL } from './report'
 import type {
   LeadForAggregation,
   BreakdownDimension,
@@ -67,6 +67,16 @@ export type DbLeadRow = {
     color: string | null
     conversion_type: string | null
   } | null
+  referral_link_id: string | null
+  referral_code: string | null
+  /** Embed referral_links!left(id, name); відсутній у старих фікстурах → трактується як null. */
+  referral_links?: { id: string; name: string } | null
+}
+
+/** Назва партнера з embed (PostgREST може віддати обʼєкт або масив з одним елементом). */
+export function referralNameOf(row: Pick<DbLeadRow, 'referral_links'>): string | null {
+  const raw = Array.isArray(row.referral_links) ? row.referral_links[0] : row.referral_links
+  return raw?.name ?? null
 }
 
 // ─── Конвертація Kyiv-дати у UTC ─────────────────────────────────────────────
@@ -118,18 +128,22 @@ export function mapDbRowsToLeads(dbRows: DbLeadRow[]): LeadForAggregation[] {
       status_conversion_type: (statusRaw?.conversion_type ?? null) as LeadForAggregation['status_conversion_type'],
       status_name:            statusRaw?.name ?? null,
       status_color:           statusRaw?.color ?? null,
+      referral_link_id:       r.referral_link_id ?? null,
+      referral_link_name:     referralNameOf(r),
+      referral_code:          r.referral_code ?? null,
     }
   })
 }
+
+/** Словники key → підпис для вимірів, що потребують «олюднення» ключа (стадія, відповідальний, партнер). */
+export type BreakdownLabelMaps = Partial<Record<BreakdownDimension, Record<string, string>>>
 
 // ─── Ключ/підпис виміру розбивки ─────────────────────────────────────────────
 
 export function getBreakdownKey(
   lead: LeadForAggregation,
   dimension: BreakdownDimension,
-  statusLabelMap: Record<string, string>,
 ): string {
-  void statusLabelMap
   switch (dimension) {
     case 'utm_source':   return lead.utm_source   ?? '(невідомо)'
     case 'utm_medium':   return lead.utm_medium   ?? '(невідомо)'
@@ -138,10 +152,8 @@ export function getBreakdownKey(
     case 'utm_content':  return lead.utm_content  ?? '(невідомо)'
     case 'service':      return lead.service      ?? '(невідомо)'
     case 'assigned_to':  return lead.assigned_to  ?? '(невідомо)'
-    case 'status': {
-      const key = lead.status_id ?? '(невідомо)'
-      return key
-    }
+    case 'status':       return lead.status_id    ?? '(невідомо)'
+    case 'referral_link': return lead.referral_link_id ?? NO_REFERRAL_KEY
     default:             return '(невідомо)'
   }
 }
@@ -150,15 +162,11 @@ export function getBreakdownKey(
 export function getBreakdownLabel(
   key: string,
   dimension: BreakdownDimension,
-  statusLabelMap: Record<string, string>,
-  assigneeLabelMap: Record<string, string>,
+  labelMaps: BreakdownLabelMaps = {},
 ): string {
-  if (dimension === 'status') return statusLabelMap[key] ?? key
-  if (dimension === 'assigned_to') {
-    if (key === '(невідомо)') return 'Без відповідального'
-    return assigneeLabelMap[key] ?? key
-  }
-  return key
+  if (dimension === 'assigned_to' && key === '(невідомо)') return 'Без відповідального'
+  if (dimension === 'referral_link' && key === NO_REFERRAL_KEY) return NO_REFERRAL_LABEL
+  return labelMaps[dimension]?.[key] ?? key
 }
 
 type Bucket = {
@@ -191,8 +199,7 @@ export function buildTimeseriesBreakdown(
   granularity: TsGranularity,
   dimension: BreakdownDimension,
   metrics: MetricKeyForBreakdown[],
-  statusLabelMap: Record<string, string> = {},
-  assigneeLabelMap: Record<string, string> = {},
+  labelMaps: BreakdownLabelMaps = {},
 ): TimeseriesBreakdown {
   const emptyBucket = (): Bucket => ({
     total: 0,
@@ -207,7 +214,7 @@ export function buildTimeseriesBreakdown(
   const dimMap = new Map<string, Map<string, Bucket>>()
 
   for (const lead of leads) {
-    const dimKey = getBreakdownKey(lead, dimension, statusLabelMap)
+    const dimKey = getBreakdownKey(lead, dimension)
 
     let dateKey: string
     if (granularity === 'day') {
@@ -259,7 +266,7 @@ export function buildTimeseriesBreakdown(
   for (const dimKey of dimsForSeries) {
     const dimLabel = dimKey === '__other__'
       ? 'Інші'
-      : getBreakdownLabel(dimKey, dimension, statusLabelMap, assigneeLabelMap)
+      : getBreakdownLabel(dimKey, dimension, labelMaps)
     for (const m of metrics) {
       series.push({
         key: seriesKey(dimKey, m),

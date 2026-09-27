@@ -105,6 +105,7 @@ const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'status',       label: 'Стадія' },
   { value: 'service',      label: 'Послуга' },
   { value: 'assigned_to',  label: 'Відповідальний' },
+  { value: 'referral_link', label: 'Реферальне посилання' },
   { value: 'custom_field', label: 'Додаткове поле' },
 ]
 
@@ -120,6 +121,7 @@ const BREAKDOWN_OPTIONS: { value: BreakdownDimension; label: string }[] = [
   { value: 'status',       label: 'Стадія' },
   { value: 'service',      label: 'Послуга' },
   { value: 'assigned_to',  label: 'Відповідальний' },
+  { value: 'referral_link', label: 'Реферальне посилання' },
   { value: 'custom_field', label: 'Додаткове поле' },
 ]
 
@@ -361,6 +363,8 @@ function CapturingMetricTooltip({
 // ─── Типи ─────────────────────────────────────────────────────────────────────
 
 type Assignee = { id: string; email: string; name: string | null }
+type ReferralRef = { id: string; name: string; code: string; is_active: boolean }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type Status = {
   id: string
@@ -669,6 +673,8 @@ export function AnalyticsReport() {
   const granularityFromUrl = searchParams.get('granularity') as TsGranularity | null
   const breakdownFromUrl = searchParams.get('breakdown') as BreakdownDimension | null
   const customFieldIdFromUrl = searchParams.get('custom_field_id')
+  // Початковий фільтр партнера — з посилання «Аналітика →» вкладки «Реферальні посилання».
+  const referralLinkIdFromUrl = searchParams.get('referral_link_id')
 
   const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(() => {
     if (metricsFromUrl) {
@@ -706,6 +712,12 @@ export function AnalyticsReport() {
   const [filterService,    setFilterService]    = useState('all')
   const [filterAssigneeIds, setFilterAssigneeIds] = useState<string[]>([])
   const [filterStatusIds,  setFilterStatusIds]  = useState<string[]>([])
+  // Реферальне посилання: 'all' | 'none' (без посилання) | UUID посилання.
+  const [filterReferralLinkId, setFilterReferralLinkId] = useState<string>(() =>
+    referralLinkIdFromUrl && (referralLinkIdFromUrl === 'none' || UUID_RE.test(referralLinkIdFromUrl))
+      ? referralLinkIdFromUrl
+      : 'all',
+  )
   // Розгортання блоку зі зведенням по кожному менеджеру (таблиця з report.byAssignee
   // + графік динаміки заявок по кожному менеджеру на тих самих фільтрах).
   const [showPerAssignee, setShowPerAssignee] = useState(false)
@@ -745,6 +757,7 @@ export function AnalyticsReport() {
   const [assignees,     setAssignees]     = useState<Assignee[]>([])
   const [statuses,      setStatuses]      = useState<Status[]>([])
   const [customFields,  setCustomFields]  = useState<CustomField[]>([])
+  const [referralLinks, setReferralLinks] = useState<ReferralRef[]>([])
 
   // ── Стан таблиці ──────────────────────────────────────────────────────────
 
@@ -774,6 +787,12 @@ export function AnalyticsReport() {
         setCustomFields(arr)
       })
       .catch(() => setCustomFields([]))
+
+    // Реферальні посилання (довідник назв партнерів; без права — порожній список)
+    fetch('/api/admin/referral-links')
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => setReferralLinks(j.data ?? []))
+      .catch(() => setReferralLinks([]))
   }, [])
 
 
@@ -832,6 +851,7 @@ export function AnalyticsReport() {
     setFilterService('all')
     setFilterAssigneeIds([])
     setFilterStatusIds([])
+    setFilterReferralLinkId('all')
     setBreakdown('none')
     setCustomFieldId('')
     // Скидання лишає одну метрику — «Заявки» (а не дефолтні дві)
@@ -844,7 +864,7 @@ export function AnalyticsReport() {
   const fetchReport = useCallback(async () => {
     await fetchReportWith({})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFrom, dateTo, groupBy, customFieldId, filterUtmSource, filterService, filterAssigneeIds, filterStatusIds, tsGranularity, breakdown, selectedMetrics])
+  }, [dateFrom, dateTo, groupBy, customFieldId, filterUtmSource, filterService, filterAssigneeIds, filterStatusIds, filterReferralLinkId, tsGranularity, breakdown, selectedMetrics])
 
   async function fetchReportWith({
     overrideGranularity,
@@ -896,6 +916,7 @@ export function AnalyticsReport() {
       if (filterService    && filterService    !== 'all') params.set('filter_service',     filterService)
       if (filterAssigneeIds.length > 0) params.set('filter_assignee_ids', filterAssigneeIds.join(','))
       if (filterStatusIds.length > 0) params.set('filter_status_ids', filterStatusIds.join(','))
+      if (filterReferralLinkId !== 'all') params.set('filter_referral_link_id', filterReferralLinkId)
       if (gb === 'custom_field' && cfId) params.set('custom_field_id', cfId)
       // filter_gclid='any' — не передаємо (дефолт на сервері)
 
@@ -952,6 +973,7 @@ export function AnalyticsReport() {
     if (filterService && filterService !== 'all') params.set('filter_service', filterService)
     if (filterAssigneeIds.length > 0) params.set('filter_assignee_ids', filterAssigneeIds.join(','))
     if (filterStatusIds.length > 0) params.set('filter_status_ids', filterStatusIds.join(','))
+    if (filterReferralLinkId !== 'all') params.set('filter_referral_link_id', filterReferralLinkId)
 
     fetch(`/api/admin/analytics/report?${params}`)
       .then((r) => r.json())
@@ -961,7 +983,7 @@ export function AnalyticsReport() {
 
     return () => { cancelled = true }
   }, [showPerAssignee, dateFrom, dateTo, tsGranularity, assigneeMetricsParam,
-      filterUtmSource, filterService, filterAssigneeIds, filterStatusIds])
+      filterUtmSource, filterService, filterAssigneeIds, filterStatusIds, filterReferralLinkId])
 
   // ── Сортування таблиці ─────────────────────────────────────────────────────
 
@@ -1184,6 +1206,20 @@ export function AnalyticsReport() {
               selected={filterStatusIds}
               onChange={setFilterStatusIds}
             />
+
+            {/* Реферальне посилання (партнер) */}
+            <Select value={filterReferralLinkId} onValueChange={setFilterReferralLinkId}>
+              <SelectTrigger className="h-9 w-48" aria-label="Реферальне посилання">
+                <SelectValue placeholder="Всі партнери" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Всі партнери</SelectItem>
+                <SelectItem value="none">Без посилання</SelectItem>
+                {referralLinks.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>{l.name}{l.is_active ? '' : ' (вимкнене)'}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {/* Розбити за — розбивка графіка по виміру (перенесено з шапки графіка) */}
             <div className="flex items-center gap-1.5">
@@ -1874,6 +1910,7 @@ export function AnalyticsReport() {
         filterService={filterService}
         filterAssigneeIds={filterAssigneeIds}
         filterStatusIds={filterStatusIds}
+        filterReferralLinkId={filterReferralLinkId}
         filterGclid={filterGclid}
         granularity={tsGranularity}
         flags={{

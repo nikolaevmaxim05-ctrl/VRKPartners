@@ -19,6 +19,8 @@ export type ReportLeadQuery = {
   assignedTo: string
   gclid: 'any' | 'with' | 'without'
   statusIds: string[]
+  /** '' — всі, 'none' — без посилання, інакше UUID посилання. */
+  referralLinkId: string
   limit: number
 }
 
@@ -30,6 +32,8 @@ export type ExportLeadQuery = {
   assignedTo: string
   gclid: 'any' | 'with' | 'without'
   statusIds: string[]
+  /** '' — всі, 'none' — без посилання, інакше UUID посилання. */
+  referralLinkId: string
   limit: number
 }
 

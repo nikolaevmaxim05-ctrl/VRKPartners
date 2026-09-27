@@ -7,6 +7,8 @@ import type { UserRepository } from '../../ports/access'
 import {
   buildReport as buildReportDomain,
   filterLeads,
+  NO_REFERRAL_KEY,
+  NO_REFERRAL_LABEL,
   type GroupBy,
   type LeadForAggregation,
   type ReportResponse,
@@ -17,6 +19,7 @@ import {
   mapDbRowsToLeads,
   buildTimeseriesBreakdown,
   isValidBreakdownMetric,
+  type BreakdownLabelMaps,
 } from '../../../domain/analytics/report-breakdown'
 import {
   parseReportQuery,
@@ -37,6 +40,8 @@ export type ReportData = {
   labelMap: Record<string, string>
   colorMap: Record<string, string>
   assigneeLabelMap: Record<string, string>
+  /** id посилання → назва партнера (з embed referral_links). */
+  referralLabelMap: Record<string, string>
   flags: ReportResponse['flags']
 }
 
@@ -53,6 +58,7 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
       assignedTo: params.filter_assigned_to,
       gclid: params.filter_gclid,
       statusIds: splitIds(params.filter_status_ids),
+      referralLinkId: params.filter_referral_link_id ?? '',
       limit: ROW_LIMIT + 1,
     })
     if (!res.ok) {
@@ -92,13 +98,19 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
     }
     if (params.group_by === 'assigned_to') labelMap = assigneeLabelMap
 
-    return ok({ leads, labelMap, colorMap, assigneeLabelMap, flags })
+    const referralLabelMap: Record<string, string> = {}
+    for (const lead of leads) {
+      if (lead.referral_link_id && lead.referral_link_name) referralLabelMap[lead.referral_link_id] = lead.referral_link_name
+    }
+    if (params.group_by === 'referral_link') labelMap = { ...referralLabelMap, [NO_REFERRAL_KEY]: NO_REFERRAL_LABEL }
+
+    return ok({ leads, labelMap, colorMap, assigneeLabelMap, referralLabelMap, flags })
   }
 
   async function buildReport(params: ReportServerParams): Promise<Result<ReportResponse>> {
     const data = await fetchReportData(params)
     if (!data.ok) return data
-    const { leads, labelMap, colorMap, assigneeLabelMap, flags } = data.value
+    const { leads, labelMap, colorMap, assigneeLabelMap, referralLabelMap, flags } = data.value
 
     const filterStatusIds = splitIds(params.filter_status_ids)
     const filterAssigneeIds = splitIds(params.filter_assignee_ids)
@@ -117,6 +129,7 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
         filterAssigneeIds: filterAssigneeIds.length > 0 ? filterAssigneeIds : undefined,
         filterStatusIds,
         filterGclid: params.filter_gclid,
+        filterReferralLinkId: params.filter_referral_link_id || undefined,
         filterGroupValue: params.filter_group_value || undefined,
       },
       labelMap,
@@ -140,16 +153,21 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
         filterAssigneeIds: filterAssigneeIds.length > 0 ? filterAssigneeIds : undefined,
         filterStatusIds: filterStatusIds.length > 0 ? filterStatusIds : undefined,
         filterGclid: params.filter_gclid,
+        filterReferralLinkId: params.filter_referral_link_id || undefined,
         groupBy: params.group_by as GroupBy,
         filterGroupValue: params.filter_group_value || undefined,
       })
 
-      const statusLabelMap = params.group_by === 'status' ? labelMap : {}
       const bStatusMap: Record<string, string> = {}
       if (breakdown === 'status') {
         for (const lead of filteredLeads) {
           if (lead.status_id && lead.status_name) bStatusMap[lead.status_id] = lead.status_name
         }
+      }
+      const labelMaps: BreakdownLabelMaps = {
+        status: breakdown === 'status' ? bStatusMap : (params.group_by === 'status' ? labelMap : {}),
+        assigned_to: assigneeLabelMap,
+        referral_link: referralLabelMap,
       }
 
       report.timeseriesBreakdown = buildTimeseriesBreakdown(
@@ -159,8 +177,7 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
         params.ts_granularity,
         breakdown,
         metrics,
-        breakdown === 'status' ? bStatusMap : statusLabelMap,
-        assigneeLabelMap,
+        labelMaps,
       )
     }
 

@@ -55,6 +55,7 @@ export function makeExportAnalytics(deps: {
       assignedTo: filters.filter_assigned_to,
       gclid: filters.filter_gclid,
       statusIds: filters.filter_status_ids ?? [],
+      referralLinkId: filters.filter_referral_link_id ?? '',
       limit: LEAD_EXPORT_LIMIT + 1,
     })
     if (!res.ok) {
