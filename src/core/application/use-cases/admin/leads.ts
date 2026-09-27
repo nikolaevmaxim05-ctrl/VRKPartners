@@ -67,6 +67,8 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       assignedTo: t('assigned_to'),
       dateFrom: t('date_from'),
       dateTo: t('date_to'),
+      // uuid посилання | 'none' — без посилання (відхилення 11)
+      referralLinkId: t('referral_link_id'),
     })
     if (!res.ok) {
       console.error('[admin/leads] query_failed', res.error)

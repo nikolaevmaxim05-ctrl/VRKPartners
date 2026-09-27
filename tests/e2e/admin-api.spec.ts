@@ -366,6 +366,14 @@ test('4b реферальні посилання: валідація, створ
   expect(await del.text()).toContain('вимкніть')
   const stats = (await (await api.get('/api/admin/referral-links/stats')).json()) as { data: { link_id: string; total: number; last30: number }[]; truncated: boolean }
   expect(stats.data.find((s) => s.link_id === link.id)).toMatchObject({ total: 1, last30: 1 })
+  // Фільтр списку і картка: embed партнера.
+  const byLink = (await (await api.get(`/api/admin/leads?referral_link_id=${link.id}`)).json()) as { total: number; data: { id: string; referral_link: { name: string } | null }[] }
+  expect(byLink.total).toBe(1)
+  expect(byLink.data[0]).toMatchObject({ id: leadA.id, referral_link: { name: `${E2E_TAG} Партнер` } })
+  const none = (await (await api.get(`/api/admin/leads?referral_link_id=none&search=${encodeURIComponent(E2E_TAG)}`)).json()) as { data: { id: string }[] }
+  expect(none.data.some((l) => l.id === leadA.id), 'без посилання — leadA не потрапляє').toBe(false)
+  const detail = await api.get(`/api/admin/leads/${leadA.id}`)
+  expect(JSON.stringify(await detail.json())).toContain(`"referral_link":{"id":"${link.id}"`)
   await db().from('leads').update({ referral_link_id: null, referral_code: null }).eq('id', leadA.id)
 
   const refs = (await (await api.get('/api/admin/referral-links')).json()) as { data: { id: string; name: string; code: string; is_active: boolean }[] }

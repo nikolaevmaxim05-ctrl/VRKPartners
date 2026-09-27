@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/ui/table'
-import { RefreshCw, Search, Trash2, X } from 'lucide-react'
+import { Handshake, RefreshCw, Search, Trash2, X } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,9 +72,38 @@ type Lead = {
   utm_source: string | null
   is_repeat: boolean
   assigned_to: string | null
+  referral_code: string | null
+  referral_link: ReferralRef | null
   assignee_email: string | null
   assignee_name: string | null
   status: Status | null
+}
+
+type ReferralRef = { id: string; name: string; code: string; is_active: boolean }
+
+/**
+ * Позначка партнера в таблиці (відхилення 11, рішення 12): 'badge' — у клітинці «Джерело»,
+ * 'column' — окрема колонка «Партнер», 'both' — обидва (превʼю для власника).
+ */
+const PARTNER_MARK: 'badge' | 'column' | 'both' = 'both'
+
+/** Бейдж партнера: активне посилання — назва; лише код — «реф. код» (не знайдено/вимкнене на момент заявки). */
+function PartnerBadge({ lead }: { lead: Pick<Lead, 'referral_code' | 'referral_link'> }) {
+  if (lead.referral_link) {
+    return (
+      <Badge variant="secondary" className="gap-1 font-normal" title={`Реферальне посилання: ${lead.referral_link.code}`}>
+        <Handshake className="h-3 w-3" /> {lead.referral_link.name}
+      </Badge>
+    )
+  }
+  if (lead.referral_code) {
+    return (
+      <Badge variant="outline" className="font-mono text-xs text-muted-foreground" title="Посилання не знайдено або вимкнене на момент заявки">
+        реф. {lead.referral_code}
+      </Badge>
+    )
+  }
+  return null
 }
 
 type ApiResponse = {
@@ -109,6 +138,7 @@ const LIST_STATE_KEY = 'admin-leads-list-state'
 
 export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [data, setData] = useState<Lead[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -121,6 +151,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
   // Довідники
   const [statuses, setStatuses] = useState<Status[]>([])
   const [assignees, setAssignees] = useState<Assignee[]>([])
+  const [referralLinks, setReferralLinks] = useState<ReferralRef[]>([])
 
   // Фільтри
   const [search, setSearch] = useState('')
@@ -132,6 +163,8 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
   const [utmValueInput, setUtmValueInput] = useState('')
   const [statusId, setStatusId] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
+  // Початкове значення — з URL (посилання «Заявки →» з розділу «Реферальні посилання»).
+  const [referralLinkId, setReferralLinkId] = useState(() => searchParams.get('referral_link_id') ?? '')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -163,6 +196,10 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
       .then((r) => r.json())
       .then((j) => setAssignees(j.data ?? []))
       .catch(() => setAssignees([]))
+    fetch('/api/admin/referral-links')
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => setReferralLinks(j.data ?? []))
+      .catch(() => setReferralLinks([]))
   }, [])
 
   const fetchLeads = useCallback(async (opts?: { silent?: boolean }) => {
@@ -178,6 +215,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
         ...(utmValue && { utm_field: utmField, utm_value: utmValue }),
         ...(statusId && statusId !== 'all' && { status_id: statusId }),
         ...(assignedTo && assignedTo !== 'all' && { assigned_to: assignedTo }),
+        ...(referralLinkId && referralLinkId !== 'all' && { referral_link_id: referralLinkId }),
         ...(dateFrom && { date_from: dateFrom }),
         ...(dateTo && { date_to: dateTo }),
       })
@@ -192,7 +230,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     } finally {
       setLoading(false)
     }
-  }, [page, search, service, utmSource, utmField, utmValue, statusId, assignedTo, dateFrom, dateTo])
+  }, [page, search, service, utmSource, utmField, utmValue, statusId, assignedTo, referralLinkId, dateFrom, dateTo])
 
   const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id)
@@ -277,7 +315,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
       return
     }
     setPage(1)
-  }, [search, service, utmSource, utmField, utmValue, statusId, assignedTo, dateFrom, dateTo])
+  }, [search, service, utmSource, utmField, utmValue, statusId, assignedTo, referralLinkId, dateFrom, dateTo])
 
   // Автопошук з дебаунсом: search завжди синхронізований з полем вводу.
   // Завдяки цьому очищення поля коректно скидає пошук (немає «залиплого» search,
@@ -303,13 +341,14 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     setUtmValueInput('')
     setStatusId('')
     setAssignedTo('')
+    setReferralLinkId('')
     setDateFrom('')
     setDateTo('')
     setPage(1)
   }
 
   const hasFilters = Boolean(
-    search || service || utmSource || utmValue || statusId || assignedTo || dateFrom || dateTo
+    search || service || utmSource || utmValue || statusId || assignedTo || referralLinkId || dateFrom || dateTo
   )
 
   const columns: ColumnDef<Lead>[] = [
@@ -384,11 +423,24 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     {
       accessorKey: 'utm_source',
       header: 'Джерело',
-      cell: ({ getValue }) => {
+      cell: ({ getValue, row }) => {
         const v = getValue() as string | null
-        return v ? <Badge variant="outline">{v}</Badge> : <span className="text-muted-foreground">direct</span>
+        return (
+          <div className="flex flex-wrap items-center gap-1">
+            {v ? <Badge variant="outline">{v}</Badge> : <span className="text-muted-foreground">direct</span>}
+            {PARTNER_MARK !== 'column' && <PartnerBadge lead={row.original} />}
+          </div>
+        )
       },
     },
+    ...(PARTNER_MARK !== 'badge'
+      ? [{
+          id: 'partner',
+          header: 'Партнер',
+          cell: ({ row }: { row: { original: Lead } }) =>
+            row.original.referral_link || row.original.referral_code ? <PartnerBadge lead={row.original} /> : <span className="text-muted-foreground text-xs">—</span>,
+        } satisfies ColumnDef<Lead>]
+      : []),
     {
       id: 'actions',
       header: '',
@@ -474,6 +526,21 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
             {assignees.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name ?? a.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={referralLinkId} onValueChange={setReferralLinkId}>
+          <SelectTrigger className="w-48" aria-label="Реферальне посилання">
+            <SelectValue placeholder="Реф. посилання" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі партнери</SelectItem>
+            <SelectItem value="none">Без посилання</SelectItem>
+            {referralLinks.map((l) => (
+              <SelectItem key={l.id} value={l.id}>
+                {l.name}{l.is_active ? '' : ' (вимкнене)'}
               </SelectItem>
             ))}
           </SelectContent>

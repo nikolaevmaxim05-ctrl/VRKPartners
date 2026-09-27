@@ -6,6 +6,9 @@ import type { LeadRepository, LeadListFilters, LeadRow, LeadState } from '@core/
 // Білий список UTM-колонок для фільтра за значенням (захист від інʼєкції імені поля)
 const UTM_FILTER_FIELDS = ['utm_campaign', 'utm_medium', 'utm_term', 'utm_content']
 
+/** Реферальне посилання ліда (міграція 035) — назва партнера для бейджів/фільтрів. */
+const REFERRAL_JOIN = 'referral_link:referral_links!left(id, name, code, is_active)'
+
 const STATUS_JOIN =
   'status:lead_statuses(id, name, color, is_final, is_initial, conversion_type, conversion_action, requires_amount, amount_is_profit)'
 
@@ -58,7 +61,7 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
       const offset = (f.page - 1) * f.limit
       let query = db()
         .from('leads')
-        .select(`*, status:lead_statuses!left(id, name, color, is_final)`, { count: 'exact' })
+        .select(`*, status:lead_statuses!left(id, name, color, is_final), ${REFERRAL_JOIN}`, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + f.limit - 1)
 
@@ -74,6 +77,10 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
         query = query.ilike(f.utmField, `%${escaped}%`)
       }
       if (f.statusId) query = query.eq('status_id', f.statusId)
+      if (f.referralLinkId) {
+        if (f.referralLinkId === 'none') query = query.is('referral_link_id', null)
+        else query = query.eq('referral_link_id', f.referralLinkId)
+      }
       if (f.assignedTo) {
         if (f.assignedTo === 'unassigned') query = query.is('assigned_to', null)
         else query = query.eq('assigned_to', f.assignedTo)
@@ -95,7 +102,7 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
     async getDetail(id) {
       const { data, error } = await db()
         .from('leads')
-        .select(`*, ${STATUS_JOIN}, original:original_lead_id(id, name, phone, created_at, status_id)`)
+        .select(`*, ${STATUS_JOIN}, ${REFERRAL_JOIN}, original:original_lead_id(id, name, phone, created_at, status_id)`)
         .eq('id', id)
         .maybeSingle()
       if (error) return dbFail(error.message)
@@ -126,7 +133,7 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
       if (cas) {
         q = cas.statusId ? q.eq('status_id', cas.statusId) : q.is('status_id', null)
       }
-      const { data, error } = await q.select(`*, ${STATUS_JOIN}`).maybeSingle()
+      const { data, error } = await q.select(`*, ${STATUS_JOIN}, ${REFERRAL_JOIN}`).maybeSingle()
       if (error) return dbFail(error.message)
       return dbOk((data as LeadRow | null) ?? null)
     },

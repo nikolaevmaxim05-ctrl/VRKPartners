@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { ArrowLeft, Copy, Pencil, RefreshCw, Save, Send, X } from 'lucide-react'
+import { ArrowLeft, Copy, Handshake, Pencil, RefreshCw, Save, Send, X } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { DatePicker } from '@/shared/ui/date-picker'
@@ -100,6 +100,8 @@ type Lead = {
   page_url: string | null
   source_url: string | null
   referrer: string | null
+  referral_code: string | null
+  referral_link: { id: string; name: string; code: string; is_active: boolean } | null
   utm_source: string | null
   utm_medium: string | null
   utm_campaign: string | null
@@ -376,6 +378,11 @@ export function LeadDetail({ leadId }: { leadId: string }) {
               <RefreshCw className="h-4 w-4" /> Повторне звернення
             </span>
           )}
+          {lead.referral_link && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-sm font-medium" title={`Реферальне посилання: ${lead.referral_link.code}`}>
+              <Handshake className="h-4 w-4" /> Партнер: {lead.referral_link.name}
+            </span>
+          )}
         </div>
         {lead.status && <StatusBadge name={lead.status.name} color={lead.status.color} />}
       </div>
@@ -571,6 +578,16 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <Field label="Сторінка" value={lead.page_url ?? lead.source_url ?? '—'} truncate />
               <Field label="Referrer" value={lead.referrer ?? '—'} truncate />
+              <Field
+                label="Реферальне посилання"
+                value={
+                  lead.referral_link
+                    ? `${lead.referral_link.name} · ${lead.referral_link.code}`
+                    : lead.referral_code
+                      ? `Реф. код: ${lead.referral_code} — посилання не знайдено або вимкнене на момент заявки`
+                      : '—'
+                }
+              />
               <Field label="UTM Source" value={lead.utm_source ?? '—'} />
               <Field label="UTM Medium" value={lead.utm_medium ?? '—'} />
               <Field label="UTM Campaign" value={lead.utm_campaign ?? '—'} />
