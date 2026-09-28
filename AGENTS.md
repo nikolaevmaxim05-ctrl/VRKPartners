@@ -811,6 +811,64 @@ Supabase), admin-ui 8/2 skip, check-overflow 45/0.
 Zod `ref`, submit-lead, уведомления, `referral.spec`; (5) заявки (фильтр, бейдж, карточка) →
 превью; (6) аналитика + экспорт; (7) финальные документы. Коммиты `referrals:`.
 
+**Итоги реализации (этапы 1–7, коммиты `b1e68a8`, `6fc892a`, `f143e2a`, `137a44b`, `a1afbea`,
+`6109a4a` + документы; 2026-09-27/28, не запушено):**
+
+1. **Схема** — миграции 035 (`referral_links`, `leads.referral_link_id` FK restrict,
+   `leads.referral_code`, RLS по образцу 033) и 036 (право ролям `admin`/`e2e-full`) применены
+   2026-09-27 через MCP **до** пуша кода (MIGRATION-LOG.md, раздел 6). Другие роли клиента право не
+   получили — владелец выдаёт из «Ролі».
+2. **Ядро** — `core/domain/referral/{code,attribution,link-rules}.ts`: код `^[a-z0-9]{3,40}$`,
+   генерация 8 символов из алфавита без `0/1/i/l/o`, `pickReferralCode(cookie → тело → ?ref
+   страницы)`, `describeReferral` («Партнер: <назва>» / «Реф. код: … — посилання вимкнене (<назва>)»
+   / «… не знайдено»), `aggregateLeadStats`. Порт `ReferralLinkRepository`, сценарий
+   `manage-referral-links` (две попытки при коллизии кода, 409 по `lower(name)`, удаление с заявками
+   → 409 «вимкніть замість видалення», аудит `referral_link.create|update|delete`).
+   `REFERRAL_PERMISSIONS = ['manage_referrals']`, `REFERRAL_READ_PERMISSIONS` (решение 4).
+3. **Роуты** — `GET/POST /api/admin/referral-links` (`?full=1` — с нотатками, иначе справочник),
+   `PATCH/DELETE …/[id]` (`code` в теле → 400), `GET …/stats` (`{ data, truncated }`, select
+   ≤ 10 000 заявок). Контракт прав в `route-permissions.contract`.
+4. **Вкладка** `/admin/referral-links` (после «Аналітика», иконка Handshake): создание в диалоге, URL
+   `https://vrk.com.ua/r/<code>` с копированием, вмикач с откатом при ошибке, статистика (всего / 30
+   дней / последняя), переименование, удаление с подтверждением, ссылка «Аналітика →»
+   (`/admin/analytics?referral_link_id=<id>`). Строка «Реферальні посилання» в «Як це працює» ролей.
+5. **Атрибуция** — `middleware.ts`, ветка сайта: `/r/<code>` → 302 на `/?ref=<code>` с сохранением
+   остальных query (UTM), невалидный код → 404 сайта; при валидном `?ref` на страницах сайта —
+   `Set-Cookie lead_ref` (HttpOnly, SameSite=Lax, Path=/, Max-Age 90 дней, `Secure` только на
+   https); `/admin`, `/api`, файлы cookie не получают. Клиент: `features/landing/lib/referral.ts`
+   зеркалит `?ref` в localStorage (`lead_ref`), форма шлёт `ref` в теле (Zod-поле без 400: мусор →
+   `undefined`). Приёмник (`submit-lead`): резолв кода **после honeypot и лимита, до дедупа**;
+   активная ссылка → `referral_link_id + referral_code`, выключенная/неизвестная → только
+   `referral_code`; ошибка поиска не блокирует заявку. Имя партнёра — в Telegram (`🤝`), KeyCRM
+   (note), email и в комментарии «[ПОВТОР]» (`ReferralNote` в `LeadNotification`). Дефолт политики
+   конфиденциальности (§4) дополнен пунктом про реферальный код; у клиента правки только в оферте
+   (`site_content.legal.offer`), поэтому пункт рендерится из дефолта.
+6. **Заявки** — фильтр «Реф. посилання» (`?referral_link_id=<uuid>|none`, начальное значение из URL),
+   embed `referral_link:referral_links!left(id,name,code,is_active)` в списке/карточке/PATCH.
+   **Пометка — оба варианта одновременно (решение владельца 12 «В — оба, как на превью»):**
+   `PARTNER_MARK = 'both'` в `leads-table.tsx` — бейдж партнёра в колонке «Джерело» **и** отдельная
+   колонка «Партнер». Карточка: бейдж «Партнер: <назва>» в шапке и строка «Реферальне посилання» в
+   блоке «Джерело» («<назва> · <code>» либо «Реф. код: <code> — посилання не знайдено або вимкнене на
+   момент заявки»).
+7. **Аналитика и экспорт** — `group_by=referral_link` и `breakdown=referral_link` (подписи из embed
+   `referral_links!left(id,name)`, группа «Без посилання»), фильтр `filter_referral_link_id`
+   (UUID | `none`, иначе 400) в отчёте, сводке по ответственным и вивантаженні; Select «Реф.
+   посилання» в фильтрах, начальное значение из `?referral_link_id=`; поле экспорта лидов
+   `referral_link` → колонка «Реферальне посилання» (назва или «<code> (не знайдено або вимкнене)»).
+   `dimensionParamsSchema` не расширялась. Словари подписей разбивки — объект `labelMaps`.
+8. **Тесты** (финальный прогон 2026-09-28: vitest 58 файлов / 836 тестов + 1 todo; Playwright 114 passed /
+   44 skipped за 7 мин; check-overflow 45/0; leftovers 0) — юнит: домен referral, use-case на фейках, schema/dedup/
+   submit-lead, build-report на фейковых портах); e2e: `referral.spec.ts` (переход, cookie,
+   localStorage, тело формы), `admin-security` (`/r/`, cookie, RLS `referral_links`), `admin-api`
+   (матрица прав, 4b CRUD/статистика/фильтр, тест 8 аналитика/CSV, тест 10 приёмник с cookie за
+   `E2E_ALLOW_LEAD_WRITES=1`), `admin-ui` (страница в регрессе). Cleanup/leftovers знают
+   `referral_links` (после лидов из-за FK).
+9. **Не проверено / проверить на проде после деплоя:** что `/?ref=<code>` отдаётся с `Set-Cookie`
+   и не кэшируется CDN как общий ответ (локально `Cache-Control: private` из-за
+   `E2E_CONTENT_OVERRIDES`, на проде проверить `curl -D - 'https://vrk.com.ua/?ref=test1234'`);
+   `Secure` на cookie за https; реальные уведомления с именем партнёра (локально каналы «not
+   configured»); свайп/тап по ссылке `/r/…` из мессенджеров на реальных устройствах.
+
 ## Известные «требует действий владельца»
 
 - Ключи интеграций в админке: сейчас только Telegram. KeyCRM, Email (SMTP), Google
@@ -829,3 +887,7 @@ Zod `ref`, submit-lead, уведомления, `referral.spec`; (5) заявк�
 - Шаг 4 мобильных анимаций: после деплоя подобрать параметры разгорания слов на проде через `/?tune-words=1`, сообщить четыре значения — они зашиваются в `WORD_REVEAL_DEFAULTS`, панель `WordRevealTuner` удаляется.
 - После деплоя кода ревью: проверить в консоли прода, что CSP больше не блокирует Ringostat,
   Clarity и doubleclick (если GTM подключает ещё что-то — добавить хосты тем же способом).
+- Реферальная система (после пуша `referrals:`): выдать право «Реферальні посилання» нужным ролям
+  клиента из «Ролі» (сейчас только у `admin`); проверить `Set-Cookie`/кэш на `/?ref=…` и
+  `Secure` на cookie (п. 9 итогов); при желании вернуть один вариант пометки в списке заявок —
+  `PARTNER_MARK` в `leads-table.tsx` (`'badge'` | `'column'`).

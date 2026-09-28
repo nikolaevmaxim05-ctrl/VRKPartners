@@ -194,21 +194,46 @@ scripts/check-overflow.js                              скан переполн
 - Ревью после Фазы 6: `offline_conversions.export_status` — три состояния (`pending | exported |
   retracted`, миграция 034), `presentation/client-ip` валидирует IP, шапка измеряет оба блока копиями.
 
-## Реферальная система (2026-09-27, план модулей; отклонение 11)
+## Реферальная система (2026-09-27/28, реализовано; отклонение 11)
 
 ```
 src/
-  core/domain/referral/{code,attribution,link-rules}.ts   код (regex, генерация), выбор кода cookie→тело→?ref, правила ссылки
-  core/application/ports/referrals.ts                     ReferralLinkRepository (list, get, findByCode, insert, update, delete, leadStats)
-  core/application/use-cases/admin/manage-referral-links.ts  CRUD + аудит referral_link.*
-  infrastructure/supabase/repositories/referral-links.ts  таблица referral_links (миграция 035)
+  core/domain/referral/code.ts                            REF_CODE_RE, алфавит/длина кода, REF_COOKIE/REF_QUERY_KEY/REF_TTL_DAYS/REF_PATH_PREFIX,
+                                                          normalizeRefCode, generateRefCode(randomInt), buildReferralUrl, refCodeFromPath
+  core/domain/referral/attribution.ts                     refCodeFromPageUrl, pickReferralCode({ cookie, body, pageUrl }) — cookie → тело → ?ref
+  core/domain/referral/link-rules.ts                      типы ReferralLink/Ref/Stats/Note, describeReferral, planNewReferralLink,
+                                                          planReferralLinkPatch (code → ошибка), aggregateLeadStats, REF_ERRORS
+  core/domain/access/permissions.ts                       право manage_referrals (11-е)
+  core/domain/lead/schema.ts, dedup.ts                    поле ref (без 400), «Партнер» в комментарии [ПОВТОР]
+  core/application/ports/referrals.ts                     ReferralLinkRepository (list, listRefs, get, findByCode, insert, update, delete, leadRows)
+  core/application/ports/leads.ts                         LeadInsert.referral_*, LeadListFilters.referralLinkId, countByReferralLink
+  core/application/ports/notifications.ts                 LeadNotification.referral?: ReferralNote
+  core/application/use-cases/admin/manage-referral-links.ts  CRUD + статистика + аудит referral_link.*
+  core/application/use-cases/public/submit-lead.ts        резолв кода после honeypot/лимита, до дедупа; referral в уведомления
+  core/domain/analytics/{report,report-request,report-breakdown,export-request,export-leads}.ts
+                                                          GroupBy/BreakdownDimension 'referral_link', filterReferralLinkId,
+                                                          referralLinkFilterSchema (UUID | none), NO_REFERRAL_KEY/LABEL, labelMaps,
+                                                          поле экспорта referral_link
+  core/application/use-cases/admin/{build-report,export-analytics}.ts  referralLinkId в запросах, referralLabelMap из embed
+  infrastructure/supabase/repositories/referral-links.ts  таблица referral_links (035)
+  infrastructure/supabase/repositories/{leads,analytics}.ts  embed referral_links!left, фильтр 'none' → is null
+  infrastructure/notifications/{telegram,keycrm,email}.ts строка партнёра
+  presentation/permissions.ts                             REFERRAL_PERMISSIONS, REFERRAL_READ_PERMISSIONS
   app/api/admin/referral-links/{route,[id]/route,stats/route}.ts
+  app/api/leads/route.ts                                  referralCookie из request.cookies
   app/admin/(dashboard)/referral-links/page.tsx + features/admin/components/referral-links-section.tsx
-  middleware.ts (ветка 3): /r/<code> → 302 /?ref=<code>; ?ref → Set-Cookie lead_ref
-  features/landing/lib/referral.ts                        зеркало ?ref в localStorage, ref в теле формы
-  core/application/use-cases/public/submit-lead.ts        резолв кода после honeypot/rate-limit, до дедупа
-  core/domain/analytics/*                                 group_by/breakdown referral_link, фильтр, экспорт
+  features/admin/lib/sections.ts                          раздел «Реферальні посилання» (после «Аналітика»)
+  features/admin/components/{leads-table,lead-detail}.tsx фильтр, PARTNER_MARK='both' (бейдж + колонка), карточка
+  features/admin/components/{analytics-report,export-builder-dialog}.tsx  разрез/разбивка/фильтр, чекбокс экспорта
+  middleware.ts (ветка сайта)                             /r/<code> → 302 /?ref=<code>(+query); ?ref → Set-Cookie lead_ref (HttpOnly, 90 дней)
+  features/landing/lib/referral.ts + UtmTracker/LeadForm  зеркало ?ref в localStorage, ref в теле формы
+  shared/content/legal/privacy-policy.ts                  пункт §4 про реферальный код
+supabase/migrations/035_referral_links.sql, 036_admin_role_manage_referrals.sql
+tests/e2e/referral.spec.ts (+ admin-security, admin-api 4b/8/10, admin-ui, admin-helpers cleanup)
 ```
+
+- Тесты после этапа 6: vitest 58 файлов / 836 тестов + 1 todo; e2e admin-api 22 (с записью за
+  флагом), admin-security 7, admin-ui 8 (+2 skip), referral.spec на двух вьюпортах.
 
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
