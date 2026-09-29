@@ -19,7 +19,7 @@ const T = {
 
 type RefOpt = { id: string; name: string; is_active: boolean } | null | 'error' | 'throw'
 
-function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean; referral?: RefOpt } = {}) {
+function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: boolean; bypass?: boolean; referral?: RefOpt; windowDays?: string | 'error' } = {}) {
   const leads = {
     findFirstIdByPhone: vi.fn(async (phone: string) => dbOk(phone === STORED_PHONE ? 'orig-1' : null)),
     findFirstIdByIpSince: vi.fn(async () => dbOk(null)),
@@ -35,7 +35,12 @@ function setup(opts: { count?: number | 'error'; notifyOk?: boolean; saveOk?: bo
     leads,
     statuses: { findInitialId: vi.fn(async () => 'st-initial'), findIdByName: vi.fn(async () => null) },
     comments: { insertMany: vi.fn(async () => dbOk(undefined)) },
-    settings: { getMany: vi.fn(async () => dbOk(new Map<string, string | null>())) },
+    settings: {
+      getMany: vi.fn(async (keys: string[]) => {
+        if (keys.includes('referral_attribution_days') && opts.windowDays === 'error') return dbFail<Map<string, string | null>>('db down')
+        return dbOk(new Map<string, string | null>(opts.windowDays && opts.windowDays !== 'error' ? [['referral_attribution_days', opts.windowDays]] : []))
+      }),
+    },
     notifiers,
     clock: { now: () => NOW },
     rateLimitBypass: () => opts.bypass ?? false,
@@ -207,13 +212,13 @@ describe('submit-lead', () => {
 describe('submit-lead — реферал (відхилення 11)', () => {
   const ACTIVE = { id: 'link-1', name: 'Агенція', is_active: true }
 
-  it('4. пріоритет cookie → тіло → ?ref сторінки; активне посилання → referral_link_id + код, «Партнер» у сповіщенні', async () => {
+  it('4. легасі-джерела (голий код у cookie/ref/?ref — касання «зараз»): порядок cookie → тіло → сторінка; активне → id + код, «Партнер» у сповіщенні', async () => {
     quiet()
     const { submit, leads, referrals, notifiers } = setup({ referral: ACTIVE })
     await submit({ ...valid, ref: 'bodycode', page: 'https://vrk.com.ua/?ref=pagecode' }, { ...ctx, referralCookie: 'COOKIE12' })
     expect(referrals.findByCode).toHaveBeenCalledWith('cookie12')
     expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: 'link-1', referral_code: 'cookie12' }))
-    expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'cookie12', name: 'Агенція', state: 'active' } }))
+    expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'cookie12', name: 'Агенція', state: 'active', touchedAt: NOW.toISOString() } }))
 
     const noCookie = setup({ referral: ACTIVE })
     await noCookie.submit({ ...valid, ref: 'bodycode', page: 'https://vrk.com.ua/?ref=pagecode' }, ctx)
@@ -228,11 +233,11 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     const unknown = setup({ referral: null })
     await unknown.submit({ ...valid, ref: 'nope1234' }, ctx)
     expect(unknown.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: 'nope1234' }))
-    expect(unknown.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'nope1234', name: null, state: 'unknown' } }))
+    expect(unknown.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'nope1234', name: null, state: 'unknown', touchedAt: NOW.toISOString() } }))
     const inactive = setup({ referral: { id: 'link-2', name: 'Старий', is_active: false } })
     await inactive.submit({ ...valid, ref: 'old12345' }, ctx)
     expect(inactive.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: 'old12345' }))
-    expect(inactive.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'old12345', name: 'Старий', state: 'inactive' } }))
+    expect(inactive.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'old12345', name: 'Старий', state: 'inactive', touchedAt: NOW.toISOString() } }))
   })
 
   it('4. помилка або виняток пошуку → лід записаний без привʼязки, відповідь ok', async () => {
@@ -262,5 +267,61 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     const comment = (dup.deps.comments.insertMany.mock.calls[0] as unknown as [{ content: string }[]])[0][0].content
     expect(comment).toContain('Партнер: Агенція')
     expect(dup.leads.insert).not.toHaveBeenCalled()
+  })
+
+  const SEC = Math.floor(NOW.getTime() / 1000)
+  const DAY = 86_400
+  const iso = (sec: number) => new Date(sec * 1000).toISOString()
+  const cookie = (...pairs: Array<[string, number]>) => 'v2_' + pairs.map(([c, at]) => c + '.' + at).join('_')
+
+  it('first-touch: найраніше касання cookie виграє пізніше; referral_touched_at = момент першого переходу; дата у сповіщенні', async () => {
+    quiet()
+    const { submit, leads, referrals, notifiers } = setup({ referral: ACTIVE })
+    await submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 5 * DAY], ['bbbb2345', SEC - DAY]) })
+    expect(referrals.findByCode).toHaveBeenCalledWith('aaaa2345')
+    expect(referrals.findByCode).toHaveBeenCalledTimes(1)
+    expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: 'link-1', referral_code: 'aaaa2345', referral_touched_at: iso(SEC - 5 * DAY) }))
+    expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'aaaa2345', name: 'Агенція', state: 'active', touchedAt: iso(SEC - 5 * DAY) } }))
+  })
+
+  it('first-touch: перше касання поза вікном (90) → друге; усі поза вікном → органічна заявка без коду і без пошуку', async () => {
+    quiet()
+    const second = setup({ referral: ACTIVE })
+    await second.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 200 * DAY], ['bbbb2345', SEC - DAY]) })
+    expect(second.referrals.findByCode).toHaveBeenCalledWith('bbbb2345')
+    expect(second.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_code: 'bbbb2345', referral_touched_at: iso(SEC - DAY) }))
+    const none = setup({ referral: ACTIVE })
+    await none.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 200 * DAY], ['bbbb2345', SEC - 100 * DAY]) })
+    expect(none.referrals.findByCode).not.toHaveBeenCalled()
+    expect(none.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: null, referral_touched_at: null }))
+    const sent = (none.notifiers.telegram.send.mock.calls as unknown as [[{ referral?: unknown }]])[0][0]
+    expect(sent.referral).toBeUndefined()
+  })
+
+  it('first-touch: вікно з налаштування (14 днів) звужує вибір; помилка читання/мусор → дефолт 90', async () => {
+    quiet()
+    const narrow = setup({ referral: ACTIVE, windowDays: '14' })
+    await narrow.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 20 * DAY], ['bbbb2345', SEC - 3 * DAY]) })
+    expect(narrow.referrals.findByCode).toHaveBeenCalledWith('bbbb2345')
+    for (const windowDays of ['error', 'abc'] as const) {
+      const wide = setup({ referral: ACTIVE, windowDays })
+      await wide.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 20 * DAY], ['bbbb2345', SEC - 3 * DAY]) })
+      expect(wide.referrals.findByCode).toHaveBeenCalledWith('aaaa2345')
+    }
+  })
+
+  it('first-touch: вимкнене перше посилання → лише код (друге не розглядається); cookie ⊕ тіло ⊕ сторінка — мінімальний ts за кодом', async () => {
+    quiet()
+    const inactiveFirst = setup({ referral: { id: 'link-2', name: 'Старий', is_active: false } })
+    await inactiveFirst.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 5 * DAY], ['bbbb2345', SEC - DAY]) })
+    expect(inactiveFirst.referrals.findByCode).toHaveBeenCalledTimes(1)
+    expect(inactiveFirst.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_link_id: null, referral_code: 'aaaa2345' }))
+    const merged = setup({ referral: ACTIVE })
+    await merged.submit(
+      { ...valid, refTouches: [{ code: 'bbbb2345', at: SEC - 30 * DAY }, { code: 'zzzz9999', at: SEC - 2 * DAY }], page: 'https://vrk.com.ua/?ref=cccc2345' },
+      { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 5 * DAY], ['bbbb2345', SEC - DAY]) },
+    )
+    expect(merged.referrals.findByCode).toHaveBeenCalledWith('bbbb2345')
+    expect(merged.leads.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_code: 'bbbb2345', referral_touched_at: iso(SEC - 30 * DAY) }))
   })
 })

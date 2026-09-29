@@ -12,7 +12,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { getSessionUserId } from '@infra/supabase/session'
 import { routing } from '@/i18n/routing'
-import { refCodeFromPath, normalizeRefCode, REF_COOKIE, REF_QUERY_KEY, REF_TTL_DAYS } from '@core/domain/referral/code'
+import { refCodeFromPath, normalizeRefCode, REF_COOKIE, REF_QUERY_KEY } from '@core/domain/referral/code'
+import { decodeRefCookie, encodeRefCookie, addTouch, REF_COOKIE_MAX_DAYS } from '@core/domain/referral/touches'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -80,15 +81,21 @@ function isForeignOrigin(request: NextRequest): boolean {
 const intlMiddleware = createMiddleware(routing)
 
 /**
- * Реферальна cookie (відхилення 11): HttpOnly, без PII, last-touch, `secure` за протоколом запиту
- * (e2e ходять по http://127.0.0.1). Ставиться лише на сторінках сайту (гілка 3) і лише для валідного коду.
+ * Реферальна cookie (відхилення 11, first-touch): HttpOnly, без PII, СПИСОК касань (touches.ts):
+ * новий код додається з ts «зараз», повторний перехід за тим самим кодом ts не змінює, при
+ * переповненні замінюється останнє касання. Cookie переставляється щоразу (продовжує строк життя на
+ * 400 днів, ts касань не чіпає). Вікно атрибуції тут НЕ застосовується (middleware без БД) — лише в
+ * приймачі заявки. `secure` за протоколом запиту (e2e ходять по http://127.0.0.1). Ставиться лише на
+ * сторінках сайту (гілка 3) і лише для валідного коду.
  */
 function setReferralCookie(response: NextResponse, code: string, request: NextRequest): void {
-  response.cookies.set(REF_COOKIE, code, {
+  const now = Math.floor(Date.now() / 1000)
+  const touches = addTouch(decodeRefCookie(request.cookies.get(REF_COOKIE)?.value, now), code, now)
+  response.cookies.set(REF_COOKIE, encodeRefCookie(touches), {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: REF_TTL_DAYS * 24 * 3600,
+    maxAge: REF_COOKIE_MAX_DAYS * 24 * 3600,
     secure: request.nextUrl.protocol === 'https:',
   })
 }

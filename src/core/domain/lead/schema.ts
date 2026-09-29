@@ -6,6 +6,7 @@
 // email/service/comment — необовʼязкові (форма їх не показує, API приймає).
 import { z } from 'zod'
 import { normalizeRefCode } from '../referral/code'
+import { normalizeTouches } from '../referral/touches'
 import { normalizePhone } from './phone'
 
 export type LeadSchemaMessages = {
@@ -72,8 +73,11 @@ export function makeLeadSchema(t: LeadSchemaMessages) {
     page: z.string().max(2048).optional(),
     // Мова сторінки (leads.locale)
     locale: z.string().max(10).optional(),
-    // Реферальний код партнера (дзеркало cookie lead_ref): невалідний → undefined, ніколи не 400.
+    // Легасі-поле реферального коду (клієнти зі старим бандлом): невалідний → undefined, ніколи не 400.
     ref: z.unknown().optional().transform((v) => normalizeRefCode(v) ?? undefined),
+    // Касання партнерських посилань (дзеркало localStorage): ≤ 8 валідних { code, at }, решта
+    // відкидається мовчки; поле ніколи не дає 400 (без нього Zod-strip загубив би тіло).
+    refTouches: z.unknown().optional().transform((v) => (v === undefined ? undefined : normalizeTouches(v))),
   })
 }
 

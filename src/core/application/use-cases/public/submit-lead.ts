@@ -22,7 +22,8 @@ import {
   type DedupReason,
 } from '../../../domain/lead/dedup'
 import { LEAD_DELIVERY_KEYS } from '../../../domain/integrations/keys'
-import { pickReferralCode } from '../../../domain/referral/attribution'
+import { collectReferralTouches } from '../../../domain/referral/attribution'
+import { pickReferralTouch, parseAttributionDays, REF_ATTRIBUTION_SETTING_KEY, type ReferralTouch } from '../../../domain/referral/touches'
 import type { ReferralNote } from '../../../domain/referral/link-rules'
 import type { ReferralLinkRepository } from '../../ports/referrals'
 
@@ -51,7 +52,7 @@ export type SubmitLeadDeps = {
 export type SubmitLeadContext = {
   ip: string
   userAgent: string | null
-  /** Значення cookie lead_ref (HttpOnly, ставить middleware) або null. */
+  /** Значення cookie lead_ref (HttpOnly, список касань; ставить middleware) або null. */
   referralCookie?: string | null
 }
 
@@ -105,25 +106,43 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     }
   }
 
+  /** Вікно атрибуції (днів) із site_settings; помилка/відсутність → дефолт 90, заявку не блокує. */
+  async function getAttributionDays(): Promise<number> {
+    try {
+      const res = await settings.getMany([REF_ATTRIBUTION_SETTING_KEY])
+      if (!res.ok) {
+        console.error('[lead] referral_window_settings_failed (дефолт)', res.error)
+        return parseAttributionDays(null)
+      }
+      return parseAttributionDays(res.data.get(REF_ATTRIBUTION_SETTING_KEY))
+    } catch (err) {
+      console.error('[lead] referral_window_settings_threw (дефолт)', err instanceof Error ? err.message : err)
+      return parseAttributionDays(null)
+    }
+  }
+
   /**
-   * Реферал: код — cookie → тіло → ?ref сторінки; активне посилання зараховується (id), неактивне
-   * або невідоме — лише код (рішення власника 2). Помилка пошуку заявку не блокує.
+   * Реферал (first-touch): касання cookie ⊕ тіло ⊕ ?ref сторінки → найраніше у вікні атрибуції;
+   * активне посилання зараховується (id), неактивне або невідоме — лише код (рішення власника 2);
+   * усі касання поза вікном → заявка органічна (рішення 2026-09-29). Помилка пошуку заявку не блокує.
    */
-  async function resolveReferral(code: string | null): Promise<{ linkId: string | null; note: ReferralNote | undefined }> {
-    if (!code) return { linkId: null, note: undefined }
-    let note: ReferralNote = { code, name: null, state: 'unknown' }
-    if (!deps.referrals) return { linkId: null, note }
+  async function resolveReferral(touch: ReferralTouch | null): Promise<{ linkId: string | null; note: ReferralNote | undefined; touchedAt: string | null }> {
+    if (!touch) return { linkId: null, note: undefined, touchedAt: null }
+    const touchedAt = new Date(touch.at * 1000).toISOString()
+    const code = touch.code
+    let note: ReferralNote = { code, name: null, state: 'unknown', touchedAt }
+    if (!deps.referrals) return { linkId: null, note, touchedAt }
     try {
       const r = await deps.referrals.findByCode(code)
       if (!r.ok) console.error('[lead] referral_lookup_failed (без привʼязки)', r.error)
       else if (r.data) {
-        note = { code, name: r.data.name, state: r.data.is_active ? 'active' : 'inactive' }
-        return { linkId: r.data.is_active ? r.data.id : null, note }
+        note = { code, name: r.data.name, state: r.data.is_active ? 'active' : 'inactive', touchedAt }
+        return { linkId: r.data.is_active ? r.data.id : null, note, touchedAt }
       }
     } catch (err) {
       console.error('[lead] referral_lookup_threw (без привʼязки)', err instanceof Error ? err.message : err)
     }
-    return { linkId: null, note }
+    return { linkId: null, note, touchedAt }
   }
 
   /** Запис ліда; винятки адаптера → помилка (а не 500 без тіла). */
@@ -158,9 +177,12 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       console.warn('[lead] rate_limit_skipped: клієнтський IP не визначено із заголовків')
     }
 
-    // 4. Реферал — СТРОГО після honeypot і ліміту (боти не ходять у БД), до дедупу (для «[ПОВТОР]»).
-    const refCode = pickReferralCode({ cookie: ctx.referralCookie, body: lead.ref, pageUrl: lead.page })
-    const referral = await resolveReferral(refCode)
+    // 4. Реферал — СТРОГО після honeypot і ліміту (боти не ходять у БД), до дедупу (для «[ПОВТОР]»):
+    //    касання з усіх джерел → найраніше у вікні атрибуції (first-touch) → пошук посилання.
+    const nowSec = Math.floor(clock.now().getTime() / 1000)
+    const touches = collectReferralTouches({ cookie: ctx.referralCookie, body: lead.refTouches, legacyBody: lead.ref, pageUrl: lead.page }, nowSec)
+    const touch = touches.length > 0 ? pickReferralTouch(touches, { windowDays: await getAttributionDays(), now: nowSec }) : null
+    const referral = await resolveReferral(touch)
 
     // 5. Нормалізація: телефон уже E.164 (Zod transform), email — trim + lowercase.
     const email = lead.email ? normalizeEmail(lead.email) : null
@@ -234,7 +256,8 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       status_id: statusId,
       locale: lead.locale || DEFAULT_LEAD_LOCALE,
       referral_link_id: referral.linkId,
-      referral_code: refCode,
+      referral_code: touch?.code ?? null,
+      referral_touched_at: referral.touchedAt,
     }
     const saved = await insertLead(row)
     if (saved.ok) console.log('[lead] channel_ok channel=supabase')

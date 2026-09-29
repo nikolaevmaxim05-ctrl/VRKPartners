@@ -24,14 +24,24 @@ export type ReferralLinkStats = {
   last_at: string | null
 }
 
-/** Що знаємо про реферал заявки для сповіщень і коментаря «[ПОВТОР]». */
-export type ReferralNote = { code: string; name: string | null; state: 'active' | 'inactive' | 'unknown' }
+/** Що знаємо про реферал заявки для сповіщень і коментаря «[ПОВТОР]»; touchedAt — ISO першого переходу. */
+export type ReferralNote = { code: string; name: string | null; state: 'active' | 'inactive' | 'unknown'; touchedAt?: string | null }
 
-/** Рядок для Telegram/KeyCRM/email/коментаря: «Партнер: <назва>» або код зі станом. */
+/** Дата першого переходу за Києвом (dd.mm.yyyy) або null. */
+export function formatTouchedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
+/** Рядок для Telegram/KeyCRM/email/коментаря: «Партнер: <назва>» або код зі станом (+ дата першого переходу). */
 export function describeReferral(ref: ReferralNote): string {
-  if (ref.state === 'active' && ref.name) return `Партнер: ${ref.name}`
-  if (ref.state === 'inactive') return `Реф. код: ${ref.code} — посилання вимкнене${ref.name ? ` (${ref.name})` : ''}`
-  return `Реф. код: ${ref.code} — посилання не знайдено`
+  const when = formatTouchedAt(ref.touchedAt)
+  const suffix = when ? ` · перший перехід ${when}` : ''
+  if (ref.state === 'active' && ref.name) return `Партнер: ${ref.name}${suffix}`
+  if (ref.state === 'inactive') return `Реф. код: ${ref.code} — посилання вимкнене${ref.name ? ` (${ref.name})` : ''}${suffix}`
+  return `Реф. код: ${ref.code} — посилання не знайдено${suffix}`
 }
 
 export const REF_NAME_MAX = 80

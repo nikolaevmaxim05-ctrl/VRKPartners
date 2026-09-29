@@ -7,12 +7,10 @@ export const REF_CODE_RE = /^[a-z0-9]{3,40}$/
 export const REF_CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 export const REF_CODE_LENGTH = 8
 
-/** Імʼя first-party cookie з кодом (HttpOnly, без PII). */
+/** Імʼя first-party cookie зі списком касань (HttpOnly, без PII; формат — touches.ts). */
 export const REF_COOKIE = 'lead_ref'
 /** Query-параметр: /?ref=<code>. */
 export const REF_QUERY_KEY = 'ref'
-/** Термін життя cookie (last-touch: новий перехід перезаписує). */
-export const REF_TTL_DAYS = 90
 /** Канонічний шлях для партнера: /r/<code> → 302 на /?ref=<code>. */
 export const REF_PATH_PREFIX = '/r/'
 

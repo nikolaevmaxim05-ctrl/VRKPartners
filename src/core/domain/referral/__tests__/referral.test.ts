@@ -1,17 +1,16 @@
 // Реферальний код, атрибуція та правила посилання (відхилення 11).
 import { describe, it, expect } from 'vitest'
 import {
-  REF_CODE_RE, REF_CODE_ALPHABET, REF_CODE_LENGTH, REF_COOKIE, REF_QUERY_KEY, REF_TTL_DAYS,
+  REF_CODE_RE, REF_CODE_ALPHABET, REF_CODE_LENGTH, REF_COOKIE, REF_QUERY_KEY,
   normalizeRefCode, generateRefCode, buildReferralUrl, refCodeFromPath,
 } from '../code'
-import { pickReferralCode, refCodeFromPageUrl } from '../attribution'
+import { refCodeFromPageUrl } from '../attribution'
 import { planNewReferralLink, planReferralLinkPatch, aggregateLeadStats, REF_ERRORS } from '../link-rules'
 
 describe('code', () => {
-  it('константи: cookie lead_ref, ?ref, 90 днів, алфавіт без 0/o/1/l/i', () => {
+  it('константи: cookie lead_ref, ?ref, алфавіт без 0/o/1/l/i', () => {
     expect(REF_COOKIE).toBe('lead_ref')
     expect(REF_QUERY_KEY).toBe('ref')
-    expect(REF_TTL_DAYS).toBe(90)
     for (const ch of '0o1li') expect(REF_CODE_ALPHABET).not.toContain(ch)
     expect(REF_CODE_LENGTH).toBe(8)
   })
@@ -51,13 +50,11 @@ describe('code', () => {
 })
 
 describe('attribution', () => {
-  it('пріоритет: cookie → тіло → ?ref у URL сторінки; перший ВАЛІДНИЙ', () => {
-    expect(pickReferralCode({ cookie: 'aaa111', body: 'bbb222', pageUrl: 'https://vrk.com.ua/?ref=ccc333' })).toBe('aaa111')
-    expect(pickReferralCode({ cookie: 'bad!', body: 'bbb222', pageUrl: 'https://vrk.com.ua/?ref=ccc333' })).toBe('bbb222')
-    expect(pickReferralCode({ cookie: null, body: '', pageUrl: 'https://vrk.com.ua/?utm_source=x&ref=CCC333' })).toBe('ccc333')
-    expect(pickReferralCode({})).toBeNull()
-    expect(pickReferralCode({ pageUrl: 'not a url' })).toBeNull()
+  it('refCodeFromPageUrl: ?ref з URL сторінки, невалідний URL/хеш → null (збір касань — touches.test)', () => {
+    expect(refCodeFromPageUrl('https://vrk.com.ua/?utm_source=x&ref=CCC333')).toBe('ccc333')
+    expect(refCodeFromPageUrl('not a url')).toBeNull()
     expect(refCodeFromPageUrl('https://vrk.com.ua/#ref=zzz')).toBeNull()
+    expect(refCodeFromPageUrl(null)).toBeNull()
   })
 })
 

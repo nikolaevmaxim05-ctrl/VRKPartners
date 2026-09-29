@@ -29,6 +29,8 @@ export type LeadInsert = {
   /** Реферальне посилання (міграція 035): id активного посилання; код — знімок на момент заявки. */
   referral_link_id?: string | null
   referral_code?: string | null
+  /** Перший перехід за зарахованим кодом (міграція 037, first-touch). */
+  referral_touched_at?: string | null
 }
 
 export type LeadListFilters = {
