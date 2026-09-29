@@ -222,7 +222,7 @@ src/
   app/api/admin/referral-links/{route,[id]/route,stats/route}.ts
   app/api/leads/route.ts                                  referralCookie из request.cookies
   app/admin/(dashboard)/referral-links/page.tsx + features/admin/components/referral-links-section.tsx
-  features/admin/lib/sections.ts                          раздел «Реферальні посилання» (после «Аналітика»)
+  features/admin/lib/sections.ts                          раздел «Реферальні посилання» (после «Ролі», уточнение 2026-09-29)
   features/admin/components/{leads-table,lead-detail}.tsx фильтр, PARTNER_MARK='both' (бейдж + колонка), карточка
   features/admin/components/{analytics-report,export-builder-dialog}.tsx  разрез/разбивка/фильтр, чекбокс экспорта
   middleware.ts (ветка сайта)                             /r/<code> → 302 /?ref=<code>(+query); ?ref → Set-Cookie lead_ref (HttpOnly, 90 дней)

@@ -17,12 +17,12 @@ export type AdminSection = {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { href: '/admin/leads', label: 'Заявки', description: 'Ліди, стадії воронки, відповідальні, коментарі.', icon: PhoneCall, anyPermission: ['manage_leads', 'view_reports', 'export_data', 'manage_conversions'] },
   { href: '/admin/analytics', label: 'Аналітика', description: 'Звіти за джерелами, стадіями та подіями.', icon: BarChart3, anyPermission: ['view_reports'] },
-  { href: '/admin/referral-links', label: 'Реферальні посилання', description: 'Посилання для компаній-партнерів і заявки, що прийшли за ними.', icon: Handshake, anyPermission: ['manage_referrals'] },
   { href: '/admin/content', label: 'Контент', description: 'Тексти сайту, приховування блоків, метадані (SEO).', icon: FileText, anyPermission: ['manage_content'] },
   { href: '/admin/legal', label: 'Юридичні документи', description: 'Політика конфіденційності та публічна оферта.', icon: Scale, anyPermission: ['manage_content'] },
   { href: '/admin/integrations', label: 'Інтеграції', description: 'Telegram, KeyCRM, пошта, Google Sheets, Google-теги.', icon: Plug, anyPermission: ['manage_settings', 'manage_integrations'] },
   { href: '/admin/users', label: 'Користувачі', description: 'Запрошення, ролі та деактивація користувачів.', icon: Users, anyPermission: ['manage_users'] },
   { href: '/admin/roles', label: 'Ролі', description: 'Права ролей та їх ієрархія.', icon: Shield, anyPermission: ['manage_roles', 'manage_users'] },
+  { href: '/admin/referral-links', label: 'Реферальні посилання', description: 'Посилання для компаній-партнерів і заявки, що прийшли за ними.', icon: Handshake, anyPermission: ['manage_referrals'] },
   { href: '/admin/conversions', label: 'Офлайн конверсії', description: 'Конверсії Google Ads і вивантаження в Google Sheets.', icon: TrendingUp, anyPermission: ['manage_conversions', 'manage_users'] },
   { href: '/admin/conversion-adjustments', label: 'Корекції конверсій', description: 'RETRACT / RESTATE для вивантажених конверсій.', icon: RotateCcw, anyPermission: ['manage_conversions', 'manage_users'] },
   { href: '/admin/settings', label: 'Налаштування', description: 'Стадії, кастомні поля, дедуп, події аналітики, телефонія.', icon: Settings, anyPermission: ['manage_settings'] },
