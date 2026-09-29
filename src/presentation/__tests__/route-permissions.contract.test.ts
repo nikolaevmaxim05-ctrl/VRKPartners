@@ -61,6 +61,7 @@ const EXPECTED: Record<string, Methods> = {
   'referral-links': { GET: REF_READ, POST: REF },
   'referral-links/[id]': { PATCH: REF, DELETE: REF },
   'referral-links/stats': { GET: REF },
+  'referral-links/settings': { GET: REF, PATCH: REF },
 }
 
 function routeFiles(dir: string): string[] {

@@ -178,7 +178,15 @@ export const getCustomFieldUseCases = once(() => makeCustomFieldUseCases({ custo
 export const getRoleUseCases = once(() => makeRoleUseCases({ roles: roleRepo(), users: userRepo(), audit: auditLog() }))
 
 export const getReferralLinkUseCases = once(() =>
-  makeReferralLinkUseCases({ links: referralRepo(), leads: leadRepo(), clock: systemClock, randomInt: (max) => randomInt(max), audit: auditLog() }),
+  makeReferralLinkUseCases({
+    links: referralRepo(),
+    leads: leadRepo(),
+    settings: settingsRepo(),
+    updateSettings: (body, actor) => getSettingsUseCases().updateSettings(body, actor),
+    clock: systemClock,
+    randomInt: (max) => randomInt(max),
+    audit: auditLog(),
+  }),
 )
 
 export const getUserUseCases = once(() =>

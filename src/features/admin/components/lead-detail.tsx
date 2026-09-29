@@ -101,6 +101,7 @@ type Lead = {
   source_url: string | null
   referrer: string | null
   referral_code: string | null
+  referral_touched_at: string | null
   referral_link: { id: string; name: string; code: string; is_active: boolean } | null
   utm_source: string | null
   utm_medium: string | null
@@ -588,6 +589,12 @@ export function LeadDetail({ leadId }: { leadId: string }) {
                       : '—'
                 }
               />
+              {(lead.referral_link || lead.referral_code) && (
+                <Field
+                  label="Перший перехід"
+                  value={lead.referral_touched_at ? fmtDate(lead.referral_touched_at) : '—'}
+                />
+              )}
               <Field label="UTM Source" value={lead.utm_source ?? '—'} />
               <Field label="UTM Medium" value={lead.utm_medium ?? '—'} />
               <Field label="UTM Campaign" value={lead.utm_campaign ?? '—'} />

@@ -9,7 +9,7 @@ import {
 } from '../site-settings'
 
 describe('константи', () => {
-  it('білий список — 7 ключів, без секретів', () => {
+  it('білий список — 8 ключів, без секретів', () => {
     expect([...ALLOWED_SETTING_KEYS].sort()).toEqual([
       'deal_amount_type',
       'dedup_by_ip',
@@ -18,6 +18,7 @@ describe('константи', () => {
       'google_ads_conversion_action',
       'internal_currency',
       'pipelines_enabled',
+      'referral_attribution_days',
     ])
     for (const k of SECRET_SETTING_KEYS) expect(ALLOWED_SETTING_KEYS.has(k)).toBe(false)
   })
@@ -38,6 +39,7 @@ describe('inferSettingType', () => {
     expect(inferSettingType('dedup_by_ip')).toBe('boolean')
     expect(inferSettingType('pipelines_enabled')).toBe('boolean')
     expect(inferSettingType('dedup_ip_window_hours')).toBe('number')
+    expect(inferSettingType('referral_attribution_days')).toBe('number')
     expect(inferSettingType('internal_currency')).toBe('string')
     expect(inferSettingType('unknown')).toBe('string')
   })
@@ -154,5 +156,17 @@ describe('normalizeSettingItems', () => {
         { key: 'google_ads_conversion_action', value: '42', type: 'string' },
       ],
     })
+  })
+})
+
+describe('referral_attribution_days (вікно first-touch-атрибуції)', () => {
+  it('ціле 1–400 → зберігається як текст; 0 / 401 / дріб / текст → помилка uk-UA', () => {
+    expect(normalizeSettingItems([{ key: 'referral_attribution_days', value: '30' }])).toEqual({ ok: true, rows: [{ key: 'referral_attribution_days', value: '30', type: 'number' }] })
+    expect(normalizeSettingItems([{ key: 'referral_attribution_days', value: 400, type: 'number' }])).toMatchObject({ ok: true })
+    for (const bad of ['0', '401', '12.5', 'abc']) {
+      const r = normalizeSettingItems([{ key: 'referral_attribution_days', value: bad }])
+      expect(r.ok, bad).toBe(false)
+      if (!r.ok) expect(r.message).toMatch(/1 до 400|Невірне число/)
+    }
   })
 })

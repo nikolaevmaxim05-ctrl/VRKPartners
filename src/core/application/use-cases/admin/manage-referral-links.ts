@@ -7,6 +7,10 @@ import { noopAudit, type AuditLog } from '../../audit'
 import type { ReferralLinkRepository } from '../../ports/referrals'
 import { generateRefCode } from '../../../domain/referral/code'
 import {
+  REF_ATTRIBUTION_SETTING_KEY, REF_ATTRIBUTION_DEFAULT_DAYS, REF_ATTRIBUTION_PRESETS,
+  REF_ATTRIBUTION_MIN_DAYS, REF_ATTRIBUTION_MAX_DAYS, parseAttributionDays, planAttributionDays,
+} from '../../../domain/referral/touches'
+import {
   planNewReferralLink,
   planReferralLinkPatch,
   aggregateLeadStats,
@@ -21,9 +25,21 @@ import {
 /** Код Postgres «foreign_key_violation» — лід посилається на посилання. */
 export const FOREIGN_KEY_VIOLATION = '23503'
 
+/** Вікно атрибуції для UI: поточне значення, дефолт, пресети, межі. */
+export type AttributionWindow = {
+  days: number
+  defaultDays: number
+  presets: readonly number[]
+  min: number
+  max: number
+}
+
 export type ReferralLinkDeps = {
   links: ReferralLinkRepository
   leads: { countByReferralLink(linkId: string): Promise<number> }
+  /** Вікно атрибуції: читання ключа site_settings і запис через сценарій налаштувань (аудит settings.update). */
+  settings: { get(key: string): Promise<string | null> }
+  updateSettings: (body: { items?: unknown }, actor: Actor) => Promise<Result<void>>
   clock: Clock
   /** randomInt(maxExclusive) → [0, maxExclusive), криптографічно стійкий (node:crypto в контейнері). */
   randomInt: (maxExclusive: number) => number
@@ -31,7 +47,7 @@ export type ReferralLinkDeps = {
 }
 
 export function makeReferralLinkUseCases(deps: ReferralLinkDeps) {
-  const { links, leads, clock, randomInt } = deps
+  const { links, leads, clock, randomInt, settings, updateSettings } = deps
   const audit = deps.audit ?? noopAudit
 
   async function listLinks(): Promise<Result<ReferralLink[]>> {
@@ -122,5 +138,27 @@ export function makeReferralLinkUseCases(deps: ReferralLinkDeps) {
     return ok({ stats: aggregateLeadStats(res.data.rows, clock.now()), truncated: res.data.truncated })
   }
 
-  return { listLinks, listRefs, createLink, updateLink, deleteLink, getStats }
+  const describeWindow = (days: number): AttributionWindow => ({
+    days,
+    defaultDays: REF_ATTRIBUTION_DEFAULT_DAYS,
+    presets: REF_ATTRIBUTION_PRESETS,
+    min: REF_ATTRIBUTION_MIN_DAYS,
+    max: REF_ATTRIBUTION_MAX_DAYS,
+  })
+
+  /** Поточне вікно first-touch-атрибуції (відсутнє/невалідне → дефолт 90). */
+  async function getAttributionWindow(): Promise<Result<AttributionWindow>> {
+    return ok(describeWindow(parseAttributionDays(await settings.get(REF_ATTRIBUTION_SETTING_KEY))))
+  }
+
+  /** Нове вікно: ціле 1–400 → site_settings через сценарій налаштувань (аудит settings.update). */
+  async function setAttributionWindow(body: { days?: unknown }, actor: Actor): Promise<Result<AttributionWindow>> {
+    const plan = planAttributionDays(body?.days)
+    if (!plan.ok) return fail('invalid', plan.message)
+    const res = await updateSettings({ items: [{ key: REF_ATTRIBUTION_SETTING_KEY, value: plan.days, type: 'number' }] }, actor)
+    if (!res.ok) return res
+    return ok(describeWindow(plan.days))
+  }
+
+  return { listLinks, listRefs, createLink, updateLink, deleteLink, getStats, getAttributionWindow, setAttributionWindow }
 }

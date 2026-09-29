@@ -25,9 +25,11 @@ function setup(over: Record<string, unknown> = {}, leadsCount = 0) {
   }
   const leads = { countByReferralLink: vi.fn(async () => leadsCount) }
   const audit = { record: vi.fn(async () => {}) }
+  const settings = { get: vi.fn(async () => (over.windowValue as string | null | undefined) ?? null) }
+  const updateSettings = vi.fn(async () => ({ ok: true as const, value: undefined }))
   let n = 0
-  const uc = makeReferralLinkUseCases({ links, leads, clock: { now: () => NOW }, randomInt: (max: number) => n++ % max, audit } as never)
-  return { uc, links, leads, audit }
+  const uc = makeReferralLinkUseCases({ links, leads, settings, updateSettings, clock: { now: () => NOW }, randomInt: (max: number) => n++ % max, audit } as never)
+  return { uc, links, leads, audit, settings, updateSettings }
 }
 
 const quiet = () => {
@@ -129,5 +131,25 @@ describe('listLinks / listRefs / getStats', () => {
     const broken = setup({ list: vi.fn(async () => dbFail('x')), leadRows: vi.fn(async () => dbFail('y')) })
     expect(await broken.uc.listLinks()).toMatchObject({ ok: false, code: 'failed' })
     expect(await broken.uc.getStats()).toMatchObject({ ok: false, code: 'failed' })
+  })
+})
+
+describe('вікно first-touch-атрибуції', () => {
+  it('get: відсутнє/невалідне → дефолт 90 з пресетами й межами; збережене → значення', async () => {
+    const { uc } = setup()
+    expect(await uc.getAttributionWindow()).toEqual({ ok: true, value: { days: 90, defaultDays: 90, presets: [14, 30, 60, 90, 180, 365], min: 1, max: 400 } })
+    expect((await setup({ windowValue: '30' }).uc.getAttributionWindow())).toMatchObject({ ok: true, value: { days: 30 } })
+    expect((await setup({ windowValue: '999' }).uc.getAttributionWindow())).toMatchObject({ ok: true, value: { days: 90 } })
+  })
+
+  it('set: ціле 1–400 → сценарій налаштувань з ключем referral_attribution_days; поза межами → invalid без запису', async () => {
+    const { uc, updateSettings } = setup()
+    expect(await uc.setAttributionWindow({ days: 180 }, actor)).toMatchObject({ ok: true, value: { days: 180 } })
+    expect(updateSettings).toHaveBeenCalledWith({ items: [{ key: 'referral_attribution_days', value: 180, type: 'number' }] }, actor)
+    for (const days of [0, 401, 1.5, 'x', undefined]) {
+      const r = await uc.setAttributionWindow({ days }, actor)
+      expect(r).toMatchObject({ ok: false, code: 'invalid' })
+    }
+    expect(updateSettings).toHaveBeenCalledTimes(1)
   })
 })

@@ -3,6 +3,8 @@
 
 // Білий список ключів — захист від запису довільних налаштувань через API.
 // telephony_secret зберігається в integrations (AES-256-GCM), тут не приймається.
+import { REF_ATTRIBUTION_SETTING_KEY, planAttributionDays } from '../referral/touches'
+
 export const ALLOWED_SETTING_KEYS = new Set<string>([
   'internal_currency',
   'dedup_by_phone',
@@ -11,6 +13,8 @@ export const ALLOWED_SETTING_KEYS = new Set<string>([
   'google_ads_conversion_action',
   'deal_amount_type',
   'pipelines_enabled',
+  // Вікно first-touch-атрибуції реферальних заявок (днів, 1–400; touches.ts).
+  REF_ATTRIBUTION_SETTING_KEY,
 ])
 
 /** Ніколи не віддаємо секрети з GET settings. */
@@ -22,7 +26,7 @@ export const ALLOWED_CURRENCIES = ['UAH', 'USD', 'EUR']
 export function inferSettingType(key: string): string {
   if (key === 'dedup_by_phone' || key === 'dedup_by_ip') return 'boolean'
   if (key === 'pipelines_enabled') return 'boolean'
-  if (key === 'dedup_ip_window_hours') return 'number'
+  if (key === 'dedup_ip_window_hours' || key === REF_ATTRIBUTION_SETTING_KEY) return 'number'
   return 'string'
 }
 
@@ -43,6 +47,10 @@ export function normalizeSettingItems(items: unknown):
     } else if (type === 'number') {
       const n = Number(item.value)
       if (!Number.isFinite(n) || n < 0) return { ok: false, message: `Невірне число для ${item.key}` }
+      if (item.key === REF_ATTRIBUTION_SETTING_KEY) {
+        const plan = planAttributionDays(n)
+        if (!plan.ok) return { ok: false, message: plan.message }
+      }
       value = String(Math.floor(n))
     } else {
       value = item.value == null ? '' : String(item.value).trim()
