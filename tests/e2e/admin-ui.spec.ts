@@ -73,6 +73,10 @@ test('усі сторінки: без помилок консолі та 4xx/5xx
     await expect(page.locator('h1').first(), path).toHaveText(title)
     await page.waitForLoadState('networkidle').catch(() => {})
     await page.waitForTimeout(400)
+    if (path === '/admin/referral-links') {
+      await expect(page.locator('[data-referral-attribution]'), 'картка «Вікно атрибуції»').toContainText('Вікно атрибуції')
+      await expect(page.locator('[data-referral-window-current]')).toContainText('Зараз:')
+    }
     const text = await page.locator('main').innerText().catch(() => '')
     expect(RU_ONLY.test(text), `${path}: російські літери у тексті`).toBe(false)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${path}: горизонтальний скрол`).toBeLessThanOrEqual(0)

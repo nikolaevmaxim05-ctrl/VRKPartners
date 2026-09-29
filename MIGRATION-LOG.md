@@ -5,7 +5,7 @@
 мержа кода); всё, что трогает контент клиента (`site_content`), — запись здесь **до**
 применения: что, зачем, SQL проверки до/после, SQL отката.
 
-Проект Supabase: `whjkmrnwxfmlffgsboyw`. Применено: `001`–`036` (в панели Supabase
+Проект Supabase: `whjkmrnwxfmlffgsboyw`. Применено: `001`–`037` (`037` — 2026-09-29) (в панели Supabase
 `004–014` и `015–025` применены пакетами, `029`–`034` — через MCP по одной; локальные файлы —
 по одному). `035`/`036` (реферальная система, раздел 6) применены 2026-09-27.
 
@@ -176,6 +176,15 @@ admin_roles where name in ('admin','e2e-full')`. Откат: `update admin_roles
 permissions - 'manage_referrals' where name in ('admin','e2e-full')`. Применять только по явному
 «применяй» владельца.
 
+**037 `leads_referral_touched_at`** (2026-09-29, first-touch-атрибуция, решение владельца) — только схема,
+аддитивно, идемпотентно: `alter table leads add column if not exists referral_touched_at timestamptz` (nullable,
+момент первого перехода по зачтённому коду). Применять **до** деплоя кода first-touch (новый приёмник пишет
+колонку; текущий прод её не читает). Данные клиента не трогает. Проверка после:
+`select column_name, data_type from information_schema.columns where table_name='leads' and
+column_name='referral_touched_at'` → 1 строка timestamptz. Откат: `alter table public.leads drop column if
+exists referral_touched_at;`. Настройка окна `site_settings.referral_attribution_days` миграции не требует
+(ключ пишет админка; отсутствие = дефолт 90).
+
 ## 5. Записи о применённых операциях
 
 - **2026-09-11, Фаза 3 (ассистент, только SELECT).** Проверка перед переносом ключей:
@@ -244,3 +253,7 @@ permissions - 'manage_referrals' where name in ('admin','e2e-full')`. Приме
   аналитики снималось на 2 ссылках и 4 лидах `[E2E]`, удалены скриптом сразу после скриншотов;
   leftovers 0. Данные клиента не затрагивались. Код этапов 2–6 готов к пушу: миграции 035/036 уже в
   проде, старый код колонки `leads.referral_*` не читает — порядок «схема до кода» соблюдён.
+- **2026-09-29, first-touch (ассистент через Supabase MCP `apply_migration`, по решению владельца
+  «применяй 037»).** Применена `037_leads_referral_touched_at`: колонка `leads.referral_touched_at`
+  timestamptz nullable (проверка: `information_schema.columns` → 1 строка). Данные не менялись. Код
+  first-touch (cookie-список касаний, окно `referral_attribution_days`) — в коммитах `referrals:` того же дня.

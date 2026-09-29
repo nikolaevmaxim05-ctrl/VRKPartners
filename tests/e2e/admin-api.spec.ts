@@ -20,6 +20,7 @@ let selfId = ''
 let user2Id: string | null = null
 let snapshot: ContentSnapshot
 let analyticsEventsBefore: string | null | undefined
+let attributionDaysBefore: string | null | undefined
 const created: { leads: string[]; storage: string[] } = { leads: [], storage: [] }
 
 test.beforeAll(async ({ browser }, testInfo) => {
@@ -31,6 +32,8 @@ test.beforeAll(async ({ browser }, testInfo) => {
   snapshot = await snapshotContent()
   const { data: ae } = await db().from('site_settings').select('value').eq('key', 'analytics_events').maybeSingle()
   analyticsEventsBefore = (ae?.value as string | null | undefined) ?? null
+  const { data: ad } = await db().from('site_settings').select('value').eq('key', 'referral_attribution_days').maybeSingle()
+  attributionDaysBefore = (ad?.value as string | null | undefined) ?? null
   const baseURL = testInfo.project.use.baseURL as string
   ;({ api } = await loginApi(browser, baseURL, ENV.email!, ENV.password!))
   if (ENV.email2 && ENV.password2) {
@@ -52,6 +55,13 @@ test.afterAll(async () => {
   if (analyticsEventsBefore !== undefined) {
     const { error } = await db().from('site_settings').upsert({ key: 'analytics_events', value: analyticsEventsBefore ?? '{}' }, { onConflict: 'key' })
     report.analytics_events_restored = error ? `ERR ${error.message}` : true
+  }
+  if (attributionDaysBefore !== undefined) {
+    // Вікно атрибуції: відновлюємо значення клієнта (або прибираємо ключ, якщо його не було).
+    const { error } = attributionDaysBefore === null
+      ? await db().from('site_settings').delete().eq('key', 'referral_attribution_days')
+      : await db().from('site_settings').upsert({ key: 'referral_attribution_days', value: attributionDaysBefore, type: 'number' }, { onConflict: 'key' })
+    report.attribution_days_restored = error ? `ERR ${error.message}` : true
   }
   report.content_restored = (await restoreContent(snapshot)).join(',') || 'не було змін'
   const leftovers = await leftoversE2E()
@@ -79,6 +89,7 @@ const READ_ROUTES: [string, string[]][] = [
   ['/api/admin/audit-log', ['manage_users']],
   ['/api/admin/referral-links', ['manage_leads', 'view_reports', 'export_data', 'manage_conversions', 'manage_referrals']],
   ['/api/admin/referral-links/stats', ['manage_referrals']],
+  ['/api/admin/referral-links/settings', ['manage_referrals']],
   ['/api/admin/analytics/report?date_from=2026-01-01&date_to=2026-01-02', ['view_reports']],
   ['/api/admin/analytics/dimension-values?dimension=utm_source&date_from=2026-01-01&date_to=2026-01-02', ['view_reports']],
 ]
@@ -110,6 +121,7 @@ test('1.2 мінімальна роль (лише manage_leads): довідни�
     ['/api/admin/tracking-tags', 'post', { type: 'aw', tag_id: 'AW-1' }],
     ['/api/admin/referral-links', 'post', { name: `${E2E_TAG} x` }],
     [`/api/admin/referral-links/${NIL_UUID}`, 'delete', undefined],
+    ['/api/admin/referral-links/settings', 'patch', { days: 30 }],
     ['/api/admin/integrations/smtp_from', 'put', { value: 'x' }],
     [`/api/admin/leads/${NIL_UUID}`, 'delete', undefined],
     ['/api/admin/conversions/export-pending', 'post', undefined],
@@ -382,6 +394,27 @@ test('4b реферальні посилання: валідація, створ
   expect(full.data.find((r) => r.id === link.id)?.notes).toBe('off')
   expect((await api.delete(`/api/admin/referral-links/${link.id}`)).status()).toBe(200)
   expect((await api.delete(`/api/admin/referral-links/${NIL_UUID}`)).status()).toBe(404)
+})
+
+test('4c вікно атрибуції: GET дефолт/пресети, PATCH 1–400 (поза межами → 400), збережене значення читається, аудит settings.update', async () => {
+  const cur = (await (await api.get('/api/admin/referral-links/settings')).json()) as { data: { days: number; defaultDays: number; presets: number[]; min: number; max: number } }
+  expect(cur.data).toMatchObject({ defaultDays: 90, presets: [14, 30, 60, 90, 180, 365], min: 1, max: 400 })
+  expect(cur.data.days).toBeGreaterThanOrEqual(1)
+  for (const days of [0, 401, 12.5, 'x', null]) {
+    const r = await api.patch('/api/admin/referral-links/settings', { data: { days } })
+    expect(r.status(), `days=${String(days)}`).toBe(400)
+    expect(await r.text()).toContain('1 до 400')
+  }
+  const set = await api.patch('/api/admin/referral-links/settings', { data: { days: 14 } })
+  expect(set.status(), await set.text()).toBe(200)
+  expect(((await set.json()) as { data: { days: number } }).data.days).toBe(14)
+  expect(((await (await api.get('/api/admin/referral-links/settings')).json()) as { data: { days: number } }).data.days).toBe(14)
+  const { data: row } = await db().from('site_settings').select('value, type').eq('key', 'referral_attribution_days').single()
+  expect(row).toMatchObject({ value: '14', type: 'number' })
+  const audit = (await (await api.get('/api/admin/audit-log?page=1&limit=20')).json()) as { data: { action: string; new_value: unknown }[] }
+  expect(audit.data.some((a) => a.action === 'settings.update' && JSON.stringify(a.new_value ?? {}).includes('referral_attribution_days')), 'аудит settings.update з ключем вікна').toBe(true)
+  // Повертаємо 90 для решти прогону (afterAll відновить значення клієнта).
+  expect((await api.patch('/api/admin/referral-links/settings', { data: { days: 90 } })).status()).toBe(200)
 })
 
 // ── 5. Ролі та користувачі ──────────────────────────────────────────────────────────────────────
@@ -737,16 +770,33 @@ test('10 POST /api/leads з записом: лід у початковій ст�
   expect(last.status()).toBe(429)
   expect(last.headers()['retry-after']).toBe('600')
 
-  // Реферал: cookie lead_ref з активним посиланням → referral_link_id; невідомий ref у тілі → лише код;
-  // вимкнене посилання → лише код. Інші IP — щоб не впертися в ліміт.
+  // Реферал (first-touch): cookie-список касань — найраніше у вікні (90 днів) виграє пізніше;
+  // перше поза вікном → друге; невідомий ref у тілі → лише код; вимкнене посилання → лише код.
+  // Інші IP — щоб не впертися в ліміт.
   const linkRes = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер cookie` } })
   expect(linkRes.status(), await linkRes.text()).toBe(200)
   const link = ((await linkRes.json()) as { data: { id: string; code: string } }).data
-  const withCookie = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005011', source: 'e2e', locale: 'uk' }, headers: { 'x-forwarded-for': '198.51.100.31', cookie: `lead_ref=${link.code}` } })
+  const linkBRes = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер B` } })
+  expect(linkBRes.status(), await linkBRes.text()).toBe(200)
+  const linkB = ((await linkBRes.json()) as { data: { id: string; code: string } }).data
+  const nowSec = Math.floor(Date.now() / 1000)
+  const DAY = 86_400
+  const withCookie = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005011', source: 'e2e', locale: 'uk' }, headers: { 'x-forwarded-for': '198.51.100.31', cookie: `lead_ref=v2_${link.code}.${nowSec - 5 * DAY}_${linkB.code}.${nowSec - DAY}` } })
   expect(withCookie.status(), await withCookie.text()).toBe(200)
-  const { data: l1 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005011').single()
-  expect(l1).toMatchObject({ referral_link_id: link.id, referral_code: link.code })
+  const { data: l1 } = await db().from('leads').select('id, referral_link_id, referral_code, referral_touched_at').eq('phone', '+380990005011').single()
+  expect(l1, 'A (5 днів тому) раніше за B (1 день тому) → заявка у A').toMatchObject({ referral_link_id: link.id, referral_code: link.code })
+  expect(Math.abs(new Date(l1!.referral_touched_at as string).getTime() / 1000 - (nowSec - 5 * DAY))).toBeLessThan(2)
   created.leads.push(l1!.id)
+  const outOfWindow = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005014', source: 'e2e', locale: 'uk' }, headers: { 'x-forwarded-for': '198.51.100.34', cookie: `lead_ref=v2_${link.code}.${nowSec - 200 * DAY}_${linkB.code}.${nowSec - DAY}` } })
+  expect(outOfWindow.status(), await outOfWindow.text()).toBe(200)
+  const { data: l4 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005014').single()
+  expect(l4, 'A поза вікном 90 днів → заявка у B').toMatchObject({ referral_link_id: linkB.id, referral_code: linkB.code })
+  created.leads.push(l4!.id)
+  const allOld = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005015', source: 'e2e', locale: 'uk' }, headers: { 'x-forwarded-for': '198.51.100.35', cookie: `lead_ref=v2_${link.code}.${nowSec - 200 * DAY}_${linkB.code}.${nowSec - 100 * DAY}` } })
+  expect(allOld.status(), await allOld.text()).toBe(200)
+  const { data: l5 } = await db().from('leads').select('id, referral_link_id, referral_code, referral_touched_at').eq('phone', '+380990005015').single()
+  expect(l5, 'усі касання поза вікном → органічна заявка').toMatchObject({ referral_link_id: null, referral_code: null, referral_touched_at: null })
+  created.leads.push(l5!.id)
   const unknownRef = await api.post('/api/leads', { data: { name: E2E_PUBLIC_NAME, phone: '+380990005012', source: 'e2e', locale: 'uk', ref: 'zzzz9999' }, headers: { 'x-forwarded-for': '198.51.100.32' } })
   expect(unknownRef.status()).toBe(200)
   const { data: l2 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005012').single()

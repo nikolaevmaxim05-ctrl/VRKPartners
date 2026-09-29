@@ -112,7 +112,7 @@ test('приймач заявок без запису: невалідний JSON
   if (before !== null) expect(after, 'honeypot не створює лідів').toBe(before)
 })
 
-test('реферальні переходи: /r/<code> → 302 на /?ref=…&utm (з security-заголовками і HttpOnly cookie), /r/Bad..code → 404, задовгий ?ref → без Set-Cookie, /admin і /api без cookie', async ({ request }) => {
+test('реферальні переходи: /r/<code> → 302 на /?ref=…&utm (з security-заголовками і HttpOnly cookie-списком касань на 400 днів), /r/Bad..code → 404, задовгий ?ref → без Set-Cookie, /admin і /api без cookie; 9 кодів → ≤ 8 касань, легасі-cookie читається', async ({ request }) => {
   const r = await request.get('/r/E2Eabc12?utm_source=p&utm_campaign=c', { maxRedirects: 0 })
   expect(r.status()).toBe(302)
   const loc = new URL(r.headers()['location'], 'http://127.0.0.1:3100')
@@ -122,11 +122,27 @@ test('реферальні переходи: /r/<code> → 302 на /?ref=…&ut
   expect(loc.searchParams.get('utm_campaign')).toBe('c')
   expectSecurityHeaders(r.headers(), '/r/<code>')
   const setCookie = r.headers()['set-cookie'] ?? ''
-  expect(setCookie).toMatch(/lead_ref=e2eabc12/)
+  expect(setCookie).toMatch(/lead_ref=v2_e2eabc12\.\d{9,10}(;|$)/)
   expect(setCookie).toMatch(/HttpOnly/i)
   expect(setCookie).toMatch(/SameSite=Lax/i)
-  expect(setCookie).toMatch(/Max-Age=7776000/)
+  expect(setCookie).toMatch(/Max-Age=34560000/)
   expect(setCookie, 'http → без Secure (за протоколом запиту)').not.toMatch(/Secure/i)
+
+  // Список касань: існуюча cookie доповнюється, перший ts за кодом зберігається; понад 8 — замінюється останнє.
+  const now = Math.floor(Date.now() / 1000)
+  const withOld = await request.get('/r/e2enew12', { maxRedirects: 0, headers: { cookie: `lead_ref=v2_e2eabc12.${now - 86400}` } })
+  const value = decodeURIComponent((withOld.headers()['set-cookie'] ?? '').split(';')[0].replace('lead_ref=', ''))
+  expect(value).toMatch(new RegExp(`^v2_e2eabc12\\.${now - 86400}_e2enew12\\.\\d{9,10}$`))
+  const nine = Array.from({ length: 9 }, (_, i) => `v2_` + Array.from({ length: i }, (_, k) => `code${k}xxx.${now - 1000 + k}`).join('_'))
+  const full = await request.get('/r/code9xxx', { maxRedirects: 0, headers: { cookie: `lead_ref=${nine[8]}` } })
+  const fullValue = decodeURIComponent((full.headers()['set-cookie'] ?? '').split(';')[0].replace('lead_ref=', ''))
+  const parts = fullValue.replace(/^v2_/, '').split('_')
+  expect(parts, '≤ 8 касань, ранні збережені, останнє замінене').toHaveLength(8)
+  expect(parts.slice(0, 7).map((p) => p.split('.')[0])).toEqual(['code0xxx', 'code1xxx', 'code2xxx', 'code3xxx', 'code4xxx', 'code5xxx', 'code6xxx'])
+  expect(parts[7]).toMatch(/^code9xxx\./)
+  // Легасі-cookie (голий код із прод-версії 2026-09-27) → касання «зараз» + новий код.
+  const legacy = await request.get('/r/e2enew12', { maxRedirects: 0, headers: { cookie: 'lead_ref=oldcode1' } })
+  expect(decodeURIComponent((legacy.headers()['set-cookie'] ?? '').split(';')[0])).toMatch(/^lead_ref=v2_oldcode1\.\d{9,10}_e2enew12\.\d{9,10}$/)
 
   const bad = await request.get('/r/Bad..code', { maxRedirects: 0 })
   expect(bad.status()).toBe(404)
@@ -134,7 +150,10 @@ test('реферальні переходи: /r/<code> → 302 на /?ref=…&ut
   expect(long.status()).toBe(200)
   expect(long.headers()['set-cookie'] ?? '').not.toContain('lead_ref')
   const home = await request.get('/?ref=abcd1234', { maxRedirects: 0 })
-  expect(home.headers()['set-cookie'] ?? '').toContain('lead_ref=abcd1234')
+  // Контекст запитів тримає cookie-jar: до нового касання додаються попередні з цього тесту.
+  expect(home.headers()['set-cookie'] ?? '').toMatch(/lead_ref=v2_(?:[a-z0-9]+\.\d+_)*abcd1234\.\d{9,10}/)
+  const same = await request.get('/?ref=abcd1234', { maxRedirects: 0, headers: { cookie: `lead_ref=v2_abcd1234.${now - 5000}` } })
+  expect(same.headers()['set-cookie'] ?? '', 'повторний ?ref: cookie переставлена, ts не змінено').toContain(`lead_ref=v2_abcd1234.${now - 5000}`)
   const admin = await request.get('/admin/login?ref=abcd1234')
   expect(admin.headers()['set-cookie'] ?? '', 'адмінка cookie не ставить').not.toContain('lead_ref')
 })

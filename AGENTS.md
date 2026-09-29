@@ -781,9 +781,17 @@ Supabase), admin-ui 8/2 skip, check-overflow 45/0.
 «перейшов за реф. посиланням <назва>»; фильтр заявок по ссылке; разбивка аналитики по ссылке.
 
 **Решения владельца (2026-09-27):**
-1. Cookie `lead_ref` на публичном сайте — да: HttpOnly, SameSite=Lax, Path=/, 90 дней, без PII,
-   `secure` по протоколу запроса; last-touch (последний партнёрский переход побеждает); реферал и
-   UTM/gclid независимы.
+1. Cookie `lead_ref` на публичном сайте — да: HttpOnly, SameSite=Lax, Path=/, без PII, `secure` по
+   протоколу запроса; реферал и UTM/gclid независимы. **2026-09-29 (уточнение владельца): атрибуция
+   first-touch с настраиваемым окном.** Cookie хранит список касаний `v2_<code>.<ts>_…` (ts — unix-секунды
+   первого перехода по коду; не более 8; при переполнении заменяется последнее, ранние не трогаются;
+   повторный переход по тому же коду ts не меняет; Max-Age 400 дней — потолок Chrome, cookie
+   переставляется при каждом `?ref`). Заявка зачитывается партнёру, по ссылке которого посетитель
+   перешёл **первым** в пределах окна `site_settings.referral_attribution_days` (целое 1–400, дефолт 90;
+   отсчёт фиксированный от первого перехода; все касания старше окна → заявка органическая, код не
+   сохраняется). Окно применяется только в приёмнике (middleware без БД). Дата первого перехода —
+   `leads.referral_touched_at` (миграция 037). Легаси-cookie с голым кодом (прод 2026-09-27) читается
+   как касание «сейчас». Изначальное решение 2026-09-27 (last-touch, 90 дней) отменено.
 2. Выключенная ссылка **не зачитывает** новые заявки: `referral_link_id = null`, код сохраняется в
    `leads.referral_code` («не знайдено/вимкнено»).
 3. Удаление ссылки с заявками запрещено (409 «вимкніть замість видалення», FK `on delete restrict`).
@@ -818,10 +826,14 @@ Zod `ref`, submit-lead, уведомления, `referral.spec`; (5) заявк�
    `leads.referral_code`, RLS по образцу 033) и 036 (право ролям `admin`/`e2e-full`) применены
    2026-09-27 через MCP **до** пуша кода (MIGRATION-LOG.md, раздел 6). Другие роли клиента право не
    получили — владелец выдаёт из «Ролі».
-2. **Ядро** — `core/domain/referral/{code,attribution,link-rules}.ts`: код `^[a-z0-9]{3,40}$`,
-   генерация 8 символов из алфавита без `0/1/i/l/o`, `pickReferralCode(cookie → тело → ?ref
-   страницы)`, `describeReferral` («Партнер: <назва>» / «Реф. код: … — посилання вимкнене (<назва>)»
-   / «… не знайдено»), `aggregateLeadStats`. Порт `ReferralLinkRepository`, сценарий
+2. **Ядро** — `core/domain/referral/{code,touches,attribution,link-rules}.ts`: код `^[a-z0-9]{3,40}$`,
+   генерация 8 символов из алфавита без `0/1/i/l/o`; **касания (2026-09-29)** — `touches.ts`:
+   `decodeRefCookie/encodeRefCookie` (v2, легаси → касание «сейчас», мусор → []), `addTouch` (первый ts
+   сохраняется, стеля 8, старше 400 дней отбрасываются), `mergeTouches` (по коду минимальный ts),
+   `pickReferralTouch` (самое раннее в окне), `parseAttributionDays/planAttributionDays` (1–400, дефолт
+   90), константы `REF_ATTRIBUTION_*`; `collectReferralTouches(cookie ⊕ refTouches ⊕ легаси ref ⊕ ?ref
+   страницы)`; `describeReferral` («Партнер: <назва> · перший перехід dd.mm.yyyy» / «Реф. код: … —
+   посилання вимкнене (<назва>)» / «… не знайдено»), `aggregateLeadStats`. Порт `ReferralLinkRepository`, сценарий
    `manage-referral-links` (две попытки при коллизии кода, 409 по `lower(name)`, удаление с заявками
    → 409 «вимкніть замість видалення», аудит `referral_link.create|update|delete`).
    `REFERRAL_PERMISSIONS = ['manage_referrals']`, `REFERRAL_READ_PERMISSIONS` (решение 4).
@@ -834,12 +846,16 @@ Zod `ref`, submit-lead, уведомления, `referral.spec`; (5) заявк�
    (`/admin/analytics?referral_link_id=<id>`). Строка «Реферальні посилання» в «Як це працює» ролей.
 5. **Атрибуция** — `middleware.ts`, ветка сайта: `/r/<code>` → 302 на `/?ref=<code>` с сохранением
    остальных query (UTM), невалидный код → 404 сайта; при валидном `?ref` на страницах сайта —
-   `Set-Cookie lead_ref` (HttpOnly, SameSite=Lax, Path=/, Max-Age 90 дней, `Secure` только на
-   https); `/admin`, `/api`, файлы cookie не получают. Клиент: `features/landing/lib/referral.ts`
-   зеркалит `?ref` в localStorage (`lead_ref`), форма шлёт `ref` в теле (Zod-поле без 400: мусор →
-   `undefined`). Приёмник (`submit-lead`): резолв кода **после honeypot и лимита, до дедупа**;
-   активная ссылка → `referral_link_id + referral_code`, выключенная/неизвестная → только
-   `referral_code`; ошибка поиска не блокирует заявку. Имя партнёра — в Telegram (`🤝`), KeyCRM
+   `Set-Cookie lead_ref` со списком касаний (HttpOnly, SameSite=Lax, Path=/, Max-Age 400 дней, `Secure`
+   только на https; см. решение 1); `/admin`, `/api`, файлы cookie не получают. Клиент:
+   `features/landing/lib/referral.ts` зеркалит тот же список касаний в localStorage (`lead_ref`,
+   `{ touches }`; легаси `{ code, at(ms) }` читается), форма шлёт `refTouches: [{ code, at }]` (Zod: ≤ 8
+   валидных, поле без 400; легаси `ref` тоже принимается как касание «сейчас»). Приёмник
+   (`submit-lead`): **после honeypot и лимита, до дедупа** — касания из cookie ⊕ тела ⊕ `?ref`
+   страницы → самое раннее в окне `referral_attribution_days` (чтение через `settings.getMany`, ошибка →
+   дефолт 90) → поиск ссылки; активная → `referral_link_id + referral_code + referral_touched_at`,
+   выключенная/неизвестная → только код и дата; все касания вне окна → органическая заявка; ошибка
+   поиска не блокирует заявку. Имя партнёра — в Telegram (`🤝`), KeyCRM
    (note), email и в комментарии «[ПОВТОР]» (`ReferralNote` в `LeadNotification`). Дефолт политики
    конфиденциальности (§4) дополнен пунктом про реферальный код; у клиента правки только в оферте
    (`site_content.legal.offer`), поэтому пункт рендерится из дефолта.
@@ -863,11 +879,18 @@ Zod `ref`, submit-lead, уведомления, `referral.spec`; (5) заявк�
    (матрица прав, 4b CRUD/статистика/фильтр, тест 8 аналитика/CSV, тест 10 приёмник с cookie за
    `E2E_ALLOW_LEAD_WRITES=1`), `admin-ui` (страница в регрессе). Cleanup/leftovers знают
    `referral_links` (после лидов из-за FK).
-9. **Не проверено / проверить на проде после деплоя:** что `/?ref=<code>` отдаётся с `Set-Cookie`
-   и не кэшируется CDN как общий ответ (локально `Cache-Control: private` из-за
-   `E2E_CONTENT_OVERRIDES`, на проде проверить `curl -D - 'https://vrk.com.ua/?ref=test1234'`);
-   `Secure` на cookie за https; реальные уведомления с именем партнёра (локально каналы «not
-   configured»); свайп/тап по ссылке `/r/…` из мессенджеров на реальных устройствах.
+9. **Не проверено / проверить на проде после деплоя:** `/r/test1234` на проде уже (2026-09-29)
+   отдаёт 302 и `Set-Cookie … Secure; HttpOnly` (проверено curl) — после деплоя first-touch убедиться,
+   что `Set-Cookie` приходит и при повторном `?ref` с уже существующей cookie (значение `v2_…` с двумя
+   касаниями, Max-Age 34560000) и что размер cookie ≤ ~450 байт при 8 касаниях; реальные уведомления
+   с именем партнёра и датой первого перехода (локально каналы «not configured»); свайп/тап по
+   ссылке `/r/…` из мессенджеров на реальных устройствах.
+10. **Окно атрибуции в админке (2026-09-29)** — карточка «Вікно атрибуції» на вкладке «Реферальні
+   посилання» (право `manage_referrals`): Select с пресетами 14/30/60/90/180/365 + «Інше…» с полем
+   1–400, подпись «Зараз: N днів (за замовчуванням 90 днів)». Роут `GET/PATCH
+   /api/admin/referral-links/settings` (`{ days }`, вне 1–400 → 400 «Вікно атрибуції: ціле число від 1 до
+   400 днів»), запись через сценарий настроек (`ALLOWED_SETTING_KEYS` + `referral_attribution_days`,
+   тип number, аудит `settings.update`). Карточка заявки: строка «Перший перехід» в блоке «Джерело».
 
 ## Известные «требует действий владельца»
 

@@ -198,9 +198,12 @@ scripts/check-overflow.js                              скан переполн
 
 ```
 src/
-  core/domain/referral/code.ts                            REF_CODE_RE, алфавит/длина кода, REF_COOKIE/REF_QUERY_KEY/REF_TTL_DAYS/REF_PATH_PREFIX,
+  core/domain/referral/code.ts                            REF_CODE_RE, алфавит/длина кода, REF_COOKIE/REF_QUERY_KEY/REF_PATH_PREFIX,
                                                           normalizeRefCode, generateRefCode(randomInt), buildReferralUrl, refCodeFromPath
-  core/domain/referral/attribution.ts                     refCodeFromPageUrl, pickReferralCode({ cookie, body, pageUrl }) — cookie → тело → ?ref
+  core/domain/referral/touches.ts                         (2026-09-29, first-touch) ReferralTouch, кодек cookie v2 (+легаси), addTouch, mergeTouches,
+                                                          pickReferralTouch (самое раннее в окне), REF_MAX_TOUCHES=8, REF_COOKIE_MAX_DAYS=400,
+                                                          REF_ATTRIBUTION_{SETTING_KEY,DEFAULT_DAYS,PRESETS,MIN,MAX}, parse/planAttributionDays
+  core/domain/referral/attribution.ts                     refCodeFromPageUrl, collectReferralTouches({ cookie, body, legacyBody, pageUrl }, now)
   core/domain/referral/link-rules.ts                      типы ReferralLink/Ref/Stats/Note, describeReferral, planNewReferralLink,
                                                           planReferralLinkPatch (code → ошибка), aggregateLeadStats, REF_ERRORS
   core/domain/access/permissions.ts                       право manage_referrals (11-е)
@@ -219,7 +222,10 @@ src/
   infrastructure/supabase/repositories/{leads,analytics}.ts  embed referral_links!left, фильтр 'none' → is null
   infrastructure/notifications/{telegram,keycrm,email}.ts строка партнёра
   presentation/permissions.ts                             REFERRAL_PERMISSIONS, REFERRAL_READ_PERMISSIONS
-  app/api/admin/referral-links/{route,[id]/route,stats/route}.ts
+  app/api/admin/referral-links/{route,[id]/route,stats/route,settings/route}.ts  settings — GET/PATCH окна атрибуции (manage_referrals)
+  features/admin/components/referral-attribution-card.tsx  карточка «Вікно атрибуції» (пресеты + «Інше», 1–400)
+  core/domain/settings/site-settings.ts                   ключ referral_attribution_days (number, 1–400)
+supabase/migrations/037_leads_referral_touched_at.sql     leads.referral_touched_at (дата первого перехода)
   app/api/leads/route.ts                                  referralCookie из request.cookies
   app/admin/(dashboard)/referral-links/page.tsx + features/admin/components/referral-links-section.tsx
   features/admin/lib/sections.ts                          раздел «Реферальні посилання» (после «Ролі», уточнение 2026-09-29)
