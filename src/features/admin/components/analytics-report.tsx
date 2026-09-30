@@ -1809,6 +1809,9 @@ export function AnalyticsReport() {
                         <Th col="total"              className="text-right">Заявки</Th>
                         <Th col="targetLeads"        className="text-right">Цільові</Th>
                         <Th col="nonTargetLeads"     className="text-right">Нецільові</Th>
+                        {/* Порядок колонок = SUMMARY_COLUMN_ORDER (core/domain/analytics/export): «Конв. цільові»
+                            одразу після «Нецільові»; шапка, рядки й «Разом» міняються ЛИШЕ разом. */}
+                        <Th col="conversionToTarget" className="text-right">Конв. цільові</Th>
                         <Th col="deals"              className="text-right">Угоди</Th>
                         {report.flags.hasDealAdjustmentStages && (
                           <Th col="dealAdjustments"  className="text-right">Повторні</Th>
@@ -1817,7 +1820,6 @@ export function AnalyticsReport() {
                         {report.flags.hasProfitStages && (
                           <Th col="dealProfitSum"    className="text-right">Прибуток</Th>
                         )}
-                        <Th col="conversionToTarget" className="text-right">Конв. цільові</Th>
                         <Th col="conversionToDeal"   className="text-right">Конв. угоди</Th>
                       </TableRow>
                     </TableHeader>
@@ -1842,6 +1844,7 @@ export function AnalyticsReport() {
                           <TableCell className="text-right tabular-nums">{row.total}</TableCell>
                           <TableCell className="text-right tabular-nums">{row.targetLeads}</TableCell>
                           <TableCell className="text-right tabular-nums">{row.nonTargetLeads}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtPct(row.conversionToTarget)}</TableCell>
                           <TableCell className="text-right tabular-nums">{row.deals}</TableCell>
                           {report.flags.hasDealAdjustmentStages && (
                             <TableCell className="text-right tabular-nums">{row.dealAdjustments}</TableCell>
@@ -1850,7 +1853,6 @@ export function AnalyticsReport() {
                           {report.flags.hasProfitStages && (
                             <TableCell className="text-right tabular-nums">{fmtAmount(row.dealProfitSum)}</TableCell>
                           )}
-                          <TableCell className="text-right tabular-nums">{fmtPct(row.conversionToTarget)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtPct(row.conversionToDeal)}</TableCell>
                         </TableRow>
                       ))}
@@ -1861,6 +1863,7 @@ export function AnalyticsReport() {
                         <TableCell className="text-right tabular-nums">{report.total.total}</TableCell>
                         <TableCell className="text-right tabular-nums">{report.total.targetLeads}</TableCell>
                         <TableCell className="text-right tabular-nums">{report.total.nonTargetLeads}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtPct(report.total.conversionToTarget)}</TableCell>
                         <TableCell className="text-right tabular-nums">{report.total.deals}</TableCell>
                         {report.flags.hasDealAdjustmentStages && (
                           <TableCell className="text-right tabular-nums">{report.total.dealAdjustments}</TableCell>
@@ -1869,7 +1872,6 @@ export function AnalyticsReport() {
                         {report.flags.hasProfitStages && (
                           <TableCell className="text-right tabular-nums">{fmtAmount(report.total.dealProfitSum)}</TableCell>
                         )}
-                        <TableCell className="text-right tabular-nums">{fmtPct(report.total.conversionToTarget)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtPct(report.total.conversionToDeal)}</TableCell>
                       </TableRow>
                     </TableBody>

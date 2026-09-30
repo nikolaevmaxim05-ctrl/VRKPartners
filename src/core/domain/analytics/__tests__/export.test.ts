@@ -27,8 +27,11 @@ import {
   uniqueSheetName,
   wrapPhoneForCsv,
   SUMMARY_COLUMN_HEADERS,
+  SUMMARY_COLUMN_ORDER,
+  orderSummaryColumns,
   computeDeltaPct,
 } from '../export'
+import { buildSummaryCsv } from '../export-csv'
 import type { SummaryColumn, ComparisonPeriod } from '../export'
 import type { ReportResponse } from '../report'
 
@@ -522,5 +525,31 @@ describe('wrapPhoneForCsv', () => {
 
   it('порожній рядок → порожня формула', () => {
     expect(wrapPhoneForCsv('')).toBe('=""')
+  })
+})
+
+// ─── Канонічний порядок показників (SUMMARY_COLUMN_ORDER) ─────────────────────
+
+describe('SUMMARY_COLUMN_ORDER / orderSummaryColumns', () => {
+  it('порядок як у таблиці екрана: «Конверсія у цільові» після «Нецільові», перед «Угоди»; усі показники покриті', () => {
+    expect(SUMMARY_COLUMN_ORDER).toEqual([
+      'total', 'targetLeads', 'nonTargetLeads', 'conversionToTarget', 'conversionToNonTarget',
+      'deals', 'dealAmountSum', 'dealProfitSum', 'conversionToDeal',
+    ])
+    expect([...SUMMARY_COLUMN_ORDER].sort()).toEqual(Object.keys(SUMMARY_COLUMN_HEADERS).sort())
+  })
+
+  it('обрані в довільному порядку → канонічний порядок, без дублікатів', () => {
+    expect(orderSummaryColumns(['conversionToDeal', 'deals', 'conversionToTarget', 'total', 'deals', 'nonTargetLeads'])).toEqual([
+      'total', 'nonTargetLeads', 'conversionToTarget', 'deals', 'conversionToDeal',
+    ])
+    expect(orderSummaryColumns([])).toEqual([])
+  })
+
+  it('CSV: заголовки стовпців ідуть у канонічному порядку незалежно від порядку вибору', () => {
+    const period = makePeriod('Вересень', makeReport({ total: 10, targetLeads: 4, nonTargetLeads: 2, deals: 1 }))
+    const csv = buildSummaryCsv([period], orderSummaryColumns(['deals', 'conversionToTarget', 'nonTargetLeads', 'targetLeads', 'total']), false)
+    const header = csv.replace(/^\uFEFF/, '').split(/\r?\n/).find((l) => l.includes('Заявки')) ?? ''
+    expect(header).toBe('"Розріз","Заявки","Цільові ліди","Нецільові ліди","Конверсія у цільові (%)","Угоди"')
   })
 })

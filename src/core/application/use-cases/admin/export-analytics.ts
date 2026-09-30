@@ -21,7 +21,7 @@ import {
   groupCustomFieldValues,
 } from '../../../domain/analytics/export-leads'
 import { buildLeadsCsv, buildSummaryCsv } from '../../../domain/analytics/export-csv'
-import { filterByDealAmount, type SummaryColumn, type ComparisonPeriod } from '../../../domain/analytics/export'
+import { filterByDealAmount, orderSummaryColumns, type SummaryColumn, type ComparisonPeriod } from '../../../domain/analytics/export'
 import { kyivBoundaryToUtc } from '../../../domain/analytics/report-breakdown'
 import { periodLabel } from '../../../domain/analytics/format'
 import { getServiceLabel } from '../../../domain/lead/services'
@@ -114,7 +114,8 @@ export function makeExportAnalytics(deps: {
     if (!main.ok) return main
     const mainReport = main.value
 
-    const effectiveColumns: SummaryColumn[] = summaryColumns.filter(
+    // Стовпці файлу — у канонічному порядку SUMMARY_COLUMN_ORDER, незалежно від порядку в запиті.
+    const effectiveColumns: SummaryColumn[] = orderSummaryColumns(summaryColumns).filter(
       (col) => col !== 'dealProfitSum' || mainReport.flags.hasProfitStages,
     )
 

@@ -30,19 +30,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group'
 import type { TsGranularity } from '@core/domain/analytics/report'
 import type { LeadExportField as LeadField } from '@core/domain/analytics/export-request'
+import { SUMMARY_COLUMN_ORDER, SUMMARY_COLUMN_HEADERS, type SummaryColumn } from '@core/domain/analytics/export'
 
 // ─── Типи ────────────────────────────────────────────────────────────────────
-
-type SummaryColumn =
-  | 'total'
-  | 'nonTargetLeads'
-  | 'targetLeads'
-  | 'deals'
-  | 'dealAmountSum'
-  | 'dealProfitSum'
-  | 'conversionToNonTarget'
-  | 'conversionToTarget'
-  | 'conversionToDeal'
 
 type ExportFormat = 'csv' | 'xlsx'
 
@@ -391,63 +381,17 @@ function SummaryTab({
       {/* Показники */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Показники</p>
-        <CheckboxRow
-          id="col-total"
-          checked={columns.includes('total')}
-          onCheckedChange={() => toggleColumn('total')}
-          label="Заявки"
-        />
-        <CheckboxRow
-          id="col-nonTargetLeads"
-          checked={columns.includes('nonTargetLeads')}
-          onCheckedChange={() => toggleColumn('nonTargetLeads')}
-          label="Нецільові ліди"
-        />
-        <CheckboxRow
-          id="col-targetLeads"
-          checked={columns.includes('targetLeads')}
-          onCheckedChange={() => toggleColumn('targetLeads')}
-          label="Цільові ліди"
-        />
-        <CheckboxRow
-          id="col-deals"
-          checked={columns.includes('deals')}
-          onCheckedChange={() => toggleColumn('deals')}
-          label="Угоди"
-        />
-        <CheckboxRow
-          id="col-dealAmountSum"
-          checked={columns.includes('dealAmountSum')}
-          onCheckedChange={() => toggleColumn('dealAmountSum')}
-          label="Сума угод (грн)"
-        />
-        {/* Прибуток — тільки якщо є відповідні стадії */}
-        {hasProfitStages && (
+        {/* Порядок і підписи — з ядра (SUMMARY_COLUMN_ORDER / SUMMARY_COLUMN_HEADERS): той самий, що й
+            у стовпцях файлу. «Прибуток» — лише якщо є відповідні стадії. */}
+        {SUMMARY_COLUMN_ORDER.filter((col) => col !== 'dealProfitSum' || hasProfitStages).map((col) => (
           <CheckboxRow
-            id="col-dealProfitSum"
-            checked={columns.includes('dealProfitSum')}
-            onCheckedChange={() => toggleColumn('dealProfitSum')}
-            label="Прибуток (грн)"
+            key={col}
+            id={`col-${col}`}
+            checked={columns.includes(col)}
+            onCheckedChange={() => toggleColumn(col)}
+            label={SUMMARY_COLUMN_HEADERS[col]}
           />
-        )}
-        <CheckboxRow
-          id="col-conversionToNonTarget"
-          checked={columns.includes('conversionToNonTarget')}
-          onCheckedChange={() => toggleColumn('conversionToNonTarget')}
-          label="Конверсія у нецільові (%)"
-        />
-        <CheckboxRow
-          id="col-conversionToTarget"
-          checked={columns.includes('conversionToTarget')}
-          onCheckedChange={() => toggleColumn('conversionToTarget')}
-          label="Конверсія у цільові (%)"
-        />
-        <CheckboxRow
-          id="col-conversionToDeal"
-          checked={columns.includes('conversionToDeal')}
-          onCheckedChange={() => toggleColumn('conversionToDeal')}
-          label="Конверсія в угоду (%)"
-        />
+        ))}
       </div>
 
       {/* Розріз дат */}

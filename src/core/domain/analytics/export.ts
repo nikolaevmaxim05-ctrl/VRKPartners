@@ -41,6 +41,29 @@ export const SUMMARY_COLUMN_HEADERS: Record<SummaryColumn, string> = {
   conversionToDeal:      'Конверсія в угоду (%)',
 }
 
+/**
+ * Канонічний порядок показників у файлі вивантаження і в конструкторі (рішення власника 2026-09-30):
+ * як у зведеній таблиці екрана — «Конверсія у цільові» одразу після «Нецільові», перед «Угоди».
+ * Порядок стовпців файлу НЕ залежить від того, в якій послідовності користувач ставив позначки.
+ */
+export const SUMMARY_COLUMN_ORDER: SummaryColumn[] = [
+  'total',
+  'targetLeads',
+  'nonTargetLeads',
+  'conversionToTarget',
+  'conversionToNonTarget',
+  'deals',
+  'dealAmountSum',
+  'dealProfitSum',
+  'conversionToDeal',
+]
+
+/** Обрані показники в канонічному порядку (дублікати прибираються). */
+export function orderSummaryColumns(columns: ReadonlyArray<SummaryColumn>): SummaryColumn[] {
+  const chosen = new Set(columns)
+  return SUMMARY_COLUMN_ORDER.filter((c) => chosen.has(c))
+}
+
 // ─── sanitizeCsvCell ─────────────────────────────────────────────────────────
 
 /**
