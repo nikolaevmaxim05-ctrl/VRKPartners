@@ -241,6 +241,19 @@ tests/e2e/referral.spec.ts (+ admin-security, admin-api 4b/8/10, admin-ui, admin
 - Тесты после этапа 6: vitest 58 файлов / 836 тестов + 1 todo; e2e admin-api 22 (с записью за
   флагом), admin-security 7, admin-ui 8 (+2 skip), referral.spec на двух вьюпортах.
 
+## Производительность админки (2026-09-30)
+
+```
+src/
+  app/admin/(dashboard)/loading.tsx                 скелетон раздела (мгновенный отклик, полезный prefetch)
+  infrastructure/supabase/{session,server}.ts       сессия через auth.getClaims() — локальная проверка подписи JWT (ES256, JWKS в кэше)
+  composition/container.ts                          runAfterResponse (after() из next/server) — audit_log пишется после ответа
+  features/admin/lib/dictionary-cache.ts            клиентский кэш справочников (TTL 60 с, сброс в разделах-редакторах)
+  features/admin/components/sidebar.tsx             подсветка нажатого пункта сразу по клику
+  infrastructure/export/excel.ts, integrations/email.ts  exceljs / nodemailer — динамический import()
+vercel.json                                         regions: dub1 (рядом с Supabase eu-west-1)
+```
+
 ## Исходное состояние (до перестройки, аудит Фазы 0)
 
 - Вся логика лежит в `src/lib/*` (44 файла, ~6 700 строк) и **внутри роутов**
