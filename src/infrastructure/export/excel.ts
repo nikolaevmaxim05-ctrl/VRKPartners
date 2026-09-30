@@ -1,6 +1,8 @@
 // infrastructure/export/excel — XLSX-вивантаження (ExcelJS): ліди та зведення з порівнянням.
 // Перенесено з /api/admin/analytics/export без зміни вигляду файлів.
-import ExcelJS from 'exceljs'
+// ExcelJS (~1 МБ) вантажиться ЛИШЕ під час вивантаження XLSX — динамічний import, щоб пакет не
+// потрапляв у спільний серверний чанк усіх сторінок і роутів адмінки (холодний старт).
+const loadExcelJS = async () => (await import('exceljs')).default
 import type { SpreadsheetFileBuilder } from '@core/application/ports/analytics'
 import type { CellValue } from '@core/domain/analytics/export-leads'
 import type { LeadExportField } from '@core/domain/analytics/export-request'
@@ -29,6 +31,7 @@ function customFieldDefCount(headers: string[], leadFields: LeadExportField[]): 
 }
 
 async function buildLeadsXlsx(headers: string[], dataRows: CellValue[][], leadFields: LeadExportField[]): Promise<ArrayBuffer> {
+  const ExcelJS = await loadExcelJS()
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Analytics'
   workbook.created = new Date()
@@ -160,6 +163,7 @@ async function buildSummaryXlsx(
   columns: SummaryColumn[],
   includeDateBreakdown: boolean,
 ): Promise<ArrayBuffer> {
+  const ExcelJS = await loadExcelJS()
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Analytics'
   workbook.created = new Date()

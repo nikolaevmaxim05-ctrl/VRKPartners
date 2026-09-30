@@ -88,7 +88,13 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
 
   // ── Картка ─────────────────────────────────────────────────────────────────
   async function getLeadDetail(id: string): Promise<Result<Record<string, unknown>>> {
-    const res = await leads.getDetail(id)
+    // Дві хвилі замість чотирьох послідовних: лід + кастомні поля паралельно, далі — те, що
+    // залежить від ліда (відповідальний, історія за телефоном), теж паралельно.
+    const [res, fields, values] = await Promise.all([
+      leads.getDetail(id),
+      customFields.listForLead(),
+      customFields.valuesForLead(id),
+    ])
     if (!res.ok) {
       console.error('[admin/leads/[id]] query_failed', res.error)
       return fail('failed', res.error)
@@ -96,21 +102,17 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     const lead = res.data
     if (!lead) return fail('not_found', 'Not found')
 
-    let assigneeEmail: string | null = null
-    let assigneeName: string | null = null
-    if (lead.assigned_to) {
-      const r = await users.getEmailAndName(lead.assigned_to)
-      assigneeEmail = r.email
-      assigneeName = r.name
-    }
+    const phone = lead.phone as string | null | undefined
+    const [assignee, historyRows] = await Promise.all([
+      lead.assigned_to ? users.getEmailAndName(lead.assigned_to) : Promise.resolve({ email: null, name: null }),
+      phone ? leads.listByPhone(phone) : Promise.resolve([]),
+    ])
+    const assigneeEmail: string | null = assignee.email
+    const assigneeName: string | null = assignee.name
 
-    const [fields, values] = await Promise.all([customFields.listForLead(), customFields.valuesForLead(id)])
     const valuesByFieldId = new Map<string, string | null>()
     for (const v of values) valuesByFieldId.set(v.field_id, v.value)
     const fieldsWithValues = fields.map((f) => ({ ...f, value: valuesByFieldId.get(f.id) ?? null }))
-
-    const phone = lead.phone as string | null | undefined
-    const historyRows = phone ? await leads.listByPhone(phone) : []
 
     return ok({
       data: {
@@ -191,7 +193,9 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     if ('deal_profit' in update && Number(before.deal_profit ?? 0) !== Number(update.deal_profit ?? 0)) {
       systemMessages.push(`Прибуток: ${before.deal_profit ?? '—'} → ${update.deal_profit ?? '—'}`)
     }
-    if (systemMessages.length > 0) {
+    // System-коментарі та історія стадій незалежні й обидва best effort — пишемо паралельно.
+    const writeSystemComments = async () => {
+      if (systemMessages.length === 0) return
       const ins = await comments.insertMany(
         systemMessages.map((content) => ({
           lead_id: id,
@@ -205,7 +209,8 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     }
 
     // ── Історія стадій (best effort) ──
-    if (statusChanging) {
+    const writeStatusHistory = async () => {
+      if (!statusChanging) return
       const toType = update.status_id ? statusInfoById.get(update.status_id as string)?.conversion_type ?? null : null
       try {
         const h = await history.insert({
@@ -221,6 +226,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
         console.error('[admin/leads/[id]] status_history_unexpected', e)
       }
     }
+    await Promise.all([writeSystemComments(), writeStatusHistory()])
 
     // ── Розділ 6: enter / leave / amount (стадія береться ПІСЛЯ зміни) ──
     // Усі відправки await-яться до відповіді; помилки логуються і НЕ валять PATCH.

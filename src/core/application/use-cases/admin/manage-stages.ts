@@ -106,12 +106,14 @@ export function makeStageUseCases(deps: {
         return fail('invalid', 'Невірні дані')
       }
     }
-    // Послідовні UPDATE — для 6-15 стадій ок; частковий збій лишає валідний проміжний стан.
+    // UPDATE-и незалежні (кожен — свій рядок) → паралельно, а не по одному; частковий збій лишає
+    // валідний проміжний стан (позиції — звичайні числа без унікальності).
+    const list = items as Array<{ id: string; position: number }>
+    const results = await Promise.all(list.map((item) => statuses.setPosition(item.id, Math.floor(item.position))))
     const errors: string[] = []
-    for (const item of items as Array<{ id: string; position: number }>) {
-      const res = await statuses.setPosition(item.id, Math.floor(item.position))
-      if (!res.ok) errors.push(`${item.id}: ${res.error}`)
-    }
+    results.forEach((res, i) => {
+      if (!res.ok) errors.push(`${list[i].id}: ${res.error}`)
+    })
     if (errors.length > 0) {
       console.error('[admin/lead-statuses/reorder] partial_failure', errors)
       return fail('failed', errors.join('; '))

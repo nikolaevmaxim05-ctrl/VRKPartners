@@ -30,7 +30,7 @@ export function makeIntegrationTester(deps: { siteName: string }): IntegrationTe
 
     async smtp({ user, password, from, to }) {
       try {
-        const transport = createGmailTransport(user, password)
+        const transport = await createGmailTransport(user, password)
         await transport.verify()
         await transport.sendMail({
           from,

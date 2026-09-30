@@ -246,8 +246,11 @@ test('2.3 видалення: неіснуючий id → 404, реальний 
   expect(del.status()).toBe(200)
   const { data } = await db().from('leads').select('id').eq('id', leadB.id)
   expect(data).toEqual([])
-  const { data: audit } = await db().from('audit_log').select('action, resource').eq('user_id', selfId).gte('created_at', startIso).eq('action', 'lead.delete')
-  expect(audit!.some((a) => a.resource === `leads/${leadB.id}`)).toBe(true)
+  // Журнал пишеться після відповіді (after()) — чекаємо появи рядка.
+  await expect.poll(async () => {
+    const { data: audit } = await db().from('audit_log').select('action, resource').eq('user_id', selfId).gte('created_at', startIso).eq('action', 'lead.delete')
+    return (audit ?? []).some((a) => a.resource === `leads/${leadB.id}`)
+  }, { timeout: 10_000 }).toBe(true)
 })
 
 // ── 3. Воронка конверсій (розділ 6, Фаза 5 п. 1, ревью п. 1) ────────────────────────────────────
@@ -411,8 +414,10 @@ test('4c вікно атрибуції: GET дефолт/пресети, PATCH 1
   expect(((await (await api.get('/api/admin/referral-links/settings')).json()) as { data: { days: number } }).data.days).toBe(14)
   const { data: row } = await db().from('site_settings').select('value, type').eq('key', 'referral_attribution_days').single()
   expect(row).toMatchObject({ value: '14', type: 'number' })
-  const audit = (await (await api.get('/api/admin/audit-log?page=1&limit=20')).json()) as { data: { action: string; new_value: unknown }[] }
-  expect(audit.data.some((a) => a.action === 'settings.update' && JSON.stringify(a.new_value ?? {}).includes('referral_attribution_days')), 'аудит settings.update з ключем вікна').toBe(true)
+  await expect.poll(async () => {
+    const audit = (await (await api.get('/api/admin/audit-log?page=1&limit=20')).json()) as { data: { action: string; new_value: unknown }[] }
+    return audit.data.some((a) => a.action === 'settings.update' && JSON.stringify(a.new_value ?? {}).includes('referral_attribution_days'))
+  }, { message: 'аудит settings.update з ключем вікна', timeout: 10_000 }).toBe(true)
   // Повертаємо 90 для решти прогону (afterAll відновить значення клієнта).
   expect((await api.patch('/api/admin/referral-links/settings', { data: { days: 90 } })).status()).toBe(200)
 })
@@ -531,8 +536,12 @@ test('6.1 тексти: правка доїжджає до сайту, лімі�
   expect(back.status(), await back.text()).toBe(200)
   const { data: after } = await db().from('site_content').select('data').eq('id', 'landing').single()
   expect(after!.data, 'дифф після відкату = вихідному').toEqual(snapshot.landing.data)
-  const { data: audit } = await db().from('audit_log').select('action, new_value').eq('user_id', selfId).gte('created_at', startIso).eq('action', 'content.save')
-  expect(audit!.length).toBeGreaterThanOrEqual(3)
+  let audit: { action: string; new_value: unknown }[] = []
+  await expect.poll(async () => {
+    const res = await db().from('audit_log').select('action, new_value').eq('user_id', selfId).gte('created_at', startIso).eq('action', 'content.save')
+    audit = (res.data ?? []) as typeof audit
+    return audit.length
+  }, { timeout: 10_000 }).toBeGreaterThanOrEqual(3)
   expect(JSON.stringify(audit)).not.toContain(marker)
 })
 

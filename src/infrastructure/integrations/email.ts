@@ -1,6 +1,5 @@
 // infrastructure/integrations/email — лист адміністратору про заявку через Gmail SMTP (nodemailer).
 // smtp_user / smtp_password (App Password) / smtp_from — БД→env; адресат — NOTIFICATION_EMAIL.
-import nodemailer from 'nodemailer'
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier, LeadNotification } from '@core/application/ports/notifications'
 import { formatUtmSummary } from '@core/domain/lead/utm'
@@ -8,8 +7,9 @@ import { describeReferral } from '@core/domain/referral/link-rules'
 import { getServiceLabel } from '@core/domain/lead/services'
 import { escapeHtml, kyivNow } from './format'
 
-/** SMTP-транспорт Gmail. */
-export function createGmailTransport(user: string, pass: string) {
+/** SMTP-транспорт Gmail. nodemailer вантажиться лише під час відправки (динамічний import — не в спільному чанку). */
+export async function createGmailTransport(user: string, pass: string) {
+  const nodemailer = (await import('nodemailer')).default
   return nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user, pass } })
 }
 
@@ -31,7 +31,7 @@ export function makeEmailNotifier(deps: {
         return { ok: false, error: 'not configured' }
       }
       try {
-        await createGmailTransport(smtpUser, smtpPassword).sendMail({
+        await (await createGmailTransport(smtpUser, smtpPassword)).sendMail({
           from: smtpFrom || smtpUser,
           to: deps.notificationEmail(),
           subject: `Нова заявка з сайту — ${data.name}`,

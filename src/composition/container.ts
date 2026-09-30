@@ -2,8 +2,9 @@
 // Назовні — геттери сценаріїв і небагатьох залежностей для обвʼязки presentation.
 // Усе ліниве: env читається в момент першого звернення (збірка без env не падає).
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 
-import type { CacheInvalidator } from '@core/application/ports/common'
+import { dbOk, type CacheInvalidator } from '@core/application/ports/common'
 import { makeSubmitLead } from '@core/application/use-cases/public/submit-lead'
 import { makeConversionFlow } from '@core/application/use-cases/admin/conversion-flow'
 import { makeLeadUseCases } from '@core/application/use-cases/admin/leads'
@@ -96,7 +97,36 @@ const referralRepo = once(() => makeReferralLinkRepository(serviceClient))
 const secretsRepo = once(() => makeIntegrationSecretsRepository(serviceClient, aesGcmCipher))
 // Журнал дій адмінів (audit_log) — один на всі сценарії.
 const auditRepo = once(() => makeAuditLogRepository(serviceClient))
-const auditLog = once(() => makeAuditLog(auditRepo()))
+
+/**
+ * Некритичний «хвіст» запиту виконується ПІСЛЯ відправки відповіді (after() з next/server; на Vercel —
+ * waitUntil). Поза межами запиту (cron-скрипти, тести) after() кидає — тоді виконуємо одразу.
+ */
+function runAfterResponse(task: () => Promise<void>): void {
+  try {
+    after(task)
+  } catch {
+    void task()
+  }
+}
+
+// Запис у журнал не тримає відповідь користувачу: вставка рядка йде після відповіді, помилка — лише
+// в лог (правило «помилка журналу не валить запит» збережено; рядок зʼявляється на ~100 мс пізніше).
+const auditLog = once(() =>
+  makeAuditLog({
+    insert(entry) {
+      runAfterResponse(async () => {
+        try {
+          const res = await auditRepo().insert(entry)
+          if (!res.ok) console.error('[audit] write_failed', entry.action, entry.resource, res.error)
+        } catch (err) {
+          console.error('[audit] write_threw', entry.action, entry.resource, err)
+        }
+      })
+      return Promise.resolve(dbOk(undefined))
+    },
+  }),
+)
 const conversionRepo = once(() => makeConversionRepository(serviceClient))
 const adjustmentRepo = once(() => makeAdjustmentRepository(serviceClient))
 const analyticsRepo = once(() => makeAnalyticsRepository(serviceClient))
