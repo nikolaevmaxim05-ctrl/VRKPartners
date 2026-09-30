@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -23,6 +24,11 @@ type AdminSidebarProps = {
 export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміністратор' }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  // Миттєва підсвітка натиснутого пункту: до завершення переходу активним вважається пункт, по
+  // якому клікнули (а не поточний шлях); після зміни шляху тимчасовий стан скидається.
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
+  useEffect(() => { setPendingHref(null) }, [pathname])
+  const current = pendingHref ?? pathname
   const supabase = createClient()
 
   async function handleLogout() {
@@ -53,8 +59,8 @@ export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміні
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/admin'}>
-                  <Link href="/admin">
+                <SidebarMenuButton asChild isActive={current === '/admin'}>
+                  <Link href="/admin" onClick={() => setPendingHref('/admin')}>
                     <LayoutGrid className="h-4 w-4" />
                     <span>Головна</span>
                   </Link>
@@ -62,8 +68,8 @@ export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміні
               </SidebarMenuItem>
               {items.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
-                    <Link href={item.href}>
+                  <SidebarMenuButton asChild isActive={current.startsWith(item.href)}>
+                    <Link href={item.href} onClick={() => setPendingHref(item.href)}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
                     </Link>

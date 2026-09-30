@@ -27,7 +27,8 @@ export default async function AdminRootPage() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {sections.map((s) => (
-          <Link key={s.href} href={s.href} className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          // prefetch вимкнено: ті самі розділи вже prefetch-ить сайдбар — без подвійної хвилі запитів.
+          <Link key={s.href} href={s.href} prefetch={false} className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Card className="h-full transition-colors group-hover:border-primary/50">
               <CardHeader className="flex flex-row items-start gap-3 space-y-0">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
