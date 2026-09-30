@@ -6,6 +6,7 @@
 // (NEXT_PUBLIC_SITE_URL), не з window.location: превʼю на localhost показує прод-адресу.
 
 import { useEffect, useState } from 'react'
+import { useInvalidateDictionaries } from '@/features/admin/lib/dictionary-cache'
 import Link from 'next/link'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
@@ -65,6 +66,8 @@ function CopyUrl({ url, name }: { url: string; name: string }) {
 }
 
 export function ReferralLinksSection() {
+  // Назви партнерів — довідник у фільтрах заявок/аналітики: скидаємо клієнтський кеш при вході/виході.
+  useInvalidateDictionaries()
   const [links, setLinks] = useState<ReferralLink[]>([])
   const [stats, setStats] = useState<Record<string, ReferralLinkStats>>({})
   const [truncated, setTruncated] = useState(false)

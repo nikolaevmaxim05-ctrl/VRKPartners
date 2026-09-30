@@ -7,6 +7,7 @@
 // • Кастомні поля (CRUD + опції для select)
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useInvalidateDictionaries } from '@/features/admin/lib/dictionary-cache'
 import { toast } from 'sonner'
 import { Check, ChevronDown, ChevronRight, Copy, Eye, EyeOff, GripVertical, HelpCircle, Plus, RefreshCw, Save, Trash2, Upload, X } from 'lucide-react'
 import {
@@ -106,6 +107,16 @@ const TABS: { id: Tab; label: string }[] = [
 // ── Кореневий компонент ─────────────────────────────────────────────────────
 export function SettingsPanel() {
   const [activeTab, setActiveTab] = useState<Tab>('general')
+  // Відвідані вкладки лишаються змонтованими (прихованими) — повторний клік не перезапитує дані.
+  const [visited, setVisited] = useState<Set<Tab>>(() => new Set<Tab>(['general']))
+  const openTab = (id: Tab) => {
+    setActiveTab(id)
+    setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
+  }
+  // Тут змінюються стадії й кастомні поля — клієнтський кеш довідників скидається при вході/виході.
+  useInvalidateDictionaries()
+  const pane = (id: Tab, node: React.ReactNode) =>
+    visited.has(id) ? <div key={id} hidden={activeTab !== id}>{node}</div> : null
 
   return (
     <div className="space-y-4">
@@ -114,7 +125,7 @@ export function SettingsPanel() {
           <button
             key={t.id}
             type="button"
-            onClick={() => setActiveTab(t.id)}
+            onClick={() => openTab(t.id)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === t.id
                 ? 'border-primary text-foreground'
@@ -127,14 +138,14 @@ export function SettingsPanel() {
       </div>
 
       <div className="rounded-lg border bg-card p-5">
-        {activeTab === 'general' && <GeneralSection />}
-        {activeTab === 'dedup' && <DedupSection />}
-        {activeTab === 'statuses' && <StatusesSection />}
-        {activeTab === 'fields' && <CustomFieldsSection />}
-        {activeTab === 'telephony' && <TelephonySection />}
-        {activeTab === 'gsheets' && <GoogleSheetsSection />}
-        {activeTab === 'analytics' && <AnalyticsEventsSection />}
-        {DEV_TOOLS_ENABLED && activeTab === 'devtools' && <DevToolsSection />}
+        {pane('general', <GeneralSection />)}
+        {pane('dedup', <DedupSection />)}
+        {pane('statuses', <StatusesSection />)}
+        {pane('fields', <CustomFieldsSection />)}
+        {pane('telephony', <TelephonySection />)}
+        {pane('gsheets', <GoogleSheetsSection />)}
+        {pane('analytics', <AnalyticsEventsSection />)}
+        {DEV_TOOLS_ENABLED && pane('devtools', <DevToolsSection />)}
       </div>
     </div>
   )

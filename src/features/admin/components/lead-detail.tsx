@@ -2,6 +2,7 @@
 
 // Детальна сторінка лида: двоколонковий layout + smart status select + табы Чат/Нотатки/Журнал.
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { fetchDictionary } from '@/features/admin/lib/dictionary-cache'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
@@ -160,10 +161,11 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     setLoading(true)
     setFetchError(null)
     try {
-      const [leadRes, statusesRes, assigneesRes, commentsRes] = await Promise.all([
+      // Стадії й відповідальні — з клієнтського кешу довідників (їх уже завантажив список заявок).
+      const [leadRes, statusesJson, assigneesJson, commentsRes] = await Promise.all([
         fetch(`/api/admin/leads/${leadId}`),
-        fetch('/api/admin/lead-statuses'),
-        fetch('/api/admin/assignees'),
+        fetchDictionary<{ data?: Status[]; pipelines_enabled?: boolean }>('/api/admin/lead-statuses'),
+        fetchDictionary<{ data?: Assignee[] }>('/api/admin/assignees'),
         fetch(`/api/admin/leads/${leadId}/comments`),
       ])
 
@@ -175,8 +177,6 @@ export function LeadDetail({ leadId }: { leadId: string }) {
       }
 
       const leadJson = await leadRes.json()
-      const statusesJson = await statusesRes.json()
-      const assigneesJson = await assigneesRes.json()
       const commentsJson = await commentsRes.json()
 
       setLead(leadJson.data)
@@ -198,13 +198,26 @@ export function LeadDetail({ leadId }: { leadId: string }) {
 
   // ── PATCH helper
   const patchLead = useCallback(
-    async (body: Partial<{ status_id: string | null; assigned_to: string | null; deal_amount: number | null; deal_profit: number | null }>) => {
-      const res = await fetch(`/api/admin/leads/${leadId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+    async (
+      body: Partial<{ status_id: string | null; assigned_to: string | null; deal_amount: number | null; deal_profit: number | null }>,
+      // Оптимістичне оновлення: селект показує нове значення одразу; при помилці — відкат.
+      optimistic?: { apply: Partial<Lead>; rollback: Partial<Lead> },
+    ) => {
+      if (optimistic) setLead((prev) => (prev ? { ...prev, ...optimistic.apply } : prev))
+      let res: Response
+      try {
+        res = await fetch(`/api/admin/leads/${leadId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      } catch {
+        if (optimistic) setLead((prev) => (prev ? { ...prev, ...optimistic.rollback } : prev))
+        toast.error('Помилка збереження')
+        return false
+      }
       if (!res.ok) {
+        if (optimistic) setLead((prev) => (prev ? { ...prev, ...optimistic.rollback } : prev))
         const j = await res.json().catch(() => ({}))
         toast.error(j.error ?? 'Помилка збереження')
         return false
@@ -228,7 +241,10 @@ export function LeadDetail({ leadId }: { leadId: string }) {
 
     // Якщо requires_amount = false — PATCH одразу
     if (!target.requires_amount) {
-      patchLead({ status_id: newId })
+      patchLead(
+        { status_id: newId },
+        { apply: { status_id: newId, status: target }, rollback: { status_id: lead.status_id, status: lead.status } },
+      )
       return
     }
 
@@ -282,7 +298,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     if (!lead) return
     const value = newId === 'unassigned' ? null : newId
     if (value === lead.assigned_to) return
-    patchLead({ assigned_to: value })
+    patchLead({ assigned_to: value }, { apply: { assigned_to: value }, rollback: { assigned_to: lead.assigned_to } })
   }
 
   const filteredComments = useMemo(() => {

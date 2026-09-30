@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useInvalidateDictionaries } from '@/features/admin/lib/dictionary-cache'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
@@ -66,6 +67,8 @@ export function UsersTable({
   actorRank: number
   roleRanks: Record<string, number>
 }) {
+  // Користувачі — довідник «Відповідальні» у заявках/аналітиці: скидаємо клієнтський кеш при вході/виході.
+  useInvalidateDictionaries()
   // Роль користувача без ролі вважаємо «найнижчою» (керована).
   const roleRankOf = (roleId: string | null) =>
     roleId ? (roleRanks[roleId] ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY

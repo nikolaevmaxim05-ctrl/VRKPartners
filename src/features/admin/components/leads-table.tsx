@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { fetchDictionary } from '@/features/admin/lib/dictionary-cache'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   useReactTable,
@@ -188,18 +189,10 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
 
   // Завантажуємо довідники один раз
   useEffect(() => {
-    fetch('/api/admin/lead-statuses')
-      .then((r) => r.json())
-      .then((j) => setStatuses(j.data ?? []))
-      .catch(() => setStatuses([]))
-    fetch('/api/admin/assignees')
-      .then((r) => r.json())
-      .then((j) => setAssignees(j.data ?? []))
-      .catch(() => setAssignees([]))
-    fetch('/api/admin/referral-links')
-      .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((j) => setReferralLinks(j.data ?? []))
-      .catch(() => setReferralLinks([]))
+    // Довідники — з клієнтського кешу (повернення з картки заявки не перезапитує їх).
+    fetchDictionary<{ data?: Status[] }>('/api/admin/lead-statuses').then((j) => setStatuses(j.data ?? []))
+    fetchDictionary<{ data?: Assignee[] }>('/api/admin/assignees').then((j) => setAssignees(j.data ?? []))
+    fetchDictionary<{ data?: ReferralRef[] }>('/api/admin/referral-links').then((j) => setReferralLinks(j.data ?? []))
   }, [])
 
   const fetchLeads = useCallback(async (opts?: { silent?: boolean }) => {

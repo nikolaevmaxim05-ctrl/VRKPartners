@@ -3,8 +3,9 @@
 // Компонент вкладки «Аналітика» v3 (промпт 025).
 // Зміни: розділені фільтри «Розріз» / «Період», прибрано gclid-меню,
 // додано breakdown-режим графіка (розбивка по виміру).
-import { useEffect, useState, useCallback, useTransition, useRef } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { fetchDictionary } from '@/features/admin/lib/dictionary-cache'
+import { useSearchParams, usePathname } from 'next/navigation'
 import {
   LineChart,
   Line,
@@ -662,10 +663,8 @@ function MetricMultiSelect({
 // ─── Головний компонент ────────────────────────────────────────────────────────
 
 export function AnalyticsReport() {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [, startTransition] = useTransition()
 
   // ── Читаємо метрики, гранулярність і breakdown із URL ─────────────────────
 
@@ -767,32 +766,14 @@ export function AnalyticsReport() {
   // ── Завантаження довідників ────────────────────────────────────────────────
 
   useEffect(() => {
-    // Відповідальні
-    fetch('/api/admin/assignees')
-      .then((r) => r.json())
-      .then((j) => setAssignees(j.data ?? []))
-      .catch(() => setAssignees([]))
-
-    // Стадії
-    fetch('/api/admin/lead-statuses')
-      .then((r) => r.json())
-      .then((j) => setStatuses(j.data ?? []))
-      .catch(() => setStatuses([]))
-
-    // Кастомні поля
-    fetch('/api/admin/custom-fields')
-      .then((r) => r.json())
-      .then((j) => {
-        const arr = Array.isArray(j) ? j : (j.data ?? [])
-        setCustomFields(arr)
-      })
-      .catch(() => setCustomFields([]))
-
+    // Довідники — з клієнтського кешу (спільний зі списком і карткою заявок).
+    fetchDictionary<{ data?: Assignee[] }>('/api/admin/assignees').then((j) => setAssignees(j.data ?? []))
+    fetchDictionary<{ data?: Status[] }>('/api/admin/lead-statuses').then((j) => setStatuses(j.data ?? []))
+    fetchDictionary<{ data?: CustomField[] } | CustomField[]>('/api/admin/custom-fields').then((j) => {
+      setCustomFields(Array.isArray(j) ? j : (j.data ?? []))
+    })
     // Реферальні посилання (довідник назв партнерів; без права — порожній список)
-    fetch('/api/admin/referral-links')
-      .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((j) => setReferralLinks(j.data ?? []))
-      .catch(() => setReferralLinks([]))
+    fetchDictionary<{ data?: ReferralRef[] }>('/api/admin/referral-links').then((j) => setReferralLinks(j.data ?? []))
   }, [])
 
 
@@ -811,9 +792,9 @@ export function AnalyticsReport() {
     // custom_field_id зберігаємо в URL лише для розрізу «Додаткове поле».
     if (bd === 'custom_field' && cfId) params.set('custom_field_id', cfId)
     else params.delete('custom_field_id')
-    startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-    })
+    // URL оновлюємо через History API: router.replace на динамічній сторінці — це зайвий серверний
+    // прохід (middleware + гард + RSC) на кожен клік по контролу; useSearchParams бачить зміну й так.
+    window.history.replaceState(null, '', `${pathname}?${params.toString()}`)
   }
 
   function handleMetricsChange(keys: MetricKey[]) {
@@ -828,19 +809,19 @@ export function AnalyticsReport() {
     const g = val as TsGranularity
     setTsGranularity(g)
     updateUrlParams(selectedMetrics, g, breakdown)
-    void fetchReportWith({ overrideGranularity: g })
+    // Звіт перезапитає useEffect (tsGranularity у залежностях fetchReport) — без другого запиту.
   }
 
   function handleBreakdownChange(val: BreakdownDimension) {
     setBreakdown(val)
     updateUrlParams(selectedMetrics, tsGranularity, val)
-    void fetchReportWith({ overrideBreakdown: val })
+    // Перезапит — через useEffect (breakdown у залежностях fetchReport).
   }
 
   function handleCustomFieldChange(id: string) {
     setCustomFieldId(id)
     updateUrlParams(selectedMetrics, tsGranularity, breakdown, id)
-    void fetchReportWith({ overrideCustomFieldId: id })
+    // Перезапит — через useEffect (customFieldId у залежностях fetchReport).
   }
 
   // Скидання всіх фільтрів до дефолтів. Звіт перезавантажиться сам (фільтри в deps fetchReport).
