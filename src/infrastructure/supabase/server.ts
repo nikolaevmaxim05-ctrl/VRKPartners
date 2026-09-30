@@ -26,11 +26,17 @@ export async function createSessionClient() {
   )
 }
 
-/** Поточний користувач із куки сесії (auth.getUser — перевірка токена на сервері Supabase). */
+/**
+ * Поточний користувач із куки сесії. auth.getClaims() перевіряє підпис і строк дії JWT локально
+ * (ES256 + JWKS у кеші інстансу) — без мережевого запиту до Supabase Auth; id та email беруться з
+ * перевірених claims. Права й активність користувача перевіряються окремо читанням ролі з БД.
+ */
 export const cookieAuthSession: AuthSession = {
   async getUser() {
     const supabase = await createSessionClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    return user ? { id: user.id, email: user.email ?? null } : null
+    const { data, error } = await supabase.auth.getClaims()
+    const claims = data?.claims
+    if (error || !claims || typeof claims.sub !== 'string' || !claims.sub) return null
+    return { id: claims.sub, email: typeof claims.email === 'string' && claims.email ? claims.email : null }
   },
 }
