@@ -53,3 +53,7 @@ SETUP-PLAN.md
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Учебные материалы владельца (локально, не часть проекта)
+docs/study/
+docs/STUDY-PLAN.md

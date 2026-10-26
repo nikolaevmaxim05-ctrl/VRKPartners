@@ -18,7 +18,8 @@ const zone = (files, patterns, message) => ({
 
 const config = [
   {
-    ignores: [".next/**", "node_modules/**", "out/**", "build/**", "next-env.d.ts", "scripts/**", "tests/**", "setup-agents/**"],
+    // .claude/** — локальный инструментарий (worktree сессий), docs/** — документы и учебные материалы владельца: не код.
+    ignores: [".next/**", "node_modules/**", "out/**", "build/**", "next-env.d.ts", "scripts/**", "tests/**", "setup-agents/**", ".claude/**", "docs/**"],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
