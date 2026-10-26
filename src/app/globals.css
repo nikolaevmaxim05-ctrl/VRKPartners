@@ -173,55 +173,47 @@
   animation-play-state: paused;
 }
 
-/* Анімовані «аврора»-плями фону — жвавіший рух + легке «дихання» opacity */
+/* «Аврора»-плями фону (SiteBackground, core/domain/layout/aurora): повільний дрейф ЛИШЕ transform:
+   translate — без scale (на градієнті він перераховував би растр щокадру) і без opacity. Анімуються три
+   групи по три плями → на десктопі ≤ 3 композитних шари. На мобільному (< sm), у «менше руху» і в
+   html.lite анімації немає — фон статичний, композитних шарів не має (правила нижче та в кінці файлу). */
 @keyframes drift {
   0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.85;
+    transform: translate(0, 0);
   }
   33% {
-    transform: translate(60px, -46px) scale(1.18);
-    opacity: 1;
+    transform: translate(60px, -46px);
   }
   66% {
-    transform: translate(-38px, 34px) scale(0.94);
-    opacity: 0.8;
+    transform: translate(-38px, 34px);
   }
   100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.85;
+    transform: translate(0, 0);
   }
 }
 @keyframes drift2 {
   0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.8;
+    transform: translate(0, 0);
   }
   50% {
-    transform: translate(-54px, 44px) scale(1.2);
-    opacity: 1;
+    transform: translate(-54px, 44px);
   }
   100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.8;
+    transform: translate(0, 0);
   }
 }
 @keyframes drift3 {
   0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.85;
+    transform: translate(0, 0);
   }
   40% {
-    transform: translate(46px, 40px) scale(1.14);
-    opacity: 1;
+    transform: translate(46px, 40px);
   }
   75% {
-    transform: translate(-34px, -30px) scale(0.96);
-    opacity: 0.82;
+    transform: translate(-34px, -30px);
   }
   100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.85;
+    transform: translate(0, 0);
   }
 }
 @keyframes spin-slow {
@@ -240,6 +232,14 @@
 }
 .anim-spin-slow {
   animation: spin-slow 24s linear infinite;
+}
+/* Мобільний: фон статичний без JS і без класу lite — CSS-дефолт (слабкий GPU не тримає анімовані шари). */
+@media (max-width: 639.98px) {
+  .anim-drift,
+  .anim-drift2,
+  .anim-drift3 {
+    animation: none;
+  }
 }
 
 /* Захист від горизонтального переповнення на мобільному/планшеті

@@ -93,8 +93,6 @@ const config: Config = {
       backgroundImage: {
         "radial-brand":
           "radial-gradient(60% 60% at 80% 0%, rgba(246,247,64,0.12) 0%, rgba(11,11,14,0) 60%)",
-        "grid-faint":
-          "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
       },
       keyframes: {
         "fade-up": {
