@@ -70,7 +70,8 @@ export function Dialog({
     >
       <div
         className={cn(
-          "absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-200",
+          // site-dialog-backdrop — хук для режиму lite (globals.css): без backdrop-filter, темніша підкладка.
+          "site-dialog-backdrop absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-200",
           visible ? "opacity-100" : "opacity-0"
         )}
         onClick={onClose}

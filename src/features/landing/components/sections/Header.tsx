@@ -124,8 +124,10 @@ export function Header() {
 
   return (
     <header
+      data-scrolled={scrolled || undefined}
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all",
+        // site-header / data-scrolled — хуки для режиму lite (globals.css): без backdrop-filter, фон 95 %.
+        "site-header fixed inset-x-0 top-0 z-50 transition-all",
         scrolled
           ? "border-b border-bg-line bg-bg/80 backdrop-blur-md"
           : "border-b border-transparent"
@@ -213,7 +215,7 @@ export function Header() {
       <div
         aria-hidden={!open}
         className={cn(
-          "grid overflow-hidden border-t bg-bg/95 backdrop-blur-md transition-all duration-300 ease-in-out",
+          "site-menu grid overflow-hidden border-t bg-bg/95 backdrop-blur-md transition-all duration-300 ease-in-out",
           compact === null ? "md:hidden" : compact ? "" : "hidden",
           open
             ? "grid-rows-[1fr] border-bg-line opacity-100"
