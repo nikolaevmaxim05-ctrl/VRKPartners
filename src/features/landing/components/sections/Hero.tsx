@@ -104,7 +104,7 @@ export function Hero() {
             </div>
           )}
 
-          <div className="relative z-10 overflow-hidden rounded-2xl border border-bg-line bg-bg-card/90 p-6 shadow-card backdrop-blur sm:p-8">
+          <div className="hero-card relative z-10 overflow-hidden rounded-2xl border border-bg-line bg-bg-card/90 p-6 shadow-card backdrop-blur sm:p-8">
             <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
               {hero.partnerBadge && (
                 // eslint-disable-next-line @next/next/no-img-element

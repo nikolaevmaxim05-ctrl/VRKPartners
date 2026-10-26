@@ -444,6 +444,74 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* ── Режим «lite» — слабкі пристрої та вбудовані браузери (Threads/Instagram/Facebook/WebView), а
+   також (рішення власника) усі вузькі вьюпорти (< 640px). Клас lite на <html> ставить інлайн-скрипт у
+   layout сайту до першого кадру за правилами core/domain/layout/device-tier. Один блок, без копій
+   компонентів: усе, що тримає композитні шари з фільтрами або працює щокадру, вимикається. Без JS
+   класу немає — фон на мобільному статичний за медіазапитом вище, решта ефектів як є. ── */
+html.lite .anim-drift,
+html.lite .anim-drift2,
+html.lite .anim-drift3,
+html.lite .anim-spin-slow,
+html.lite .animate-pulse-glow {
+  animation: none !important;
+}
+/* Шапка, мобільне меню, підкладка діалогу, картка партнера в hero: без backdrop-filter (перерахунок
+   розмиття підкладки на кожному кадрі прокрутки) — суцільний напівпрозорий фон. */
+html.lite .site-header,
+html.lite .site-menu,
+html.lite .site-dialog-backdrop,
+html.lite .hero-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.lite .site-header[data-scrolled] {
+  background-color: rgba(11, 11, 14, 0.95);
+}
+html.lite .site-dialog-backdrop {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+/* Свічення позаду картки USP / питання FAQ: замість filter: blur (окремий шар ≈ (розмір + 240px)²) —
+   box-shadow, який растеризується разом із вмістом; сам прямокутник прозорий (без розмиття його
+   край читався б як біла рамка). */
+html.lite .fx-glow {
+  filter: none;
+  background-color: transparent;
+  box-shadow: 0 0 40px 10px rgba(255, 255, 255, 0.14);
+}
+/* Активна картка USP: лише масштаб і прозорість, без розмиття решти карток. */
+html.lite .usp-card[data-state="dimmed"] {
+  filter: none;
+}
+/* Стрічка партнерів: статичний ряд із прокруткою пальцем, без дубля, без маски країв. */
+html.lite .partners-marquee {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+html.lite .partners-marquee::-webkit-scrollbar {
+  display: none;
+}
+html.lite .partners-track {
+  animation: none;
+  will-change: auto;
+}
+html.lite .partners-track > [data-clone] {
+  display: none;
+}
+/* Карусель послуг на мобільному: без маски країв (маска на скрол-контейнері — композитний ефект). */
+html.lite .services-track {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+/* Поява при скролі: без постійного will-change (кожен .reveal інакше лишається окремим шаром назавжди;
+   на час самого переходу браузер підіймає елемент у шар і сам). */
+html.lite .js-reveal .reveal {
+  will-change: auto;
+}
+
 /* ── Режим «менше руху» — правило, а не список селекторів (розділ 14). Стоїть НИЖЧЕ всіх
    правил анімації. Гасимо лише тривалість, не animation: none (шар Radix/shadcn прибирається
    по завершенню анімації); animation: none — лише для нескінченних циклів. ── */

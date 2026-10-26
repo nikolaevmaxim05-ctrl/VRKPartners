@@ -26,6 +26,7 @@ import type { AnalyticsEventsConfig } from "@core/domain/analytics/registry";
 import { adsSendToList } from "@core/domain/tracking/tags";
 import type { SiteMessages } from "@core/domain/content/site-messages";
 import { getDefaultSeo } from "@/shared/content/defaults";
+import { liteDetectionScript } from "@core/domain/layout/device-tier";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? "";
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
@@ -287,11 +288,16 @@ export default async function SiteLayout({
           яскравим і не «зникав» після першого розрахунку (рішення власника). Два класи, а не один:
           кожен ефект знімає свій при вимкненні. Виконується до розбору розмітки сайту (перед першим
           кадром); «менше руху» / без JS — без класів, текст видимий. Класи знімають
-          features/landing/lib/word-reveal і features/landing/lib/slide-in при вимкненні ефекту. */}
+          features/landing/lib/word-reveal і features/landing/lib/slide-in при вимкненні ефекту.
+          Тим самим скриптом ставиться клас lite (слабкий пристрій / вбудований браузер / вузький
+          вьюпорт — core/domain/layout/device-tier): CSS-блок html.lite у globals.css вимикає
+          backdrop-filter, свічення-blur, нескінченні анімації й маски. Без JS класу немає — на мобільному
+          фон і так статичний за медіазапитом. */}
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('js-word-reveal','js-slide-in')}catch(e){}",
+            "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('js-word-reveal','js-slide-in')}catch(e){}" +
+            liteDetectionScript(),
         }}
       />
       <NextIntlClientProvider locale={locale} messages={messages}>

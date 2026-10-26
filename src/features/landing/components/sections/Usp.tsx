@@ -109,7 +109,7 @@ export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
                 <div
                   aria-hidden="true"
                   className={cn(
-                    "pointer-events-none absolute -inset-1 rounded-[1.4rem] bg-white/20 opacity-0 blur-2xl transition-opacity duration-500 ease-out group-hover:opacity-100",
+                    "fx-glow pointer-events-none absolute -inset-1 rounded-[1.4rem] bg-white/20 opacity-0 blur-2xl transition-opacity duration-500 ease-out group-hover:opacity-100",
                     activeNow && "opacity-100"
                   )}
                 />

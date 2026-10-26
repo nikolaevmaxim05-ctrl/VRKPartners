@@ -8,7 +8,9 @@ import type { Partner } from "@core/domain/content/site-messages";
 /**
  * Безкінечний слайдер логотипів партнерів (messages.hero.partners — редагується з адмінки).
  * Логотипи клікабельні й ведуть на сайти компаній (нова вкладка); без href — просто картинка.
- * Стрічка дублюється двічі та зсувається на -50% — безшовний цикл.
+ * Стрічка дублюється двічі та зсувається на -50% — безшовний цикл. Дубль позначений data-clone і
+ * aria-hidden: читачі екрана не чують логотипи двічі, а в режимі lite (globals.css, html.lite) дубль
+ * прихований, анімації немає — статичний ряд із горизонтальною прокруткою пальцем, без маски країв.
  */
 export function PartnersMarquee({ partners, className }: { partners: Partner[]; className?: string }) {
   const loop = [...partners, ...partners];
@@ -28,11 +30,12 @@ export function PartnersMarquee({ partners, className }: { partners: Partner[]; 
     >
       <ul className="partners-track flex w-max items-center gap-4">
         {loop.map((p, i) => {
+          const clone = i >= partners.length;
           const img = (
             <Image src={p.logo} alt={p.name} width={180} height={72} className="h-full w-auto object-contain" />
           );
           return (
-            <li key={i} className="shrink-0">
+            <li key={i} className="shrink-0" data-clone={clone ? "1" : undefined} aria-hidden={clone || undefined}>
               {p.href ? (
                 <a
                   href={p.href}
