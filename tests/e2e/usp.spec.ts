@@ -1,5 +1,6 @@
 // Активна картка USP на мобільному (крок 2 мобільних анімацій): картка, найближча до центру екрана,
-// збільшена (scale > 1), решта — розмиті (blur) і приглушені; на десктопі — нічого (лише :hover);
+// збільшена (scale > 1), решта — приглушені (opacity); розмиття решти з 2026-10-26 немає: вузький вьюпорт →
+// html.lite, filter на картках вимкнено (слабкі GPU). На десктопі — нічого (лише :hover);
 // у режимі «менше руху» — ні масштабу, ні розмиття. Контент — 4 картки (герметично до правок клієнта).
 import { test, expect, type Page } from '@playwright/test'
 import { setContent, horizontalOverflow } from './helpers'
@@ -35,7 +36,7 @@ test.describe('активна картка USP', () => {
     await setContent(context, { usp: { items: ITEMS } })
   })
 
-  test('мобільний: центральна — active зі scale > 1, сусіди — dimmed із blur; далі активною стає наступна', async ({ page }, testInfo) => {
+  test('мобільний: центральна — active зі scale > 1, сусіди — dimmed без blur (lite), приглушені; далі активною стає наступна', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'ефект лише на ≤640px')
     await page.goto('/')
     await expect(page.locator('#usp article.usp-card')).toHaveCount(4)
@@ -47,7 +48,7 @@ test.describe('активна картка USP', () => {
     expect(s[1].filter).toBe('none')
     for (const i of [0, 2, 3]) {
       expect(s[i].state).toBe('dimmed')
-      expect(s[i].filter).toContain('blur')
+      expect(s[i].filter).toBe('none')
       expect(s[i].scale).toBeCloseTo(1, 3)
       expect(s[i].opacity).toBeLessThan(1)
     }
@@ -57,7 +58,8 @@ test.describe('активна картка USP', () => {
     expect(s[2].state).toBe('active')
     expect(s[2].scale).toBeGreaterThan(1)
     expect(s[1].state).toBe('dimmed')
-    expect(s[1].filter).toContain('blur')
+    expect(s[1].filter).toBe('none')
+    expect(s[1].opacity).toBeLessThan(1)
 
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })

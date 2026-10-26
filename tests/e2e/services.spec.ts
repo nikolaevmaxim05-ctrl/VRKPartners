@@ -164,7 +164,8 @@ function mobileTests() {
     expect(s.clones.every((c) => c.ariaHidden === 'true' && c.tab === '-1')).toBe(true)
     expect(s.clones.map((c) => `${c.side}:${c.slide}`).sort()).toEqual(['left:7', 'left:8', 'right:0', 'right:1'])
     expect(s.snap).toContain('x')
-    expect(s.hasMask).toBe(true)
+    // Вузький вьюпорт → html.lite (2026-10-26): маски країв немає (композитний ефект на скрол-контейнері).
+    expect(s.hasMask).toBe(false)
     expect(s.trackLeft).toBeCloseTo(0, 0)
     expect(s.trackRight).toBeCloseTo(s.vw, 0)
     // Старт: перша РЕАЛЬНА картка по центру, активна точка — перша.

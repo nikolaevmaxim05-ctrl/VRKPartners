@@ -185,6 +185,11 @@ src/
   features/landing/components/sections/Benefits.tsx    блок «Що ви отримуєте?» (2026-09-17): пункты «X замість Y», тексты benefits.*
   core/domain/layout/slide-in.ts                       правило выезда пунктов слева скрабом (линия ввода, BAND, STAGGER, DISTANCE, конец страницы)
   features/landing/lib/slide-in.ts + layout/SlideIn.tsx DOM-скраб [data-slide-in] / [data-slide-part] (кэш, rAF, IO-гейт, класс js-slide-in до гидрации)
+  core/domain/layout/aurora.ts                         плямы фона: профиль спада (диск ⊗ гаусс), геометрия, цвета (2026-10-26, без blur)
+  core/domain/layout/device-tier.ts                    режим lite: сигналы слабого устройства/встроенного браузера, вузкий вьюпорт, текст инлайн-скрипта
+  features/landing/components/layout/SiteBackground.tsx фон: сетка + 3 группы плям на radial-gradient; анимация translate только на десктопе
+  app/globals.css (блок html.lite)                     всё, что выключается в lite (backdrop-filter, свечения, маски, лента, will-change)
+  tests/e2e/perf-layers.spec.ts                        регрессия слоёв/памяти GPU на 390×844 @3 (CDP LayerTree + memory-infra)
   i18n/request.ts                                      E2E_CONTENT_OVERRIDES=1 → cookie/файл поверх дефолтов
 tests/e2e/*.spec.ts, playwright.config.ts              e2e на локальной прод-сборке (порт 3100)
 scripts/check-overflow.js                              скан переполнения: страницы × ширины
