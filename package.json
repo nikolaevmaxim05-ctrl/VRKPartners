@@ -12,7 +12,8 @@
     "test": "vitest run",
     "depcheck": "depcruise src --config .dependency-cruiser.cjs",
     "e2e": "playwright test",
-    "check-overflow": "node scripts/check-overflow.js"
+    "check-overflow": "node scripts/check-overflow.js",
+    "check-comments": "node scripts/check-comment-lang.mjs check"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
