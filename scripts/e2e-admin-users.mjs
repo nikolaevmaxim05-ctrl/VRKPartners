@@ -1,12 +1,12 @@
-// Фікстури для e2e адмінки: створює (або видаляє) тестових користувачів у Supabase Auth БЕЗ листів
-// (auth.admin.createUser з email_confirm) і призначає ролі в user_roles. Запускати ЛИШЕ з відома
-// власника — це прод-проєкт. Ключі читаються з .env.local.
+// Фикстуры для e2e админки: создаёт (или удаляет) тестовых пользователей в Supabase Auth БЕЗ писем
+// (auth.admin.createUser с email_confirm) и назначает роли в user_roles. Запускать ТОЛЬКО с ведома
+// владельца — это прод-проект. Ключи читаются из .env.local.
 //
-//   node scripts/e2e-admin-users.mjs create   — тестовий адмін (E2E_ADMIN_EMAIL/PASSWORD, роль з повними
-//                                               правами; за замовчуванням не-системна роль із усіма правами
-//                                               або E2E_ADMIN_ROLE) і користувач мінімальної ролі
-//                                               (E2E_ADMIN2_EMAIL/PASSWORD, роль «e2e-minimal» з manage_leads)
-//   node scripts/e2e-admin-users.mjs cleanup  — видаляє обох користувачів, їх user_roles і роль «e2e-minimal»
+//   node scripts/e2e-admin-users.mjs create   — тестовый админ (E2E_ADMIN_EMAIL/PASSWORD, роль с полными
+//                                               правами; по умолчанию не-системная роль со всеми правами
+//                                               или E2E_ADMIN_ROLE) и пользователь минимальной роли
+//                                               (E2E_ADMIN2_EMAIL/PASSWORD, роль «e2e-minimal» с manage_leads)
+//   node scripts/e2e-admin-users.mjs cleanup  — удаляет обоих пользователей, их user_roles и роль «e2e-minimal»
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
@@ -17,7 +17,7 @@ function loadEnv() {
       if (m && !(m[1] in process.env)) process.env[m[1]] = m[2]
     }
   } catch {
-    /* немає .env.local — беремо process.env */
+    /* нет .env.local — берём process.env */
   }
 }
 loadEnv()
@@ -64,8 +64,8 @@ async function create() {
   if (error) throw error
   let full = admin.role ? roles.find((r) => r.name === admin.role) : roles.find((r) => !r.is_system && ALL_PERMISSIONS.every((p) => r.permissions.includes(p)))
   if (!full) {
-    // Рівень 0 — одразу під системним admin (-1), вище за всі клієнтські ролі: тестовий адмін має
-    // право запрошувати/редагувати користувачів з ролями нижче за свою (перевіряється в e2e).
+    // Уровень 0 — сразу под системным admin (-1), выше всех клиентских ролей: тестовый админ имеет
+    // право приглашать/редактировать пользователей с ролями ниже своей (проверяется в e2e).
     const ins = await db.from('admin_roles').insert({ name: 'e2e-full', permissions: ALL_PERMISSIONS, is_system: false, hierarchy_order: 0 }).select('id, name').single()
     if (ins.error) throw ins.error
     full = ins.data

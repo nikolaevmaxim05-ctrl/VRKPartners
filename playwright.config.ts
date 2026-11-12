@@ -1,7 +1,7 @@
-// Playwright (розділ 19): e2e на локальній прод-збірці. Перед запуском — чиста збірка:
+// Playwright (раздел 19): e2e на локальной прод-сборке. Перед запуском — чистая сборка:
 //   npm run build && npx playwright test
-// webServer стартує `next start` з E2E_CONTENT_OVERRIDES=1 (тести задають контент cookie/файлом
-// поверх дефолтів тим самим шляхом, що й правки клієнта). На проді змінну не задавати.
+// webServer стартует `next start` с E2E_CONTENT_OVERRIDES=1 (тесты задают контент cookie/файлом
+// поверх дефолтов тем же путём, что и правки клиента). На проде переменную не задавать.
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 3100
@@ -12,8 +12,8 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  // Один воркер: сайт рендериться на локальній машині, паралельні воркери на холодному старті
-  // впираються в таймаути навігації.
+  // Один воркер: сайт рендерится на локальной машине, параллельные воркеры на холодном старте
+  // упираются в таймауты навигации.
   workers: 1,
   retries: 0,
   globalSetup: './tests/e2e/global-setup.ts',

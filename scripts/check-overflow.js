@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Скан переповнення (розділ 12): усі сторінки сайту × 8 ширин — немає горизонтального скролу.
-// Запуск на локальній прод-збірці: node scripts/check-overflow.js http://127.0.0.1:3100
-// Вихід 1, якщо хоч одна пара сторінка×ширина має scrollWidth > clientWidth.
+// Скан переполнения (раздел 12): все страницы сайта × 8 ширин — нет горизонтального скролла.
+// Запуск на локальной прод-сборке: node scripts/check-overflow.js http://127.0.0.1:3100
+// Выход 1, если хоть одна пара страница×ширина имеет scrollWidth > clientWidth.
 const { chromium } = require('@playwright/test')
 
 const BASE = (process.argv[2] || 'http://127.0.0.1:3100').replace(/\/$/, '')

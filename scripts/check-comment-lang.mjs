@@ -409,7 +409,15 @@ function analyzeHash(text) {
     const line = rawLine.replace(/\r$/, '')
     const trimmed = line.trim()
     if (trimmed.startsWith('#')) {
-      if (PROTECTED_HASH.test(trimmed)) tokens.push({ kind: 'protected', text: trimmed })
+      // `# NAME=value` защищается целиком; `# NAME=value — пояснение` — защищён префикс, проза после тире — комментарий.
+      const m = PROTECTED_HASH.test(trimmed) ? trimmed.match(/^(#\s*[A-Z][A-Z0-9_]*=\S*)(\s+[—–-]\s+.*)?$/) : null
+      if (m) {
+        tokens.push({ kind: 'protected', text: m[1] })
+        if (m[2]) {
+          const start = pos + line.indexOf(trimmed) + m[1].length
+          ranges.push({ pos: start, end: pos + line.indexOf(trimmed) + trimmed.length, single: true })
+        }
+      } else if (PROTECTED_HASH.test(trimmed)) tokens.push({ kind: 'protected', text: trimmed })
       else ranges.push({ pos, end: pos + line.length, single: true })
     } else if (trimmed) {
       tokens.push({ kind: 'line', text: trimmed })

@@ -1,6 +1,6 @@
 import createNextIntlPlugin from "next-intl/plugin";
 
-// next-intl: конфіг запиту (мова + тексти сайту з правками клієнта) — src/i18n/request.ts.
+// next-intl: конфиг запроса (язык + тексты сайта с правками клиента) — src/i18n/request.ts.
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
@@ -9,7 +9,7 @@ const nextConfig = {
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
-    // Кастомні зображення контенту зберігаються в Supabase Storage (публічний bucket).
+    // Кастомные изображения контента хранятся в Supabase Storage (публичный bucket).
     remotePatterns: [
       {
         protocol: "https",
@@ -24,7 +24,7 @@ const nextConfig = {
         source: "/(.*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
-          // C16: узгоджено з middleware — всюди DENY (iframe не потрібен).
+          // C16: согласовано с middleware — везде DENY (iframe не нужен).
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
