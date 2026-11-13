@@ -5,16 +5,16 @@ import { ChevronDown } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/shared/ui/card'
 import { cn } from '@/shared/lib/utils'
 
-// Плавне розгортання/згортання без JS-бібліотек: трюк grid-template-rows 0fr→1fr
-// (той самий підхід, що у секції «Показати більше» на лендингу). Працює з
-// авто-висотою вкладеного контенту (textarea, прев'ю) — після відкриття нічого
-// не обрізається, бо у розкритому стані рядок = auto. Легкий fade поверх.
-// Швидко й ненав'язливо: ~200мс, ease-out на розкриття / ease-in на згортання.
-// prefers-reduced-motion вимикає всі transition глобально (див. globals.css),
-// тож у режимі зменшеної анімації розкриття миттєве, як раніше.
+// Плавное разворачивание/сворачивание без JS-библиотек: трюк grid-template-rows 0fr→1fr
+// (тот же подход, что в секции «Показати більше» на лендинге). Работает с
+// авто-высотой вложенного контента (textarea, превью) — после открытия ничего
+// не обрезается, потому что в раскрытом состоянии строка = auto. Лёгкий fade поверх.
+// Быстро и ненавязчиво: ~200мс, ease-out на раскрытие / ease-in на сворачивание.
+// prefers-reduced-motion выключает все transition глобально (см. globals.css),
+// так что в режиме «меньше движения» раскрытие мгновенное, как раньше.
 //
-// Контент завжди у DOM (навіть згорнутий) — це потрібно для анімації висоти;
-// стан полів однаково живе у формах, тож нічого не втрачається.
+// Контент всегда в DOM (даже свёрнутый) — это нужно для анимации высоты;
+// состояние полей всё равно живёт в формах, так что ничего не теряется.
 const ANIM_WRAP =
   'grid transition-all duration-200 motion-reduce:transition-none'
 function rowsClass(open: boolean) {
@@ -23,7 +23,7 @@ function rowsClass(open: boolean) {
     : 'grid-rows-[0fr] opacity-0 ease-in'
 }
 
-/** Верхньорівневий згортуваний блок (Card). За замовчуванням згорнутий. */
+/** Сворачиваемый блок верхнего уровня (Card). По умолчанию свёрнут. */
 export function CollapsibleCard({
   title, description, defaultOpen = false, children,
 }: {
@@ -63,9 +63,9 @@ export function CollapsibleCard({
   )
 }
 
-/** Внутрішній згортуваний елемент (напр. картка послуги / кейс). Згорнутий за замовчуванням.
- * `right` — дії (сортування/видалення) у заголовку, клік по них не згортає.
- * `level` — глибина вкладеності: різний відтінок фону, щоб око розрізняло рівні. */
+/** Внутренний сворачиваемый элемент (напр. карточка услуги / кейс). По умолчанию свёрнут.
+ * `right` — действия (сортировка/удаление) в заголовке, клик по ним не сворачивает.
+ * `level` — глубина вложенности: разный оттенок фона, чтобы глаз различал уровни. */
 export function CollapsibleItem({
   title, right, defaultOpen = false, level = 1, children,
 }: {
@@ -76,7 +76,7 @@ export function CollapsibleItem({
   children: ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
-  // Чим глибша вкладеність — тим насиченіший фон (картка bg-muted/50 → рівень 1 → рівень 2).
+  // Чем глубже вложенность — тем насыщеннее фон (карточка bg-muted/50 → уровень 1 → уровень 2).
   const toneClass = level === 2 ? 'bg-muted' : 'bg-muted/80'
   return (
     <div className={cn('rounded-lg border', toneClass)}>

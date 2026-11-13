@@ -7,7 +7,7 @@ import { Label } from '@/shared/ui/label'
 import { cn } from '@/shared/lib/utils'
 import { AUDIT_ICONS, AUDIT_ICON_KEYS, resolveIcon, isImageIcon } from '@/shared/lib/audit-icons'
 
-/** Вибір іконки картки: пресети (lucide) + можливість завантажити своє зображення. */
+/** Выбор иконки карточки: пресеты (lucide) + возможность загрузить своё изображение. */
 export function IconPicker({
   value, index, order, onChange, label = 'Іконка',
 }: {
@@ -33,7 +33,7 @@ export function IconPicker({
       const res = await fetch('/api/admin/content/upload', { method: 'POST', body: fd })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      onChange(json.url) // тепер icon = URL зображення
+      onChange(json.url) // теперь icon = URL изображения
       toast.success('Іконку завантажено')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Помилка завантаження')
@@ -67,7 +67,7 @@ export function IconPicker({
           )
         })}
 
-        {/* Прев'ю завантаженої іконки (якщо є) */}
+        {/* Превью загруженной иконки (если есть) */}
         {custom && (
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-primary bg-primary/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -75,7 +75,7 @@ export function IconPicker({
           </div>
         )}
 
-        {/* Кнопка завантаження свого зображення */}
+        {/* Кнопка загрузки своего изображения */}
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
         <button
           type="button"

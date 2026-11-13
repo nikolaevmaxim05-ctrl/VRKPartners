@@ -1,8 +1,8 @@
 'use client'
 
-// Діалог конструктора вивантаження (промпт 023).
-// Вкладка 1: вивантаження по лідах з вибором полів.
-// Вкладка 2: загальна аналітика з показниками і порівняльними періодами.
+// Диалог конструктора выгрузки (промпт 023).
+// Вкладка 1: выгрузка по лидам с выбором полей.
+// Вкладка 2: общая аналитика с показателями и сравнительными периодами.
 
 import { useState, useEffect } from 'react'
 import { Download, Loader2, X, Plus } from 'lucide-react'
@@ -32,7 +32,7 @@ import type { TsGranularity } from '@core/domain/analytics/report'
 import type { LeadExportField as LeadField } from '@core/domain/analytics/export-request'
 import { SUMMARY_COLUMN_ORDER, SUMMARY_COLUMN_HEADERS, type SummaryColumn } from '@core/domain/analytics/export'
 
-// ─── Типи ────────────────────────────────────────────────────────────────────
+// ─── Типы ────────────────────────────────────────────────────────────────────
 
 type ExportFormat = 'csv' | 'xlsx'
 
@@ -45,26 +45,26 @@ type ComparePeriod = {
 export type ExportBuilderProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Фільтри з поточного стану сторінки */
+  /** Фильтры из текущего состояния страницы */
   dateFrom: string
   dateTo: string
   filterUtmSource: string
   filterService: string
   filterAssigneeIds: string[]
   filterStatusIds: string[]
-  /** 'all' | 'none' | UUID реферального посилання */
+  /** 'all' | 'none' | UUID реферальной ссылки */
   filterReferralLinkId: string
   filterGclid: 'any' | 'with' | 'without'
-  /** Поточна гранулярність на сторінці (використовується як дефолт для вкладки 2) */
+  /** Текущая гранулярность на странице (используется как дефолт для вкладки 2) */
   granularity: TsGranularity
-  /** Прапорці з відповіді сервера */
+  /** Флаги из ответа сервера */
   flags: {
     hasProfitStages: boolean
     hasDealAdjustmentStages?: boolean
   }
 }
 
-// ─── Дефолти полів ───────────────────────────────────────────────────────────
+// ─── Дефолты полей ───────────────────────────────────────────────────────────
 
 const DEFAULT_LEAD_FIELDS: LeadField[] = [
   'dates',
@@ -77,11 +77,11 @@ const DEFAULT_LEAD_FIELDS: LeadField[] = [
 
 const DEFAULT_SUMMARY_COLUMNS: SummaryColumn[] = ['total', 'targetLeads']
 
-// ─── Допоміжні функції ────────────────────────────────────────────────────────
+// ─── Вспомогательные функции ──────────────────────────────────────────────────
 
 function getFilenameFromResponse(res: Response, format: ExportFormat): string {
   const cd = res.headers.get('Content-Disposition') ?? ''
-  // шукаємо filename="..." або filename*=UTF-8''...
+  // ищем filename="..." или filename*=UTF-8''...
   const match = cd.match(/filename[^;=\n]*=(['"]?)([^'";\n]+)\1/)
   if (match?.[2]) return match[2]
   return `export.${format}`
@@ -91,7 +91,7 @@ function newId(): string {
   return Math.random().toString(36).slice(2)
 }
 
-// ─── Компонент CheckboxRow — рядок з чекбоксом і підписом ────────────────────
+// ─── Компонент CheckboxRow — строка с чекбоксом и подписью ───────────────────
 
 function CheckboxRow({
   id,
@@ -129,7 +129,7 @@ function CheckboxRow({
   )
 }
 
-// ─── Вкладка 1: вивантаження по лідах ────────────────────────────────────────
+// ─── Вкладка 1: выгрузка по лидам ────────────────────────────────────────────
 
 function LeadsTab({
   fields,
@@ -154,7 +154,7 @@ function LeadsTab({
     }
   }
 
-  // Валідація діапазону суми угоди
+  // Валидация диапазона суммы сделки
   const isDealAmountChecked = fields.includes('deal_amount')
   const amountFromNum = dealAmountFrom !== '' ? Number(dealAmountFrom) : null
   const amountToNum = dealAmountTo !== '' ? Number(dealAmountTo) : null
@@ -166,7 +166,7 @@ function LeadsTab({
 
   return (
     <div className="space-y-4">
-      {/* Дати */}
+      {/* Даты */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Дати</p>
         <CheckboxRow
@@ -178,7 +178,7 @@ function LeadsTab({
         />
       </div>
 
-      {/* Мітки */}
+      {/* Метки */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Мітки</p>
         <CheckboxRow
@@ -203,7 +203,7 @@ function LeadsTab({
         />
       </div>
 
-      {/* Лід */}
+      {/* Лид */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Лід</p>
         <CheckboxRow
@@ -238,7 +238,7 @@ function LeadsTab({
         />
       </div>
 
-      {/* Додатково */}
+      {/* Дополнительно */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Додатково</p>
         <CheckboxRow
@@ -273,7 +273,7 @@ function LeadsTab({
         />
       </div>
 
-      {/* Угода */}
+      {/* Сделка */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Угода</p>
         <div className="flex items-start gap-2.5 py-1.5 flex-wrap">
@@ -288,7 +288,7 @@ function LeadsTab({
               Сума угоди
             </Label>
           </div>
-          {/* Інлайн-поля від/до — активні тільки якщо чекбокс відмічено */}
+          {/* Инлайн-поля от/до — активны только если чекбокс отмечен */}
           <div className="flex items-center gap-2 ml-2">
             <span className="text-xs text-muted-foreground">від</span>
             <Input
@@ -324,7 +324,7 @@ function LeadsTab({
   )
 }
 
-// ─── Вкладка 2: загальна аналітика ───────────────────────────────────────────
+// ─── Вкладка 2: общая аналитика ──────────────────────────────────────────────
 
 function SummaryTab({
   columns,
@@ -367,7 +367,7 @@ function SummaryTab({
     }
   }
 
-  // Перевірка валідності кожного порівняльного періоду
+  // Проверка валидности каждого сравнительного периода
   function isPeriodInvalid(p: ComparePeriod): boolean {
     return !!(p.date_from && p.date_to && p.date_from > p.date_to)
   }
@@ -378,11 +378,11 @@ function SummaryTab({
 
   return (
     <div className="space-y-4">
-      {/* Показники */}
+      {/* Показатели */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Показники</p>
-        {/* Порядок і підписи — з ядра (SUMMARY_COLUMN_ORDER / SUMMARY_COLUMN_HEADERS): той самий, що й
-            у стовпцях файлу. «Прибуток» — лише якщо є відповідні стадії. */}
+        {/* Порядок и подписи — из ядра (SUMMARY_COLUMN_ORDER / SUMMARY_COLUMN_HEADERS): тот же, что и
+            в столбцах файла. «Прибуток» — только если есть соответствующие стадии. */}
         {SUMMARY_COLUMN_ORDER.filter((col) => col !== 'dealProfitSum' || hasProfitStages).map((col) => (
           <CheckboxRow
             key={col}
@@ -394,7 +394,7 @@ function SummaryTab({
         ))}
       </div>
 
-      {/* Розріз дат */}
+      {/* Разрез дат */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Розріз дат</p>
         <div className="flex items-center gap-3 flex-wrap">
@@ -427,10 +427,10 @@ function SummaryTab({
         </div>
       </div>
 
-      {/* Порівняльні періоди */}
+      {/* Сравнительные периоды */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Періоди</p>
-        {/* Основний період — редагований (за замовчуванням із фільтрів сторінки) */}
+        {/* Основной период — редактируемый (по умолчанию из фильтров страницы) */}
         <div className="flex items-start gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground mt-2 w-24 shrink-0">
             Основний:
@@ -461,7 +461,7 @@ function SummaryTab({
           )}
         </div>
 
-        {/* Додаткові порівняльні періоди */}
+        {/* Дополнительные сравнительные периоды */}
         {comparePeriods.map((p, idx) => {
           const invalid = isPeriodInvalid(p)
           return (
@@ -512,7 +512,7 @@ function SummaryTab({
           )
         })}
 
-        {/* Кнопка додавання (максимум 5) */}
+        {/* Кнопка добавления (максимум 5) */}
         {comparePeriods.length < 5 && (
           <Button
             type="button"
@@ -530,7 +530,7 @@ function SummaryTab({
   )
 }
 
-// ─── Головний компонент ExportBuilderDialog ────────────────────────────────────
+// ─── Главный компонент ExportBuilderDialog ─────────────────────────────────────
 
 export function ExportBuilderDialog({
   open,
@@ -546,25 +546,25 @@ export function ExportBuilderDialog({
   granularity,
   flags,
 }: ExportBuilderProps) {
-  // ── Стан вкладок ─────────────────────────────────────────────────────────────
+  // ── Состояние вкладок ────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'leads' | 'summary'>('leads')
 
-  // ── Стан вкладки «Ліди» ──────────────────────────────────────────────────────
+  // ── Состояние вкладки «Ліди» ─────────────────────────────────────────────
   const [leadFields, setLeadFields] = useState<LeadField[]>(DEFAULT_LEAD_FIELDS)
   const [dealAmountFrom, setDealAmountFrom] = useState('')
   const [dealAmountTo, setDealAmountTo] = useState('')
 
-  // ── Стан вкладки «Загальна аналітика» ────────────────────────────────────────
+  // ── Состояние вкладки «Загальна аналітика» ───────────────────────────────
   const [summaryColumns, setSummaryColumns] = useState<SummaryColumn[]>(DEFAULT_SUMMARY_COLUMNS)
   const [includeDateBreakdown, setIncludeDateBreakdown] = useState(true)
   const [summaryGranularity, setSummaryGranularity] = useState<TsGranularity>(granularity)
   const [comparePeriods, setComparePeriods] = useState<ComparePeriod[]>([])
 
-  // Основний період — редагований у діалозі. За замовчуванням = фільтри сторінки,
-  // але користувач може змінити дати прямо тут (не чіпаючи фільтри сторінки).
+  // Основной период — редактируемый в диалоге. По умолчанию = фильтры страницы,
+  // но пользователь может изменить даты прямо здесь (не трогая фильтры страницы).
   const [mainFrom, setMainFrom] = useState(dateFrom)
   const [mainTo, setMainTo] = useState(dateTo)
-  // Синхронізуємо з фільтрами сторінки при кожному відкритті діалогу.
+  // Синхронизируем с фильтрами страницы при каждом открытии диалога.
   useEffect(() => {
     if (open) {
       setMainFrom(dateFrom)
@@ -576,12 +576,12 @@ export function ExportBuilderDialog({
   // ── Формат ───────────────────────────────────────────────────────────────────
   const [format, setFormat] = useState<ExportFormat>('xlsx')
 
-  // ── Стан завантаження ────────────────────────────────────────────────────────
+  // ── Состояние загрузки ───────────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
 
-  // ── Валідація ────────────────────────────────────────────────────────────────
+  // ── Валидация ────────────────────────────────────────────────────────────────
 
-  // Чи валідний діапазон суми угоди
+  // Валиден ли диапазон суммы сделки
   const amountFromNum = dealAmountFrom !== '' ? Number(dealAmountFrom) : null
   const amountToNum = dealAmountTo !== '' ? Number(dealAmountTo) : null
   const isDealRangeInvalid =
@@ -590,17 +590,17 @@ export function ExportBuilderDialog({
     amountToNum !== null &&
     amountFromNum > amountToNum
 
-  // Чи валідні порівняльні періоди
+  // Валидны ли сравнительные периоды
   const hasInvalidPeriod = comparePeriods.some(
     (p) => !!(p.date_from && p.date_to && p.date_from > p.date_to)
   )
   const hasIncompletePeriod = comparePeriods.some((p) => !p.date_from || !p.date_to)
 
-  // Валідність основного періоду (редагується в діалозі)
+  // Валидность основного периода (редактируется в диалоге)
   const isMainPeriodIncomplete = !mainFrom || !mainTo
   const isMainPeriodInvalid = !!(mainFrom && mainTo && mainFrom > mainTo)
 
-  // Чи доступна кнопка «Завантажити»
+  // Доступна ли кнопка «Завантажити»
   const isLeadsTabValid =
     activeTab === 'leads' &&
     leadFields.length > 0 &&
@@ -616,7 +616,7 @@ export function ExportBuilderDialog({
     !isMainPeriodIncomplete
   const canDownload = isLeadsTabValid || isSummaryTabValid
 
-  // Підказка чому кнопка вимкнена
+  // Подсказка, почему кнопка выключена
   function getDisabledReason(): string | null {
     if (activeTab === 'leads') {
       if (leadFields.length === 0) return 'Оберіть хоча б одне поле'
@@ -632,10 +632,10 @@ export function ExportBuilderDialog({
     return null
   }
 
-  // ── Скидання стану при закритті ──────────────────────────────────────────────
+  // ── Сброс состояния при закрытии ─────────────────────────────────────────────
   function handleOpenChange(isOpen: boolean) {
     if (!isOpen) {
-      // Скидаємо все до дефолтів при кожному відкритті
+      // Сбрасываем всё к дефолтам при каждом открытии
       setActiveTab('leads')
       setLeadFields(DEFAULT_LEAD_FIELDS)
       setDealAmountFrom('')
@@ -649,7 +649,7 @@ export function ExportBuilderDialog({
     onOpenChange(isOpen)
   }
 
-  // ── Порівняльні періоди ───────────────────────────────────────────────────────
+  // ── Сравнительные периоды ─────────────────────────────────────────────────────
 
   function addComparePeriod() {
     if (comparePeriods.length >= 5) return
@@ -666,13 +666,13 @@ export function ExportBuilderDialog({
     )
   }
 
-  // ── Завантаження файлу ────────────────────────────────────────────────────────
+  // ── Загрузка файла ────────────────────────────────────────────────────────────
 
   async function handleDownload() {
     if (!canDownload || loading) return
     setLoading(true)
 
-    // Основний період беремо з редагованих полів діалогу (за замовчуванням = фільтри сторінки)
+    // Основной период берём из редактируемых полей диалога (по умолчанию = фильтры страницы)
     const filters: Record<string, unknown> = {
       date_from: mainFrom,
       date_to: mainTo,
@@ -684,7 +684,7 @@ export function ExportBuilderDialog({
     if (filterReferralLinkId && filterReferralLinkId !== 'all') filters.filter_referral_link_id = filterReferralLinkId
     if (filterGclid !== 'any') filters.filter_gclid = filterGclid
 
-    // Тіло запиту
+    // Тело запроса
     type RequestBody = {
       format: ExportFormat
       tab: 'leads' | 'summary'
@@ -734,13 +734,13 @@ export function ExportBuilderDialog({
           const json = (await res.json()) as { error?: string }
           if (json.error) errorMsg = json.error
         } catch {
-          // ігноруємо помилку парсингу
+          // игнорируем ошибку парсинга
         }
         toast.error(errorMsg)
         return
       }
 
-      // Завантаження blob-у
+      // Загрузка blob-а
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const filename = getFilenameFromResponse(res, format)
@@ -752,7 +752,7 @@ export function ExportBuilderDialog({
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      // Закриваємо діалог після успішного завантаження
+      // Закрываем диалог после успешной загрузки
       handleOpenChange(false)
     } catch {
       toast.error('Помилка експорту. Перевірте підключення.')
@@ -776,7 +776,7 @@ export function ExportBuilderDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Вкладки + контент — скролиться */}
+        {/* Вкладки + контент — скроллится */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <Tabs
             value={activeTab}
@@ -826,9 +826,9 @@ export function ExportBuilderDialog({
           </Tabs>
         </div>
 
-        {/* Підвал — фіксований */}
+        {/* Подвал — фиксированный */}
         <div className="px-6 py-4 border-t shrink-0 flex items-center gap-3 flex-wrap justify-between">
-          {/* Підказка якщо кнопка вимкнена */}
+          {/* Подсказка, если кнопка выключена */}
           <div className="flex-1 min-w-0">
             {!canDownload && disabledReason && (
               <p className="text-xs text-muted-foreground truncate">{disabledReason}</p>
@@ -836,7 +836,7 @@ export function ExportBuilderDialog({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Вибір формату */}
+            {/* Выбор формата */}
             <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
               <SelectTrigger className="h-9 w-28" aria-label="Формат файлу">
                 <SelectValue />
@@ -847,7 +847,7 @@ export function ExportBuilderDialog({
               </SelectContent>
             </Select>
 
-            {/* Скасувати */}
+            {/* Отменить */}
             <Button
               type="button"
               variant="outline"
@@ -859,7 +859,7 @@ export function ExportBuilderDialog({
               Скасувати
             </Button>
 
-            {/* Завантажити */}
+            {/* Загрузить */}
             <Button
               type="button"
               size="sm"

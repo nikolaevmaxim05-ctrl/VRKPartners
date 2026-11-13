@@ -1,10 +1,10 @@
 'use client'
 
-// Секція «Події аналітики» на сторінці «Налаштування» (промпти 016, 018, 024+).
-// Стан: eventNames[] на кожну точку.
-// UX-рефактор: замість окремої кнопки «Зберегти» в кожному рядку — ОДНА спільна
-// кнопка зверху + плаваюча панель знизу. Зберігаються всі змінені рядки за один
-// PATCH (API мержить надіслані ключі зі збереженим конфігом).
+// Секция «Події аналітики» на странице «Налаштування» (промпты 016, 018, 024+).
+// Состояние: eventNames[] на каждую точку.
+// UX-рефактор: вместо отдельной кнопки «Зберегти» в каждой строке — ОДНА общая
+// кнопка сверху + плавающая панель снизу. Сохраняются все изменённые строки за один
+// PATCH (API мержит присланные ключи с сохранённым конфигом).
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -21,7 +21,7 @@ import {
   type AnalyticsEventsConfig,
 } from '@core/domain/analytics/registry'
 
-// ── Локальний стан рядка ───────────────────────────────────────────────────────
+// ── Локальное состояние строки ─────────────────────────────────────────────────
 
 type RowState = {
   enabled: boolean
@@ -30,7 +30,7 @@ type RowState = {
 
 type EventsState = Record<string, RowState>
 
-// Перетворення AnalyticsEventsConfig → локальний EventsState
+// Преобразование AnalyticsEventsConfig → локальный EventsState
 function toRowState(cfg: AnalyticsEventsConfig): EventsState {
   const state: EventsState = {}
   for (const entry of ANALYTICS_REGISTRY) {
@@ -43,7 +43,7 @@ function toRowState(cfg: AnalyticsEventsConfig): EventsState {
   return state
 }
 
-// Перетворення всього стану → payload для PATCH (скидання)
+// Преобразование всего состояния → payload для PATCH (сброс)
 function toFullPayload(state: EventsState): Record<string, { enabled: boolean; eventNames: string[] }> {
   const payload: Record<string, { enabled: boolean; eventNames: string[] }> = {}
   for (const [key, row] of Object.entries(state)) {
@@ -52,7 +52,7 @@ function toFullPayload(state: EventsState): Record<string, { enabled: boolean; e
   return payload
 }
 
-// Payload лише зі змінених рядків — для спільного «Зберегти» (один PATCH на всі)
+// Payload только из изменённых строк — для общего «Зберегти» (один PATCH на все)
 function toDirtyPayload(
   state: EventsState,
   baseline: EventsState,
@@ -68,19 +68,19 @@ function toDirtyPayload(
   return payload
 }
 
-// Перевірка валідності одного імені події
+// Проверка валидности одного имени события
 function isValidName(name: string): boolean {
   return ANALYTICS_EVENT_NAME_PATTERN.test(name)
 }
 
-// Перевірка «брудності» рядка відносно еталону (завантаженого з сервера)
+// Проверка «грязности» строки относительно эталона (загруженного с сервера)
 function isRowDirty(row: RowState, baseline: RowState): boolean {
   if (row.enabled !== baseline.enabled) return true
   if (row.eventNames.length !== baseline.eventNames.length) return true
   return row.eventNames.some((n, i) => n !== baseline.eventNames[i])
 }
 
-// Перевірка валідності рядка (немає невалідних або дублікатних імен)
+// Проверка валидности строки (нет невалидных или дублирующихся имён)
 function isRowValid(row: RowState): boolean {
   const names = row.eventNames
   for (let i = 0; i < names.length; i++) {
@@ -91,11 +91,11 @@ function isRowValid(row: RowState): boolean {
   return true
 }
 
-// ── Явний порядок груп ────────────────────────────────────────────────────────
-// Логіка: рух по головній сторінці згори вниз (шапка → секції → форми →
-// контакти → футер), потім сторінки окремих послуг, наприкінці — технічні/інші.
+// ── Явный порядок групп ───────────────────────────────────────────────────────
+// Логика: движение по главной странице сверху вниз (шапка → секции → формы →
+// контакты → футер), затем страницы отдельных услуг, в конце — технические/прочие.
 const GROUP_ORDER: string[] = [
-  // Головна сторінка — згори вниз
+  // Главная страница — сверху вниз
   'Шапка',
   'Мобільне меню',
   'Мобільна плаваюча CTA',
@@ -108,15 +108,15 @@ const GROUP_ORDER: string[] = [
   'Контакти / Final CTA',
   'Футер',
   'Футер — соцмережі',
-  // Сторінки окремих послуг
+  // Страницы отдельных услуг
   'Сторінка послуги — Hero',
   'Сторінка послуги — Ціни',
-  // Технічні / резервні
+  // Технические / резервные
   'Сторінка 404',
   'Інші розміщення',
 ]
 
-// Групуємо записи реєстру по blockLabel, зберігаємо порядок GROUP_ORDER
+// Группируем записи реестра по blockLabel, сохраняем порядок GROUP_ORDER
 function groupRegistry() {
   const map = new Map<string, typeof ANALYTICS_REGISTRY[number][]>()
   for (const entry of ANALYTICS_REGISTRY) {
@@ -125,7 +125,7 @@ function groupRegistry() {
     map.set(entry.blockLabel, arr)
   }
 
-  // Будуємо масив груп у заданому порядку
+  // Строим массив групп в заданном порядке
   const ordered: { blockLabel: string; entries: typeof ANALYTICS_REGISTRY[number][] }[] = []
   const seen = new Set<string>()
 
@@ -136,7 +136,7 @@ function groupRegistry() {
     }
   }
 
-  // Групи, яких немає в GROUP_ORDER — в кінець
+  // Группы, которых нет в GROUP_ORDER — в конец
   for (const [label, entries] of map) {
     if (!seen.has(label)) {
       ordered.push({ blockLabel: label, entries })
@@ -154,12 +154,12 @@ export function AnalyticsEventsSection() {
   const [eventsState, setEventsState] = useState<EventsState>(() =>
     toRowState(getDefaultAnalyticsEvents())
   )
-  // Еталон — завантажений з сервера стан, відносно якого визначаємо «брудність»
+  // Эталон — загруженное с сервера состояние, относительно которого определяем «грязность»
   const [baseline, setBaseline] = useState<EventsState>(() =>
     toRowState(getDefaultAnalyticsEvents())
   )
   const [loading, setLoading] = useState(true)
-  // Єдиний прапорець збереження (спільна кнопка зберігає всі змінені рядки разом)
+  // Единый флаг сохранения (общая кнопка сохраняет все изменённые строки вместе)
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
 
@@ -177,7 +177,7 @@ export function AnalyticsEventsSection() {
       .finally(() => setLoading(false))
   }, [])
 
-  // --- Дії над рядками таблиці ---
+  // --- Действия над строками таблицы ---
 
   const setEnabled = (key: string, enabled: boolean) => {
     setEventsState((prev) => ({ ...prev, [key]: { ...prev[key], enabled } }))
@@ -192,7 +192,7 @@ export function AnalyticsEventsSection() {
   }
 
   const updateEventName = (key: string, index: number, raw: string) => {
-    // М'яка нормалізація: малі літери, тільки дозволені символи
+    // Мягкая нормализация: строчные буквы, только разрешённые символы
     const name = raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 40)
     setEventsState((prev) => {
       const row = prev[key]
@@ -212,14 +212,14 @@ export function AnalyticsEventsSection() {
     })
   }
 
-  // --- Спільне збереження всіх змінених рядків (один PATCH) ---
+  // --- Общее сохранение всех изменённых строк (один PATCH) ---
 
   const saveAll = async () => {
     const payload = toDirtyPayload(eventsState, baseline)
     const dirtyKeysList = Object.keys(payload)
     if (dirtyKeysList.length === 0) return
 
-    // Валідація лише змінених рядків
+    // Валидация только изменённых строк
     const hasInvalid = dirtyKeysList.some((key) => !isRowValid(eventsState[key]))
     if (hasInvalid) {
       toast.error('Є невалідні або дублікатні імена подій — виправте підсвічені рядки')
@@ -238,7 +238,7 @@ export function AnalyticsEventsSection() {
         toast.error(j.error ?? 'Помилка збереження')
         return
       }
-      // Оновлюємо еталон для всіх збережених рядків
+      // Обновляем эталон для всех сохранённых строк
       setBaseline((prev) => {
         const next = { ...prev }
         for (const key of dirtyKeysList) next[key] = { ...eventsState[key] }
@@ -250,13 +250,13 @@ export function AnalyticsEventsSection() {
     }
   }
 
-  // --- Скасування незбережених змін (повернення до еталону) ---
+  // --- Отмена несохранённых изменений (возврат к эталону) ---
 
   const discardAll = () => {
     setEventsState(baseline)
   }
 
-  // --- Скидання до стандартних ---
+  // --- Сброс к стандартным ---
 
   const handleReset = async () => {
     if (!confirm('Скинути всі події до стандартних (увімкнено, стандартні імена)?')) return
@@ -283,7 +283,7 @@ export function AnalyticsEventsSection() {
     }
   }
 
-  // Множина змінених ключів — для підсвічування рядків і лічильника
+  // Множество изменённых ключей — для подсветки строк и счётчика
   const dirtyKeys = useMemo(
     () =>
       new Set(
@@ -295,7 +295,7 @@ export function AnalyticsEventsSection() {
   )
   const dirtyCount = dirtyKeys.size
 
-  // Чи є серед ЗМІНЕНИХ рядків невалідні (блокує спільне збереження)
+  // Есть ли среди ИЗМЕНЁННЫХ строк невалидные (блокирует общее сохранение)
   const hasInvalidDirty = useMemo(
     () =>
       [...dirtyKeys].some((key) => {
@@ -309,7 +309,7 @@ export function AnalyticsEventsSection() {
 
   return (
     <div className="space-y-4">
-      {/* Шапка секції */}
+      {/* Шапка секции */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="font-semibold">Події аналітики</h2>
@@ -340,18 +340,18 @@ export function AnalyticsEventsSection() {
         </div>
       </div>
 
-      {/* Групи точок взаємодії — кожна в окремій Card */}
+      {/* Группы точек взаимодействия — каждая в отдельной Card */}
       <div className="space-y-6">
         {GROUPED_REGISTRY.map(({ blockLabel, entries }) => (
           <div key={blockLabel} className="border rounded-lg overflow-hidden">
-            {/* Заголовок групи — чітка плашка */}
+            {/* Заголовок группы — чёткая плашка */}
             <div className="bg-muted px-4 py-2.5 border-b">
               <h3 className="text-sm font-semibold tracking-wide text-foreground">
                 {blockLabel}
               </h3>
             </div>
 
-            {/* Таблиця рядків групи */}
+            {/* Таблица строк группы */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -374,10 +374,10 @@ export function AnalyticsEventsSection() {
                             isDirty ? 'bg-amber-50 dark:bg-amber-950/20' : ''
                           }`}
                         >
-                          {/* Тип взаємодії + іконка-підказка «i» (що саме запускає подію) */}
+                          {/* Тип взаимодействия + иконка-подсказка «i» (что именно запускает событие) */}
                           <td className="px-3 py-2.5 align-middle text-muted-foreground whitespace-nowrap">
                             <span className="inline-flex items-center gap-1.5">
-                              {/* Маркер незбережених змін */}
+                              {/* Маркер несохранённых изменений */}
                               {isDirty && (
                                 <span
                                   className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"
@@ -393,7 +393,7 @@ export function AnalyticsEventsSection() {
                             </span>
                           </td>
 
-                          {/* Switch увімкнено */}
+                          {/* Switch включено */}
                           <td className="px-3 py-2.5 align-middle text-center">
                             <Switch
                               checked={row.enabled}
@@ -402,7 +402,7 @@ export function AnalyticsEventsSection() {
                             />
                           </td>
 
-                          {/* Масив імен подій — чипи з інлайн-редагуванням */}
+                          {/* Массив имён событий — чипы с инлайн-редактированием */}
                           <td className="px-3 py-2.5 align-middle">
                             {row.eventNames.length === 0 && (
                               <p className="text-xs text-amber-500 mb-1.5">
@@ -450,7 +450,7 @@ export function AnalyticsEventsSection() {
                               })}
                             </div>
 
-                            {/* Підказки про помилки */}
+                            {/* Подсказки об ошибках */}
                             {row.eventNames.some((n) => n !== '' && !isValidName(n)) && (
                               <p className="text-xs text-destructive mb-1">
                                 Малі латинські літери, цифри та _, 1–40 символів
@@ -462,7 +462,7 @@ export function AnalyticsEventsSection() {
                               </p>
                             )}
 
-                            {/* Кнопка додати ім'я */}
+                            {/* Кнопка добавить имя */}
                             {row.eventNames.length < MAX_EVENT_NAMES_PER_KEY && (
                               <button
                                 type="button"
@@ -487,7 +487,7 @@ export function AnalyticsEventsSection() {
         ))}
       </div>
 
-      {/* Підказка про GA4 і кастомні події */}
+      {/* Подсказка про GA4 и кастомные события */}
       <div className="flex gap-2.5 rounded-md border border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/30 p-3">
         <Info className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
         <p className="text-xs text-sky-700 dark:text-sky-300 leading-relaxed">
@@ -496,7 +496,7 @@ export function AnalyticsEventsSection() {
         </p>
       </div>
 
-      {/* Плаваюча панель збереження — зʼявляється лише за наявності змін */}
+      {/* Плавающая панель сохранения — появляется только при наличии изменений */}
       {dirtyCount > 0 && (
         <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-lg border bg-background/95 px-4 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <span className="text-sm">

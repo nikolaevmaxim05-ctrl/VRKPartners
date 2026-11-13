@@ -1,7 +1,7 @@
 'use client'
 
-// Таблиця журналу дій (audit_log): дата, користувач, дія, ресурс, IP; деталі (old/new) —
-// розгортаються по кліку. Пагінація серверна (GET /api/admin/audit-log?page=).
+// Таблица журнала действий (audit_log): дата, пользователь, действие, ресурс, IP; детали (old/new) —
+// разворачиваются по клику. Пагинация серверная (GET /api/admin/audit-log?page=).
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Badge } from '@/shared/ui/badge'

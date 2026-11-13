@@ -8,7 +8,7 @@ import { Badge } from '@/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { CheckCircle2, XCircle, Loader2, FlaskConical, Info } from 'lucide-react'
 
-/** Значок «i» з підказкою, що зʼявляється при наведенні (CSS-тултіп). */
+/** Значок «i» с подсказкой, которая появляется при наведении (CSS-тултип). */
 function InfoHint({ text }: { text: string }) {
   return (
     <span className="group/hint relative inline-flex shrink-0">

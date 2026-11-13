@@ -55,7 +55,7 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
 
   useEffect(() => { load() }, [load])
 
-  // C9: pending рахуємо по ВСІХ сторінках (з сервера), а не по поточній.
+  // C9: pending считаем по ВСЕМ страницам (с сервера), а не по текущей.
   const pendingCount = pendingTotal
 
   async function handleResend(conv: Conversion) {
@@ -68,7 +68,7 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
         return
       }
       toast.success('Відправлено в Sheets')
-      await load() // оновлюємо статус → «Експортовано»
+      await load() // обновляем статус → «Експортовано»
     } finally {
       setResending(null)
     }
@@ -146,7 +146,7 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
         </p>
       )}
 
-      {/* Таблиця */}
+      {/* Таблица */}
       <div className="rounded-md border overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -255,7 +255,7 @@ export function ConversionsTable({ sheetUrl }: { sheetUrl?: string | null }) {
         </table>
       </div>
 
-      {/* Пагінація */}
+      {/* Пагинация */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-muted-foreground">

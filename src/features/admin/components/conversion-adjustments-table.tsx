@@ -54,7 +54,7 @@ export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | n
 
   useEffect(() => { load() }, [load])
 
-  // C9: pending по ВСІХ сторінках (з сервера).
+  // C9: pending по ВСЕМ страницам (с сервера).
   const pendingCount = pendingTotal
 
   async function handleResend(adj: Adjustment) {
@@ -135,7 +135,7 @@ export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | n
         </p>
       )}
 
-      {/* Таблиця */}
+      {/* Таблица */}
       <div className="rounded-md border overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -237,7 +237,7 @@ export function ConversionAdjustmentsTable({ sheetUrl }: { sheetUrl?: string | n
         </table>
       </div>
 
-      {/* Пагінація */}
+      {/* Пагинация */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-muted-foreground">

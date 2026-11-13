@@ -1,13 +1,13 @@
 'use client'
 
-// Вкладки розділу «Контент»: сторінки сайту з CONTENT_PAGES («Головна», «Наскрізне») +
-// «Метадані (SEO)» (відхилення 2). Активна вкладка синхронізується з URL (?tab=…), щоб
-// переживати перезавантаження: початкове значення приходить із сервера (searchParams),
-// зміна — пише в URL через router.replace.
+// Вкладки раздела «Контент»: страницы сайта из CONTENT_PAGES («Головна», «Наскрізне») +
+// «Метадані (SEO)» (отклонение 2). Активная вкладка синхронизируется с URL (?tab=…), чтобы
+// переживать перезагрузку: начальное значение приходит с сервера (searchParams),
+// изменение — пишет в URL через router.replace.
 //
-// Редактор текстів змонтований завжди (стан усіх сторінок — один обʼєкт, одна кнопка
-// збереження); вкладка лише каже, яку сторінку показувати. Контакти для read-only блоку у
-// «Метадані» беруться зі стану редактора після збереження — без F5.
+// Редактор текстов смонтирован всегда (состояние всех страниц — один объект, одна кнопка
+// сохранения); вкладка лишь говорит, какую страницу показывать. Контакты для read-only блока в
+// «Метадані» берутся из состояния редактора после сохранения — без F5.
 
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -32,7 +32,7 @@ export function ContentTabs({
 }: {
   initialTab: string
   content: Omit<React.ComponentProps<typeof ContentEditor>, 'page' | 'onSaved'>
-  // contacts і onGoToContacts додає сам ContentTabs.
+  // contacts и onGoToContacts добавляет сам ContentTabs.
   meta: Omit<React.ComponentProps<typeof MetaForm>, 'onGoToContacts' | 'contacts'>
 }) {
   const isKnown = (t: string) => t === META_TAB || CONTENT_PAGES.some((p) => p.id === t)

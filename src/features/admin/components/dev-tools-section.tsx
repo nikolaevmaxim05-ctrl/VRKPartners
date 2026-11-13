@@ -1,10 +1,10 @@
 'use client'
 
 // Вкладка «Dev tools» на /admin/settings.
-// Контейнер для візуальних тестів адмінки. Зараз — перевірки аналітики:
-// 1) конвеєр відправки (track → dataLayer) під поточним конфігом;
-// 2) реальна доставка в GA4 (realtime).
-// Обидві стосуються одного й того ж — тож запускаються ОДНІЄЮ кнопкою, послідовно.
+// Контейнер для визуальных тестов админки. Сейчас — проверки аналитики:
+// 1) конвейер отправки (track → dataLayer) под текущим конфигом;
+// 2) реальная доставка в GA4 (realtime).
+// Обе касаются одного и того же — поэтому запускаются ОДНОЙ кнопкой, последовательно.
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -18,7 +18,7 @@ import {
 } from '@core/domain/analytics/registry'
 import { track } from '@/shared/lib/analytics'
 
-// ── Типи ────────────────────────────────────────────────────────────────────
+// ── Типы ────────────────────────────────────────────────────────────────────
 
 type CheckStatus = 'ok' | 'disabled' | 'problem'
 
@@ -47,14 +47,14 @@ type Ga4Point = {
   arrived: boolean
 }
 
-// idle | крок 1 (конвеєр) | крок 2 (GA4)
+// idle | шаг 1 (конвейер) | шаг 2 (GA4)
 type Phase = 'idle' | 'pipeline' | 'ga4'
 
 function arraysEqual(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i])
 }
 
-// ── Тест 1: прогін конвеєра track() у пісочниці dataLayer ────────────────────
+// ── Тест 1: прогон конвейера track() в песочнице dataLayer ───────────────────
 function runPipeline(config: AnalyticsEventsConfig): CheckResult[] {
   const w = window as unknown as {
     __analyticsEvents?: AnalyticsEventsConfig
@@ -71,7 +71,7 @@ function runPipeline(config: AnalyticsEventsConfig): CheckResult[] {
       try {
         track(entry.key, { __devtest: true })
       } catch {
-        // нижче відобразиться як проблема
+        // ниже отобразится как проблема
       }
       const captured = (w.dataLayer ?? [])
         .map((o) => o.event)
@@ -116,7 +116,7 @@ function runPipeline(config: AnalyticsEventsConfig): CheckResult[] {
   return out
 }
 
-// ── Кореневий компонент вкладки ────────────────────────────────────────────────
+// ── Корневой компонент вкладки ─────────────────────────────────────────────────
 export function DevToolsSection() {
   const [config, setConfig] = useState<AnalyticsEventsConfig | null>(null)
   const [loading, setLoading] = useState(true)
@@ -139,12 +139,12 @@ export function DevToolsSection() {
     setPipeline(null)
     setGa4(null)
 
-    // Крок 1 — конвеєр (миттєво)
+    // Шаг 1 — конвейер (мгновенно)
     setPhase('pipeline')
     const pipe = runPipeline(config)
     setPipeline(pipe)
 
-    // Крок 2 — доставка в GA4 (до ~1 хв)
+    // Шаг 2 — доставка в GA4 (до ~1 мин)
     setPhase('ga4')
     try {
       const res = await fetch('/api/admin/dev/ga4-arrival', { method: 'POST' })
@@ -190,7 +190,7 @@ export function DevToolsSection() {
   )
 }
 
-// ── Панель результатів тесту 1 (конвеєр) ─────────────────────────────────────
+// ── Панель результатов теста 1 (конвейер) ────────────────────────────────────
 function PipelinePanel({ results, active }: { results: CheckResult[] | null; active: boolean }) {
   const okCount = results?.filter((r) => r.status === 'ok').length ?? 0
   const disabledCount = results?.filter((r) => r.status === 'disabled').length ?? 0
@@ -291,7 +291,7 @@ function StatusBadge({ status }: { status: CheckStatus }) {
   )
 }
 
-// ── Панель результатів тесту 2 (доставка в GA4) ──────────────────────────────
+// ── Панель результатов теста 2 (доставка в GA4) ──────────────────────────────
 function Ga4Panel({
   result,
   active,

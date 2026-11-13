@@ -8,8 +8,8 @@ import { Label } from '@/shared/ui/label'
 import { InfoHint } from '@/shared/ui/info-hint'
 import { Loader2, Upload, RotateCcw } from 'lucide-react'
 
-/** Поле зображення: прев'ю + завантаження свого файлу + ручний шлях + повернення до дефолту.
- * `info` (необовʼязково) — текст підказки в іконці «i» біля лейбла. */
+/** Поле изображения: превью + загрузка своего файла + ручной путь + возврат к дефолту.
+ * `info` (необязательно) — текст подсказки в иконке «i» рядом с лейблом. */
 export function ImageField({
   label, value, defaultValue, onChange, info,
 }: {
@@ -24,13 +24,13 @@ export function ImageField({
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    e.target.value = '' // дозволяємо повторний вибір того самого файлу
+    e.target.value = '' // разрешаем повторный выбор того же файла
     if (!file) return
     setUploading(true)
     try {
       const fd = new FormData()
       fd.append('file', file)
-      // C14: віддаємо попередній URL, щоб бекенд видалив старий файл при заміні.
+      // C14: отдаём предыдущий URL, чтобы бэкенд удалил старый файл при замене.
       if (value) fd.append('previous', value)
       const res = await fetch('/api/admin/content/upload', { method: 'POST', body: fd })
       const json = await res.json()

@@ -1,16 +1,16 @@
 'use client'
 
-// Редактор текстів сайту за розкладкою розділу 9: вкладка = сторінка сайту (CONTENT_PAGES),
-// усередині — блоки в порядку появи на сайті з номером (PAGE_BLOCKS). Поля будуються з ФОРМИ
-// дефолтів (messages/uk.json): рядок → поле з лічильником «N / ліміт» (limits.ts, той самий
-// модуль, що й на сервері), масив рядків / масив карток → список з додаванням, переміщенням,
-// видаленням; картинки → ImageField; іконки → IconPicker; посилання → поле з підказкою.
-// Блок можна приховати тумблером (текст зберігається; список — `hidden` у розділі сторінки).
-// Лічильник «N змінено» на блоку враховує і тексти, і приховання. Технічні ключі (key, id)
-// не показуються, але зберігаються. Кнопка «Зберегти зміни» — у правому нижньому куті.
+// Редактор текстов сайта по раскладке раздела 9: вкладка = страница сайта (CONTENT_PAGES),
+// внутри — блоки в порядке появления на сайте с номером (PAGE_BLOCKS). Поля строятся из ФОРМЫ
+// дефолтов (messages/uk.json): строка → поле со счётчиком «N / ліміт» (limits.ts, тот же
+// модуль, что и на сервере), массив строк / массив карточек → список с добавлением, перемещением,
+// удалением; картинки → ImageField; иконки → IconPicker; ссылки → поле с подсказкой.
+// Блок можно скрыть тумблером (текст сохраняется; список — `hidden` в разделе страницы).
+// Счётчик «N змінено» на блоке учитывает и тексты, и скрытие. Технические ключи (key, id)
+// не показываются, но сохраняются. Кнопка «Зберегти зміни» — в правом нижнем углу.
 //
-// Стан — ОДИН обʼєкт усіх редагованих розділів (усі вкладки), тож зміни на різних вкладках
-// зберігаються разом одним PUT /api/admin/content.
+// Состояние — ОДИН объект всех редактируемых разделов (все вкладки), так что изменения на разных
+// вкладках сохраняются вместе одним PUT /api/admin/content.
 
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -34,7 +34,7 @@ import { fieldKind, fieldLimit, fieldType, TECHNICAL_KEYS } from '@core/domain/c
 type Messages = PlainObject
 type Path = (string | number)[]
 
-// ── Утиліти стану ────────────────────────────────────────────────────────────
+// ── Утилиты состояния ────────────────────────────────────────────────────
 
 function getAt(obj: unknown, path: Path): unknown {
   let cur: unknown = obj
@@ -45,7 +45,7 @@ function getAt(obj: unknown, path: Path): unknown {
   return cur
 }
 
-/** Імутабельне оновлення за шляхом (обʼєкти й масиви копіюються по дорозі). */
+/** Иммутабельное обновление по пути (объекты и массивы копируются по дороге). */
 function setAt<T>(obj: T, path: Path, value: unknown): T {
   if (path.length === 0) return value as T
   const [head, ...rest] = path
@@ -58,7 +58,7 @@ function setAt<T>(obj: T, path: Path, value: unknown): T {
   return { ...o, [head as string]: setAt(o[head as string], rest, value) } as T
 }
 
-/** Обʼєднання форм елементів масиву (необовʼязкові поля є не в кожного) — шаблон нового елемента. */
+/** Объединение форм элементов массива (необязательные поля есть не у каждого) — шаблон нового элемента. */
 function unionTemplate(arr: unknown[]): PlainObject | undefined {
   const objects = arr.filter(isPlainObject)
   if (objects.length === 0) return undefined
@@ -67,7 +67,7 @@ function unionTemplate(arr: unknown[]): PlainObject | undefined {
   return tpl
 }
 
-/** Порожній елемент за шаблоном: рядки → '', масиви → [], булеві → false, технічні ключі → унікальні. */
+/** Пустой элемент по шаблону: строки → '', массивы → [], булевы → false, технические ключи → уникальные. */
 function emptyFromTemplate(tpl: PlainObject, prefix: string): PlainObject {
   const out: PlainObject = {}
   for (const [k, v] of Object.entries(tpl)) {
@@ -172,18 +172,18 @@ function ListControls({ i, n, onMove, onRemove }: { i: number; n: number; onMove
 
 type ValueFieldProps = {
   ns: string
-  /** Імʼя ключа (для підпису, типу поля, ліміту). */
+  /** Имя ключа (для подписи, типа поля, лимита). */
   name: string
   path: Path
   value: unknown
-  /** Дефолт того ж шляху (для «До дефолту» і лімітів); undefined — поле необовʼязкове/нове. */
+  /** Дефолт того же пути (для «До дефолту» и лимитов); undefined — поле необязательное/новое. */
   def: unknown
   index?: number
   level?: 1 | 2
   onChange: (path: Path, v: unknown) => void
 }
 
-/** Одне значення будь-якої форми: рядок / булеве / число / масив рядків / масив карток / обʼєкт. */
+/** Одно значение любой формы: строка / булево / число / массив строк / массив карточек / объект. */
 function ValueField({ ns, name, path, value, def, index = 0, level = 1, onChange }: ValueFieldProps) {
   const label = keyLabel(ns, name)
   const fullPath = `${ns}.${name}`
@@ -248,7 +248,7 @@ function ValueField({ ns, name, path, value, def, index = 0, level = 1, onChange
     }
     const remove = (i: number) => onChange(path, value.filter((_, idx) => idx !== i))
 
-    // Масив рядків (факти, ніші, пункти, підходи)
+    // Массив строк (факты, ниши, пункты, подходы)
     if (!template) {
       const defStr = defArr.filter((x): x is string => typeof x === 'string')
       const longest = defStr.reduce((a, b) => (b.length > a.length ? b : a), '')
@@ -280,7 +280,7 @@ function ValueField({ ns, name, path, value, def, index = 0, level = 1, onChange
       )
     }
 
-    // Масив карток (пункти, послуги, кейси, кроки, партнери…)
+    // Массив карточек (пункты, услуги, кейсы, шаги, партнёры…)
     const visibleKeys = Object.keys(template).filter((k) => !TECHNICAL_KEYS.includes(k))
     return (
       <div className="space-y-2">
@@ -343,7 +343,7 @@ function BlockCard({
 }: {
   block: PageBlock
   number: number | null
-  /** Розділ сторінки зі списком прихованого (немає — блок не ховається). */
+  /** Раздел страницы со списком скрытого (нет — блок не скрывается). */
   ns?: string
   messages: Messages
   defaults: Messages
@@ -432,12 +432,12 @@ export function ContentEditor({
   initial: Messages
   defaults: Messages
   baseUpdatedAt: string | null
-  /** Активна вкладка-сторінка (id з CONTENT_PAGES); null — редактор не показується, стан живе. */
+  /** Активная вкладка-страница (id из CONTENT_PAGES); null — редактор не показывается, состояние живёт. */
   page: string | null
-  /** Після успішного збереження (напр. оновити контакти у вкладці «Метадані»). */
+  /** После успешного сохранения (напр. обновить контакты во вкладке «Метадані»). */
   onSaved?: (messages: Messages) => void
 }) {
-  // C5(a): версія, з якою завантажили контент — шлемо на сервер для optimistic-lock.
+  // C5(a): версия, с которой загрузили контент — шлём на сервер для optimistic-lock.
   const [baseUpdatedAt, setBaseUpdatedAt] = useState<string | null>(initialUpdatedAt)
   const [messages, setMessages] = useState<Messages>(initial)
   const [saving, setSaving] = useState(false)
@@ -470,9 +470,9 @@ export function ContentEditor({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      // Оновлюємо версію для наступних збережень (щоб не отримати 409 на другому поспіль).
+      // Обновляем версию для следующих сохранений (чтобы не получить 409 на втором подряд).
       if (typeof json.updatedAt === 'string') setBaseUpdatedAt(json.updatedAt)
-      setBaseline(current) // фіксуємо новий «збережений» стан
+      setBaseline(current) // фиксируем новое «сохранённое» состояние
       onSaved?.(messages)
       toast.success('Збережено. Сайт оновлено.')
     } catch (err) {
@@ -490,7 +490,7 @@ export function ContentEditor({
       {page && pageDef && (
         <div className="space-y-4 pb-24">
           <p className="text-sm text-muted-foreground">{pageDef.hint}</p>
-          {/* Оглавлення блоків */}
+          {/* Оглавление блоков */}
           <nav className="flex flex-wrap gap-1.5" aria-label="Блоки сторінки">
             {blocks.map((b, i) => (
               <a
@@ -521,7 +521,7 @@ export function ContentEditor({
         </div>
       )}
 
-      {/* Кнопка збереження — закріплена у правому нижньому куті, зʼявляється лише за наявності змін */}
+      {/* Кнопка сохранения — закреплена в правом нижнем углу, появляется только при наличии изменений */}
       {dirty && (
         <div className="fixed bottom-6 right-6 z-50">
           <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">

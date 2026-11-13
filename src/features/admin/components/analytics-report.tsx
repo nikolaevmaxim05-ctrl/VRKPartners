@@ -1,8 +1,8 @@
 'use client'
 
 // Компонент вкладки «Аналітика» v3 (промпт 025).
-// Зміни: розділені фільтри «Розріз» / «Період», прибрано gclid-меню,
-// додано breakdown-режим графіка (розбивка по виміру).
+// Изменения: разделены фильтры «Розріз» / «Період», убрано gclid-меню,
+// добавлен breakdown-режим графика (разбивка по измерению).
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { fetchDictionary } from '@/features/admin/lib/dictionary-cache'
 import { useSearchParams, usePathname } from 'next/navigation'
@@ -64,7 +64,7 @@ import type {
   MetricKeyForBreakdown,
 } from '@core/domain/analytics/report'
 
-// ─── Утиліти дат ─────────────────────────────────────────────────────────────
+// ─── Утилиты дат ─────────────────────────────────────────────────────────────
 
 function toIsoDate(d: Date): string {
   const y = d.getFullYear()
@@ -83,7 +83,7 @@ function getDefaultDateTo(): string {
   return toIsoDate(new Date())
 }
 
-// ─── Форматування ─────────────────────────────────────────────────────────────
+// ─── Форматирование ───────────────────────────────────────────────────────────
 
 const fmtAmount = (v: number): string =>
   new Intl.NumberFormat('uk-UA', {
@@ -94,9 +94,9 @@ const fmtAmount = (v: number): string =>
 
 const fmtPct = (v: number): string => `${v.toFixed(1)} %`
 
-// ─── Параметри розрізів (groupBy) — ТІЛЬКИ виміри, без часових ──────────────
+// ─── Параметры разрезов (groupBy) — ТОЛЬКО измерения, без временных ─────────
 
-/** Виміри для селекту «Розріз» — без day/week/month */
+/** Измерения для селекта «Розріз» — без day/week/month */
 const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'utm_source',   label: 'Джерело' },
   { value: 'utm_medium',   label: 'UTM Medium' },
@@ -110,7 +110,7 @@ const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'custom_field', label: 'Додаткове поле' },
 ]
 
-// ─── Розбивка графіка (breakdown) ────────────────────────────────────────────
+// ─── Разбивка графика (breakdown) ────────────────────────────────────────────
 
 const BREAKDOWN_OPTIONS: { value: BreakdownDimension; label: string }[] = [
   { value: 'none',         label: 'Немає' },
@@ -126,7 +126,7 @@ const BREAKDOWN_OPTIONS: { value: BreakdownDimension; label: string }[] = [
   { value: 'custom_field', label: 'Додаткове поле' },
 ]
 
-// ─── Метрики мультиселекту ────────────────────────────────────────────────────
+// ─── Метрики мультиселекта ────────────────────────────────────────────────────
 
 type MetricKey = 'total' | 'targetLeads' | 'nonTargetLeads' | 'deals' | 'dealAdjustments' | 'dealAmountSum' | 'dealProfitSum'
 
@@ -135,7 +135,7 @@ type MetricDef = {
   label: string
   color: string
   isMoney: boolean
-  /** Якщо true — показувати тільки коли відповідний прапорець true */
+  /** Если true — показывать только когда соответствующий флаг true */
   requiresFlag?: 'hasDealAdjustmentStages' | 'hasProfitStages'
 }
 
@@ -149,12 +149,12 @@ const METRICS: MetricDef[] = [
   { key: 'dealProfitSum',   label: 'Прибуток',       color: '#06b6d4', isMoney: true, requiresFlag: 'hasProfitStages' },
 ]
 
-/** Метрики MetricKey, валідні для breakdown-розбивки (без «Повторні угоди»). */
+/** Метрики MetricKey, валидные для breakdown-разбивки (без «Повторні угоди»). */
 const BREAKDOWN_METRIC_KEYS = new Set<MetricKey>([
   'total', 'targetLeads', 'nonTargetLeads', 'deals', 'dealAmountSum', 'dealProfitSum',
 ])
 
-/** Перетворює обрані чипи метрик у список для breakdown (фолбек — ['total']). */
+/** Преобразует выбранные чипы метрик в список для breakdown (фолбэк — ['total']). */
 function toBreakdownMetrics(selected: MetricKey[]): MetricKeyForBreakdown[] {
   const filtered = selected.filter((m): m is MetricKeyForBreakdown => BREAKDOWN_METRIC_KEYS.has(m))
   return filtered.length > 0 ? filtered : ['total']
@@ -162,10 +162,10 @@ function toBreakdownMetrics(selected: MetricKey[]): MetricKeyForBreakdown[] {
 
 const DEFAULT_METRICS: MetricKey[] = ['total']
 
-// Чистить підписи серій у легенді/тултипі режиму розбивки.
-// Підпис має вид «значення-розрізу · метрика» (або просто «значення»).
-// Якщо у ВСІХ серій однакова частина-розріз (напр. усі «(невідомо)») — прибираємо її,
-// щоб не дублювати й не плодити «мішанину», лишаючи тільки назву метрики.
+// Чистит подписи серий в легенде/тултипе режима разбивки.
+// Подпись имеет вид «значение-разреза · метрика» (или просто «значение»).
+// Если у ВСЕХ серий одинаковая часть-разрез (напр. все «(невідомо)») — убираем её,
+// чтобы не дублировать и не плодить «мешанину», оставляя только название метрики.
 function buildSeriesLabelMap(series: { key: string; label: string }[]): Map<string, string> {
   const SEP = ' · '
   const parsed = series.map((s) => {
@@ -184,14 +184,14 @@ function buildSeriesLabelMap(series: { key: string; label: string }[]): Map<stri
   return map
 }
 
-// Метадані серії розбивки: вимір + метрика + грошова чи ні (для групування в тултипі).
+// Метаданные серии разбивки: измерение + метрика + денежная или нет (для группировки в тултипе).
 type BreakdownSeriesMeta = { dim: string; metricLabel: string; isMoney: boolean }
 type BreakdownGroup = {
   dim: string
   items: Array<{ color?: string; metricLabel: string; isMoney: boolean; value: number }>
 }
 
-// Групує лінії за виміром (відповідальний/джерело/стадія/…) для тултипа/закріпленого вікна.
+// Группирует линии по измерению (ответственный/источник/стадия/…) для тултипа/закреплённого окна.
 function groupBreakdownPayload(
   payload: Array<{ name?: string | number; value?: number | string; color?: string }>,
   meta: Map<string, BreakdownSeriesMeta>,
@@ -208,7 +208,7 @@ function groupBreakdownPayload(
   return Array.from(groups.entries()).map(([dim, items]) => ({ dim, items }))
 }
 
-// Сітка груп у ДВА стовпці (відповідальні поряд), з правильним форматом значень.
+// Сетка групп в ДВА столбца (ответственные рядом), с правильным форматом значений.
 function BreakdownGroupsGrid({ groups }: { groups: BreakdownGroup[] }) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -232,7 +232,7 @@ function BreakdownGroupsGrid({ groups }: { groups: BreakdownGroup[] }) {
   )
 }
 
-// Кастомний тултип режиму розбивки (наведення).
+// Кастомный тултип режима разбивки (наведение).
 function BreakdownTooltip({
   active,
   payload,
@@ -254,8 +254,8 @@ function BreakdownTooltip({
   )
 }
 
-// Захоплення наведеної точки в ref (щоб клік по графіку міг її зафіксувати незалежно
-// від ненадійного activePayload у onClick Recharts). Рендерить звичайний тултип.
+// Захват наведённой точки в ref (чтобы клик по графику мог её зафиксировать независимо
+// от ненадёжного activePayload в onClick Recharts). Рендерит обычный тултип.
 type HoverCap = {
   label: string
   payload: Array<{ name?: string | number; value?: number | string; color?: string }>
@@ -277,8 +277,8 @@ function CapturingBreakdownTooltip({
   meta: Map<string, BreakdownSeriesMeta>
   captureRef: { current: HoverCap | null }
   coordinate?: { x?: number; y?: number }
-  // Коли вже є закріплене вікно — живу підказку не показуємо (щоб не було двох вікон),
-  // але координату/точку все одно фіксуємо (щоб клік міг перенести закріплене вікно).
+  // Когда уже есть закреплённое окно — живую подсказку не показываем (чтобы не было двух окон),
+  // но координату/точку всё равно фиксируем (чтобы клик мог перенести закреплённое окно).
   suppress?: boolean
 }) {
   useEffect(() => {
@@ -295,7 +295,7 @@ function CapturingBreakdownTooltip({
   return <BreakdownTooltip active={active} payload={payload} label={label} meta={meta} />
 }
 
-// Список метрик (звичайний режим головного графіка) для тултипа/закріпленого вікна.
+// Список метрик (обычный режим главного графика) для тултипа/закреплённого окна.
 type MetricItem = { label: string; value: number; isMoney: boolean; color?: string }
 function MetricsList({ items }: { items: MetricItem[] }) {
   return (
@@ -315,7 +315,7 @@ function MetricsList({ items }: { items: MetricItem[] }) {
   )
 }
 
-// Перетворює payload головного графіка (звичайний режим) у список метрик.
+// Преобразует payload главного графика (обычный режим) в список метрик.
 function payloadToMetrics(
   payload: Array<{ name?: string | number; value?: number | string; color?: string }>,
 ): MetricItem[] {
@@ -326,7 +326,7 @@ function payloadToMetrics(
   })
 }
 
-// Тултип звичайного режиму з захопленням наведеної точки в ref (для фіксації по кліку).
+// Тултип обычного режима с захватом наведённой точки в ref (для фиксации по клику).
 function CapturingMetricTooltip({
   active,
   payload,
@@ -361,7 +361,7 @@ function CapturingMetricTooltip({
   )
 }
 
-// ─── Типи ─────────────────────────────────────────────────────────────────────
+// ─── Типы ─────────────────────────────────────────────────────────────────────
 
 type Assignee = { id: string; email: string; name: string | null }
 type ReferralRef = { id: string; name: string; code: string; is_active: boolean }
@@ -396,7 +396,7 @@ function ReportSkeleton() {
   )
 }
 
-// ─── Компонент сортування колонки ─────────────────────────────────────────────
+// ─── Компонент сортировки колонки ─────────────────────────────────────────────
 
 type SortDir = 'asc' | 'desc' | null
 type SortKey = keyof ReportRow
@@ -407,7 +407,7 @@ function SortIcon({ dir }: { dir: SortDir }) {
   return <ChevronsUpDown className="inline h-3.5 w-3.5 ml-1 opacity-40" />
 }
 
-// ─── Мультиселект стадій (Popover + чекбокси) ────────────────────────────────
+// ─── Мультиселект стадий (Popover + чекбоксы) ────────────────────────────────
 
 function StatusMultiSelect({
   statuses,
@@ -489,7 +489,7 @@ function StatusMultiSelect({
   )
 }
 
-// ─── Мультиселект відповідальних ──────────────────────────────────────────────
+// ─── Мультиселект ответственных ───────────────────────────────────────────────
 
 function AssigneeMultiSelect({
   assignees,
@@ -510,8 +510,8 @@ function AssigneeMultiSelect({
     }
   }
 
-  // Порожнє ім'я ("") теж вважаємо відсутнім → падаємо на email, далі на плейсхолдер.
-  // (?? не ловить порожній рядок, через що половина пунктів була без підпису)
+  // Пустое имя ("") тоже считаем отсутствующим → падаем на email, далее на плейсхолдер.
+  // (?? не ловит пустую строку, из-за чего половина пунктов была без подписи)
   const nameOf = (a: Assignee) => a.name?.trim() || a.email?.trim() || "Без імені"
   const label =
     selected.length === 0
@@ -535,7 +535,7 @@ function AssigneeMultiSelect({
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
         <div className="max-h-64 overflow-y-auto space-y-1">
-          {/* «Вибрати всіх» = без фільтра (порожній вибір). Відмічено за замовчуванням. */}
+          {/* «Вибрати всіх» = без фильтра (пустой выбор). Отмечено по умолчанию. */}
           <div
             className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer border-b mb-1 pb-2"
             onClick={() => onChange([])}
@@ -582,7 +582,7 @@ function AssigneeMultiSelect({
   )
 }
 
-// ─── Мультиселект метрик графіка (компактний дропдаун) ────────────────────────
+// ─── Мультиселект метрик графика (компактный дропдаун) ────────────────────────
 
 function MetricMultiSelect({
   metrics,
@@ -601,7 +601,7 @@ function MetricMultiSelect({
 
   function toggle(key: MetricKey) {
     if (selected.includes(key)) {
-      if (selected.length === 1) return // не знімати останню метрику
+      if (selected.length === 1) return // не снимать последнюю метрику
       onChange(selected.filter((k) => k !== key))
     } else {
       onChange([...selected, key])
@@ -660,19 +660,19 @@ function MetricMultiSelect({
   )
 }
 
-// ─── Головний компонент ────────────────────────────────────────────────────────
+// ─── Главный компонент ─────────────────────────────────────────────────────────
 
 export function AnalyticsReport() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // ── Читаємо метрики, гранулярність і breakdown із URL ─────────────────────
+  // ── Читаем метрики, гранулярность и breakdown из URL ──────────────────────
 
   const metricsFromUrl = searchParams.get('metrics')
   const granularityFromUrl = searchParams.get('granularity') as TsGranularity | null
   const breakdownFromUrl = searchParams.get('breakdown') as BreakdownDimension | null
   const customFieldIdFromUrl = searchParams.get('custom_field_id')
-  // Початковий фільтр партнера — з посилання «Аналітика →» вкладки «Реферальні посилання».
+  // Начальный фильтр партнёра — из ссылки «Аналітика →» вкладки «Реферальні посилання».
   const referralLinkIdFromUrl = searchParams.get('referral_link_id')
 
   const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(() => {
@@ -697,38 +697,38 @@ export function AnalyticsReport() {
       : 'none'
   )
 
-  // ── Стан фільтрів ──────────────────────────────────────────────────────────
+  // ── Состояние фильтров ─────────────────────────────────────────────────────
 
   const [dateFrom, setDateFrom] = useState<string>(getDefaultDateFrom)
   const [dateTo, setDateTo]     = useState<string>(getDefaultDateTo)
-  // groupBy — тепер тільки виміри, дефолт utm_source
-  // Розріз зведеної таблиці прив'язаний до фільтра «Розбити за».
-  // Якщо розбивки немає ('none') — групуємо за «Джерело» (дефолт).
+  // groupBy — теперь только измерения, дефолт utm_source
+  // Разрез сводной таблицы привязан к фильтру «Розбити за».
+  // Если разбивки нет ('none') — группируем по «Джерело» (дефолт).
   const groupBy: GroupBy = breakdown === 'none' ? 'utm_source' : (breakdown as GroupBy)
-  // Обране кастом-поле для розрізу «Додаткове поле» (group_by=custom_field).
+  // Выбранное кастом-поле для разреза «Додаткове поле» (group_by=custom_field).
   const [customFieldId, setCustomFieldId] = useState<string>(customFieldIdFromUrl ?? '')
   const [filterUtmSource,  setFilterUtmSource]  = useState('all')
   const [filterService,    setFilterService]    = useState('all')
   const [filterAssigneeIds, setFilterAssigneeIds] = useState<string[]>([])
   const [filterStatusIds,  setFilterStatusIds]  = useState<string[]>([])
-  // Реферальне посилання: 'all' | 'none' (без посилання) | UUID посилання.
+  // Реферальная ссылка: 'all' | 'none' (без ссылки) | UUID ссылки.
   const [filterReferralLinkId, setFilterReferralLinkId] = useState<string>(() =>
     referralLinkIdFromUrl && (referralLinkIdFromUrl === 'none' || UUID_RE.test(referralLinkIdFromUrl))
       ? referralLinkIdFromUrl
       : 'all',
   )
-  // Розгортання блоку зі зведенням по кожному менеджеру (таблиця з report.byAssignee
-  // + графік динаміки заявок по кожному менеджеру на тих самих фільтрах).
+  // Разворачивание блока со сводкой по каждому менеджеру (таблица из report.byAssignee
+  // + график динамики заявок по каждому менеджеру на тех же фильтрах).
   const [showPerAssignee, setShowPerAssignee] = useState(false)
-  // Закріплене (по кліку) вікно тултипа графіка — фіксується на місці точки, прокручуване.
+  // Закреплённое (по клику) окно тултипа графика — фиксируется на месте точки, прокручиваемое.
   const [pinnedAssignee, setPinnedAssignee] =
     useState<{ label: string; groups: BreakdownGroup[]; x: number; y: number } | null>(null)
-  // Остання наведена точка графіка по відповідальних (для фіксації по кліку).
+  // Последняя наведённая точка графика по ответственным (для фиксации по клику).
   const assigneeHoverRef = useRef<HoverCap | null>(null)
-  // Контейнер графіка (для обчислення меж при позиціонуванні закріпленого вікна).
+  // Контейнер графика (для вычисления границ при позиционировании закреплённого окна).
   const assigneeChartBoxRef = useRef<HTMLDivElement | null>(null)
 
-  // Те саме для нижнього графіка «Динаміка заявок» (розбивка АБО звичайні метрики).
+  // То же для нижнего графика «Динаміка заявок» (разбивка ИЛИ обычные метрики).
   const [pinnedMain, setPinnedMain] =
     useState<{ label: string; x: number; y: number; groups?: BreakdownGroup[]; metrics?: MetricItem[] } | null>(null)
   const mainHoverRef = useRef<HoverCap | null>(null)
@@ -736,48 +736,48 @@ export function AnalyticsReport() {
   const [assigneeTs, setAssigneeTs] =
     useState<NonNullable<ReportResponse['timeseriesBreakdown']> | null>(null)
   const [assigneeTsLoading, setAssigneeTsLoading] = useState(false)
-  // filterGclid — константа 'any', без окремого контролу (промпт 025)
+  // filterGclid — константа 'any', без отдельного контрола (промпт 025)
   const filterGclid = 'any' as const
 
-  // ── Стан даних ─────────────────────────────────────────────────────────────
+  // ── Состояние данных ───────────────────────────────────────────────────────
 
   const [report,  setReport]  = useState<ReportResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
-  // Розріз «Додаткове поле» вимагає вибору конкретного поля. Поки воно не обране —
-  // показуємо м'яку підказку замість технічної помилки валідації з сервера.
+  // Разрез «Додаткове поле» требует выбора конкретного поля. Пока оно не выбрано —
+  // показываем мягкую подсказку вместо технической ошибки валидации с сервера.
   const [needsField, setNeedsField] = useState(false)
 
-  // ── Стан діалогу конструктора вивантаження ─────────────────────────────────
+  // ── Состояние диалога конструктора выгрузки ────────────────────────────────
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
-  // ── Довідники ──────────────────────────────────────────────────────────────
+  // ── Справочники ────────────────────────────────────────────────────────────
 
   const [assignees,     setAssignees]     = useState<Assignee[]>([])
   const [statuses,      setStatuses]      = useState<Status[]>([])
   const [customFields,  setCustomFields]  = useState<CustomField[]>([])
   const [referralLinks, setReferralLinks] = useState<ReferralRef[]>([])
 
-  // ── Стан таблиці ──────────────────────────────────────────────────────────
+  // ── Состояние таблицы ─────────────────────────────────────────────────────
 
   const [sortKey, setSortKey] = useState<SortKey>('total')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
-  // ── Завантаження довідників ────────────────────────────────────────────────
+  // ── Загрузка справочников ──────────────────────────────────────────────────
 
   useEffect(() => {
-    // Довідники — з клієнтського кешу (спільний зі списком і карткою заявок).
+    // Справочники — из клиентского кэша (общего со списком и карточкой заявок).
     fetchDictionary<{ data?: Assignee[] }>('/api/admin/assignees').then((j) => setAssignees(j.data ?? []))
     fetchDictionary<{ data?: Status[] }>('/api/admin/lead-statuses').then((j) => setStatuses(j.data ?? []))
     fetchDictionary<{ data?: CustomField[] } | CustomField[]>('/api/admin/custom-fields').then((j) => {
       setCustomFields(Array.isArray(j) ? j : (j.data ?? []))
     })
-    // Реферальні посилання (довідник назв партнерів; без права — порожній список)
+    // Реферальные ссылки (справочник названий партнёров; без права — пустой список)
     fetchDictionary<{ data?: ReferralRef[] }>('/api/admin/referral-links').then((j) => setReferralLinks(j.data ?? []))
   }, [])
 
 
-  // ── Оновлення URL при зміні метрик / гранулярності / breakdown ─────────────
+  // ── Обновление URL при смене метрик / гранулярности / breakdown ────────────
 
   function updateUrlParams(
     metrics: MetricKey[],
@@ -789,19 +789,19 @@ export function AnalyticsReport() {
     params.set('metrics', metrics.join(','))
     params.set('granularity', granularity)
     params.set('breakdown', bd)
-    // custom_field_id зберігаємо в URL лише для розрізу «Додаткове поле».
+    // custom_field_id храним в URL только для разреза «Додаткове поле».
     if (bd === 'custom_field' && cfId) params.set('custom_field_id', cfId)
     else params.delete('custom_field_id')
-    // URL оновлюємо через History API: router.replace на динамічній сторінці — це зайвий серверний
-    // прохід (middleware + гард + RSC) на кожен клік по контролу; useSearchParams бачить зміну й так.
+    // URL обновляем через History API: router.replace на динамической странице — это лишний серверный
+    // проход (middleware + гард + RSC) на каждый клик по контролу; useSearchParams видит изменение и так.
     window.history.replaceState(null, '', `${pathname}?${params.toString()}`)
   }
 
   function handleMetricsChange(keys: MetricKey[]) {
     setSelectedMetrics(keys)
     updateUrlParams(keys, tsGranularity, breakdown)
-    // У режимі breakdown набір метрик впливає на серверні серії → перезапит.
-    // (useEffect нижче і так спрацює, бо selectedMetrics у залежностях fetchReport.)
+    // В режиме breakdown набор метрик влияет на серверные серии → перезапрос.
+    // (useEffect ниже и так сработает, потому что selectedMetrics в зависимостях fetchReport.)
   }
 
   function handleGranularityChange(val: string) {
@@ -809,22 +809,22 @@ export function AnalyticsReport() {
     const g = val as TsGranularity
     setTsGranularity(g)
     updateUrlParams(selectedMetrics, g, breakdown)
-    // Звіт перезапитає useEffect (tsGranularity у залежностях fetchReport) — без другого запиту.
+    // Отчёт перезапросит useEffect (tsGranularity в зависимостях fetchReport) — без второго запроса.
   }
 
   function handleBreakdownChange(val: BreakdownDimension) {
     setBreakdown(val)
     updateUrlParams(selectedMetrics, tsGranularity, val)
-    // Перезапит — через useEffect (breakdown у залежностях fetchReport).
+    // Перезапрос — через useEffect (breakdown в зависимостях fetchReport).
   }
 
   function handleCustomFieldChange(id: string) {
     setCustomFieldId(id)
     updateUrlParams(selectedMetrics, tsGranularity, breakdown, id)
-    // Перезапит — через useEffect (customFieldId у залежностях fetchReport).
+    // Перезапрос — через useEffect (customFieldId в зависимостях fetchReport).
   }
 
-  // Скидання всіх фільтрів до дефолтів. Звіт перезавантажиться сам (фільтри в deps fetchReport).
+  // Сброс всех фильтров к дефолтам. Отчёт перезагрузится сам (фильтры в deps fetchReport).
   function resetFilters() {
     setDateFrom(getDefaultDateFrom())
     setDateTo(getDefaultDateTo())
@@ -835,12 +835,12 @@ export function AnalyticsReport() {
     setFilterReferralLinkId('all')
     setBreakdown('none')
     setCustomFieldId('')
-    // Скидання лишає одну метрику — «Заявки» (а не дефолтні дві)
+    // Сброс оставляет одну метрику — «Заявки» (а не дефолтные две)
     setSelectedMetrics(['total'])
     updateUrlParams(['total'], tsGranularity, 'none', '')
   }
 
-  // ── Фетч звіту ─────────────────────────────────────────────────────────────
+  // ── Фетч отчёта ────────────────────────────────────────────────────────────
 
   const fetchReport = useCallback(async () => {
     await fetchReportWith({})
@@ -856,15 +856,15 @@ export function AnalyticsReport() {
     overrideBreakdown?: BreakdownDimension
     overrideCustomFieldId?: string
   }) {
-    // Розріз таблиці = поточна розбивка (none → «Джерело»). Беремо від bd/cfId
-    // (override), щоб негайний refetch після зміни «Розбити за» / поля не
-    // використав застаріле значення стейту.
+    // Разрез таблицы = текущая разбивка (none → «Джерело»). Берём от bd/cfId
+    // (override), чтобы немедленный refetch после смены «Розбити за» / поля не
+    // использовал устаревшее значение стейта.
     const bd = overrideBreakdown ?? breakdown
     const gb: GroupBy = bd === 'none' ? 'utm_source' : (bd as GroupBy)
     const cfId = overrideCustomFieldId ?? customFieldId
 
-    // Розріз «Додаткове поле» без обраного поля — не шлемо запит (сервер відповів би
-    // технічною помилкою про custom_field_id). Замість цього показуємо підказку.
+    // Разрез «Додаткове поле» без выбранного поля — не шлём запрос (сервер ответил бы
+    // технической ошибкой про custom_field_id). Вместо этого показываем подсказку.
     if (gb === 'custom_field' && !cfId) {
       setNeedsField(true)
       setError(null)
@@ -877,9 +877,9 @@ export function AnalyticsReport() {
     setError(null)
     try {
       const g  = overrideGranularity ?? tsGranularity
-      // Таймсерія-розбивка по кастом-полю на бекенді не підтримується: для
-      // custom_field графік лишається сукупним (breakdown='none'), а зведена
-      // таблиця групується за значенням поля (group_by='custom_field').
+      // Таймсерия-разбивка по кастом-полю на бэкенде не поддерживается: для
+      // custom_field график остаётся совокупным (breakdown='none'), а сводная
+      // таблица группируется по значению поля (group_by='custom_field').
       const serverBreakdown: BreakdownDimension = bd === 'custom_field' ? 'none' : bd
 
       const params = new URLSearchParams({
@@ -889,7 +889,7 @@ export function AnalyticsReport() {
         ts_granularity:  g,
         breakdown:       serverBreakdown,
       })
-      // У режимі breakdown передаємо набір метрик (мультилінії: вимір × метрика)
+      // В режиме breakdown передаём набор метрик (мультилинии: измерение × метрика)
       if (serverBreakdown !== 'none') {
         params.set('breakdown_metrics', toBreakdownMetrics(selectedMetrics).join(','))
       }
@@ -899,7 +899,7 @@ export function AnalyticsReport() {
       if (filterStatusIds.length > 0) params.set('filter_status_ids', filterStatusIds.join(','))
       if (filterReferralLinkId !== 'all') params.set('filter_referral_link_id', filterReferralLinkId)
       if (gb === 'custom_field' && cfId) params.set('custom_field_id', cfId)
-      // filter_gclid='any' — не передаємо (дефолт на сервері)
+      // filter_gclid='any' — не передаём (дефолт на сервере)
 
       const res = await fetch(`/api/admin/analytics/report?${params}`)
       if (!res.ok) {
@@ -908,7 +908,7 @@ export function AnalyticsReport() {
         if ((j as { code?: string }).code === 'TOO_MANY_ROWS') {
           setError('Забагато даних. Звузіть діапазон дат.')
         } else if (serverMsg.includes('custom_field_id')) {
-          // Технічну валідаційну помилку показуємо людською мовою.
+          // Техническую валидационную ошибку показываем человеческим языком.
           setError('Оберіть додаткове поле у списку «Оберіть поле», щоб побудувати звіт.')
         } else {
           setError(serverMsg || `Помилка сервера (${res.status})`)
@@ -928,16 +928,16 @@ export function AnalyticsReport() {
     void fetchReport()
   }, [fetchReport])
 
-  // Графік по менеджерах рисує КОЖНУ вибрану метрику окремою лінією на менеджера
-  // (без підсумовування): менеджер × метрика. Якщо метрик не вибрано — «Заявки» (total).
+  // График по менеджерам рисует КАЖДУЮ выбранную метрику отдельной линией на менеджера
+  // (без суммирования): менеджер × метрика. Если метрик не выбрано — «Заявки» (total).
   const assigneeMetrics: MetricKeyForBreakdown[] = (() => {
     const sel = toBreakdownMetrics(selectedMetrics)
     return sel.length > 0 ? sel : ['total']
   })()
   const assigneeMetricsParam = assigneeMetrics.join(',')
 
-  // Динаміка по кожному менеджеру (breakdown=assigned_to) на тих самих фільтрах, що й звіт.
-  // Серії = менеджер × метрика. Тягнемо лише коли блок розгорнуто.
+  // Динамика по каждому менеджеру (breakdown=assigned_to) на тех же фильтрах, что и отчёт.
+  // Серии = менеджер × метрика. Тянем только когда блок развёрнут.
   useEffect(() => {
     if (!showPerAssignee) return
     let cancelled = false
@@ -966,7 +966,7 @@ export function AnalyticsReport() {
   }, [showPerAssignee, dateFrom, dateTo, tsGranularity, assigneeMetricsParam,
       filterUtmSource, filterService, filterAssigneeIds, filterStatusIds, filterReferralLinkId])
 
-  // ── Сортування таблиці ─────────────────────────────────────────────────────
+  // ── Сортировка таблицы ─────────────────────────────────────────────────────
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -993,7 +993,7 @@ export function AnalyticsReport() {
       })
     : []
 
-  // ── Клік-заголовок таблиці ─────────────────────────────────────────────────
+  // ── Клик-заголовок таблицы ─────────────────────────────────────────────────
 
   function Th({
     col,
@@ -1015,28 +1015,28 @@ export function AnalyticsReport() {
     )
   }
 
-  // Назва поточного розрізу — для заголовка таблиці та шапки колонки,
-  // щоб було видно, що зведена таблиця відображає саме обраний розріз.
+  // Название текущего разреза — для заголовка таблицы и шапки колонки,
+  // чтобы было видно, что сводная таблица отображает именно выбранный разрез.
   const groupByLabel =
     groupBy === 'custom_field'
       ? customFields.find((cf) => cf.id === customFieldId)?.name ?? 'Додаткове поле'
       : GROUP_BY_OPTIONS.find((o) => o.value === groupBy)?.label ?? 'Розріз'
 
-  // ── Метрики графіка що доступні з урахуванням флагів ──────────────────────
+  // ── Метрики графика, доступные с учётом флагов ────────────────────────────
 
   const visibleMetrics = report
     ? METRICS.filter((m) => !m.requiresFlag || report.flags[m.requiresFlag])
     : METRICS.filter((m) => !m.requiresFlag)
 
-  // Метрики тільки із selected що реально відображаються
+  // Метрики только из selected, которые реально отображаются
   const activeMetrics = visibleMetrics.filter((m) => selectedMetrics.includes(m.key))
   const hasMoneyMetric = activeMetrics.some((m) => m.isMoney)
 
-  // Очищені підписи серій для легенд/тултипів (прибирають дубльований розріз)
+  // Очищенные подписи серий для легенд/тултипов (убирают дублированный разрез)
   const breakdownSeriesLabels = report?.timeseriesBreakdown
     ? buildSeriesLabelMap(report.timeseriesBreakdown.series)
     : null
-  // Графік по менеджерах: серії = менеджер × метрика (як головний breakdown).
+  // График по менеджерам: серии = менеджер × метрика (как главный breakdown).
   const assigneeSeriesLabels = assigneeTs ? buildSeriesLabelMap(assigneeTs.series) : null
   const assigneeMulti = assigneeMetrics.length > 1
   const assigneeAllMoney =
@@ -1045,7 +1045,7 @@ export function AnalyticsReport() {
   const assigneeMetricLabels = assigneeMetrics.map(
     (k) => METRICS.find((m) => m.key === k)?.label ?? k,
   )
-  // Метадані серій (вимір + метрика + грошова) для згрупованого тултипа
+  // Метаданные серий (измерение + метрика + денежная) для сгруппированного тултипа
   const assigneeSeriesMeta = new Map<string, BreakdownSeriesMeta>()
   if (assigneeTs) {
     const single = assigneeMetricLabels[0] ?? ''
@@ -1064,25 +1064,25 @@ export function AnalyticsReport() {
     }
   }
   const assigneeDims = Array.from(new Set(Array.from(assigneeSeriesMeta.values()).map((m) => m.dim)))
-  // Якщо вибрано і лічильні, і грошові метрики — гроші виносимо на праву вісь,
-  // інакше грошові лінії (десятки тисяч) «придушать» лічильні (одиниці).
+  // Если выбраны и счётные, и денежные метрики — деньги выносим на правую ось,
+  // иначе денежные линии (десятки тысяч) «задавят» счётные (единицы).
   const assigneeHasMoney = assigneeMetrics.some((k) => METRICS.find((m) => m.key === k)?.isMoney)
   const assigneeHasCount = assigneeMetrics.some((k) => !METRICS.find((m) => m.key === k)?.isMoney)
   const assigneeMixed = assigneeHasMoney && assigneeHasCount
-  // Значення метрики для рядка підсумкової таблиці (ключі метрик = поля AssigneeRow/ReportRow)
+  // Значение метрики для строки итоговой таблицы (ключи метрик = поля AssigneeRow/ReportRow)
   const assigneeCell = (row: Record<string, number>, k: MetricKeyForBreakdown): string | number => {
     const v = Number(row[k] ?? 0)
     return METRICS.find((m) => m.key === k)?.isMoney ? fmtAmount(v) : v
   }
 
-  // Чи всі лінії графіка — грошова метрика (тоді форматуємо суми з валютою і округленням,
-  // інакше через float виходить «14752.230000000001»).
+  // Все ли линии графика — денежная метрика (тогда форматируем суммы с валютой и округлением,
+  // иначе из-за float получается «14752.230000000001»).
   const breakdownMetricKeys = toBreakdownMetrics(selectedMetrics)
   const breakdownAllMoney =
     breakdownMetricKeys.length > 0 &&
     breakdownMetricKeys.every((k) => METRICS.find((m) => m.key === k)?.isMoney)
 
-  // Метадані серій розбивки (вимір + метрика + грошова) для згрупованого тултипа
+  // Метаданные серий разбивки (измерение + метрика + денежная) для сгруппированного тултипа
   const singleMetricLabel = METRICS.find((m) => m.key === breakdownMetricKeys[0])?.label ?? ''
   const breakdownSeriesMeta = new Map<string, BreakdownSeriesMeta>()
   if (report?.timeseriesBreakdown) {
@@ -1096,7 +1096,7 @@ export function AnalyticsReport() {
           isMoney: !!METRICS.find((m) => m.label === metricLabel)?.isMoney,
         })
       } else {
-        // одна метрика → у підпису лише вимір
+        // одна метрика → в подписи только измерение
         breakdownSeriesMeta.set(s.key, {
           dim: s.label,
           metricLabel: singleMetricLabel,
@@ -1105,14 +1105,14 @@ export function AnalyticsReport() {
       }
     }
   }
-  // Для компактної легенди при кількох метриках: окремо переліки розрізів і метрик
+  // Для компактной легенды при нескольких метриках: отдельно перечни разрезов и метрик
   const breakdownMulti = breakdownMetricKeys.length > 1
   const breakdownDims = Array.from(new Set(Array.from(breakdownSeriesMeta.values()).map((m) => m.dim)))
   const breakdownMetricLabels = breakdownMetricKeys.map(
     (k) => METRICS.find((m) => m.key === k)?.label ?? k,
   )
 
-  // ── Breakdown-режим: чи активний ──────────────────────────────────────────
+  // ── Breakdown-режим: активен ли ───────────────────────────────────────────
 
   const isBreakdownMode = breakdown !== 'none' && !!report?.timeseriesBreakdown
 
@@ -1120,15 +1120,15 @@ export function AnalyticsReport() {
 
   return (
     <div className="space-y-6">
-      {/* ── Панель фільтрів ── */}
+      {/* ── Панель фильтров ── */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Фільтри</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Рядок 1: Діапазон дат.
-              Швидкі пресети прибрано — лишився тільки ручний вибір періоду.
-              «Період» (День/Тиждень/Місяць) живе над графіком. */}
+          {/* Строка 1: Диапазон дат.
+              Быстрые пресеты убраны — остался только ручной выбор периода.
+              «Період» (День/Тиждень/Місяць) живёт над графиком. */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <div className="flex items-center gap-2">
               <DatePicker
@@ -1145,10 +1145,10 @@ export function AnalyticsReport() {
             </div>
           </div>
 
-          {/* Рядок 2: Додаткові фільтри.
-              «Розріз» прибрано — зведена таблиця завжди групується за «Джерело». */}
+          {/* Строка 2: Дополнительные фильтры.
+              «Розріз» убран — сводная таблица всегда группируется по «Джерело». */}
           <div className="flex flex-wrap gap-3 items-center">
-            {/* Джерело */}
+            {/* Источник */}
             <Select value={filterUtmSource} onValueChange={setFilterUtmSource}>
               <SelectTrigger className="h-9 w-40" aria-label="Джерело">
                 <SelectValue placeholder="Всі джерела" />
@@ -1161,7 +1161,7 @@ export function AnalyticsReport() {
               </SelectContent>
             </Select>
 
-            {/* Послуга */}
+            {/* Услуга */}
             <Select value={filterService} onValueChange={setFilterService}>
               <SelectTrigger className="h-9 w-44" aria-label="Послуга">
                 <SelectValue placeholder="Всі послуги" />
@@ -1174,21 +1174,21 @@ export function AnalyticsReport() {
               </SelectContent>
             </Select>
 
-            {/* Відповідальні — мультиселект */}
+            {/* Ответственные — мультиселект */}
             <AssigneeMultiSelect
               assignees={assignees}
               selected={filterAssigneeIds}
               onChange={setFilterAssigneeIds}
             />
 
-            {/* Стадія — мультиселект */}
+            {/* Стадия — мультиселект */}
             <StatusMultiSelect
               statuses={statuses}
               selected={filterStatusIds}
               onChange={setFilterStatusIds}
             />
 
-            {/* Реферальне посилання (партнер) */}
+            {/* Реферальная ссылка (партнёр) */}
             <Select value={filterReferralLinkId} onValueChange={setFilterReferralLinkId}>
               <SelectTrigger className="h-9 w-48" aria-label="Реферальне посилання">
                 <SelectValue placeholder="Всі партнери" />
@@ -1202,7 +1202,7 @@ export function AnalyticsReport() {
               </SelectContent>
             </Select>
 
-            {/* Розбити за — розбивка графіка по виміру (перенесено з шапки графіка) */}
+            {/* «Розбити за» — разбивка графика по измерению (перенесено из шапки графика) */}
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-muted-foreground whitespace-nowrap">Розбити за:</span>
               <Select
@@ -1222,7 +1222,7 @@ export function AnalyticsReport() {
               </Select>
             </div>
 
-            {/* Пікер конкретного кастом-поля — лише для розрізу «Додаткове поле» */}
+            {/* Пикер конкретного кастом-поля — только для разреза «Додаткове поле» */}
             {breakdown === 'custom_field' && (
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Поле:</span>
@@ -1245,7 +1245,7 @@ export function AnalyticsReport() {
               </div>
             )}
 
-            {/* Метрики графіка — компактний мультивибір (перенесено з шапки графіка) */}
+            {/* Метрики графика — компактный мультивыбор (перенесено из шапки графика) */}
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-muted-foreground whitespace-nowrap">Метрики:</span>
               <MetricMultiSelect
@@ -1272,9 +1272,9 @@ export function AnalyticsReport() {
         </CardContent>
       </Card>
 
-      {/* ── Скелетон / помилка ── */}
-      {/* Скелетон — ТІЛЬКИ при першому завантаженні (поки звіту ще немає).
-          При зміні фільтрів/розбивки звіт лишається на місці, без миготіння. */}
+      {/* ── Скелетон / ошибка ── */}
+      {/* Скелетон — ТОЛЬКО при первой загрузке (пока отчёта ещё нет).
+          При смене фильтров/разбивки отчёт остаётся на месте, без мигания. */}
       {loading && !report && <ReportSkeleton />}
 
       {!loading && needsField && (
@@ -1299,8 +1299,8 @@ export function AnalyticsReport() {
         </Card>
       )}
 
-      {/* Звіт показуємо, якщо він є і немає помилки — навіть під час фонового
-          оновлення (loading=true). Під час оновлення трохи приглушуємо для фідбеку. */}
+      {/* Отчёт показываем, если он есть и нет ошибки — даже во время фонового
+          обновления (loading=true). Во время обновления немного приглушаем для фидбэка. */}
       {!error && report && (
         <div className={`space-y-6 transition-opacity ${loading ? 'opacity-60' : ''}`}>
           {/* ── Карточки метрик ── */}
@@ -1316,7 +1316,7 @@ export function AnalyticsReport() {
               </CardContent>
             </Card>
 
-            {/* Цільові ліди */}
+            {/* Целевые лиды */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Цільові ліди</CardTitle>
@@ -1329,7 +1329,7 @@ export function AnalyticsReport() {
               </CardContent>
             </Card>
 
-            {/* Нецільові ліди */}
+            {/* Нецелевые лиды */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Нецільові ліди</CardTitle>
@@ -1342,7 +1342,7 @@ export function AnalyticsReport() {
               </CardContent>
             </Card>
 
-            {/* Угоди */}
+            {/* Сделки */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Угоди</CardTitle>
@@ -1355,7 +1355,7 @@ export function AnalyticsReport() {
               </CardContent>
             </Card>
 
-            {/* Повторні угоди — тільки якщо є відповідні стадії */}
+            {/* Повторные сделки — только если есть соответствующие стадии */}
             {report.flags.hasDealAdjustmentStages && (
               <Card>
                 <CardHeader className="pb-2">
@@ -1368,14 +1368,14 @@ export function AnalyticsReport() {
               </Card>
             )}
 
-            {/* Сума угод */}
+            {/* Сумма сделок */}
             <Card className="sm:col-span-2 lg:col-span-2 xl:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Сума угод</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{fmtAmount(report.total.dealAmountSum)}</div>
-                {/* Прибуток — тільки якщо є стадії з amount_is_profit */}
+                {/* Прибыль — только если есть стадии с amount_is_profit */}
                 {report.flags.hasProfitStages && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Прибуток: {fmtAmount(report.total.dealProfitSum)}
@@ -1385,7 +1385,7 @@ export function AnalyticsReport() {
             </Card>
           </div>
 
-          {/* ── Зведення по кожному менеджеру (розгортається) ── */}
+          {/* ── Сводка по каждому менеджеру (разворачивается) ── */}
           {report.byAssignee.length > 0 && (
             <Card>
               <button
@@ -1409,7 +1409,7 @@ export function AnalyticsReport() {
               </button>
               {showPerAssignee && (
                 <CardContent className="pt-0 space-y-4">
-                  {/* Динаміка: окрема лінія на КОЖНУ метрику кожного відповідального (без підсумовування) */}
+                  {/* Динамика: отдельная линия на КАЖДУЮ метрику каждого ответственного (без суммирования) */}
                   <div className="relative" ref={assigneeChartBoxRef}>
                     {assigneeTsLoading && !assigneeTs ? (
                       <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
@@ -1441,7 +1441,7 @@ export function AnalyticsReport() {
                               : 0
                             }
                           />
-                          {/* Ліва вісь — лічильні (або всі, якщо одна одиниця) */}
+                          {/* Левая ось — счётные (или все, если одна единица) */}
                           <YAxis
                             yAxisId="count"
                             tick={{ fontSize: 11 }}
@@ -1449,7 +1449,7 @@ export function AnalyticsReport() {
                             width={assigneeAllMoney ? 64 : 36}
                             tickFormatter={assigneeAllMoney ? (v) => fmtAmount(Number(v)) : undefined}
                           />
-                          {/* Права вісь — грошові, лише при змішаному виборі */}
+                          {/* Правая ось — денежные, только при смешанном выборе */}
                           {assigneeMixed && (
                             <YAxis
                               yAxisId="money"
@@ -1504,11 +1504,11 @@ export function AnalyticsReport() {
                       </div>
                     )}
 
-                    {/* Закріплене вікно (по кліку) — фіксується на місці точки, прокручуване */}
+                    {/* Закреплённое окно (по клику) — фиксируется на месте точки, прокручиваемое */}
                     {pinnedAssignee && (() => {
                       const PANEL_W = 300
                       const boxW = assigneeChartBoxRef.current?.clientWidth ?? 0
-                      // Якщо точка у правій частині — показуємо вікно ліворуч від неї, інакше праворуч.
+                      // Если точка в правой части — показываем окно слева от неё, иначе справа.
                       const left = boxW && pinnedAssignee.x + 12 + PANEL_W > boxW
                         ? Math.max(4, pinnedAssignee.x - PANEL_W - 12)
                         : pinnedAssignee.x + 12
@@ -1538,7 +1538,7 @@ export function AnalyticsReport() {
                     })()}
                   </div>
 
-                  {/* Підсумок за весь вибраний період — рядок на відповідального, колонки = вибрані метрики */}
+                  {/* Итог за весь выбранный период — строка на ответственного, колонки = выбранные метрики */}
                   <div className="overflow-x-auto border-t pt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
                       Підсумок за період
@@ -1581,13 +1581,13 @@ export function AnalyticsReport() {
             </Card>
           )}
 
-          {/* ── Головний графік ── */}
+          {/* ── Главный график ── */}
           {(report.timeseries.length > 0 || report.timeseriesBreakdown) && (
             <Card>
               <CardHeader className="space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <CardTitle className="text-base">Динаміка заявок</CardTitle>
-                  {/* Перемикач гранулярності — завжди видимий */}
+                  {/* Переключатель гранулярности — всегда видимый */}
                   <ToggleGroup
                     type="single"
                     value={tsGranularity}
@@ -1603,8 +1603,8 @@ export function AnalyticsReport() {
               </CardHeader>
               <CardContent>
                <div className="relative" ref={mainChartBoxRef}>
-                {/* натисніть на точку, щоб зафіксувати підказку */}
-                {/* Режим breakdown: окремі лінії по виміру */}
+                {/* нажмите на точку, чтобы зафиксировать подсказку */}
+                {/* Режим breakdown: отдельные линии по измерению */}
                 {isBreakdownMode && report.timeseriesBreakdown ? (
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart
@@ -1637,8 +1637,8 @@ export function AnalyticsReport() {
                       />
                       <Tooltip content={<CapturingBreakdownTooltip meta={breakdownSeriesMeta} captureRef={mainHoverRef} suppress={!!pinnedMain} />} />
                       {breakdownMulti ? (
-                        // Компактна легенда: без кросс-произведення (джерело×метрика).
-                        // Деталі/значення — у підказці при наведенні.
+                        // Компактная легенда: без кросс-произведения (источник×метрика).
+                        // Детали/значения — в подсказке при наведении.
                         <Legend
                           content={() => (
                             <div className="text-xs text-muted-foreground pt-2 px-2 leading-relaxed text-center">
@@ -1671,7 +1671,7 @@ export function AnalyticsReport() {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  /* Стандартний режим: мультиметрики */
+                  /* Стандартный режим: мультиметрики */
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart
                       data={report.timeseries}
@@ -1692,14 +1692,14 @@ export function AnalyticsReport() {
                           : 0
                         }
                       />
-                      {/* Ліва вісь — кількісні метрики */}
+                      {/* Левая ось — количественные метрики */}
                       <YAxis
                         yAxisId="count"
                         tick={{ fontSize: 11 }}
                         allowDecimals={false}
                         width={36}
                       />
-                      {/* Права вісь — грошові метрики (тільки якщо є) */}
+                      {/* Правая ось — денежные метрики (только если есть) */}
                       {hasMoneyMetric && (
                         <YAxis
                           yAxisId="money"
@@ -1735,7 +1735,7 @@ export function AnalyticsReport() {
                   </ResponsiveContainer>
                 )}
 
-                {/* Закріплене вікно (по кліку) — фіксується на місці точки, прокручуване */}
+                {/* Закреплённое окно (по клику) — фиксируется на месте точки, прокручиваемое */}
                 {pinnedMain && (() => {
                   const PANEL_W = 280
                   const boxW = mainChartBoxRef.current?.clientWidth ?? 0
@@ -1774,7 +1774,7 @@ export function AnalyticsReport() {
           )}
 
 
-          {/* ── Зведена таблиця ── */}
+          {/* ── Сводная таблица ── */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
               <CardTitle className="text-base">
@@ -1810,7 +1810,7 @@ export function AnalyticsReport() {
                         <Th col="targetLeads"        className="text-right">Цільові</Th>
                         <Th col="nonTargetLeads"     className="text-right">Нецільові</Th>
                         {/* Порядок колонок = SUMMARY_COLUMN_ORDER (core/domain/analytics/export): «Конв. цільові»
-                            одразу після «Нецільові»; шапка, рядки й «Разом» міняються ЛИШЕ разом. */}
+                            сразу после «Нецільові»; шапка, строки и «Разом» меняются ТОЛЬКО вместе. */}
                         <Th col="conversionToTarget" className="text-right">Конв. цільові</Th>
                         <Th col="deals"              className="text-right">Угоди</Th>
                         {report.flags.hasDealAdjustmentStages && (
@@ -1857,7 +1857,7 @@ export function AnalyticsReport() {
                         </TableRow>
                       ))}
 
-                      {/* Рядок «Разом» — завжди внизу, поза сортуванням */}
+                      {/* Строка «Разом» — всегда внизу, вне сортировки */}
                       <TableRow className="bg-muted/50 font-semibold border-t-2">
                         <TableCell>Разом</TableCell>
                         <TableCell className="text-right tabular-nums">{report.total.total}</TableCell>
@@ -1883,7 +1883,7 @@ export function AnalyticsReport() {
         </div>
       )}
 
-      {/* ── Діалог конструктора вивантаження ── */}
+      {/* ── Диалог конструктора выгрузки ── */}
       <ExportBuilderDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
