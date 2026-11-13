@@ -499,7 +499,13 @@ function compareAnalyses(before, after, label) {
   return problems
 }
 
+// При core.autocrlf=true (так на машине владельца) рабочая копия бывает с CRLF, а git хранит LF и сам
+// нормализует при коммите. Сравниваем так же, как git: CRLF → LF с обеих сторон.
+const normalizeEol = (s) => s.replace(/\r\n/g, '\n')
+
 function verifyPair(oldText, newText, file) {
+  oldText = normalizeEol(oldText)
+  newText = normalizeEol(newText)
   const type = fileType(file)
   const before = analyze(oldText, file, type)
   const after = analyze(newText, file, type)
