@@ -1,10 +1,10 @@
--- 032_drop_legacy.sql — Фаза 5: прибирання спадщини донора (MIGRATION-LOG.md, раздел 2, п. 7 і 10).
+-- 032_drop_legacy.sql — Фаза 5: уборка наследия донора (MIGRATION-LOG.md, раздел 2, п. 7 и 10).
 --
---  • site_contacts — таблиця донора: 0 рядків, 0 посилань у коді, широка RLS (ALL для authenticated).
---    Контакти сайту живуть у messages/uk.json ⊕ site_content.landing (site.*).
---  • lead_statuses.deal_type (enum status_deal_type) і result_type — замінені conversion_type
---    (міграція 012); у коді не використовуються.
--- Ідемпотентно. Відкат — пересоздати за 001/010 (дані відсутні).
+--  • site_contacts — таблица донора: 0 строк, 0 ссылок в коде, широкая RLS (ALL для authenticated).
+--    Контакты сайта живут в messages/uk.json ⊕ site_content.landing (site.*).
+--  • lead_statuses.deal_type (enum status_deal_type) и result_type — заменены conversion_type
+--    (миграция 012); в коде не используются.
+-- Идемпотентно. Откат — пересоздать по 001/010 (данных нет).
 
 drop table if exists public.site_contacts;
 

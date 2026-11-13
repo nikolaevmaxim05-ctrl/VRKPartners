@@ -1,9 +1,9 @@
 -- 017_leads_realtime.sql
--- Вмикаємо Supabase Realtime для таблиці leads, щоб нові заявки зʼявлялися в адмінці
--- миттєво (postgres_changes). RLS вже дозволяє authenticated SELECT (authenticated_read_leads),
--- тож realtime коректно доставлятиме події залогіненому адміну.
+-- Включаем Supabase Realtime для таблицы leads, чтобы новые заявки появлялись в админке
+-- мгновенно (postgres_changes). RLS уже разрешает authenticated SELECT (authenticated_read_leads),
+-- так что realtime корректно доставит события залогиненному админу.
 --
--- Ідемпотентно: додаємо в публікацію лише якщо ще не додано.
+-- Идемпотентно: добавляем в публикацию только если ещё не добавлено.
 
 DO $$
 BEGIN

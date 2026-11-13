@@ -1,11 +1,11 @@
 -- 018_role_hierarchy.sql
--- Ієрархія ролей: менший hierarchy_order = вище в ієрархії (більше повноважень).
--- Роль може керувати лише тими, що СТРОГО нижче за неї. «admin» завжди зверху.
+-- Иерархия ролей: меньший hierarchy_order = выше в иерархии (больше полномочий).
+-- Роль может управлять только теми, что СТРОГО ниже неё. «admin» всегда сверху.
 
 ALTER TABLE admin_roles
   ADD COLUMN IF NOT EXISTS hierarchy_order integer NOT NULL DEFAULT 1000;
 
--- Початковий порядок: admin → зверху, далі системні, далі решта за назвою.
+-- Начальный порядок: admin → сверху, далее системные, далее остальные по названию.
 WITH ordered AS (
   SELECT id,
          ROW_NUMBER() OVER (
@@ -18,8 +18,8 @@ SET hierarchy_order = o.rn
 FROM ordered o
 WHERE a.id = o.id;
 
--- admin закріплений на вершині (0) — нижче перетягнути не можна (enforced у застосунку).
+-- admin закреплён на вершине (0) — ниже перетащить нельзя (enforced в приложении).
 UPDATE admin_roles SET hierarchy_order = 0 WHERE name = 'admin';
 
--- Сортування ролей у списках за ієрархією.
+-- Сортировка ролей в списках по иерархии.
 CREATE INDEX IF NOT EXISTS idx_admin_roles_hierarchy ON admin_roles (hierarchy_order);

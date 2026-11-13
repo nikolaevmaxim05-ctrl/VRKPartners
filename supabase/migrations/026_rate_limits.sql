@@ -1,8 +1,8 @@
 -- 026_rate_limits.sql
--- Rate-limit на Postgres (замість Upstash Redis): лічильник фіксованого вікна на ключ.
--- Причина заміни: безкоштовний Upstash видаляє БД після ~2 тижнів простою → rate-limiter
--- ставав недоступним (fail-closed → усі заявки віддавали 429/503). Supabase завжди
--- «теплий» (keepalive-cron), тож лічильник живе тут — без зовнішньої залежності.
+-- Rate-limit на Postgres (вместо Upstash Redis): счётчик фиксированного окна на ключ.
+-- Причина замены: бесплатный Upstash удаляет БД после ~2 недель простоя → rate-limiter
+-- становился недоступным (fail-closed → все заявки отдавали 429/503). Supabase всегда
+-- «тёплый» (keepalive-cron), так что счётчик живёт здесь — без внешней зависимости.
 
 create table if not exists public.rate_limits (
   key               text        primary key,
@@ -11,11 +11,11 @@ create table if not exists public.rate_limits (
 );
 
 alter table public.rate_limits enable row level security;
--- Жодних політик для anon/authenticated: доступ лише через service_role (обходить RLS)
--- і через SECURITY DEFINER-функцію нижче (execute видано тільки service_role).
+-- Никаких политик для anon/authenticated: доступ только через service_role (обходит RLS)
+-- и через SECURITY DEFINER-функцию ниже (execute выдан только service_role).
 
--- Атомарний лічильник фіксованого вікна. Один upsert; повертає рішення, залишок і
--- час скидання вікна. Якщо вікно вичерпалось — лічильник стартує заново з 1.
+-- Атомарный счётчик фиксированного окна. Один upsert; возвращает решение, остаток и
+-- время сброса окна. Если окно истекло — счётчик стартует заново с 1.
 create or replace function public.check_rate_limit(
   p_key text,
   p_max integer,

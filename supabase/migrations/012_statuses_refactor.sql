@@ -1,18 +1,18 @@
 -- ============================================================================
--- Migration 012: уніфікувати модель стадій воронки
+-- Migration 012: унифицировать модель стадий воронки
 -- ----------------------------------------------------------------------------
---   - замінити пару (result_type, deal_type) на єдиний conversion_type
---   - винести флаги «потребує суми» і «сума — це прибуток» на рівень стадії
---   - зняти захист «системних» стадій (is_system залишається як легасі)
---   - залишити рівно одну is_initial=true
---   - підготувати offline_conversions під збереження типу конверсії
+--   - заменить пару (result_type, deal_type) на единый conversion_type
+--   - вынести флаги «требует суммы» и «сумма — это прибыль» на уровень стадии
+--   - снять защиту «системных» стадий (is_system остаётся как легаси)
+--   - оставить ровно одну is_initial=true
+--   - подготовить offline_conversions под хранение типа конверсии
 --
--- Старі колонки (result_type, deal_type, is_system) НЕ дропаємо у цій міграції —
--- лишаємо як легасі на випадок відкату. Дропаємо в окремій міграції після
--- стабілізації нового коду.
+-- Старые колонки (result_type, deal_type, is_system) в этой миграции НЕ дропаем —
+-- оставляем как легаси на случай отката. Дропаем в отдельной миграции после
+-- стабилизации нового кода.
 -- ============================================================================
 
--- A) Нові колонки на lead_statuses
+-- A) Новые колонки на lead_statuses
 ALTER TABLE lead_statuses
   ADD COLUMN IF NOT EXISTS conversion_type TEXT
     CHECK (conversion_type IS NULL OR conversion_type IN (
@@ -21,7 +21,7 @@ ALTER TABLE lead_statuses
   ADD COLUMN IF NOT EXISTS requires_amount BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS amount_is_profit BOOLEAN NOT NULL DEFAULT false;
 
--- B) Перенос даних зі старих полів
+-- B) Перенос данных из старых полей
 UPDATE lead_statuses SET
   conversion_type = CASE
     WHEN deal_type = 'deal_1'       THEN 'deal'
@@ -35,7 +35,7 @@ UPDATE lead_statuses SET
     ELSE false
   END;
 
--- C) Зняти is_system з усіх стадій (всі рівноправні) + лишити одну first is_initial
+-- C) Снять is_system со всех стадий (все равноправны) + оставить одну first is_initial
 UPDATE lead_statuses SET is_system = false;
 
 UPDATE lead_statuses
@@ -47,6 +47,6 @@ UPDATE lead_statuses
     LIMIT 1
  );
 
--- D) conversion_type у offline_conversions (опційно — для нових записів)
+-- D) conversion_type в offline_conversions (опционально — для новых записей)
 ALTER TABLE offline_conversions
   ADD COLUMN IF NOT EXISTS conversion_type TEXT;

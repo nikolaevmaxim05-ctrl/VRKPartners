@@ -1,12 +1,12 @@
 -- ============================================================================
--- Migration 015: таблиця lead_status_history
+-- Migration 015: таблица lead_status_history
 -- ----------------------------------------------------------------------------
--- Зберігає структуровану історію зміни стадій лідів.
--- Використовується для:
---   1. «Був цільовим / Нецільовим» у вивантаженні (промпт 023)
---   2. «Історія менеджерів» у вивантаженні по лідах
--- Бекфілл: з offline_conversions (є відома дата і conversion_type).
--- Парсинг системних коментарів — НЕ потрібен (ненадійно).
+-- Хранит структурированную историю смены стадий лидов.
+-- Используется для:
+--   1. «Був цільовим / Нецільовим» в выгрузке (промпт 023)
+--   2. «Історія менеджерів» в выгрузке по лидам
+-- Бекфилл: из offline_conversions (есть известная дата и conversion_type).
+-- Парсинг системных комментариев — НЕ нужен (ненадёжно).
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS lead_status_history (
@@ -14,25 +14,25 @@ CREATE TABLE IF NOT EXISTS lead_status_history (
   lead_id             uuid        NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
   from_status_id      uuid        REFERENCES lead_statuses(id) ON DELETE SET NULL,
   to_status_id        uuid        REFERENCES lead_statuses(id) ON DELETE SET NULL,
-  to_conversion_type  text,       -- снапшот conversion_type стадії на момент переходу
-  changed_by          uuid,       -- auth.users id (NULL = системна дія)
-  changed_by_email    text,       -- снапшот email (юзера можуть видалити)
+  to_conversion_type  text,       -- снапшот conversion_type стадии на момент перехода
+  changed_by          uuid,       -- auth.users id (NULL = системное действие)
+  changed_by_email    text,       -- снапшот email (юзера могут удалить)
   created_at          timestamptz NOT NULL DEFAULT now()
 );
 
--- Основні індекси
+-- Основные индексы
 CREATE INDEX IF NOT EXISTS idx_lead_status_history_lead_id
   ON lead_status_history (lead_id);
 
 CREATE INDEX IF NOT EXISTS idx_lead_status_history_created_at
   ON lead_status_history (created_at DESC);
 
--- Частковий індекс для was_target / was_non_target запитів
+-- Частичный индекс для запросов was_target / was_non_target
 CREATE INDEX IF NOT EXISTS idx_lead_status_history_conversion_type
   ON lead_status_history (to_conversion_type)
   WHERE to_conversion_type IS NOT NULL;
 
--- ── RLS: паттерн з 003/004 (service_role повний доступ, authenticated читає) ─
+-- ── RLS: паттерн из 003/004 (service_role полный доступ, authenticated читает) ─
 
 ALTER TABLE lead_status_history ENABLE ROW LEVEL SECURITY;
 
@@ -56,14 +56,14 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ── Бекфілл: з offline_conversions ──────────────────────────────────────────
--- По одному запису на лід де є conversion_type.
--- Ідемпотентно: лиди що вже мають запис в history — пропускаються.
+-- ── Бекфилл: из offline_conversions ─────────────────────────────────────────
+-- По одной записи на лид, где есть conversion_type.
+-- Идемпотентно: лиды, у которых уже есть запись в history, — пропускаются.
 
 INSERT INTO lead_status_history (lead_id, to_status_id, to_conversion_type, created_at)
 SELECT
   oc.lead_id,
-  NULL,                     -- to_status_id невідомий з offline_conversions (snapshot лише типу)
+  NULL,                     -- to_status_id неизвестен из offline_conversions (snapshot только типа)
   oc.conversion_type,
   COALESCE(oc.conversion_time, oc.created_at)
 FROM offline_conversions oc

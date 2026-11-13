@@ -1,20 +1,20 @@
--- Міграція 016: видалити 'form_start' із eventNames у quick_form_start / main_form_start
--- (промпт 024, варіант Б — перейменування на lead_form_started).
+-- Миграция 016: удалить 'form_start' из eventNames в quick_form_start / main_form_start
+-- (промпт 024, вариант Б — переименование в lead_form_started).
 --
--- Ключі quick_form_start та main_form_start тепер мають використовувати лише
--- 'lead_form_started', щоб не перетинатися з авто-подіями GA4 Enhanced Measurement.
+-- Ключи quick_form_start и main_form_start теперь должны использовать только
+-- 'lead_form_started', чтобы не пересекаться с авто-событиями GA4 Enhanced Measurement.
 --
--- Операція ідемпотентна: якщо 'form_start' вже відсутній — UPDATE нічого не змінює.
--- Якщо рядок analytics_events відсутній — теж безпечно (WHERE key = '...' не знайде нічого).
+-- Операция идемпотентна: если 'form_start' уже отсутствует — UPDATE ничего не меняет.
+-- Если строка analytics_events отсутствует — тоже безопасно (WHERE key = '...' ничего не найдёт).
 --
--- site_settings.value зберігається як TEXT (не jsonb-колонка) →
--- явне приведення ::jsonb для jsonb-операцій + ::text назад.
+-- site_settings.value хранится как TEXT (не jsonb-колонка) →
+-- явное приведение ::jsonb для jsonb-операций + ::text обратно.
 
 UPDATE site_settings
 SET
   value = (
     value::jsonb
-    -- Видаляємо 'form_start' з eventNames quick_form_start
+    -- Удаляем 'form_start' из eventNames quick_form_start
     || jsonb_build_object(
          'quick_form_start',
          CASE
@@ -36,7 +36,7 @@ SET
            ELSE value::jsonb -> 'quick_form_start'
          END
        )
-    -- Видаляємо 'form_start' з eventNames main_form_start
+    -- Удаляем 'form_start' из eventNames main_form_start
     || jsonb_build_object(
          'main_form_start',
          CASE
@@ -62,8 +62,8 @@ SET
   updated_at = now()
 WHERE key = 'analytics_events'
   AND (
-    -- Запускаємо UPDATE тільки якщо хоча б один із ключів існує
-    -- і містить 'form_start' у своєму eventNames
+    -- Запускаем UPDATE только если хотя бы один из ключей существует
+    -- и содержит 'form_start' в своём eventNames
     (
       value::jsonb ? 'quick_form_start'
       AND (value::jsonb -> 'quick_form_start' -> 'eventNames') @> '"form_start"'

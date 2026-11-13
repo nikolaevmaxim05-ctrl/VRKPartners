@@ -1,7 +1,7 @@
--- Виправлення формату permissions в admin_roles.
--- Міграція 003 зберегла permissions як об'єкт {"leads":["read","write"],...},
--- але весь код (permissions.ts, /admin/roles) очікує плаский масив рядків
--- ["manage_leads","manage_users",...]. Приводимо дані до потрібного формату.
+-- Исправление формата permissions в admin_roles.
+-- Миграция 003 сохранила permissions как объект {"leads":["read","write"],...},
+-- но весь код (permissions.ts, /admin/roles) ожидает плоский массив строк
+-- ["manage_leads","manage_users",...]. Приводим данные к нужному формату.
 
 UPDATE admin_roles
 SET permissions = '["manage_leads","manage_users","manage_settings","view_reports"]'::jsonb
@@ -11,5 +11,5 @@ UPDATE admin_roles
 SET permissions = '["manage_leads"]'::jsonb
 WHERE name = 'manager';
 
--- Перевірка
+-- Проверка
 SELECT name, permissions FROM admin_roles ORDER BY name;

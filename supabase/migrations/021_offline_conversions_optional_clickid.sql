@@ -1,11 +1,11 @@
--- 021 — Офлайн-конверсія більше не вимагає Google click ID.
+-- 021 — Офлайн-конверсия больше не требует Google click ID.
 --
--- Контекст: офлайн-конверсія має бути ЄДИНИМ джерелом істини — один рядок на
--- конверсійний лід (з gclid/gbraid/wbraid чи без). Лист офлайн-конверсій матчить
--- ліда і по хешу email/phone (enhanced conversions), тож click ID опційний.
--- Без цього ліди без click ID не отримували рядок offline_conversions →
--- корекції (RETRACT/RESTATE) для них не спрацьовували.
+-- Контекст: офлайн-конверсия должна быть ЕДИНСТВЕННЫМ источником истины — одна строка на
+-- конверсионный лид (с gclid/gbraid/wbraid или без). Лист офлайн-конверсий матчит
+-- лида и по хешу email/phone (enhanced conversions), так что click ID опционален.
+-- Без этого лиды без click ID не получали строку offline_conversions →
+-- корректировки (RETRACT/RESTATE) для них не срабатывали.
 --
--- Знімаємо CHECK chk_has_click_id. Колонки gclid/gbraid/wbraid лишаються
--- (опційні, nullable). Нічого не видаляємо.
+-- Снимаем CHECK chk_has_click_id. Колонки gclid/gbraid/wbraid остаются
+-- (опциональные, nullable). Ничего не удаляем.
 ALTER TABLE offline_conversions DROP CONSTRAINT IF EXISTS chk_has_click_id;

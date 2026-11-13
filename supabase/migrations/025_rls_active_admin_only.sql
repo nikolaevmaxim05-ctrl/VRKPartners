@@ -1,17 +1,17 @@
 -- 025_rls_active_admin_only.sql
--- S4: політики SELECT з умовою (auth.role() = 'authenticated') надто широкі —
--- публічний anon-key дозволяв БУДЬ-ЯКОМУ залогіненому (навіть деактивованому)
--- читати PII (leads, lead_comments, lead_custom_field_values) та адмін-таблиці
--- напряму через Supabase REST, минаючи app-шар.
+-- S4: политики SELECT с условием (auth.role() = 'authenticated') слишком широкие —
+-- публичный anon-key позволял ЛЮБОМУ залогиненному (даже деактивированному)
+-- читать PII (leads, lead_comments, lead_custom_field_values) и админ-таблицы
+-- напрямую через Supabase REST, минуя app-слой.
 --
--- Замінюємо їх на доступ лише для АКТИВНИХ адміністраторів. service_role (сервер)
--- обходить RLS як і раніше (політики service_role_* лишаються), тож уся адмінка,
--- що ходить через сервіс-клієнт, працює без змін; SSR-клієнт активного адміна теж
--- проходить перевірку. Записи вже були лише через service_role (окремих
--- authenticated INSERT/UPDATE політик немає).
+-- Заменяем их на доступ только для АКТИВНЫХ администраторов. service_role (сервер)
+-- обходит RLS как и раньше (политики service_role_* остаются), так что вся админка,
+-- которая ходит через сервис-клиент, работает без изменений; SSR-клиент активного админа
+-- тоже проходит проверку. Записи и раньше шли только через service_role (отдельных
+-- authenticated INSERT/UPDATE политик нет).
 
--- Хелпер: чи поточний користувач — активний адмін. SECURITY DEFINER, щоб перевірка
--- не залежала від RLS на user_roles.
+-- Хелпер: является ли текущий пользователь активным админом. SECURITY DEFINER, чтобы
+-- проверка не зависела от RLS на user_roles.
 create or replace function public.is_active_admin()
 returns boolean
 language sql
@@ -33,7 +33,7 @@ drop policy if exists "authenticated_read_leads" on public.leads;
 create policy "active_admin_read_leads" on public.leads
   for select to authenticated using (public.is_active_admin());
 
--- lead_comments (PII/нотатки)
+-- lead_comments (PII/заметки)
 drop policy if exists "authenticated_read_lead_comments" on public.lead_comments;
 create policy "active_admin_read_lead_comments" on public.lead_comments
   for select to authenticated using (public.is_active_admin());
@@ -43,17 +43,17 @@ drop policy if exists "authenticated_read_lead_custom_field_values" on public.le
 create policy "active_admin_read_lead_custom_field_values" on public.lead_custom_field_values
   for select to authenticated using (public.is_active_admin());
 
--- lead_statuses (конфіг воронки)
+-- lead_statuses (конфиг воронки)
 drop policy if exists "authenticated_read_lead_statuses" on public.lead_statuses;
 create policy "active_admin_read_lead_statuses" on public.lead_statuses
   for select to authenticated using (public.is_active_admin());
 
--- site_settings (налаштування; секрети сюди більше не пишемо — див. S6)
+-- site_settings (настройки; секреты сюда больше не пишем — см. S6)
 drop policy if exists "authenticated_read_site_settings" on public.site_settings;
 create policy "active_admin_read_site_settings" on public.site_settings
   for select to authenticated using (public.is_active_admin());
 
--- admin_roles (ролі/права)
+-- admin_roles (роли/права)
 drop policy if exists "authenticated_read_admin_roles" on public.admin_roles;
 create policy "active_admin_read_admin_roles" on public.admin_roles
   for select to authenticated using (public.is_active_admin());

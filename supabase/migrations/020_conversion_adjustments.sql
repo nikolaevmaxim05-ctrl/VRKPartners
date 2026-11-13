@@ -1,13 +1,13 @@
--- 020: наскрізний числовий Order ID (leads.order_no) + таблиця корекцій конверсій
--- Order ID у офлайн-конверсіях і корекціях = leads.order_no (замість UUID lead_id),
--- щоб Google Ads зшивав корекцію (RETRACT/RESTATE) з оригінальною конверсією.
+-- 020: сквозной числовой Order ID (leads.order_no) + таблица корректировок конверсий
+-- Order ID в офлайн-конверсиях и корректировках = leads.order_no (вместо UUID lead_id),
+-- чтобы Google Ads сшивал корректировку (RETRACT/RESTATE) с оригинальной конверсией.
 
--- ── 1. Послідовність + leads.order_no ────────────────────────────────────────
+-- ── 1. Последовательность + leads.order_no ───────────────────────────────────
 CREATE SEQUENCE IF NOT EXISTS leads_order_no_seq START 1;
 
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS order_no bigint;
 
--- Backfill існуючих лідів: стабільна нумерація за часом створення (тай-брейк по id).
+-- Backfill существующих лидов: стабильная нумерация по времени создания (тай-брейк по id).
 WITH ordered AS (
   SELECT id, row_number() OVER (ORDER BY created_at ASC, id ASC) AS rn
   FROM leads
@@ -18,28 +18,28 @@ SET order_no = ordered.rn
 FROM ordered
 WHERE leads.id = ordered.id;
 
--- Продовжити послідовність з максимального номера (або лишити на 1 якщо лідів немає).
+-- Продолжить последовательность с максимального номера (или оставить на 1, если лидов нет).
 SELECT setval(
   'leads_order_no_seq',
   GREATEST((SELECT COALESCE(MAX(order_no), 0) FROM leads), 1),
   (SELECT COUNT(*) FROM leads) > 0
 );
 
--- Нові ліди отримують номер автоматично; далі — NOT NULL + UNIQUE.
+-- Новые лиды получают номер автоматически; далее — NOT NULL + UNIQUE.
 ALTER TABLE leads ALTER COLUMN order_no SET DEFAULT nextval('leads_order_no_seq');
 ALTER TABLE leads ALTER COLUMN order_no SET NOT NULL;
 ALTER SEQUENCE leads_order_no_seq OWNED BY leads.order_no;
 
 CREATE UNIQUE INDEX IF NOT EXISTS leads_order_no_uidx ON leads (order_no);
 
--- ── 2. Таблиця корекцій конверсій ────────────────────────────────────────────
--- Офлайн-конверсія = останній стан ліда; корекція = подія зміни (RETRACT/RESTATE).
+-- ── 2. Таблица корректировок конверсий ───────────────────────────────────────
+-- Офлайн-конверсия = последнее состояние лида; корректировка = событие изменения (RETRACT/RESTATE).
 CREATE TABLE IF NOT EXISTS conversion_adjustments (
   id                    uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   lead_id               uuid        NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
   offline_conversion_id uuid        REFERENCES offline_conversions(id) ON DELETE SET NULL,
   order_no              bigint      NOT NULL,                 -- снапшот leads.order_no
-  conversion_action     text        NOT NULL,                 -- Conversion Name, що коригуємо
+  conversion_action     text        NOT NULL,                 -- Conversion Name, который корректируем
   adjustment_type       text        NOT NULL CHECK (adjustment_type IN ('retract', 'restate')),
   adjusted_value        numeric(12,2),                        -- NULL для retract
   adjustment_currency   text,                                 -- NULL для retract

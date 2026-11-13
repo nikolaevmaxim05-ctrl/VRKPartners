@@ -104,13 +104,13 @@ CREATE INDEX IF NOT EXISTS idx_leads_phone            ON leads(phone);
 CREATE INDEX IF NOT EXISTS idx_leads_is_repeat        ON leads(is_repeat) WHERE is_repeat = TRUE;
 CREATE INDEX IF NOT EXISTS idx_leads_original_lead_id ON leads(original_lead_id);
 
--- Бекфилл: ставим статус "Новий клієнт" всем существующим лидам без статуса
+-- Бекфилл: ставим статус «Новий клієнт» всем существующим лидам без статуса
 UPDATE leads
    SET status_id = (SELECT id FROM lead_statuses WHERE name = 'Новий клієнт' LIMIT 1)
  WHERE status_id IS NULL;
 
 -- ----------------------------------------------------------------------------
--- 5. LEAD_COMMENTS — чат, нотатки, журнал
+-- 5. LEAD_COMMENTS — чат, заметки, журнал
 -- ----------------------------------------------------------------------------
 DO $$ BEGIN
   CREATE TYPE lead_comment_type AS ENUM ('comment', 'note', 'system');

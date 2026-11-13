@@ -1,14 +1,14 @@
--- 033_rls_unify_fk_indexes.sql — Фаза 5 (розділ 7 стандарту + відхилення 9 AGENTS.md).
+-- 033_rls_unify_fk_indexes.sql — Фаза 5 (раздел 7 стандарта + отклонение 9 AGENTS.md).
 --
--- Один RLS-патерн на всю схему: service_role — все; залогінений АКТИВНИЙ адмін
--- (is_active_admin(), міграція 025) — лише читання. Винятки: user_roles (своя строка),
--- integrations (лише service_role). Зокрема закриваємо запис у site_content для authenticated
--- (рішення власника 9): контент змінюється тільки через API адмінки з перевіркою прав.
--- Плюс індекси на зовнішні ключі (п. 12) і CHECK offline_conversions.export_status (п. 13).
--- Ідемпотентно (drop policy if exists / create). Браузерний клієнт адмінки читає лише leads
--- (realtime) — політика active_admin_read_leads лишається з 025.
+-- Один RLS-паттерн на всю схему: service_role — всё; залогиненный АКТИВНЫЙ админ
+-- (is_active_admin(), миграция 025) — только чтение. Исключения: user_roles (своя строка),
+-- integrations (только service_role). В частности закрываем запись в site_content для authenticated
+-- (решение владельца 9): контент меняется только через API админки с проверкой прав.
+-- Плюс индексы на внешние ключи (п. 12) и CHECK offline_conversions.export_status (п. 13).
+-- Идемпотентно (drop policy if exists / create). Браузерный клиент админки читает только leads
+-- (realtime) — политика active_admin_read_leads остаётся из 025.
 
--- ── Уніфікація read-політик: замість authenticated_read (true) → активний адмін ──
+-- ── Унификация read-политик: вместо authenticated_read (true) → активный админ ──
 drop policy if exists "authenticated_read" on public.offline_conversions;
 drop policy if exists "authenticated_no_update_conversions" on public.offline_conversions;
 drop policy if exists "active_admin_read_offline_conversions" on public.offline_conversions;
@@ -35,7 +35,7 @@ drop policy if exists "active_admin_read_lead_custom_fields" on public.lead_cust
 create policy "active_admin_read_lead_custom_fields" on public.lead_custom_fields
   for select to authenticated using (public.is_active_admin());
 
--- audit_log: читає активний адмін, пише лише сервер
+-- audit_log: читает активный админ, пишет только сервер
 drop policy if exists "authenticated_read_audit" on public.audit_log;
 drop policy if exists "active_admin_read_audit_log" on public.audit_log;
 create policy "active_admin_read_audit_log" on public.audit_log
@@ -44,7 +44,7 @@ drop policy if exists "service_role_all_audit_log" on public.audit_log;
 create policy "service_role_all_audit_log" on public.audit_log
   using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
 
--- site_content: закриваємо запис для authenticated (рішення власника 9)
+-- site_content: закрываем запись для authenticated (решение владельца 9)
 drop policy if exists "authenticated_site_content" on public.site_content;
 drop policy if exists "service_role_site_content" on public.site_content;
 create policy "service_role_site_content" on public.site_content
@@ -53,7 +53,7 @@ drop policy if exists "active_admin_read_site_content" on public.site_content;
 create policy "active_admin_read_site_content" on public.site_content
   for select to authenticated using (public.is_active_admin());
 
--- ── Індекси на зовнішні ключі (п. 12) і журнал ──
+-- ── Индексы на внешние ключи (п. 12) и журнал ──
 create index if not exists idx_conversion_adjustments_offline_conversion_id
   on public.conversion_adjustments (offline_conversion_id);
 create index if not exists idx_lead_status_history_from_status_id on public.lead_status_history (from_status_id);

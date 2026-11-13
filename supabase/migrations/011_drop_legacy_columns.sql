@@ -1,15 +1,15 @@
 -- ============================================================================
 -- Migration 011: drop legacy columns and ENUM value
 -- ----------------------------------------------------------------------------
--- Видаляємо те, що накопичилось після серії рефакторингів:
---   - requires_amount (заміна — deal_type)
---   - allowed_prev_status_id single (заміна — allowed_prev_status_ids array)
---   - pending_conversion_at / conversion_recorded_at (3-min cron видалено)
---   - chk_deal_type_requires_final (CHECK з застарілою логікою)
---   - ENUM-значення 'none' у status_deal_type (рядки нормалізовано у NULL міграцією 010)
+-- Удаляем то, что накопилось после серии рефакторингов:
+--   - requires_amount (замена — deal_type)
+--   - allowed_prev_status_id single (замена — allowed_prev_status_ids array)
+--   - pending_conversion_at / conversion_recorded_at (3-min cron удалён)
+--   - chk_deal_type_requires_final (CHECK с устаревшей логикой)
+--   - ENUM-значение 'none' в status_deal_type (строки нормализованы в NULL миграцией 010)
 -- ============================================================================
 
--- 1) Дроп CHECK constraint перш ніж торкати колонки
+-- 1) Дроп CHECK constraint прежде чем трогать колонки
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_deal_type_requires_final') THEN
@@ -17,23 +17,23 @@ BEGIN
   END IF;
 END $$;
 
--- 2) Дроп колонок у lead_statuses
+-- 2) Дроп колонок в lead_statuses
 ALTER TABLE lead_statuses
   DROP COLUMN IF EXISTS requires_amount,
   DROP COLUMN IF EXISTS allowed_prev_status_id;
 
--- 3) Дроп колонок у leads (від 3-min cron)
+-- 3) Дроп колонок в leads (от 3-min cron)
 ALTER TABLE leads
   DROP COLUMN IF EXISTS pending_conversion_at,
   DROP COLUMN IF EXISTS conversion_recorded_at;
 
--- 4) Дроп індексу від pending_conversion_at (якщо лишився)
+-- 4) Дроп индекса от pending_conversion_at (если остался)
 DROP INDEX IF EXISTS idx_leads_pending_conversion;
 
--- 5) ENUM 'none' у status_deal_type
--- PostgreSQL не дозволяє ALTER TYPE ... DROP VALUE напряму.
--- Перестворюємо ENUM без 'none'. Блок ідемпотентний — пропускається якщо
--- значення 'none' уже не існує в ENUM (повторний запуск після успіху).
+-- 5) ENUM 'none' в status_deal_type
+-- PostgreSQL не позволяет ALTER TYPE ... DROP VALUE напрямую.
+-- Пересоздаём ENUM без 'none'. Блок идемпотентный — пропускается, если
+-- значения 'none' уже нет в ENUM (повторный запуск после успеха).
 DO $$
 BEGIN
   IF EXISTS (
