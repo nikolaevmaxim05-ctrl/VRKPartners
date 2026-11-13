@@ -1,10 +1,14 @@
 'use client'
 
-// Панель настроек /admin/settings. 4 секции в одном компоненте:
-// • Общие (валюта)
+// Панель настроек /admin/settings (гард страницы — manage_settings). Вкладки — секции этого файла:
+// • Общие (валюта, глобальное название конверсии Google Ads)
 // • Дедупликация (флаги + окно в часах)
 // • Стадии лидов (CRUD + dnd reorder + is_initial + conversion_type + conversion_action)
-// • Кастомные поля (CRUD + опции для select)
+// • Кастомные поля (создание и удаление + опции для select)
+// • Телефония (секрет вебхука, отклонение 8a) и Google Sheets (таблицы офлайн-конверсий) — ключи в integrations
+// «Події аналітики» и «Dev tools» (отклонение 8) — отдельные компоненты. Каждая вкладка загружает свои
+// данные при первом открытии; каждое сохранение в секциях файла сервер пишет в журнал действий (у интеграций —
+// только ключ, без значения).
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useInvalidateDictionaries } from '@/features/admin/lib/dictionary-cache'
@@ -91,6 +95,7 @@ type Tab = 'general' | 'dedup' | 'statuses' | 'fields' | 'telephony' | 'gsheets'
 
 // Dev tools — скрыто за env-флагом. Клиент (даже Владелец) вкладку не видит
 // и не имеет к ней доступа. Разработчик включает в своём окружении: NEXT_PUBLIC_DEV_TOOLS=1.
+// NEXT_PUBLIC_* подставляется в клиентский код при сборке: смена флага действует после пересборки.
 const DEV_TOOLS_ENABLED = process.env.NEXT_PUBLIC_DEV_TOOLS === '1'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -154,12 +159,18 @@ export function SettingsPanel() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Секция: ОБЩИЕ — валюта
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * internal_currency — валюта офлайн-конверсий и корректировок Google Ads (conversion-flow, google-sheets), её
+ * видно в таблицах конверсий; аналитика и карточка заявки показывают суммы в гривнах независимо от неё.
+ * google_ads_conversion_action — название конверсии для стадий, у которых своё не задано.
+ */
 function GeneralSection() {
   const [currency, setCurrency] = useState<string>('UAH')
   const [conversionAction, setConversionAction] = useState<string>('Lead')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // Ошибка загрузки не показывается: поля остаются с фолбэками сервера (UAH, Lead), и «Зберегти» запишет их.
   useEffect(() => {
     fetch('/api/admin/settings')
       .then((r) => r.json())
@@ -173,6 +184,7 @@ function GeneralSection() {
       .finally(() => setLoading(false))
   }, [])
 
+  /** Пустое название конверсии сохраняется как «Lead» — тот же фолбэк, что у сервера; валюта — только UAH/USD/EUR. */
   const save = async () => {
     setSaving(true)
     try {
@@ -246,6 +258,11 @@ function GeneralSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Секция: ДЕДУПЛИКАЦИЯ
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Правила дедупа приёма заявки (раздел 8 стандарта, submit-lead): сначала телефон — любая более ранняя заявка
+ * с тем же номером E.164, без окна времени; затем IP — заявка за последние N часов. Повтор новой строки не
+ * создаёт: оригиналу ставится is_repeat и system-комментарий «[ПОВТОР]».
+ */
 function DedupSection() {
   const [byPhone, setByPhone] = useState(true)
   const [byIp, setByIp] = useState(true)
@@ -253,6 +270,7 @@ function DedupSection() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // Дефолты при отсутствии строк совпадают с DEFAULT_DEDUP_SETTINGS сервера (core/domain/lead/dedup).
   useEffect(() => {
     fetch('/api/admin/settings')
       .then((r) => r.json())
@@ -268,6 +286,8 @@ function DedupSection() {
 
   const save = async () => {
     const h = parseInt(hours, 10)
+    // Сервер принимает любое число ≥ 0 (округляет вниз), а при приёме заявки окно ≤ 0 заменяет на 24
+    // (parseDedupSettings); форма допускает только > 0.
     if (!Number.isFinite(h) || h <= 0) {
       toast.error('Вікно: ціле число > 0')
       return
@@ -361,6 +381,8 @@ const PRESET_COLORS = [
   '#059669', '#ec4899', '#06b6d4', '#6b7280', '#0ea5e9',
 ]
 
+// conversion_type стадии; null («Без конверсії») — переход на стадию офлайн-конверсию не создаёт.
+// deal_adjustment в аналитике считается как «Повторна угода» (core/domain/analytics/report).
 const CONVERSION_TYPE_LABELS: Record<NonNullable<ConversionType>, string> = {
   target_lead:     'Цільовий лід',
   non_target_lead: 'Нецільовий лід',
@@ -418,6 +440,10 @@ type StatusRowProps = {
   onAllowedNextToggle: (s: Status, targetId: string, checked: boolean) => void
 }
 
+/**
+ * Строка стадии без своей кнопки «Зберегти»: каждое изменение полей сразу уходит PATCH-ем через обработчики
+ * StatusesSection. Название стадии здесь не редактируется.
+ */
 function StatusRow({
   status: s,
   allStatuses,
@@ -744,6 +770,10 @@ function StatusRow({
 }
 
 // ── Основная секция ────────────────────────────────────────────────────────────
+/**
+ * «Стадії лідів»: изменения оптимистичные — локальный список меняется до ответа, при ошибке load() перечитывает
+ * его с сервера. Правила — core/domain/funnel/stage-rules; сервер проверяет всё повторно.
+ */
 function StatusesSection() {
   const [statuses, setStatuses] = useState<Status[]>([])
   const [pipelinesEnabled, setPipelinesEnabled] = useState(false)
@@ -764,6 +794,7 @@ function StatusesSection() {
   // Ошибка формата Conversion Name в форме новой стадии (null = ок/пусто)
   const newConvError = validateConversionAction(newConversionAction)
 
+  // Перетаскивание за ручку начинается после сдвига указателя на 5 px.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
@@ -790,6 +821,11 @@ function StatusesSection() {
   }, [])
 
   // ── Сохранить pipelines_enabled в /api/admin/settings ─────────────────────
+  /**
+   * Здесь флаг показывает блок «Дозволені переходи» у стадий, а за пределами настроек влияет только на выпадающий
+   * список стадий в карточке заявки (lead-detail): там остаются текущая стадия
+   * и разрешённые для неё следующие/предыдущие. Сервер при смене стадии заявки флаг не проверяет. При ошибке — откат.
+   */
   const handlePipelinesToggle = async (val: boolean) => {
     setPipelinesEnabled(val)
     setPipelinesSaving(true)
@@ -819,6 +855,9 @@ function StatusesSection() {
   }, [load])
 
   // Инвариант I1: хотя бы одна стадия с is_initial=true
+  // Без неё приём заявки берёт стадию с названием «Новий клієнт», а если её нет — заявка остаётся без стадии
+  // (submit-lead). Нарушиться I1 может, например, при сбое создания первичной стадии: сервер снимает флаг
+  // с остальных до вставки новой (manage-stages.createStage).
   const hasInitialStatus = useMemo(
     () => statuses.some((s) => s.is_initial),
     [statuses]
@@ -839,6 +878,8 @@ function StatusesSection() {
     const newIdx = statuses.findIndex((s) => s.id === over.id)
     if (oldIdx < 0 || newIdx < 0) return
 
+    // Позиции пересчитываются 1..N и уходят все одним запросом. Сервер пишет их параллельными UPDATE: при
+    // частичном сбое часть позиций уже записана, и load() покажет фактический порядок.
     const reordered = arrayMove(statuses, oldIdx, newIdx).map((s, i) => ({
       ...s,
       position: i + 1,
@@ -859,6 +900,7 @@ function StatusesSection() {
   }
 
   // ── Смена цвета ────────────────────────────────────────────────────────────
+  // onChange цветового поля срабатывает на каждое движение в палитре: каждый раз — PATCH и запись в журнал действий.
   const handleColorChange = async (s: Status, color: string) => {
     setStatuses((prev) => prev.map((x) => (x.id === s.id ? { ...x, color } : x)))
     const res = await fetch(`/api/admin/lead-statuses/${s.id}`, {
@@ -889,7 +931,7 @@ function StatusesSection() {
       const j = await res.json().catch(() => ({}))
       toast.error(j.error ?? 'Не вдалося зберегти')
     }
-    // Всегда перезагружаем — бэкенд атомарно сбрасывает у остальных
+    // Всегда перезагружаем — сервер сбрасывает флаг у остальных стадий отдельным запросом перед записью (не в транзакции)
     load()
   }
 
@@ -917,6 +959,9 @@ function StatusesSection() {
     // возврат на «Без конверсії» сбрасывает is_final в false (чтобы флаг не залипал)
     const newIsFinal = value !== null
     // Если сбрасываем — оптимистично сбрасываем requires_amount / amount_is_profit
+    // Сервер сбрасывает их и при переходе deal → тип без суммы; локально они остаются до следующей загрузки.
+    // Тип ≠ null сервер принимает только при сохранённом названии конверсии (stage-rules): у стадии без него
+    // PATCH вернёт 400, и load() откатит выбор — поле названия появляется лишь после выбора типа.
     const newRequires = value !== null ? s.requires_amount : false
     const newProfit = value !== null ? s.amount_is_profit : false
 
@@ -946,6 +991,8 @@ function StatusesSection() {
   }
 
   // ── Смена conversion_action (blur) ─────────────────────────────────────────
+  // Пустое поле уходит как null: у стадии с типом конверсии сервер ответит 400 (название обязательно), load()
+  // вернёт прежнее значение, а toast покажет общий текст, не ответ сервера.
   const handleConversionActionBlur = async (s: Status, val: string) => {
     const trimmed = val.trim() || null
     if (trimmed === (s.conversion_action ?? null)) return
@@ -1004,6 +1051,9 @@ function StatusesSection() {
   }
 
   // ── Переключение одного разрешённого предыдущего статуса (multi) ─────────
+  // «Попередні» — стадии, на которые можно вернуться ИЗ этой: карточка заявки объединяет allowed_next и
+  // allowed_prev текущей стадии (lead-detail, visibleStatuses). Оба списка пусты при включённом ограничении —
+  // в выпадающем списке остаётся только текущая стадия.
   const handleAllowedPrevToggle = useCallback(
     async (statusId: string, prevId: string, checked: boolean) => {
       // Оптимистичный апдейт — вычисляем новый массив на основе текущего состояния
@@ -1021,6 +1071,7 @@ function StatusesSection() {
         return updated
       })
       // Если после setState nextArr ещё пустой (edge-case) — вычисляем заново
+      // React может вызвать функцию-обновитель позже, при рендере, — тогда nextArr здесь ещё не заполнен.
       const currentEntry = statuses.find((s) => s.id === statusId)
       if (nextArr.length === 0 && !checked) {
         const base = currentEntry?.allowed_prev_status_ids ?? []
@@ -1066,6 +1117,7 @@ function StatusesSection() {
   }
 
   // ── Удаление ───────────────────────────────────────────────────────────────
+  // Сервер откажет (400, текст — в toast) для первичной стадии и для стадии, на которой есть заявки.
   const handleRemove = async (s: Status) => {
     if (!confirm(`Видалити стадію "${s.name}"?`)) return
     const res = await fetch(`/api/admin/lead-statuses/${s.id}`, { method: 'DELETE' })
@@ -1090,6 +1142,10 @@ function StatusesSection() {
     setNewAmountIsProfit(false)
   }
 
+  /**
+   * Проверки повторяют planNewStage (сервер проверяет снова). Новая стадия встаёт в конец списка; отмеченная
+   * первичной снимает флаг с остальных; дубль названия → 409 «Стадія з такою назвою вже існує».
+   */
   const handleCreate = async () => {
     if (!newName.trim()) {
       toast.error('Введіть назву')
@@ -1321,6 +1377,7 @@ function StatusesSection() {
                   />
                   Без конверсії
                 </label>
+                {/* «Корекція угоди» при создании не предлагается (коммит 4c183db); её можно выбрать потом в строке стадии. */}
                 {(Object.entries(CONVERSION_TYPE_LABELS) as [NonNullable<ConversionType>, string][])
                   .filter(([val]) => val !== 'deal_adjustment')
                   .map(
@@ -1443,6 +1500,10 @@ const FIELD_TYPE_LABELS: Record<CustomField['type'], string> = {
   boolean: 'Так/Ні',
 }
 
+/**
+ * «Кастомні поля»: только создание и удаление (PATCH названия, опций и порядка у API есть, здесь не используется).
+ * Новое поле встаёт в конец; удаление каскадно стирает его значения у всех заявок (FK ON DELETE CASCADE, миграция 003).
+ */
 function CustomFieldsSection() {
   const [fields, setFields] = useState<CustomField[]>([])
   const [loading, setLoading] = useState(true)
@@ -1471,6 +1532,8 @@ function CustomFieldsSection() {
   }, [load])
 
   // Авто-генерация field_key из названия
+  // Транслитерация упрощённая: буквы вне таблицы («и», «э», «ё», «ґ», «ʼ») становятся «_». Сервер требует
+  // ^[a-z][a-z0-9_]{0,63}$, поэтому автоключ от названия, начинающегося с цифры, он отклонит (400).
   const autoKey = useMemo(() => {
     return fName
       .toLowerCase()
@@ -1688,6 +1751,8 @@ function CustomFieldsSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Секция: ТЕЛЕФОНИЯ — секрет + URL вебхуков по провайдерам
 // ─────────────────────────────────────────────────────────────────────────────
+// Значение provider в URL вебхука. Приёмника /api/telephony/webhook в репозитории пока нет (решение 12 Фазы 0:
+// роуты-приёмники появятся отдельно) — URL-ы и подсказка про 503 рассчитаны на будущий роут.
 const TELEPHONY_PROVIDERS = ['binotel', 'ringostat', 'unitel', 'generic'] as const
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -1697,16 +1762,20 @@ const PROVIDER_LABELS: Record<string, string> = {
   generic: 'Generic (будь-який провайдер)',
 }
 
+/** «Телефонія» (отклонение 8a): секрет вебхука — ключ telephony_secret в integrations; site_settings его не принимает. */
 function TelephonySection() {
+  // Набранный или сгенерированный секрет; после перезагрузки пуст — сервер секрет не возвращает.
   const [secret, setSecret] = useState('')
   const [showSecret, setShowSecret] = useState(false)
   const [isSet, setIsSet] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // Провайдер, у кнопки которого 2 с показывается «Скопійовано».
   const [copied, setCopied] = useState<string | null>(null)
   const [origin, setOrigin] = useState('')
 
   useEffect(() => {
+    // Адрес вебхуков — origin, на котором открыта админка, а не NEXT_PUBLIC_SITE_URL.
     setOrigin(window.location.origin)
     // S6: секрет хранится зашифрованным в integrations и НЕ возвращается plaintext.
     // Здесь только узнаём, установлен ли он. Полный секрет виден только пока вы
@@ -1746,6 +1815,7 @@ function TelephonySection() {
     }
   }
 
+  /** 20 случайных байт → 40 hex-символов; только в поле, на сервер — по «Зберегти». */
   const generate = () => {
     const arr = new Uint8Array(20)
     crypto.getRandomValues(arr)
@@ -1844,10 +1914,13 @@ function TelephonySection() {
 // Секция: GOOGLE SHEETS — настройки интеграции
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Строка GET /api/admin/integrations: сервер присылает только заданные ключи.
 type IntegrationRow = {
   key: string
   is_set: boolean
+  // null — значение есть, но не расшифровалось (нет или другой ADMIN_ENCRYPTION_KEY)
   masked_value: string | null
+  // Открытый текст только у несекретных ключей (PLAINTEXT_INTEGRATION_KEYS: Spreadsheet ID, Gmail-адрес, From)
   value?: string | null
   updated_at: string | null
 }
@@ -1855,6 +1928,11 @@ type IntegrationRow = {
 // Строка результата теста соединения Google Sheets (per-table).
 type TestLine = { level: 'ok' | 'warn' | 'error'; text: string }
 
+/**
+ * «Google Sheets»: таблицы-фиды офлайн-конверсий Google Ads — основная и отдельная таблица корректировок
+ * (RETRACT/RESTATE, раздел 6 стандарта), один Service Account на обе. Все три ключа хранятся в integrations
+ * зашифрованными; Spreadsheet ID сервер отдаёт открытым текстом для предзаполнения, JSON — только маской.
+ */
 function GoogleSheetsSection() {
   const [spreadsheetId, setSpreadsheetId] = useState('')
   const [adjustmentsSpreadsheetId, setAdjustmentsSpreadsheetId] = useState('')
@@ -1869,6 +1947,8 @@ function GoogleSheetsSection() {
   const [showSaJson, setShowSaJson] = useState(false)
 
   // Скрытый file input для выбора JSON
+  // Ref-колбэк лишь очищает value при монтировании input; доступа к элементу он не даёт, и повторный выбор
+  // того же файла без перемонтирования событие change не вызовет.
   const fileInputRef = useCallback((el: HTMLInputElement | null) => {
     if (el) el.value = ''
   }, [])
@@ -1882,6 +1962,7 @@ function GoogleSheetsSection() {
       const saRow = rows.find((r) => r.key === 'google_sheets_service_account_json')
       const sidRow = rows.find((r) => r.key === 'google_spreadsheet_id')
       const adjRow = rows.find((r) => r.key === 'google_adjustments_spreadsheet_id')
+      // Не расшифрованный JSON (masked_value = null) показывается как «***».
       setMaskedSaJson(saRow?.is_set ? (saRow.masked_value ?? '***') : null)
       // Spreadsheet ID — не секрет: prefill реальным значением (редактируемое)
       setSpreadsheetId(sidRow?.value ?? '')
@@ -1896,6 +1977,7 @@ function GoogleSheetsSection() {
   }, [loadIntegrations])
 
   // Чтение JSON-файла через FileReader
+  /** Файл только попадает в поле для проверки глазами; на сервер он уходит по «Зберегти». */
   function readJsonFile(file: File) {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -1928,6 +2010,10 @@ function GoogleSheetsSection() {
   }
 
   // Сохранение
+  /**
+   * Уходят только непустые поля, параллельными PUT: пустое поле = «не менять» (очистить ключ из этой формы
+   * нельзя). Показывается первая ошибка, остальные запросы к этому моменту могли уже сохраниться.
+   */
   const save = async () => {
     const sidTrimmed = spreadsheetId.trim()
     const adjTrimmed = adjustmentsSpreadsheetId.trim()
@@ -1964,6 +2050,8 @@ function GoogleSheetsSection() {
 
       if (saTrimmed) {
         // Базовая валидация JSON перед отправкой
+        // Запросы Spreadsheet ID выше уже отправлены (fetch стартует при вызове): при некорректном JSON они
+        // всё равно сохранятся.
         try {
           JSON.parse(saTrimmed)
         } catch {
@@ -1999,6 +2087,11 @@ function GoogleSheetsSection() {
   }
 
   // Проверка соединения — тестирует обе таблицы, per-table результат
+  /**
+   * Проверяет значения, сохранённые в БД, а не введённые в поля. Сервер заодно делает колонки C и G первого листа
+   * основной таблицы и C таблицы корректировок текстовыми (best-effort). Текст ошибки таблицы корректировок от
+   * сервера не выводится — вместо него общая подсказка про доступ.
+   */
   const testConnection = async () => {
     setTesting(true)
     setTestResult(null)
