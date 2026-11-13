@@ -77,7 +77,7 @@ function setup(over: { conversions?: Record<string, unknown>; adjustments?: Reco
 }
 
 describe('resendConversion', () => {
-  it('немає конверсії або ліда → not_found; помилка читання → failed', async () => {
+  it('нет конверсии или лида → not_found; ошибка чтения → failed', async () => {
     const none = setup({ conversions: { getForExport: vi.fn(async () => dbOk(null)) } })
     expect(await none.uc.resendConversion('oc-x')).toMatchObject({ ok: false, code: 'not_found' })
     const noLead = setup({ conversions: { getForExport: vi.fn(async () => dbOk(convRow({ lead: null }))) } })
@@ -87,7 +87,7 @@ describe('resendConversion', () => {
     expect(await failed.uc.resendConversion('oc1')).toMatchObject({ ok: false, code: 'failed' })
   })
 
-  it('відкликана (retracted) → invalid, у Sheets нічого не шлеться', async () => {
+  it('отозванная (retracted) → invalid, в Sheets ничего не отправляется', async () => {
     const { uc, sheets, conversionFlow } = setup({ conversions: { getForExport: vi.fn(async () => dbOk(convRow({ export_status: 'retracted' }))) } })
     const r = await uc.resendConversion('oc1')
     expect(r).toMatchObject({ ok: false, code: 'invalid' })
@@ -96,20 +96,20 @@ describe('resendConversion', () => {
     expect(conversionFlow.markConversionExportedByLead).not.toHaveBeenCalled()
   })
 
-  it('Sheets не налаштовано (false) → not_configured, статус не міняється', async () => {
+  it('Sheets не настроен (false) → not_configured, статус не меняется', async () => {
     const { uc, conversionFlow } = setup({ sheets: { sendConversion: vi.fn(async () => false) } })
     expect(await uc.resendConversion('oc1')).toEqual({ ok: true, value: { kind: 'not_configured' } })
     expect(conversionFlow.markConversionExportedByLead).not.toHaveBeenCalled()
   })
 
-  it('Sheets кинув помилку → send_failed з текстом, статус не міняється', async () => {
+  it('Sheets бросил ошибку → send_failed с текстом, статус не меняется', async () => {
     quiet()
     const { uc, conversionFlow } = setup({ sheets: { sendConversion: vi.fn(async () => { throw new Error('quota') }) } })
     expect(await uc.resendConversion('oc1')).toEqual({ ok: true, value: { kind: 'send_failed', message: 'quota' } })
     expect(conversionFlow.markConversionExportedByLead).not.toHaveBeenCalled()
   })
 
-  it('успіх → рядок зі ЗБЕРЕЖЕНИМ значенням конверсії і дією зі стадії; markConversionExportedByLead', async () => {
+  it('успех → строка с СОХРАНЁННЫМ значением конверсии и действием из стадии; markConversionExportedByLead', async () => {
     const { uc, sheets, conversionFlow } = setup()
     expect(await uc.resendConversion('oc1')).toEqual({ ok: true, value: { kind: 'sent' } })
     expect(sheets.sendConversion).toHaveBeenCalledWith({
@@ -126,14 +126,14 @@ describe('resendConversion', () => {
     expect(conversionFlow.markConversionExportedByLead).toHaveBeenCalledWith('l1')
   })
 
-  it('exported-конверсія теж відправляється повторно (ручний resend не обмежений статусом exported)', async () => {
+  it('exported-конверсия тоже отправляется повторно (ручной resend не ограничен статусом exported)', async () => {
     const { uc } = setup({ conversions: { getForExport: vi.fn(async () => dbOk(convRow({ export_status: 'exported', conversion_value: null }))) } })
     expect(await uc.resendConversion('oc1')).toEqual({ ok: true, value: { kind: 'sent' } })
   })
 })
 
 describe('exportPendingConversions', () => {
-  it('рахує sent / failed / skipped: без ліда → failed, throw → failed, false → skipped', async () => {
+  it('считает sent / failed / skipped: без лида → failed, throw → failed, false → skipped', async () => {
     quiet()
     const rows = [
       convRow({ id: 'a', lead: { ...LEAD, id: 'la' } }),
@@ -151,7 +151,7 @@ describe('exportPendingConversions', () => {
     expect(conversionFlow.markConversionExportedByLead).toHaveBeenCalledWith('la')
   })
 
-  it('усі пропущені (Sheets не налаштовано) → invalid з details { ok: false }', async () => {
+  it('все пропущены (Sheets не настроен) → invalid с details { ok: false }', async () => {
     const { uc } = setup({ sheets: { sendConversion: vi.fn(async () => false) } })
     expect(await uc.exportPendingConversions()).toEqual({
       ok: false,
@@ -161,7 +161,7 @@ describe('exportPendingConversions', () => {
     })
   })
 
-  it('порожня черга → ok з нулями; помилка читання → failed', async () => {
+  it('пустая очередь → ok с нулями; ошибка чтения → failed', async () => {
     const empty = setup({ conversions: { listPendingForExport: vi.fn(async () => dbOk([])) } })
     expect(await empty.uc.exportPendingConversions()).toEqual({ ok: true, value: { sent: 0, failed: 0, skipped: 0, total: 0 } })
     const failed = setup({ conversions: { listPendingForExport: vi.fn(async () => dbFail('boom')) } })
@@ -170,14 +170,14 @@ describe('exportPendingConversions', () => {
 })
 
 describe('resendAdjustment', () => {
-  it('не знайдено → not_found; помилка читання → failed', async () => {
+  it('не найдено → not_found; ошибка чтения → failed', async () => {
     const none = setup({ adjustments: { get: vi.fn(async () => dbOk(null)) } })
     expect(await none.uc.resendAdjustment('adj-x')).toMatchObject({ ok: false, code: 'not_found', message: 'Корекцію не знайдено' })
     const failed = setup({ adjustments: { get: vi.fn(async () => dbFail('boom')) } })
     expect(await failed.uc.resendAdjustment('adj1')).toMatchObject({ ok: false, code: 'failed' })
   })
 
-  it('false → not_configured; throw → send_failed; статус не міняється', async () => {
+  it('false → not_configured; throw → send_failed; статус не меняется', async () => {
     quiet()
     const off = setup({ sheets: { sendAdjustment: vi.fn(async () => false) } })
     expect(await off.uc.resendAdjustment('adj1')).toEqual({ ok: true, value: { kind: 'not_configured' } })
@@ -187,14 +187,14 @@ describe('resendAdjustment', () => {
     expect(thrown.conversionFlow.markAdjustmentExported).not.toHaveBeenCalled()
   })
 
-  it('успіх → sendAdjustment із приведеним рядком (value → Number) + markAdjustmentExported(id)', async () => {
+  it('успех → sendAdjustment с приведённой строкой (value → Number) + markAdjustmentExported(id)', async () => {
     const { uc, sheets, conversionFlow } = setup()
     expect(await uc.resendAdjustment('adj1')).toEqual({ ok: true, value: { kind: 'sent' } })
     expect(sheets.sendAdjustment).toHaveBeenCalledWith(ADJ_INPUT)
     expect(conversionFlow.markAdjustmentExported).toHaveBeenCalledWith('adj1')
   })
 
-  it('adjusted_value null → value null (RETRACT без суми)', async () => {
+  it('adjusted_value null → value null (RETRACT без суммы)', async () => {
     const { uc, sheets } = setup({ adjustments: { get: vi.fn(async () => dbOk({ ...ADJ, adjustment_type: 'retract', adjusted_value: null, adjustment_currency: null })) } })
     await uc.resendAdjustment('adj1')
     expect(sheets.sendAdjustment).toHaveBeenCalledWith({ ...ADJ_INPUT, type: 'retract', value: null, currency: null })
@@ -202,7 +202,7 @@ describe('resendAdjustment', () => {
 })
 
 describe('exportPendingAdjustments', () => {
-  it('рахує sent / failed / skipped', async () => {
+  it('считает sent / failed / skipped', async () => {
     quiet()
     const rows = [{ ...ADJ, id: 'a' }, { ...ADJ, id: 'b' }, { ...ADJ, id: 'c' }]
     let n = 0
@@ -217,7 +217,7 @@ describe('exportPendingAdjustments', () => {
     expect(conversionFlow.markAdjustmentExported).toHaveBeenCalledWith('a')
   })
 
-  it('усі пропущені → invalid з details { ok: false }; помилка читання → failed', async () => {
+  it('все пропущены → invalid с details { ok: false }; ошибка чтения → failed', async () => {
     const off = setup({ sheets: { sendAdjustment: vi.fn(async () => false) } })
     expect(await off.uc.exportPendingAdjustments()).toEqual({
       ok: false,
@@ -231,7 +231,7 @@ describe('exportPendingAdjustments', () => {
 })
 
 describe('listConversions / listAdjustments', () => {
-  it('сторінка + мета + pendingTotal; помилка → failed', async () => {
+  it('страница + мета + pendingTotal; ошибка → failed', async () => {
     quiet()
     const { uc } = setup()
     expect(await uc.listConversions(2, 5)).toEqual({
@@ -258,14 +258,14 @@ function setupAudit(over: Record<string, unknown> = {}) {
 const query = (params: Record<string, string>) => (k: string) => params[k] ?? null
 
 describe('listAuditLog', () => {
-  it('без параметрів → page 1, limit 50', async () => {
+  it('без параметров → page 1, limit 50', async () => {
     const { uc, audit } = setupAudit()
     const r = await uc.listAuditLog(query({}))
     expect(audit.listPage).toHaveBeenCalledWith(1, 50)
     expect(r).toEqual({ ok: true, value: { data: [{ id: 'a1' }], total: 250, page: 1, limit: 50, totalPages: 5 } })
   })
 
-  it('limit обмежується зверху 100, знизу 1; limit=0 і нечислове → дефолт 50 (спостереження: 0 → 50, а не 1)', async () => {
+  it('limit ограничивается сверху 100, снизу 1; limit=0 и нечисловое → дефолт 50 (наблюдение: 0 → 50, а не 1)', async () => {
     const { uc, audit } = setupAudit()
     await uc.listAuditLog(query({ limit: '500' }))
     expect(audit.listPage).toHaveBeenLastCalledWith(1, 100)
@@ -277,7 +277,7 @@ describe('listAuditLog', () => {
     expect(audit.listPage).toHaveBeenLastCalledWith(1, 50)
   })
 
-  it('page нечислове або < 1 → 1; page=3 → 3', async () => {
+  it('page нечисловое или < 1 → 1; page=3 → 3', async () => {
     const { uc, audit } = setupAudit()
     await uc.listAuditLog(query({ page: 'x' }))
     expect(audit.listPage).toHaveBeenLastCalledWith(1, 50)
@@ -289,7 +289,7 @@ describe('listAuditLog', () => {
     expect(audit.listPage).toHaveBeenLastCalledWith(3, 20)
   })
 
-  it('помилка БД → failed', async () => {
+  it('ошибка БД → failed', async () => {
     quiet()
     const { uc } = setupAudit({ listPage: vi.fn(async () => dbFail('boom')) })
     expect(await uc.listAuditLog(query({}))).toMatchObject({ ok: false, code: 'failed', message: 'boom' })

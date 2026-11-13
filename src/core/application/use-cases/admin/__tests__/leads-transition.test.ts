@@ -54,8 +54,8 @@ const quiet = () => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 }
 
-describe('updateLead — розділ 6', () => {
-  it('enter: перехід на угоду → конверсія записана і рядок пішов у Sheets; audit lead.update', async () => {
+describe('updateLead — раздел 6', () => {
+  it('enter: переход на сделку → конверсия записана и строка ушла в Sheets; audit lead.update', async () => {
     quiet()
     const { uc, conversionFlow, sheets, audit } = setup({ before: { status_id: 'st-work', deal_amount: 500 } })
     const r = await uc.updateLead('l1', { status_id: 'st-deal' }, actor)
@@ -66,7 +66,7 @@ describe('updateLead — розділ 6', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'lead.update', 'leads/l1', expect.objectContaining({ new: { status_id: 'st-deal' } }))
   })
 
-  it('leave: з угоди на «В роботі», конверсію вивантажено → RETRACT і відправка корекції', async () => {
+  it('leave: со сделки на «В роботі», конверсия выгружена → RETRACT и отправка корректировки', async () => {
     quiet()
     const { uc, conversionFlow, sheets } = setup({ before: { status_id: 'st-deal', deal_amount: 500 }, oc: { export_status: 'exported' } })
     const r = await uc.updateLead('l1', { status_id: 'st-work' }, actor)
@@ -77,7 +77,7 @@ describe('updateLead — розділ 6', () => {
     expect(sheets.sendConversion).not.toHaveBeenCalled()
   })
 
-  it('enter повторно після RETRACT (стан той самий, конверсія pending) → рядок відправляється заново', async () => {
+  it('enter повторно после RETRACT (состояние то же, конверсия pending) → строка отправляется заново', async () => {
     quiet()
     const { uc, conversionFlow, sheets } = setup({ before: { status_id: 'st-work', deal_amount: 100 }, oc: { export_status: 'pending' }, noop: true })
     await uc.updateLead('l1', { status_id: 'st-deal' }, actor)
@@ -88,7 +88,7 @@ describe('updateLead — розділ 6', () => {
     expect(exported.sheets.sendConversion).not.toHaveBeenCalled()
   })
 
-  it('enter повторно після RETRACT (стан той самий, конверсія retracted) → повертається в pending і відправляється заново', async () => {
+  it('enter повторно после RETRACT (состояние то же, конверсия retracted) → возвращается в pending и отправляется заново', async () => {
     quiet()
     const { uc, conversionFlow, sheets } = setup({ before: { status_id: 'st-work', deal_amount: 100 }, oc: { export_status: 'retracted' }, noop: true })
     const r = await uc.updateLead('l1', { status_id: 'st-deal' }, actor)
@@ -99,7 +99,7 @@ describe('updateLead — розділ 6', () => {
     expect(conversionFlow.markConversionExportedByLead).toHaveBeenCalledWith('l1')
   })
 
-  it('leave: конверсія retracted → повторного RETRACT немає', async () => {
+  it('leave: конверсия retracted → повторного RETRACT нет', async () => {
     quiet()
     const { uc, conversionFlow } = setup({ before: { status_id: 'st-deal', deal_amount: 500 }, oc: { export_status: 'retracted' } })
     const r = await uc.updateLead('l1', { status_id: 'st-work' }, actor)
@@ -107,14 +107,14 @@ describe('updateLead — розділ 6', () => {
     expect(conversionFlow.recordAdjustment).not.toHaveBeenCalled()
   })
 
-  it('leave: конверсія ще pending → нічого не відкликаємо', async () => {
+  it('leave: конверсия ещё pending → ничего не отзываем', async () => {
     quiet()
     const { uc, conversionFlow } = setup({ before: { status_id: 'st-deal', deal_amount: 500 }, oc: { export_status: 'pending' } })
     await uc.updateLead('l1', { status_id: 'st-work' }, actor)
     expect(conversionFlow.recordAdjustment).not.toHaveBeenCalled()
   })
 
-  it('amount: та сама угода, сума змінилась, вивантажено → стан оновлено + RESTATE, без нового рядка', async () => {
+  it('amount: та же сделка, сумма изменилась, выгружено → состояние обновлено + RESTATE, без новой строки', async () => {
     quiet()
     const { uc, conversionFlow, sheets } = setup({ before: { status_id: 'st-deal', deal_amount: 100 }, oc: { export_status: 'exported' } })
     const r = await uc.updateLead('l1', { deal_amount: 250 }, actor)
@@ -124,7 +124,7 @@ describe('updateLead — розділ 6', () => {
     expect(sheets.sendConversion).not.toHaveBeenCalled()
   })
 
-  it('amount: конверсія ще pending → без RESTATE, оновлений рядок іде у Sheets', async () => {
+  it('amount: конверсия ещё pending → без RESTATE, обновлённая строка идёт в Sheets', async () => {
     quiet()
     const { uc, conversionFlow, sheets } = setup({ before: { status_id: 'st-deal', deal_amount: 100 }, oc: { export_status: 'pending' } })
     await uc.updateLead('l1', { deal_amount: 250 }, actor)
@@ -132,7 +132,7 @@ describe('updateLead — розділ 6', () => {
     expect(sheets.sendConversion).toHaveBeenCalledOnce()
   })
 
-  it('none: сума та сама або стадія без суми → конверсію не чіпаємо', async () => {
+  it('none: сумма та же или стадия без суммы → конверсию не трогаем', async () => {
     quiet()
     const { uc, conversionFlow } = setup({ before: { status_id: 'st-deal', deal_amount: 100 }, oc: { export_status: 'exported' } })
     await uc.updateLead('l1', { deal_amount: 100 }, actor)

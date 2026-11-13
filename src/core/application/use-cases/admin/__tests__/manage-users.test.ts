@@ -70,21 +70,21 @@ const quiet = () => {
 }
 
 describe('inviteUser', () => {
-  it('email обовʼязковий (порожній / пробіли) → invalid, запрошення не шлеться', async () => {
+  it('email обязателен (пустой / пробелы) → invalid, приглашение не отправляется', async () => {
     const { uc, users } = setup()
     expect(await uc.inviteUser({}, admin, ORIGIN)).toMatchObject({ ok: false, code: 'invalid', message: 'Email обовʼязковий' })
     expect(await uc.inviteUser({ email: '   ' }, admin, ORIGIN)).toMatchObject({ ok: false, code: 'invalid' })
     expect(users.invite).not.toHaveBeenCalled()
   })
 
-  it('роль на рівні або вище за власну → forbidden (менеджер запрошує admin і менеджера)', async () => {
+  it('роль на уровне собственной или выше → forbidden (менеджер приглашает admin и менеджера)', async () => {
     const { uc, users } = setup()
     expect(await uc.inviteUser({ email: 'x@y.z', role_id: 'r-admin' }, manager, ORIGIN)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(await uc.inviteUser({ email: 'x@y.z', role_id: 'r-mgr' }, manager, ORIGIN)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(users.invite).not.toHaveBeenCalled()
   })
 
-  it('успіх: invite з redirect /admin/set-password, assignRoleOnInvite, audit user.invite ПІСЛЯ призначення ролі (факт, а не намір)', async () => {
+  it('успех: invite с redirect /admin/set-password, assignRoleOnInvite, audit user.invite ПОСЛЕ назначения роли (факт, а не намерение)', async () => {
     const { uc, users, audit } = setup()
     const r = await uc.inviteUser({ email: '  new@vrk.test ', role_id: 'r-view' }, manager, ORIGIN)
     expect(r.ok).toBe(true)
@@ -112,7 +112,7 @@ describe('inviteUser', () => {
     })
   })
 
-  it('роль не призначилась → warning, role_id = null (запрошення вже пішло)', async () => {
+  it('роль не назначилась → warning, role_id = null (приглашение уже ушло)', async () => {
     quiet()
     const { uc } = setup({ users: { assignRoleOnInvite: vi.fn(async () => dbFail('boom')) } })
     const r = await uc.inviteUser({ email: 'new@vrk.test', role_id: 'r-view' }, admin, ORIGIN)
@@ -121,7 +121,7 @@ describe('inviteUser', () => {
     expect(r.ok && r.value.user?.role_id).toBeNull()
   })
 
-  it('без ролі: перевірки рангу немає, роль не призначається, у журналі role_id = null', async () => {
+  it('без роли: проверки ранга нет, роль не назначается, в журнале role_id = null', async () => {
     const { uc, users, audit } = setup()
     const r = await uc.inviteUser({ email: 'new@vrk.test' }, manager, ORIGIN)
     expect(r.ok).toBe(true)
@@ -131,7 +131,7 @@ describe('inviteUser', () => {
     expect(r.ok && r.value.warning).toBeUndefined()
   })
 
-  it('invite повернув null-дані → user null, ресурс журналу user_roles/unknown; created_at з годинника не потрібен', async () => {
+  it('invite вернул null-данные → user null, ресурс журнала user_roles/unknown; created_at из часов не нужен', async () => {
     const { uc, audit } = setup({ users: { invite: vi.fn(async () => dbOk(null)) } })
     const r = await uc.inviteUser({ email: 'new@vrk.test', role_id: 'r-view' }, admin, ORIGIN)
     expect(r.ok && r.value.user).toBeNull()
@@ -139,7 +139,7 @@ describe('inviteUser', () => {
     expect(audit.record).toHaveBeenCalledWith(admin, 'user.invite', 'user_roles/unknown', expect.anything())
   })
 
-  it('created_at відсутній у відповіді → береться з годинника', async () => {
+  it('created_at отсутствует в ответе → берётся из часов', async () => {
     const { uc } = setup({
       users: { invite: vi.fn(async () => dbOk({ id: 'u-new', email: null, created_at: null, email_confirmed_at: '2026-01-01T00:00:00Z' })) },
     })
@@ -147,7 +147,7 @@ describe('inviteUser', () => {
     expect(r.ok && r.value.user).toMatchObject({ email: 'new@vrk.test', created_at: NOW.toISOString(), email_confirmed: true })
   })
 
-  it('invite провалився → failed, журнал не пишеться', async () => {
+  it('invite провалился → failed, журнал не пишется', async () => {
     const { uc, audit } = setup({ users: { invite: vi.fn(async () => dbFail('smtp down')) } })
     expect(await uc.inviteUser({ email: 'new@vrk.test' }, admin, ORIGIN)).toMatchObject({ ok: false, code: 'failed', message: 'smtp down' })
     expect(audit.record).not.toHaveBeenCalled()
@@ -155,13 +155,13 @@ describe('inviteUser', () => {
 })
 
 describe('updateUser', () => {
-  it('деактивувати самого себе → invalid', async () => {
+  it('деактивировать самого себя → invalid', async () => {
     const { uc, users } = setup()
     expect(await uc.updateUser(admin.id, { is_active: false }, admin)).toMatchObject({ ok: false, code: 'invalid', message: 'Не можна деактивувати самого себе' })
     expect(users.updateRoleRow).not.toHaveBeenCalled()
   })
 
-  it('зміна власної ролі → forbidden; та сама роль — проходить', async () => {
+  it('изменение собственной роли → forbidden; та же роль — проходит', async () => {
     const { uc, users } = setup()
     expect(await uc.updateUser(admin.id, { role_id: 'r-mgr' }, admin)).toMatchObject({ ok: false, code: 'forbidden', message: 'Не можна змінювати власну роль' })
     expect(users.updateRoleRow).not.toHaveBeenCalled()
@@ -170,7 +170,7 @@ describe('updateUser', () => {
     expect(users.updateRoleRow).toHaveBeenCalledWith(admin.id, { role_id: 'r-admin', name: 'Адмін' })
   })
 
-  it('ціль з роллю на рівні або вище за власну → forbidden', async () => {
+  it('цель с ролью на уровне собственной или выше → forbidden', async () => {
     const { uc, users } = setup()
     expect(await uc.updateUser('u-admin', { display_name: 'X' }, manager)).toMatchObject({ ok: false, code: 'forbidden', message: 'Не можна редагувати користувача з роллю на рівні або вище за вашу' })
     // Другой менеджер (тот же ранг) — тоже forbidden.
@@ -178,14 +178,14 @@ describe('updateUser', () => {
     expect(users.updateRoleRow).not.toHaveBeenCalled()
   })
 
-  it('призначити роль на рівні або вище за власну → forbidden', async () => {
+  it('назначить роль на уровне собственной или выше → forbidden', async () => {
     const { uc, users } = setup()
     expect(await uc.updateUser('u-view', { role_id: 'r-mgr' }, manager)).toMatchObject({ ok: false, code: 'forbidden', message: 'Не можна призначати роль на рівні або вище за вашу' })
     expect(await uc.updateUser('u-view', { role_id: 'r-admin' }, manager)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(users.updateRoleRow).not.toHaveBeenCalled()
   })
 
-  it('ціль без ролі: перевірка рангу цілі пропускається, але призначувана роль усе одно перевіряється', async () => {
+  it('цель без роли: проверка ранга цели пропускается, но назначаемая роль всё равно проверяется', async () => {
     // Наблюдение: user_roles.role_id NOT NULL, так что «без роли» = без строки; тогда INSERT
     // возможен только с role_id, а role_id проверяется рангом. Пробела в защите нет.
     const { uc, users } = setup()
@@ -195,7 +195,7 @@ describe('updateUser', () => {
     expect(users.insertRoleRow).toHaveBeenCalledWith('u-none', { role_id: 'r-view' })
   })
 
-  it('lockout: деактивація останнього власника manage_users → invalid', async () => {
+  it('lockout: деактивация последнего владельца manage_users → invalid', async () => {
     const { uc, users } = setup({
       users: {
         getActiveAssignments: vi.fn(async () => [
@@ -210,7 +210,7 @@ describe('updateUser', () => {
     expect(users.updateRoleRow).not.toHaveBeenCalled()
   })
 
-  it('lockout: зниження ролі останнього власника manage_users → invalid; є інший власник → ок', async () => {
+  it('lockout: понижение роли последнего владельца manage_users → invalid; есть другой владелец → ок', async () => {
     const solo = setup({
       users: { getActiveAssignments: vi.fn(async () => [{ user_id: 'u-mgr', role_id: 'r-mgr', permissions: ['manage_users'] }]) },
     })
@@ -220,19 +220,19 @@ describe('updateUser', () => {
     expect((await withAdmin.uc.updateUser('u-mgr', { role_id: 'r-view' }, admin)).ok).toBe(true)
   })
 
-  it('лише display_name → lockout-guard не рахується (getActiveAssignments не викликається)', async () => {
+  it('только display_name → lockout-guard не считается (getActiveAssignments не вызывается)', async () => {
     const { uc, users } = setup()
     await uc.updateUser('u-view', { display_name: 'Іван' }, admin)
     expect(users.getActiveAssignments).not.toHaveBeenCalled()
   })
 
-  it('порожній патч → «Нічого оновлювати»', async () => {
+  it('пустой патч → «Нічого оновлювати»', async () => {
     const { uc, users } = setup()
     expect(await uc.updateUser('u-view', {}, admin)).toMatchObject({ ok: false, code: 'invalid', message: 'Нічого оновлювати' })
     expect(users.hasRoleRow).not.toHaveBeenCalled()
   })
 
-  it('display_name обрізається (trim, 64), is_active приводиться до boolean; audit user.update', async () => {
+  it('display_name обрезается (trim, 64), is_active приводится к boolean; audit user.update', async () => {
     const { uc, users, audit } = setup()
     const r = await uc.updateUser('u-view', { display_name: '  ' + 'і'.repeat(70) + ' ', is_active: 1 as unknown as boolean }, admin)
     expect(r).toEqual({ ok: true, value: undefined })
@@ -242,14 +242,14 @@ describe('updateUser', () => {
     expect(audit.record).toHaveBeenCalledWith(admin, 'user.update', 'user_roles/u-view', { new: fields })
   })
 
-  it('рядка ролі немає і role_id не передано → «Спочатку призначте роль користувачу»', async () => {
+  it('строки роли нет и role_id не передан → «Спочатку призначте роль користувачу»', async () => {
     const { uc, users, audit } = setup()
     expect(await uc.updateUser('u-none', { display_name: 'X' }, admin)).toMatchObject({ ok: false, code: 'invalid', message: 'Спочатку призначте роль користувачу' })
     expect(users.insertRoleRow).not.toHaveBeenCalled()
     expect(audit.record).not.toHaveBeenCalled()
   })
 
-  it('помилка оновлення/вставки → failed, без audit', async () => {
+  it('ошибка обновления/вставки → failed, без audit', async () => {
     quiet()
     const upd = setup({ users: { updateRoleRow: vi.fn(async () => dbFail('boom')) } })
     expect(await upd.uc.updateUser('u-view', { display_name: 'X' }, admin)).toMatchObject({ ok: false, code: 'failed' })
@@ -260,19 +260,19 @@ describe('updateUser', () => {
 })
 
 describe('deleteUser', () => {
-  it('видалити самого себе → invalid', async () => {
+  it('удалить самого себя → invalid', async () => {
     const { uc, users } = setup()
     expect(await uc.deleteUser(admin.id, admin)).toMatchObject({ ok: false, code: 'invalid', message: 'Не можна видалити самого себе' })
     expect(users.deleteAuthUser).not.toHaveBeenCalled()
   })
 
-  it('ціль з роллю на рівні або вище → forbidden', async () => {
+  it('цель с ролью на уровне собственной или выше → forbidden', async () => {
     const { uc, users } = setup()
     expect(await uc.deleteUser('u-admin', manager)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(users.deleteAuthUser).not.toHaveBeenCalled()
   })
 
-  it('успіх → deleteAuthUser + audit user.delete без значень', async () => {
+  it('успех → deleteAuthUser + audit user.delete без значений', async () => {
     const { uc, users, audit } = setup()
     expect(await uc.deleteUser('u-view', manager)).toEqual({ ok: true, value: undefined })
     expect(users.deleteAuthUser).toHaveBeenCalledWith('u-view')
@@ -280,13 +280,13 @@ describe('deleteUser', () => {
     expect(audit.record.mock.calls[0]).toHaveLength(3)
   })
 
-  it('ціль без ролі → видаляється будь-ким з правом (ранг Infinity не перевіряється)', async () => {
+  it('цель без роли → удаляется кем угодно с правом (ранг Infinity не проверяется)', async () => {
     const { uc, users } = setup()
     expect((await uc.deleteUser('u-none', manager)).ok).toBe(true)
     expect(users.deleteAuthUser).toHaveBeenCalledWith('u-none')
   })
 
-  it('помилка видалення → failed, без audit', async () => {
+  it('ошибка удаления → failed, без audit', async () => {
     const { uc, audit } = setup({ users: { deleteAuthUser: vi.fn(async () => dbFail('boom')) } })
     expect(await uc.deleteUser('u-view', admin)).toMatchObject({ ok: false, code: 'failed', message: 'boom' })
     expect(audit.record).not.toHaveBeenCalled()

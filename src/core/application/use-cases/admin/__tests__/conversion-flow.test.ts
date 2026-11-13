@@ -68,8 +68,8 @@ const row: AdjustmentRow = {
   adjustment_time: '2026-01-15T08:30:00.000Z',
 }
 
-describe('recordAdjustment: після RETRACT конверсія стає retracted (не в черзі масового вивантаження)', () => {
-  it('retract → markRetractedByLead (не pending); restate → ні', async () => {
+describe('recordAdjustment: после RETRACT конверсия становится retracted (не в очереди массовой выгрузки)', () => {
+  it('retract → markRetractedByLead (не pending); restate → нет', async () => {
     const { flow, conversions } = setup()
     await flow.recordAdjustment({ leadId: 'l1', orderNo: 1, conversionAction: 'a', type: 'retract' })
     expect(conversions.markRetractedByLead).toHaveBeenCalledWith('l1')
@@ -78,7 +78,7 @@ describe('recordAdjustment: після RETRACT конверсія стає retra
     expect(conversions.markRetractedByLead).toHaveBeenCalledTimes(1)
   })
 
-  it('markConversionPendingByLead повертає конверсію в чергу', async () => {
+  it('markConversionPendingByLead возвращает конверсию в очередь', async () => {
     const { flow, conversions } = setup()
     await flow.markConversionPendingByLead('l1')
     expect(conversions.markPendingByLead).toHaveBeenCalledWith('l1')
@@ -86,7 +86,7 @@ describe('recordAdjustment: після RETRACT конверсія стає retra
 })
 
 describe('dispatchAdjustment', () => {
-  it('sent === true → exported (await до завершення)', async () => {
+  it('sent === true → exported (await до завершения)', async () => {
     const { flow, sheets, adjustments } = setup()
     await flow.dispatchAdjustment(row)
     expect(sheets.sendAdjustment).toHaveBeenCalledWith({
@@ -100,13 +100,13 @@ describe('dispatchAdjustment', () => {
     expect(adjustments.markExported).toHaveBeenCalledWith('adj-1', NOW.toISOString())
   })
 
-  it('sent === false (Sheets не налаштовано) → export_status не чіпаємо', async () => {
+  it('sent === false (Sheets не настроен) → export_status не трогаем', async () => {
     const { flow, adjustments } = setup({ sheets: { sendAdjustment: vi.fn(async () => false) } })
     await flow.dispatchAdjustment(row)
     expect(adjustments.markExported).not.toHaveBeenCalled()
   })
 
-  it('send кидає → помилка не пробрасывається, exported не ставиться', async () => {
+  it('send бросает → ошибка не пробрасывается, exported не ставится', async () => {
     const { flow, adjustments } = setup({ sheets: { sendAdjustment: vi.fn(async () => { throw new Error('Sheets API error: 500') }) } })
     vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(flow.dispatchAdjustment(row)).resolves.toBeUndefined()
@@ -115,7 +115,7 @@ describe('dispatchAdjustment', () => {
 })
 
 describe('recordAdjustment', () => {
-  it('RETRACT глушиться, якщо після попереднього не було нового експорту', async () => {
+  it('RETRACT глушится, если после предыдущего не было нового экспорта', async () => {
     const { flow, adjustments } = setup({
       adjustments: { lastRetractTime: vi.fn(async () => '2026-01-20T00:00:00Z') },
       conversions: { getExportedAt: vi.fn(async () => '2026-01-10T00:00:00Z') },
@@ -125,7 +125,7 @@ describe('recordAdjustment', () => {
     expect(adjustments.insert).not.toHaveBeenCalled()
   })
 
-  it('RESTATE без валюти бере internal_currency', async () => {
+  it('RESTATE без валюты берёт internal_currency', async () => {
     const { flow, adjustments } = setup()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     await flow.recordAdjustment({ leadId: 'l', orderNo: 1, conversionAction: 'A', type: 'restate', value: 700 })
@@ -136,7 +136,7 @@ describe('recordAdjustment', () => {
 })
 
 describe('recordConversion', () => {
-  it('немає конверсії → inserted з click-id і дією зі стадії', async () => {
+  it('нет конверсии → inserted с click-id и действием из стадии', async () => {
     const { flow, conversions } = setup()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     expect(await flow.recordConversion('l', 100, 'purchase', 'deal')).toEqual({ outcome: 'inserted' })
@@ -145,7 +145,7 @@ describe('recordConversion', () => {
     )
   })
 
-  it('той самий стан → noop; змінена сума → updated з valueChanged', async () => {
+  it('то же состояние → noop; изменённая сумма → updated с valueChanged', async () => {
     const existing = { id: 'oc', conversion_action: 'purchase', conversion_type: 'deal', conversion_value: '100' }
     const { flow, conversions } = setup({ conversions: { getStateByLead: vi.fn(async () => dbOk(existing)) } })
     vi.spyOn(console, 'log').mockImplementation(() => {})

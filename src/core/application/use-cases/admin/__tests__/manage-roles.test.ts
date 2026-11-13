@@ -52,7 +52,7 @@ const quiet = () => {
 }
 
 describe('createRole', () => {
-  it('назва обрізається до 48 символів, права санітизуються, позиція = maxOrder + 1; audit role.create', async () => {
+  it('название обрезается до 48 символов, права санитизируются, позиция = maxOrder + 1; audit role.create', async () => {
     const { uc, roles, audit } = setup()
     const raw = '  ' + 'н'.repeat(60) + '  '
     const r = await uc.createRole({ name: raw, permissions: ['manage_leads', 'bogus', 'manage_leads', 42] }, admin)
@@ -68,7 +68,7 @@ describe('createRole', () => {
     })
   })
 
-  it('порожня назва → invalid, у БД нічого не пишемо', async () => {
+  it('пустое название → invalid, в БД ничего не пишем', async () => {
     const { uc, roles, audit } = setup()
     const r = await uc.createRole({ name: '   ' }, admin)
     expect(r).toMatchObject({ ok: false, code: 'invalid' })
@@ -76,13 +76,13 @@ describe('createRole', () => {
     expect(audit.record).not.toHaveBeenCalled()
   })
 
-  it('права не масив → порожній список прав', async () => {
+  it('права не массив → пустой список прав', async () => {
     const { uc, roles } = setup()
     await uc.createRole({ name: 'Тест', permissions: 'manage_leads' }, admin)
     expect(roles.insert).toHaveBeenCalledWith(expect.objectContaining({ permissions: [] }))
   })
 
-  it('unique_violation → conflict; інша помилка БД → failed', async () => {
+  it('unique_violation → conflict; другая ошибка БД → failed', async () => {
     quiet()
     const conflict = setup({ roles: { insert: vi.fn(async () => dbFail('dup', UNIQUE_VIOLATION)) } })
     expect(await conflict.uc.createRole({ name: 'Менеджер' }, admin)).toMatchObject({ ok: false, code: 'conflict' })
@@ -93,19 +93,19 @@ describe('createRole', () => {
 })
 
 describe('updateRole', () => {
-  it('роль не знайдено → not_found', async () => {
+  it('роль не найдена → not_found', async () => {
     const { uc } = setup({ roles: { get: vi.fn(async () => dbOk(null)) } })
     expect(await uc.updateRole('r-x', { name: 'X' }, admin)).toMatchObject({ ok: false, code: 'not_found' })
   })
 
-  it('роль на рівні або вище за власну → forbidden (менеджер редагує admin і сам себе)', async () => {
+  it('роль на уровне собственной или выше → forbidden (менеджер редактирует admin и сам себя)', async () => {
     const { uc, roles } = setup()
     expect(await uc.updateRole('r-admin', { name: 'X' }, manager)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(await uc.updateRole('r-mgr', { name: 'X' }, manager)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(roles.update).not.toHaveBeenCalled()
   })
 
-  it('зміна прав ВЛАСНОЇ ролі → forbidden (захист спрацьовує, коли ранг ролі невідомий і перевірка рангу пройдена)', async () => {
+  it('изменение прав СОБСТВЕННОЙ роли → forbidden (защита срабатывает, когда ранг роли неизвестен и проверка ранга пройдена)', async () => {
     // Наблюдение: при консистентных рангах own-role guard недостижим — проверка ранга
     // (actorRank < ownRank ложно) отсекает раньше. Ветка достижима только когда ranks не содержит id.
     const { uc, roles, users } = setup({ roles: { getRanks: vi.fn(async () => new Map()) } })
@@ -115,27 +115,27 @@ describe('updateRole', () => {
     expect(roles.update).not.toHaveBeenCalled()
   })
 
-  it('системна роль: назва ігнорується, права оновлюються', async () => {
+  it('системная роль: название игнорируется, права обновляются', async () => {
     const { uc, roles } = setup({ roles: { get: vi.fn(async () => dbOk({ id: 'r-mgr', name: 'manager', is_system: true })) } })
     const r = await uc.updateRole('r-mgr', { name: 'Нова назва', permissions: ['manage_leads', 'manage_users'] }, admin)
     expect(r.ok).toBe(true)
     expect(roles.update).toHaveBeenCalledWith('r-mgr', { permissions: ['manage_leads', 'manage_users'] })
   })
 
-  it('системна роль: лише назва → «Нічого оновлювати»', async () => {
+  it('системная роль: только название → «Нічого оновлювати»', async () => {
     const { uc, roles } = setup({ roles: { get: vi.fn(async () => dbOk({ id: 'r-mgr', name: 'manager', is_system: true })) } })
     expect(await uc.updateRole('r-mgr', { name: 'Нова' }, admin)).toMatchObject({ ok: false, code: 'invalid', message: 'Нічого оновлювати' })
     expect(roles.update).not.toHaveBeenCalled()
   })
 
-  it('порожня назва звичайної ролі → invalid; назва обрізається до 48', async () => {
+  it('пустое название обычной роли → invalid; название обрезается до 48', async () => {
     const { uc, roles } = setup()
     expect(await uc.updateRole('r-mgr', { name: '  ' }, admin)).toMatchObject({ ok: false, code: 'invalid' })
     await uc.updateRole('r-mgr', { name: ' ' + 'x'.repeat(60) }, admin)
     expect(roles.update).toHaveBeenCalledWith('r-mgr', { name: 'x'.repeat(48) })
   })
 
-  it('lockout-guard: зняти manage_users з останньої ролі, що його надає активним → invalid', async () => {
+  it('lockout-guard: снять manage_users с последней роли, которая даёт его активным → invalid', async () => {
     const { uc, roles } = setup({
       users: {
         getActiveAssignments: vi.fn(async () => [
@@ -150,7 +150,7 @@ describe('updateRole', () => {
     expect(roles.update).not.toHaveBeenCalled()
   })
 
-  it('lockout-guard не спрацьовує, якщо є інший активний власник manage_users', async () => {
+  it('lockout-guard не срабатывает, если есть другой активный владелец manage_users', async () => {
     const { uc, roles } = setup({
       users: {
         getActiveAssignments: vi.fn(async () => [
@@ -163,13 +163,13 @@ describe('updateRole', () => {
     expect(roles.update).toHaveBeenCalledWith('r-mgr', { permissions: ['manage_leads'] })
   })
 
-  it('права з manage_users → getActiveAssignments не викликається', async () => {
+  it('права с manage_users → getActiveAssignments не вызывается', async () => {
     const { uc, users } = setup()
     await uc.updateRole('r-mgr', { permissions: ['manage_users'] }, admin)
     expect(users.getActiveAssignments).not.toHaveBeenCalled()
   })
 
-  it('успіх → audit role.update зі старою назвою і патчем', async () => {
+  it('успех → audit role.update со старым названием и патчем', async () => {
     const { uc, audit } = setup()
     await uc.updateRole('r-mgr', { name: 'Старший', permissions: ['manage_leads'] }, admin)
     expect(audit.record).toHaveBeenCalledWith(admin, 'role.update', 'admin_roles/r-mgr', {
@@ -178,7 +178,7 @@ describe('updateRole', () => {
     })
   })
 
-  it('unique_violation при оновленні → conflict', async () => {
+  it('unique_violation при обновлении → conflict', async () => {
     const { uc, audit } = setup({ roles: { update: vi.fn(async () => dbFail('dup', UNIQUE_VIOLATION)) } })
     expect(await uc.updateRole('r-mgr', { name: 'admin' }, admin)).toMatchObject({ ok: false, code: 'conflict' })
     expect(audit.record).not.toHaveBeenCalled()
@@ -186,39 +186,39 @@ describe('updateRole', () => {
 })
 
 describe('deleteRole', () => {
-  it('не знайдено → not_found (помилка читання теж дає not_found — спостереження)', async () => {
+  it('не найдено → not_found (ошибка чтения тоже даёт not_found — наблюдение)', async () => {
     const a = setup({ roles: { get: vi.fn(async () => dbOk(null)) } })
     expect(await a.uc.deleteRole('r-x', admin)).toMatchObject({ ok: false, code: 'not_found' })
     const b = setup({ roles: { get: vi.fn(async () => dbFail('boom')) } })
     expect(await b.uc.deleteRole('r-x', admin)).toMatchObject({ ok: false, code: 'not_found' })
   })
 
-  it('системна роль → invalid', async () => {
+  it('системная роль → invalid', async () => {
     const { uc, roles } = setup({ roles: { get: vi.fn(async () => dbOk({ id: 'r-mgr', name: 'manager', is_system: true })) } })
     expect(await uc.deleteRole('r-mgr', admin)).toMatchObject({ ok: false, code: 'invalid' })
     expect(roles.delete).not.toHaveBeenCalled()
   })
 
-  it('роль на рівні або вище за власну → forbidden', async () => {
+  it('роль на уровне собственной или выше → forbidden', async () => {
     const { uc, roles } = setup()
     expect(await uc.deleteRole('r-mgr', manager)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(roles.delete).not.toHaveBeenCalled()
   })
 
-  it('роль призначена користувачам → invalid', async () => {
+  it('роль назначена пользователям → invalid', async () => {
     const { uc, roles } = setup({ roles: { countUsers: vi.fn(async () => 2) } })
     expect(await uc.deleteRole('r-mgr', admin)).toMatchObject({ ok: false, code: 'invalid' })
     expect(roles.delete).not.toHaveBeenCalled()
   })
 
-  it('успіх → delete + audit role.delete зі старою назвою', async () => {
+  it('успех → delete + audit role.delete со старым названием', async () => {
     const { uc, roles, audit } = setup()
     expect(await uc.deleteRole('r-mgr', admin)).toEqual({ ok: true, value: undefined })
     expect(roles.delete).toHaveBeenCalledWith('r-mgr')
     expect(audit.record).toHaveBeenCalledWith(admin, 'role.delete', 'admin_roles/r-mgr', { old: { name: 'Менеджер' } })
   })
 
-  it('помилка видалення → failed, без audit', async () => {
+  it('ошибка удаления → failed, без audit', async () => {
     const { uc, audit } = setup({ roles: { delete: vi.fn(async () => dbFail('boom')) } })
     expect(await uc.deleteRole('r-mgr', admin)).toMatchObject({ ok: false, code: 'failed' })
     expect(audit.record).not.toHaveBeenCalled()
@@ -226,7 +226,7 @@ describe('deleteRole', () => {
 })
 
 describe('reorderRoles', () => {
-  it('не масив / порожній / без рядків → invalid, БД не читається', async () => {
+  it('не массив / пустой / без строк → invalid, БД не читается', async () => {
     const { uc, roles } = setup()
     expect(await uc.reorderRoles({}, admin)).toMatchObject({ ok: false, code: 'invalid' })
     expect(await uc.reorderRoles({ orderedIds: [] }, admin)).toMatchObject({ ok: false, code: 'invalid' })
@@ -234,7 +234,7 @@ describe('reorderRoles', () => {
     expect(roles.listForOrder).not.toHaveBeenCalled()
   })
 
-  it('неповна перестановка або дублі → invalid (400)', async () => {
+  it('неполная перестановка или дубли → invalid (400)', async () => {
     const { uc, roles } = setup()
     expect(await uc.reorderRoles({ orderedIds: ['r-admin', 'r-mgr'] }, admin)).toMatchObject({
       ok: false,
@@ -245,14 +245,14 @@ describe('reorderRoles', () => {
     expect(roles.setOrder).not.toHaveBeenCalled()
   })
 
-  it('переміщення заблокованого префікса (ролі на рівні/вище за актора) → forbidden', async () => {
+  it('перемещение заблокированного префикса (роли на уровне актора или выше) → forbidden', async () => {
     const { uc, roles } = setup()
     const r = await uc.reorderRoles({ orderedIds: ['r-mgr', 'r-admin', 'r-view'] }, manager)
     expect(r).toMatchObject({ ok: false, code: 'forbidden' })
     expect(roles.setOrder).not.toHaveBeenCalled()
   })
 
-  it('менеджер може переставляти лише ролі нижче за себе: префікс [admin, mgr] збережено → ok', async () => {
+  it('менеджер может переставлять только роли ниже себя: префикс [admin, mgr] сохранён → ok', async () => {
     const { uc, roles, audit } = setup({
       roles: {
         listForOrder: vi.fn(async () => dbOk([...ROLES_FOR_ORDER, { id: 'r-guest', name: 'Гість', hierarchy_order: 3 }])),
@@ -264,7 +264,7 @@ describe('reorderRoles', () => {
     expect(audit.record).toHaveBeenCalledWith(manager, 'role.reorder', 'admin_roles', { new: ordered })
   })
 
-  it('admin: повна перестановка → setOrder + audit role.reorder', async () => {
+  it('admin: полная перестановка → setOrder + audit role.reorder', async () => {
     const { uc, roles, audit } = setup()
     const ordered = ['r-admin', 'r-view', 'r-mgr']
     expect(await uc.reorderRoles({ orderedIds: ordered }, admin)).toEqual({ ok: true, value: undefined })
@@ -272,7 +272,7 @@ describe('reorderRoles', () => {
     expect(audit.record).toHaveBeenCalledWith(admin, 'role.reorder', 'admin_roles', { new: ordered })
   })
 
-  it('помилка listForOrder / setOrder → failed', async () => {
+  it('ошибка listForOrder / setOrder → failed', async () => {
     const a = setup({ roles: { listForOrder: vi.fn(async () => dbFail('boom')) } })
     expect(await a.uc.reorderRoles({ orderedIds: ['r-admin'] }, admin)).toMatchObject({ ok: false, code: 'failed' })
     const b = setup({ roles: { setOrder: vi.fn(async () => dbFail('boom')) } })

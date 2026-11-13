@@ -32,7 +32,7 @@ function setupFields(over: Record<string, unknown> = {}) {
 }
 
 describe('makeCustomFieldUseCases', () => {
-  it('createField: позиція = max + 1, ключ у нижньому регістрі; audit custom_field.create', async () => {
+  it('createField: позиция = max + 1, ключ в нижнем регистре; audit custom_field.create', async () => {
     const { uc, customFields, audit } = setupFields()
     const r = await uc.createField({ name: ' Бюджет ', field_key: ' Budget_Q1 ', type: 'number', required: true }, actor)
     expect(r.ok).toBe(true)
@@ -41,14 +41,14 @@ describe('makeCustomFieldUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'custom_field.create', 'lead_custom_fields/cf-new', { new: value })
   })
 
-  it('createField: помилка валідації → invalid без звернення до БД', async () => {
+  it('createField: ошибка валидации → invalid без обращения к БД', async () => {
     const { uc, customFields } = setupFields()
     expect(await uc.createField({ name: 'X', field_key: '1bad' }, actor)).toMatchObject({ ok: false, code: 'invalid' })
     expect(await uc.createField({ name: 'X', field_key: 'sel', type: 'select' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Для типу select потрібен список опцій' })
     expect(customFields.maxPosition).not.toHaveBeenCalled()
   })
 
-  it('createField: unique_violation → conflict; інша помилка → failed', async () => {
+  it('createField: unique_violation → conflict; другая ошибка → failed', async () => {
     quiet()
     const c = setupFields({ insert: vi.fn(async () => dbFail('dup', UNIQUE_VIOLATION)) })
     expect(await c.uc.createField({ name: 'X', field_key: 'x' }, actor)).toMatchObject({ ok: false, code: 'conflict', message: 'Поле з таким ключем вже існує' })
@@ -57,7 +57,7 @@ describe('makeCustomFieldUseCases', () => {
     expect(await f.uc.createField({ name: 'X', field_key: 'x' }, actor)).toMatchObject({ ok: false, code: 'failed' })
   })
 
-  it('updateField: не знайдено → not_found; опції для не-select → invalid; успіх → update + audit', async () => {
+  it('updateField: не найдено → not_found; опции для не-select → invalid; успех → update + audit', async () => {
     const nf = setupFields({ get: vi.fn(async () => null) })
     expect(await nf.uc.updateField('cf-x', { name: 'X' }, actor)).toMatchObject({ ok: false, code: 'not_found' })
     const text = setupFields({ get: vi.fn(async () => ({ id: 'cf-1', type: 'text', options: null, required: false })) })
@@ -69,7 +69,7 @@ describe('makeCustomFieldUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'custom_field.update', 'lead_custom_fields/cf-1', { new: { options: ['a', 'b'], position: 2 } })
   })
 
-  it('deleteField: ok → delete + audit custom_field.delete зі старим визначенням; неіснуюче → not_found; помилка → failed', async () => {
+  it('deleteField: ok → delete + audit custom_field.delete со старым определением; несуществующее → not_found; ошибка → failed', async () => {
     quiet()
     const { uc, customFields, audit } = setupFields()
     expect(await uc.deleteField('cf-1', actor)).toEqual({ ok: true, value: undefined })
@@ -104,7 +104,7 @@ function setupTags(over: Record<string, unknown> = {}) {
 }
 
 describe('makeTrackingTagUseCases', () => {
-  it('createTag: невірний тип / формат ID / label для ga4 → invalid, кеш не скидається', async () => {
+  it('createTag: неверный тип / формат ID / label для ga4 → invalid, кэш не сбрасывается', async () => {
     const { uc, tags, cache } = setupTags()
     expect(await uc.createTag({ type: 'fb', tag_id: 'X' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Тип тегу: ga4 / gtm / aw' })
     expect(await uc.createTag({ type: 'ga4', tag_id: 'GTM-ABC' }, actor)).toMatchObject({ ok: false, code: 'invalid' })
@@ -113,7 +113,7 @@ describe('makeTrackingTagUseCases', () => {
     expect(cache.invalidateSite).not.toHaveBeenCalled()
   })
 
-  it('createTag: unique_violation → conflict без скидання кешу; ok → insert(position max+1) + invalidateSite + audit', async () => {
+  it('createTag: unique_violation → conflict без сброса кэша; ok → insert(position max+1) + invalidateSite + audit', async () => {
     quiet()
     const c = setupTags({ insert: vi.fn(async () => dbFail('dup', UNIQUE_VIOLATION)) })
     expect(await c.uc.createTag({ type: 'aw', tag_id: 'AW-123' }, actor)).toMatchObject({ ok: false, code: 'conflict', message: 'Тег з таким ID вже існує' })
@@ -129,7 +129,7 @@ describe('makeTrackingTagUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'tracking_tag.create', 'tracking_tags/tt-new', { new: value })
   })
 
-  it('updateTag: не знайдено → not_found; conflict; ok → update + invalidateSite + audit', async () => {
+  it('updateTag: не найдено → not_found; conflict; ok → update + invalidateSite + audit', async () => {
     const nf = setupTags({ getType: vi.fn(async () => null) })
     expect(await nf.uc.updateTag('tt-x', { enabled: false }, actor)).toMatchObject({ ok: false, code: 'not_found', message: 'Тег не знайдено' })
     const c = setupTags({ update: vi.fn(async () => dbFail('dup', UNIQUE_VIOLATION)) })
@@ -142,13 +142,13 @@ describe('makeTrackingTagUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'tracking_tag.update', 'tracking_tags/tt-1', { new: { enabled: true, conversion_label: null } })
   })
 
-  it('updateTag: tag_id перевіряється за ПОТОЧНИМ типом (ga4-тег не приймає AW-…)', async () => {
+  it('updateTag: tag_id проверяется по ТЕКУЩЕМУ типу (ga4-тег не принимает AW-…)', async () => {
     const { uc, tags } = setupTags({ getType: vi.fn(async () => ({ id: 'tt-1', type: 'ga4' })) })
     expect(await uc.updateTag('tt-1', { tag_id: 'AW-123' }, actor)).toMatchObject({ ok: false, code: 'invalid' })
     expect(tags.update).not.toHaveBeenCalled()
   })
 
-  it('deleteTag: не існує → not_found; ok → delete + invalidateSite + audit без значень', async () => {
+  it('deleteTag: не существует → not_found; ok → delete + invalidateSite + audit без значений', async () => {
     const nf = setupTags({ exists: vi.fn(async () => false) })
     expect(await nf.uc.deleteTag('tt-x', actor)).toMatchObject({ ok: false, code: 'not_found' })
     expect(nf.tags.delete).not.toHaveBeenCalled()
@@ -159,7 +159,7 @@ describe('makeTrackingTagUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'tracking_tag.delete', 'tracking_tags/tt-1')
   })
 
-  it('listEnabledForSite: відкидає рядки з невалідним tag_id; помилка БД → []', async () => {
+  it('listEnabledForSite: отбрасывает строки с невалидным tag_id; ошибка БД → []', async () => {
     quiet()
     const rows = [
       { type: 'ga4', tag_id: 'G-ABC123', conversion_label: null },
@@ -197,7 +197,7 @@ function setupSettings(over: Record<string, unknown> = {}) {
 }
 
 describe('makeSettingsUseCases', () => {
-  it('getSettings: telephony_secret відфільтровано; помилка БД → failed', async () => {
+  it('getSettings: telephony_secret отфильтрован; ошибка БД → failed', async () => {
     quiet()
     const { uc } = setupSettings()
     const r = await uc.getSettings()
@@ -206,7 +206,7 @@ describe('makeSettingsUseCases', () => {
     expect(await f.uc.getSettings()).toMatchObject({ ok: false, code: 'failed' })
   })
 
-  it('updateSettings: невідомий ключ / порожній items / невалідне значення → invalid, без запису', async () => {
+  it('updateSettings: неизвестный ключ / пустой items / невалидное значение → invalid, без записи', async () => {
     const { uc, settings, audit } = setupSettings()
     expect(await uc.updateSettings({ items: [{ key: 'telephony_secret', value: 'x' }] }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Невідомий ключ: telephony_secret' })
     expect(await uc.updateSettings({ items: [] }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Порожній items' })
@@ -215,7 +215,7 @@ describe('makeSettingsUseCases', () => {
     expect(audit.record).not.toHaveBeenCalled()
   })
 
-  it('updateSettings: ok → upsertMany з updated_by = actor.id і updated_at з годинника; audit settings.update лише key/value', async () => {
+  it('updateSettings: ok → upsertMany с updated_by = actor.id и updated_at из часов; audit settings.update только key/value', async () => {
     const { uc, settings, audit } = setupSettings()
     const r = await uc.updateSettings(
       { items: [{ key: 'dedup_by_phone', value: true }, { key: 'dedup_ip_window_hours', value: '12.8' }, { key: 'internal_currency', value: ' USD ' }] },
@@ -236,7 +236,7 @@ describe('makeSettingsUseCases', () => {
     })
   })
 
-  it('updateSettings: помилка upsert → failed, без audit', async () => {
+  it('updateSettings: ошибка upsert → failed, без audit', async () => {
     quiet()
     const { uc, audit } = setupSettings({ upsertMany: vi.fn(async () => dbFail('boom')) })
     expect(await uc.updateSettings({ items: [{ key: 'pipelines_enabled', value: 'true' }] }, actor)).toMatchObject({ ok: false, code: 'failed' })
@@ -273,7 +273,7 @@ function setupIntegrations(over: { secrets?: Record<string, unknown>; notificati
 }
 
 describe('makeIntegrationUseCases', () => {
-  it('setIntegration: невідомий ключ → invalid; порожнє значення → invalid; у БД нічого не пишеться', async () => {
+  it('setIntegration: неизвестный ключ → invalid; пустое значение → invalid; в БД ничего не пишется', async () => {
     const { uc, secrets, audit } = setupIntegrations()
     expect(await uc.setIntegration('aws_secret', { value: 'x' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Невідома інтеграція' })
     expect(await uc.setIntegration('telegram_bot_token', { value: '   ' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Value is required' })
@@ -282,7 +282,7 @@ describe('makeIntegrationUseCases', () => {
     expect(audit.record).not.toHaveBeenCalled()
   })
 
-  it('setIntegration: ok → set(key, trim, actor.id, now); audit integration.set БЕЗ обʼєкта значень', async () => {
+  it('setIntegration: ok → set(key, trim, actor.id, now); audit integration.set БЕЗ объекта значений', async () => {
     const { uc, secrets, audit } = setupIntegrations()
     expect(await uc.setIntegration('telegram_bot_token', { value: '  123:abc  ' }, actor)).toEqual({ ok: true, value: undefined })
     expect(secrets.set).toHaveBeenCalledWith('telegram_bot_token', '123:abc', actor.id, NOW.toISOString())
@@ -294,13 +294,13 @@ describe('makeIntegrationUseCases', () => {
     expect(JSON.stringify(call)).not.toContain('123:abc')
   })
 
-  it('setIntegration: помилка запису → failed, без audit', async () => {
+  it('setIntegration: ошибка записи → failed, без audit', async () => {
     const { uc, audit } = setupIntegrations({ secrets: { set: vi.fn(async () => dbFail('boom')) } })
     expect(await uc.setIntegration('keycrm_api_key', { value: 'k' }, actor)).toMatchObject({ ok: false, code: 'failed' })
     expect(audit.record).not.toHaveBeenCalled()
   })
 
-  it('listIntegrations: masked_value для всіх, plaintext лише для PLAINTEXT-ключів; нерозшифроване → null/null', async () => {
+  it('listIntegrations: masked_value для всех, plaintext только для PLAINTEXT-ключей; нерасшифрованное → null/null', async () => {
     const { uc } = setupIntegrations()
     const r = await uc.listIntegrations()
     expect(r.ok && r.value).toEqual([
@@ -313,7 +313,7 @@ describe('makeIntegrationUseCases', () => {
     expect(await f.uc.listIntegrations()).toMatchObject({ ok: false, code: 'failed' })
   })
 
-  it('testIntegration: missing / decrypt_error → повідомлення без звернення до тестера', async () => {
+  it('testIntegration: missing / decrypt_error → сообщение без обращения к тестеру', async () => {
     const missing = setupIntegrations()
     expect(await missing.uc.testIntegration('telegram_bot_token', actor)).toEqual({ ok: false, message: 'Ключ не знайдено в базі. Спочатку збережіть значення.' })
     const bad = setupIntegrations({ secrets: { read: vi.fn(async () => ({ status: 'decrypt_error' })) } })
@@ -322,7 +322,7 @@ describe('makeIntegrationUseCases', () => {
     expect(bad.tester.telegram).not.toHaveBeenCalled()
   })
 
-  it('testIntegration: telegram / keycrm → тестер зі значенням із БД; інший ключ → підтвердження збереження', async () => {
+  it('testIntegration: telegram / keycrm → тестер со значением из БД; другой ключ → подтверждение сохранения', async () => {
     const { uc, tester } = setupIntegrations({ secrets: { read: vi.fn(async (k: string) => ({ status: 'ok', value: `v:${k}` })) } })
     expect(await uc.testIntegration('telegram_bot_token', actor)).toEqual({ ok: true, message: 'tg ok' })
     expect(tester.telegram).toHaveBeenCalledWith('v:telegram_bot_token')
@@ -331,7 +331,7 @@ describe('makeIntegrationUseCases', () => {
     expect(await uc.testIntegration('google_spreadsheet_id', actor)).toEqual({ ok: true, message: 'Значення збережено в базі ✓' })
   })
 
-  it('testIntegration smtp: без smtp_user → підказка; з ним → tester.smtp(user, password, from|user, to = env|actor.email|user)', async () => {
+  it('testIntegration smtp: без smtp_user → подсказка; с ним → tester.smtp(user, password, from|user, to = env|actor.email|user)', async () => {
     const store: Record<string, string> = { smtp_password: 'pw', smtp_user: 'me@gmail.com' }
     const read = vi.fn(async (k: string) => (k in store ? { status: 'ok', value: store[k] } : { status: 'missing' }))
     const noUser = setupIntegrations({ secrets: { read: vi.fn(async (k: string) => (k === 'smtp_password' ? { status: 'ok', value: 'pw' } : { status: 'missing' })) } })
@@ -352,7 +352,7 @@ describe('makeIntegrationUseCases', () => {
     expect(noEmail.tester.smtp).toHaveBeenCalledWith({ user: 'me@gmail.com', password: 'pw', from: 'noreply@vrk.test', to: 'me@gmail.com' })
   })
 
-  it('deleteIntegration: невідомий ключ → invalid; ok → delete + audit integration.delete', async () => {
+  it('deleteIntegration: неизвестный ключ → invalid; ok → delete + audit integration.delete', async () => {
     const { uc, secrets, audit } = setupIntegrations()
     expect(await uc.deleteIntegration('nope', actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Невідома інтеграція' })
     expect(secrets.delete).not.toHaveBeenCalled()
@@ -361,7 +361,7 @@ describe('makeIntegrationUseCases', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'integration.delete', 'integrations/telephony_secret')
   })
 
-  it('testGoogleSheets делегує адаптеру', async () => {
+  it('testGoogleSheets делегирует адаптеру', async () => {
     const { uc, sheets } = setupIntegrations()
     expect(await uc.testGoogleSheets()).toEqual({ ok: false, main: { ok: false, message: 'x' } })
     expect(sheets.testConnection).toHaveBeenCalledOnce()

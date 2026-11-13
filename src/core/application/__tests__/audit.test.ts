@@ -5,7 +5,7 @@ import { dbOk, dbFail } from '../ports/common'
 describe('makeAuditLog', () => {
   const actor = { id: 'u1', email: 'a@b.c', ip: '1.2.3.4' }
 
-  it('пише запис із актором, IP, старим і новим значенням', async () => {
+  it('пишет запись с актором, IP, старым и новым значением', async () => {
     const insert = vi.fn(async () => dbOk(undefined))
     await makeAuditLog({ insert }).record(actor, 'lead.update', 'leads/l1', { old: { a: 1 }, new: { a: 2 } })
     expect(insert).toHaveBeenCalledWith({
@@ -29,7 +29,7 @@ describe('makeAuditLog', () => {
     expect(calls[1][0]).toMatchObject({ user_id: null, user_email: null })
   })
 
-  it('помилка або виняток адаптера не кидається назовні', async () => {
+  it('ошибка или исключение адаптера не бросается наружу', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(makeAuditLog({ insert: async () => dbFail<void>('down') }).record(actor, 'a', 'r')).resolves.toBeUndefined()
     await expect(

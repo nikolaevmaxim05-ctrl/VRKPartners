@@ -45,7 +45,7 @@ const quiet = () => {
 }
 
 describe('createStage', () => {
-  it('помилки валідації → invalid з текстом із STAGE_ERRORS, БД не чіпаємо', async () => {
+  it('ошибки валидации → invalid с текстом из STAGE_ERRORS, БД не трогаем', async () => {
     const { uc, statuses } = setup()
     expect(await uc.createStage({ name: '  ' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: STAGE_ERRORS.name })
     expect(await uc.createStage({ name: 'x'.repeat(65) }, actor)).toMatchObject({ ok: false, code: 'invalid', message: STAGE_ERRORS.name })
@@ -57,7 +57,7 @@ describe('createStage', () => {
     expect(statuses.insert).not.toHaveBeenCalled()
   })
 
-  it('is_initial: true → clearInitialExcept(NO_ID) перед insert; позиція = max + 1; audit stage.create', async () => {
+  it('is_initial: true → clearInitialExcept(NO_ID) перед insert; позиция = max + 1; audit stage.create', async () => {
     const { uc, statuses, audit } = setup()
     const r = await uc.createStage({ name: ' Нова ', is_initial: true }, actor)
     expect(r.ok).toBe(true)
@@ -77,7 +77,7 @@ describe('createStage', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'stage.create', 'lead_statuses/st-new', { new: values })
   })
 
-  it('без is_initial → clearInitialExcept не викликається; конверсійна стадія завжди is_final', async () => {
+  it('без is_initial → clearInitialExcept не вызывается; конверсионная стадия всегда is_final', async () => {
     const { uc, statuses } = setup()
     await uc.createStage({ name: 'Угода', conversion_type: 'deal', conversion_action: 'deal_offline', requires_amount: true, amount_is_profit: true }, actor)
     expect(statuses.clearInitialExcept).not.toHaveBeenCalled()
@@ -86,7 +86,7 @@ describe('createStage', () => {
     )
   })
 
-  it('unique_violation → conflict; інша помилка → failed; журнал не пишеться', async () => {
+  it('unique_violation → conflict; другая ошибка → failed; журнал не пишется', async () => {
     quiet()
     const conflict = setup({ statuses: { insert: vi.fn(async () => dbFail('dup', UNIQUE_VIOLATION)) } })
     expect(await conflict.uc.createStage({ name: 'Нова' }, actor)).toMatchObject({ ok: false, code: 'conflict', message: 'Стадія з такою назвою вже існує' })
@@ -97,19 +97,19 @@ describe('createStage', () => {
 })
 
 describe('updateStage', () => {
-  it('стадію не знайдено → not_found', async () => {
+  it('стадия не найдена → not_found', async () => {
     const { uc, statuses } = setup({ statuses: { getCurrent: vi.fn(async () => null) } })
     expect(await uc.updateStage('st-x', { name: 'X' }, actor)).toMatchObject({ ok: false, code: 'not_found' })
     expect(statuses.update).not.toHaveBeenCalled()
   })
 
-  it('помилка валідації патчу → invalid', async () => {
+  it('ошибка валидации патча → invalid', async () => {
     const { uc, statuses } = setup()
     expect(await uc.updateStage('st-1', { color: 'blue' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: STAGE_ERRORS.color })
     expect(statuses.update).not.toHaveBeenCalled()
   })
 
-  it('зняти is_initial з останньої початкової → invalid lastInitial', async () => {
+  it('снять is_initial с последней начальной → invalid lastInitial', async () => {
     const { uc, statuses } = setup({
       statuses: { getCurrent: vi.fn(async () => ({ ...CURRENT, is_initial: true })), countInitialExcept: vi.fn(async () => 0) },
     })
@@ -118,14 +118,14 @@ describe('updateStage', () => {
     expect(statuses.update).not.toHaveBeenCalled()
   })
 
-  it('зняти is_initial, коли є інша початкова → update { is_initial: false }', async () => {
+  it('снять is_initial, когда есть другая начальная → update { is_initial: false }', async () => {
     const { uc, statuses } = setup({ statuses: { getCurrent: vi.fn(async () => ({ ...CURRENT, is_initial: true })) } })
     expect((await uc.updateStage('st-1', { is_initial: false }, actor)).ok).toBe(true)
     expect(statuses.update).toHaveBeenCalledWith('st-1', { is_initial: false })
     expect(statuses.clearInitialExcept).not.toHaveBeenCalled()
   })
 
-  it('зняти is_initial зі стадії, що й так не початкова → лічильник не потрібен', async () => {
+  it('снять is_initial со стадии, которая и так не начальная → счётчик не нужен', async () => {
     const { uc, statuses } = setup()
     expect((await uc.updateStage('st-1', { is_initial: false }, actor)).ok).toBe(true)
     expect(statuses.countInitialExcept).not.toHaveBeenCalled()
@@ -140,13 +140,13 @@ describe('updateStage', () => {
     expect(statuses.update).toHaveBeenCalledWith('st-1', { is_initial: true })
   })
 
-  it('порожній патч → «Нічого оновлювати»', async () => {
+  it('пустой патч → «Нічого оновлювати»', async () => {
     const { uc, statuses } = setup()
     expect(await uc.updateStage('st-1', {}, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Нічого оновлювати' })
     expect(statuses.update).not.toHaveBeenCalled()
   })
 
-  it('успіх → audit stage.update зі станом до (current) і патчем', async () => {
+  it('успех → audit stage.update с состоянием до (current) и патчем', async () => {
     const { uc, statuses, audit } = setup()
     const r = await uc.updateStage('st-1', { name: ' Кваліфікація ', color: '#112233' }, actor)
     expect(r.ok).toBe(true)
@@ -155,7 +155,7 @@ describe('updateStage', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'stage.update', 'lead_statuses/st-1', { old: CURRENT, new: update })
   })
 
-  it('помилка update → failed, без audit', async () => {
+  it('ошибка update → failed, без audit', async () => {
     quiet()
     const { uc, audit } = setup({ statuses: { update: vi.fn(async () => dbFail('boom')) } })
     expect(await uc.updateStage('st-1', { name: 'X' }, actor)).toMatchObject({ ok: false, code: 'failed', message: 'boom' })
@@ -164,20 +164,20 @@ describe('updateStage', () => {
 })
 
 describe('deleteStage', () => {
-  it('не знайдено → not_found', async () => {
+  it('не найдено → not_found', async () => {
     const { uc, statuses } = setup({ statuses: { getForDelete: vi.fn(async () => null) } })
     expect(await uc.deleteStage('st-x', actor)).toMatchObject({ ok: false, code: 'not_found' })
     expect(statuses.delete).not.toHaveBeenCalled()
   })
 
-  it('початкова стадія → invalid, ліди не рахуються', async () => {
+  it('начальная стадия → invalid, лиды не считаются', async () => {
     const { uc, statuses, leads } = setup({ statuses: { getForDelete: vi.fn(async () => ({ id: 'st-1', name: 'Нова', is_initial: true })) } })
     expect(await uc.deleteStage('st-1', actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Спочатку призначте іншу стадію первинною' })
     expect(leads.countByStatus).not.toHaveBeenCalled()
     expect(statuses.delete).not.toHaveBeenCalled()
   })
 
-  it('на стадії є ліди → invalid, повідомлення містить кількість', async () => {
+  it('на стадии есть лиды → invalid, сообщение содержит количество', async () => {
     const { uc, statuses } = setup({ leads: { countByStatus: vi.fn(async () => 7) } })
     const r = await uc.deleteStage('st-1', actor)
     expect(r).toMatchObject({ ok: false, code: 'invalid' })
@@ -185,7 +185,7 @@ describe('deleteStage', () => {
     expect(statuses.delete).not.toHaveBeenCalled()
   })
 
-  it('успіх → delete + audit stage.delete зі старим станом', async () => {
+  it('успех → delete + audit stage.delete со старым состоянием', async () => {
     const { uc, statuses, leads, audit } = setup()
     expect(await uc.deleteStage('st-1', actor)).toEqual({ ok: true, value: undefined })
     expect(leads.countByStatus).toHaveBeenCalledWith('st-1')
@@ -193,7 +193,7 @@ describe('deleteStage', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'stage.delete', 'lead_statuses/st-1', { old: { id: 'st-1', name: 'Нова', is_initial: false } })
   })
 
-  it('помилка delete → failed, без audit', async () => {
+  it('ошибка delete → failed, без audit', async () => {
     quiet()
     const { uc, audit } = setup({ statuses: { delete: vi.fn(async () => dbFail('boom')) } })
     expect(await uc.deleteStage('st-1', actor)).toMatchObject({ ok: false, code: 'failed' })
@@ -202,7 +202,7 @@ describe('deleteStage', () => {
 })
 
 describe('reorderStages', () => {
-  it('items не масив або порожній → invalid «Порожній items»', async () => {
+  it('items не массив или пустой → invalid «Порожній items»', async () => {
     const { uc, statuses } = setup()
     expect(await uc.reorderStages({}, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Порожній items' })
     expect(await uc.reorderStages({ items: 'x' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Порожній items' })
@@ -210,7 +210,7 @@ describe('reorderStages', () => {
     expect(statuses.setPosition).not.toHaveBeenCalled()
   })
 
-  it('невірний елемент (без id / NaN / відʼємна позиція) → invalid, жодного UPDATE', async () => {
+  it('неверный элемент (без id / NaN / отрицательная позиция) → invalid, ни одного UPDATE', async () => {
     const { uc, statuses } = setup()
     expect(await uc.reorderStages({ items: [{ id: 'a', position: 0 }, { position: 1 }] }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Невірні дані' })
     expect(await uc.reorderStages({ items: [{ id: 'a', position: 'x' }] }, actor)).toMatchObject({ ok: false, code: 'invalid' })
@@ -218,7 +218,7 @@ describe('reorderStages', () => {
     expect(statuses.setPosition).not.toHaveBeenCalled()
   })
 
-  it('послідовні setPosition з floor; audit stage.reorder з items як прислано', async () => {
+  it('последовательные setPosition с floor; audit stage.reorder с items как прислано', async () => {
     const { uc, statuses, audit } = setup()
     const items = [{ id: 'st-2', position: 0 }, { id: 'st-1', position: 1.7 }, { id: 'st-3', position: 2 }]
     expect(await uc.reorderStages({ items }, actor)).toEqual({ ok: true, value: undefined })
@@ -226,7 +226,7 @@ describe('reorderStages', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'stage.reorder', 'lead_statuses', { new: items })
   })
 
-  it('частковий збій → failed з переліком помилок, решта UPDATE усе одно виконана, без audit', async () => {
+  it('частичный сбой → failed с перечнем ошибок, остальные UPDATE всё равно выполнены, без audit', async () => {
     quiet()
     const { uc, statuses, audit } = setup({
       statuses: { setPosition: vi.fn(async (id: string) => (id === 'st-1' ? dbFail('locked') : dbOk(undefined))) },
@@ -239,7 +239,7 @@ describe('reorderStages', () => {
 })
 
 describe('listStages', () => {
-  it('віддає список і прапор pipelines_enabled із налаштувань', async () => {
+  it('отдаёт список и флаг pipelines_enabled из настроек', async () => {
     const { uc, settings } = setup()
     settings.get.mockResolvedValueOnce('true' as never)
     const r = await uc.listStages()
@@ -247,7 +247,7 @@ describe('listStages', () => {
     expect(settings.get).toHaveBeenCalledWith('pipelines_enabled')
   })
 
-  it('помилка читання → failed', async () => {
+  it('ошибка чтения → failed', async () => {
     quiet()
     const { uc } = setup({ statuses: { list: vi.fn(async () => dbFail('boom')) } })
     expect(await uc.listStages()).toMatchObject({ ok: false, code: 'failed' })

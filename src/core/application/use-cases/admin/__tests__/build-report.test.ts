@@ -47,8 +47,8 @@ function setup() {
 const base = { date_from: '2026-09-20', date_to: '2026-09-27' }
 const get = (q: Record<string, string>) => (k: string) => q[k] ?? null
 
-describe('build-report — реферальне посилання', () => {
-  it('group_by=referral_link: рядки з назвами партнерів і «Без посилання» для решти, сортування за total', async () => {
+describe('build-report — реферальная ссылка', () => {
+  it('group_by=referral_link: строки с названиями партнёров и «Без посилання» для остальных, сортировка по total', async () => {
     const { uc } = setup()
     const r = await uc.getReport(get({ ...base, group_by: 'referral_link' }))
     expect(r.ok).toBe(true)
@@ -59,7 +59,7 @@ describe('build-report — реферальне посилання', () => {
     expect(r.value.total.total).toBe(5)
   })
 
-  it('breakdown=referral_link: серії підписані назвами партнерів, без посилання → «Без посилання»', async () => {
+  it('breakdown=referral_link: серии подписаны названиями партнёров, без ссылки → «Без посилання»', async () => {
     const { uc } = setup()
     const r = await uc.getReport(get({ ...base, breakdown: 'referral_link', breakdown_metrics: 'total' }))
     expect(r.ok).toBe(true)
@@ -71,14 +71,14 @@ describe('build-report — реферальне посилання', () => {
     expect(day.values['(без посилання)total']).toBe(2)
   })
 
-  it('filter_referral_link_id=UUID передається в запит репозиторію і застосовується в домені', async () => {
+  it('filter_referral_link_id=UUID передаётся в запрос репозитория и применяется в домене', async () => {
     const { uc, analytics } = setup()
     const r = await uc.getReport(get({ ...base, group_by: 'utm_source', filter_referral_link_id: L2 }))
     expect(r.ok && r.value.total.total).toBe(1)
     expect(analytics.reportLeads.mock.calls[0][0]).toMatchObject({ referralLinkId: L2 })
   })
 
-  it("filter_referral_link_id=none → лише без посилання; 'abc' → invalid", async () => {
+  it("filter_referral_link_id=none → только без ссылки; 'abc' → invalid", async () => {
     const { uc, analytics } = setup()
     const r = await uc.getReport(get({ ...base, filter_referral_link_id: 'none' }))
     expect(r.ok && r.value.total.total).toBe(2)
@@ -88,7 +88,7 @@ describe('build-report — реферальне посилання', () => {
     if (!bad.ok) expect(bad.code).toBe('invalid')
   })
 
-  it('без фільтра репозиторій отримує referralLinkId="" (без обмеження)', async () => {
+  it('без фильтра репозиторий получает referralLinkId="" (без ограничения)', async () => {
     const { uc, analytics } = setup()
     await uc.getReport(get(base))
     expect(analytics.reportLeads.mock.calls[0][0]).toMatchObject({ referralLinkId: '' })

@@ -65,13 +65,13 @@ const ctx = { ip: '1.2.3.4', userAgent: 'UA' }
 const valid = { name: 'Тест Тест', phone: '+380 (50) 123-45-67' }
 
 describe('submit-lead', () => {
-  it('1. невалідні дані → invalid «Invalid data» (до honeypot і ліміту)', async () => {
+  it('1. невалидные данные → invalid «Invalid data» (до honeypot и лимита)', async () => {
     const { submit, leads } = setup()
     expect(await submit({ name: 'A', phone: '1', company: 'spam' }, ctx)).toMatchObject({ ok: false, code: 'invalid', message: 'Invalid data' })
     expect(leads.countByIpSince).not.toHaveBeenCalled()
   })
 
-  it('2. honeypot `company` → фейковий успіх без запису, ліміту і сповіщень', async () => {
+  it('2. honeypot `company` → фейковый успех без записи, лимита и уведомлений', async () => {
     const { submit, leads, notifiers } = setup()
     const r = await submit({ ...valid, company: 'Spam Inc' }, ctx)
     expect(r).toEqual({ ok: true, value: { duplicate: false } })
@@ -80,7 +80,7 @@ describe('submit-lead', () => {
     expect(notifiers.telegram.send).not.toHaveBeenCalled()
   })
 
-  it('3. ≥3 заявок з IP за 10 хв → rate_limited «Too many requests», retryAfter = вікно', async () => {
+  it('3. ≥3 заявок с IP за 10 мин → rate_limited «Too many requests», retryAfter = окно', async () => {
     quiet()
     const { submit, leads } = setup({ count: LEAD_RATE_LIMIT.max })
     const r = await submit(valid, ctx)
@@ -89,27 +89,27 @@ describe('submit-lead', () => {
     expect(leads.insert).not.toHaveBeenCalled()
   })
 
-  it('3. 2 заявки — ще можна', async () => {
+  it('3. 2 заявки — ещё можно', async () => {
     quiet()
     const { submit } = setup({ count: 2 })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
   })
 
-  it('3. помилка підрахунку ліміту НЕ блокує заявку', async () => {
+  it('3. ошибка подсчёта лимита НЕ блокирует заявку', async () => {
     quiet()
     const { submit, leads } = setup({ count: 'error' })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
     expect(leads.insert).toHaveBeenCalledOnce()
   })
 
-  it('3. байпас поза production (RATE_LIMIT_DISABLED) → підрахунок не викликається', async () => {
+  it('3. байпас вне production (RATE_LIMIT_DISABLED) → подсчёт не вызывается', async () => {
     quiet()
     const { submit, leads } = setup({ bypass: true, count: 10 })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
     expect(leads.countByIpSince).not.toHaveBeenCalled()
   })
 
-  it("3. IP 'unknown' → ліміт і дедуп за IP пропускаються, у БД ip_address = null", async () => {
+  it("3. IP 'unknown' → лимит и дедуп по IP пропускаются, в БД ip_address = null", async () => {
     quiet()
     const { submit, leads } = setup()
     await submit(valid, { ip: 'unknown', userAgent: null })
@@ -118,7 +118,7 @@ describe('submit-lead', () => {
     expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ ip_address: null }))
   })
 
-  it('5. нормалізація: телефон → E.164, email → trim+lowercase (крапки gmail у БД лишаються)', async () => {
+  it('5. нормализация: телефон → E.164, email → trim+lowercase (точки gmail в БД остаются)', async () => {
     quiet()
     const { submit, leads, notifiers } = setup()
     await submit({ ...valid, email: '  Ivan.Petrenko@Gmail.com ' }, ctx)
@@ -126,7 +126,7 @@ describe('submit-lead', () => {
     expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ email: 'ivan.petrenko@gmail.com' }))
   })
 
-  it('6. дубль за телефоном → маркування, system-коментар, Telegram [ПОВТОР], новий лід не створюється', async () => {
+  it('6. дубль по телефону → маркировка, system-комментарий, Telegram [ПОВТОР], новый лид не создаётся', async () => {
     quiet()
     const { submit, leads, notifiers, deps } = setup()
     const r = await submit({ name: 'Тест Тест', phone: '+380 (99) 123-45-67' }, ctx)
@@ -139,7 +139,7 @@ describe('submit-lead', () => {
     expect(notifiers.keycrm.send).not.toHaveBeenCalled()
   })
 
-  it('7. запис у початкову стадію ДО сповіщень, з locale і мітками', async () => {
+  it('7. запись в начальную стадию ДО уведомлений, с locale и метками', async () => {
     quiet()
     const order: string[] = []
     const { submit, leads, notifiers } = setup()
@@ -171,27 +171,27 @@ describe('submit-lead', () => {
     expect(notifiers.email.send).toHaveBeenCalledOnce()
   })
 
-  it('7. без locale у тілі → DEFAULT uk', async () => {
+  it('7. без locale в теле → DEFAULT uk', async () => {
     quiet()
     const { submit, leads } = setup()
     await submit(valid, ctx)
     expect(leads.insert).toHaveBeenCalledWith(expect.objectContaining({ locale: 'uk' }))
   })
 
-  it('7. помилка БД → сповіщення все одно йдуть; ok, якщо хоч один канал доставив (рішення власника)', async () => {
+  it('7. ошибка БД → уведомления всё равно уходят; ok, если хоть один канал доставил (решение владельца)', async () => {
     quiet()
     const { submit, notifiers } = setup({ saveOk: false })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
     expect(notifiers.telegram.send).toHaveBeenCalledOnce()
   })
 
-  it('7. впали і БД, і всі канали → failed «DB error»', async () => {
+  it('7. упали и БД, и все каналы → failed «DB error»', async () => {
     quiet()
     const { submit } = setup({ saveOk: false, notifyOk: false })
     expect(await submit(valid, ctx)).toMatchObject({ ok: false, code: 'failed', message: 'DB error' })
   })
 
-  it('7. адаптер БД кинув виняток → без тіла 500 не буває: сповіщення йдуть, відповідь ok', async () => {
+  it('7. адаптер БД бросил исключение → без тела 500 не бывает: уведомления уходят, ответ ok', async () => {
     quiet()
     const { submit, leads, notifiers } = setup()
     leads.insert.mockImplementation(async () => {
@@ -201,7 +201,7 @@ describe('submit-lead', () => {
     expect(notifiers.telegram.send).toHaveBeenCalledOnce()
   })
 
-  it('8. усі канали сповіщень впали → заявка все одно успішна (лід збережено)', async () => {
+  it('8. все каналы уведомлений упали → заявка всё равно успешна (лид сохранён)', async () => {
     quiet()
     const { submit, leads } = setup({ notifyOk: false })
     expect(await submit(valid, ctx)).toEqual({ ok: true, value: { duplicate: false } })
@@ -209,10 +209,10 @@ describe('submit-lead', () => {
   })
 })
 
-describe('submit-lead — реферал (відхилення 11)', () => {
+describe('submit-lead — реферал (отклонение 11)', () => {
   const ACTIVE = { id: 'link-1', name: 'Агенція', is_active: true }
 
-  it('4. легасі-джерела (голий код у cookie/ref/?ref — касання «зараз»): порядок cookie → тіло → сторінка; активне → id + код, «Партнер» у сповіщенні', async () => {
+  it('4. легаси-источники (голый код в cookie/ref/?ref — касание «сейчас»): порядок cookie → тело → страница; активная → id + код, «Партнер» в уведомлении', async () => {
     quiet()
     const { submit, leads, referrals, notifiers } = setup({ referral: ACTIVE })
     await submit({ ...valid, ref: 'bodycode', page: 'https://vrk.com.ua/?ref=pagecode' }, { ...ctx, referralCookie: 'COOKIE12' })
@@ -228,7 +228,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     expect(pageOnly.referrals.findByCode).toHaveBeenCalledWith('pagecode')
   })
 
-  it('4. невідомий код → id null, код збережено; вимкнене посилання → id null, код і назва в сповіщенні', async () => {
+  it('4. неизвестный код → id null, код сохранён; выключенная ссылка → id null, код и название в уведомлении', async () => {
     quiet()
     const unknown = setup({ referral: null })
     await unknown.submit({ ...valid, ref: 'nope1234' }, ctx)
@@ -240,7 +240,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     expect(inactive.notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'old12345', name: 'Старий', state: 'inactive', touchedAt: NOW.toISOString() } }))
   })
 
-  it('4. помилка або виняток пошуку → лід записаний без привʼязки, відповідь ok', async () => {
+  it('4. ошибка или исключение поиска → лид записан без привязки, ответ ok', async () => {
     quiet()
     for (const referral of ['error', 'throw'] as const) {
       const { submit, leads } = setup({ referral })
@@ -249,7 +249,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     }
   })
 
-  it('4. без коду → findByCode не викликається; honeypot і ліміт → теж ні; дубль → пошук є, «Партнер» у коментарі [ПОВТОР]', async () => {
+  it('4. без кода → findByCode не вызывается; honeypot и лимит → тоже нет; дубль → поиск есть, «Партнер» в комментарии [ПОВТОР]', async () => {
     quiet()
     const plain = setup({ referral: ACTIVE })
     await plain.submit(valid, ctx)
@@ -274,7 +274,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
   const iso = (sec: number) => new Date(sec * 1000).toISOString()
   const cookie = (...pairs: Array<[string, number]>) => 'v2_' + pairs.map(([c, at]) => c + '.' + at).join('_')
 
-  it('first-touch: найраніше касання cookie виграє пізніше; referral_touched_at = момент першого переходу; дата у сповіщенні', async () => {
+  it('first-touch: самое раннее касание cookie выигрывает у более позднего; referral_touched_at = момент первого перехода; дата в уведомлении', async () => {
     quiet()
     const { submit, leads, referrals, notifiers } = setup({ referral: ACTIVE })
     await submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 5 * DAY], ['bbbb2345', SEC - DAY]) })
@@ -284,7 +284,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     expect(notifiers.telegram.send).toHaveBeenCalledWith(expect.objectContaining({ referral: { code: 'aaaa2345', name: 'Агенція', state: 'active', touchedAt: iso(SEC - 5 * DAY) } }))
   })
 
-  it('first-touch: перше касання поза вікном (90) → друге; усі поза вікном → органічна заявка без коду і без пошуку', async () => {
+  it('first-touch: первое касание вне окна (90) → второе; все вне окна → органическая заявка без кода и без поиска', async () => {
     quiet()
     const second = setup({ referral: ACTIVE })
     await second.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 200 * DAY], ['bbbb2345', SEC - DAY]) })
@@ -298,7 +298,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     expect(sent.referral).toBeUndefined()
   })
 
-  it('first-touch: вікно з налаштування (14 днів) звужує вибір; помилка читання/мусор → дефолт 90', async () => {
+  it('first-touch: окно из настройки (14 дней) сужает выбор; ошибка чтения/мусор → дефолт 90', async () => {
     quiet()
     const narrow = setup({ referral: ACTIVE, windowDays: '14' })
     await narrow.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 20 * DAY], ['bbbb2345', SEC - 3 * DAY]) })
@@ -310,7 +310,7 @@ describe('submit-lead — реферал (відхилення 11)', () => {
     }
   })
 
-  it('first-touch: вимкнене перше посилання → лише код (друге не розглядається); cookie ⊕ тіло ⊕ сторінка — мінімальний ts за кодом', async () => {
+  it('first-touch: выключенная первая ссылка → только код (вторая не рассматривается); cookie ⊕ тело ⊕ страница — минимальный ts по коду', async () => {
     quiet()
     const inactiveFirst = setup({ referral: { id: 'link-2', name: 'Старий', is_active: false } })
     await inactiveFirst.submit(valid, { ...ctx, referralCookie: cookie(['aaaa2345', SEC - 5 * DAY], ['bbbb2345', SEC - DAY]) })

@@ -37,7 +37,7 @@ const quiet = () => {
 }
 
 describe('createLink', () => {
-  it('валідація → invalid; успіх → insert з випадковим кодом і created_by, аудит без нотаток', async () => {
+  it('валидация → invalid; успех → insert со случайным кодом и created_by, аудит без заметок', async () => {
     const { uc, links, audit } = setup()
     expect(await uc.createLink({ name: '' }, actor)).toMatchObject({ ok: false, code: 'invalid' })
     const r = await uc.createLink({ name: ' Агенція ', notes: 'x' }, actor)
@@ -48,14 +48,14 @@ describe('createLink', () => {
     expect(audit.record).toHaveBeenCalledWith(actor, 'referral_link.create', 'referral_links/l-new', { new: { name: 'Агенція', code: values.code } })
   })
 
-  it('дубль назви (constraint name_lower) → conflict без повторної спроби', async () => {
+  it('дубль названия (constraint name_lower) → conflict без повторной попытки', async () => {
     quiet()
     const { uc, links } = setup({ insert: vi.fn(async () => dbFail('duplicate key value violates unique constraint "referral_links_name_lower_key"', '23505')) })
     expect(await uc.createLink({ name: 'Партнер' }, actor)).toMatchObject({ ok: false, code: 'conflict', message: 'Посилання з такою назвою вже існує' })
     expect(links.insert).toHaveBeenCalledTimes(1)
   })
 
-  it('колізія випадкового коду → одна повторна спроба з іншим кодом; друга колізія → conflict', async () => {
+  it('коллизия случайного кода → одна повторная попытка с другим кодом; вторая коллизия → conflict', async () => {
     quiet()
     const insert = vi.fn()
       .mockResolvedValueOnce(dbFail('duplicate key value violates unique constraint "referral_links_code_key"', '23505'))
@@ -72,7 +72,7 @@ describe('createLink', () => {
     expect(always.links.insert).toHaveBeenCalledTimes(2)
   })
 
-  it('інша помилка БД → failed', async () => {
+  it('другая ошибка БД → failed', async () => {
     quiet()
     const { uc } = setup({ insert: vi.fn(async () => dbFail('boom')) })
     expect(await uc.createLink({ name: 'X' }, actor)).toMatchObject({ ok: false, code: 'failed' })
@@ -80,14 +80,14 @@ describe('createLink', () => {
 })
 
 describe('updateLink', () => {
-  it('код у тілі → invalid; порожній патч → invalid; неіснуюче → not_found', async () => {
+  it('код в теле → invalid; пустой патч → invalid; несуществующее → not_found', async () => {
     const { uc } = setup()
     expect(await uc.updateLink('l1', { code: 'x' }, actor)).toMatchObject({ ok: false, code: 'invalid' })
     expect(await uc.updateLink('l1', {}, actor)).toMatchObject({ ok: false, code: 'invalid' })
     expect(await uc.updateLink('nope', { name: 'x' }, actor)).toMatchObject({ ok: false, code: 'not_found' })
   })
 
-  it('успіх → update з updated_at від Clock, аудит old/new; дубль назви → conflict', async () => {
+  it('успех → update с updated_at от Clock, аудит old/new; дубль названия → conflict', async () => {
     quiet()
     const { uc, links, audit } = setup()
     const r = await uc.updateLink('l1', { is_active: false, name: 'Нова' }, actor)
@@ -103,7 +103,7 @@ describe('updateLink', () => {
 })
 
 describe('deleteLink', () => {
-  it('із заявками → conflict з кількістю; без заявок → delete + аудит; FK 23503 → conflict; not_found', async () => {
+  it('с заявками → conflict с количеством; без заявок → delete + аудит; FK 23503 → conflict; not_found', async () => {
     quiet()
     const busy = setup({}, 3)
     expect(await busy.uc.deleteLink('l1', actor)).toMatchObject({ ok: false, code: 'conflict', message: 'Посилання має 3 заявок — вимкніть його замість видалення' })
@@ -121,7 +121,7 @@ describe('deleteLink', () => {
 })
 
 describe('listLinks / listRefs / getStats', () => {
-  it('повертають дані репозиторію; помилка → failed; статистика агрегується від Clock', async () => {
+  it('возвращают данные репозитория; ошибка → failed; статистика агрегируется от Clock', async () => {
     quiet()
     const { uc } = setup()
     expect((await uc.listLinks()).ok).toBe(true)
@@ -134,15 +134,15 @@ describe('listLinks / listRefs / getStats', () => {
   })
 })
 
-describe('вікно first-touch-атрибуції', () => {
-  it('get: відсутнє/невалідне → дефолт 90 з пресетами й межами; збережене → значення', async () => {
+describe('окно first-touch-атрибуции', () => {
+  it('get: отсутствует/невалидно → дефолт 90 с пресетами и границами; сохранённое → значение', async () => {
     const { uc } = setup()
     expect(await uc.getAttributionWindow()).toEqual({ ok: true, value: { days: 90, defaultDays: 90, presets: [14, 30, 60, 90, 180, 365], min: 1, max: 400 } })
     expect((await setup({ windowValue: '30' }).uc.getAttributionWindow())).toMatchObject({ ok: true, value: { days: 30 } })
     expect((await setup({ windowValue: '999' }).uc.getAttributionWindow())).toMatchObject({ ok: true, value: { days: 90 } })
   })
 
-  it('set: ціле 1–400 → сценарій налаштувань з ключем referral_attribution_days; поза межами → invalid без запису', async () => {
+  it('set: целое 1–400 → сценарий настроек с ключом referral_attribution_days; вне границ → invalid без записи', async () => {
     const { uc, updateSettings } = setup()
     expect(await uc.setAttributionWindow({ days: 180 }, actor)).toMatchObject({ ok: true, value: { days: 180 } })
     expect(updateSettings).toHaveBeenCalledWith({ items: [{ key: 'referral_attribution_days', value: 180, type: 'number' }] }, actor)

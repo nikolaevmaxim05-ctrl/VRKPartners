@@ -29,7 +29,7 @@ function setup(stored: string | null = null, over: Record<string, unknown> = {})
 }
 
 describe('getEvents', () => {
-  it('без збереженого конфігу → реєстр + дефолти (усе ввімкнено)', async () => {
+  it('без сохранённого конфига → реестр + дефолты (всё включено)', async () => {
     const { uc, settings } = setup(null)
     const r = await uc.getEvents()
     expect(r.registry).toBe(ANALYTICS_REGISTRY)
@@ -38,7 +38,7 @@ describe('getEvents', () => {
     expect(settings.get).toHaveBeenCalledWith(ANALYTICS_EVENTS_SETTING_KEY)
   })
 
-  it('збережене перекриває дефолт лише для своїх ключів; невідомі ключі відкидаються', async () => {
+  it('сохранённое перекрывает дефолт только для своих ключей; неизвестные ключи отбрасываются', async () => {
     const stored = JSON.stringify({ [KEY]: { enabled: false, eventNames: ['my_cta', 'my_cta', 'Bad Name'] }, bogus_key: { enabled: false } })
     const { uc } = setup(stored)
     const r = await uc.getEvents()
@@ -48,12 +48,12 @@ describe('getEvents', () => {
     expect(Object.keys(r.events)).toHaveLength(ANALYTICS_REGISTRY.length)
   })
 
-  it('легасі-формат { eventName } читається', async () => {
+  it('легаси-формат { eventName } читается', async () => {
     const { uc } = setup(JSON.stringify({ [KEY]: { eventName: 'legacy_name' } }))
     expect((await uc.getEvents()).events[KEY]).toEqual({ enabled: true, eventNames: ['legacy_name'], eventName: 'legacy_name' })
   })
 
-  it('битий JSON у БД → дефолти, без падіння', async () => {
+  it('битый JSON в БД → дефолты, без падения', async () => {
     quiet()
     const { uc } = setup('{not json')
     expect((await uc.getEvents()).events).toEqual(getDefaultAnalyticsEvents())
@@ -61,7 +61,7 @@ describe('getEvents', () => {
 })
 
 describe('patchEvents', () => {
-  it('невалідне тіло → invalid, нічого не пишеться і кеш не скидається', async () => {
+  it('невалидное тело → invalid, ничего не пишется и кэш не сбрасывается', async () => {
     const { uc, settings, cache, audit } = setup()
     expect(await uc.patchEvents({ events: 'str' }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Поле events має бути обʼєктом' })
     expect(await uc.patchEvents({ events: { unknown_point: { enabled: true } } }, actor)).toMatchObject({ ok: false, code: 'invalid', message: 'Невідома точка взаємодії: unknown_point' })
@@ -73,7 +73,7 @@ describe('patchEvents', () => {
     expect(audit.record).not.toHaveBeenCalled()
   })
 
-  it('валідний патч → мерж зі збереженим у site_settings.analytics_events (type json, актор, годинник) + invalidate + audit', async () => {
+  it('валидный патч → мерж с сохранённым в site_settings.analytics_events (type json, актор, часы) + invalidate + audit', async () => {
     const stored = { [OTHER]: { enabled: false, eventNames: ['old_phone'], eventName: 'old_phone' } }
     const { uc, settings, cache, audit } = setup(JSON.stringify(stored))
     const r = await uc.patchEvents({ events: { [KEY]: { enabled: true, eventNames: ['new_cta', 'generate_lead'] } } }, actor)
@@ -93,7 +93,7 @@ describe('patchEvents', () => {
     expect(Object.keys(r.ok ? r.value.events : {})).toHaveLength(ANALYTICS_REGISTRY.length)
   })
 
-  it('легасі eventName у патчі → trim і один елемент масиву; порожній запис → точка мовчить', async () => {
+  it('легаси eventName в патче → trim и один элемент массива; пустая запись → точка молчит', async () => {
     const { uc, settings } = setup()
     await uc.patchEvents({ events: { [KEY]: { enabled: true, eventName: '  solo ' }, [OTHER]: { enabled: false } } }, actor)
     const [rows] = settings.upsertMany.mock.calls[0] as unknown as [Array<{ value: string }>]
@@ -103,7 +103,7 @@ describe('patchEvents', () => {
     })
   })
 
-  it('events не передано → без запису й без audit, але кеш скидається; відповідь — поточний мерж', async () => {
+  it('events не передан → без записи и без audit, но кэш сбрасывается; ответ — текущий мерж', async () => {
     const { uc, settings, cache, audit } = setup(JSON.stringify({ [KEY]: { enabled: false } }))
     const r = await uc.patchEvents({}, actor)
     expect(r.ok).toBe(true)
@@ -113,7 +113,7 @@ describe('patchEvents', () => {
     expect(r.ok && r.value.events[KEY]).toEqual({ enabled: false, eventNames: [], eventName: KEY })
   })
 
-  it('помилка upsert → failed «Помилка сервера», без invalidate і audit', async () => {
+  it('ошибка upsert → failed «Помилка сервера», без invalidate и audit', async () => {
     quiet()
     const { uc, cache, audit } = setup(null, { upsertMany: vi.fn(async () => dbFail('boom')) })
     expect(await uc.patchEvents({ events: { [KEY]: { enabled: true } } }, actor)).toMatchObject({ ok: false, code: 'failed', message: 'Помилка сервера' })
