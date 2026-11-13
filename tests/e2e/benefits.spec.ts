@@ -1,22 +1,22 @@
-// Блок «Що ви отримуєте?» (2026-09-17, варіант D без закреслення): секція між #cases і #process,
-// h2 у порядку заголовків, N пунктів (порожній не виводиться), пункт меню веде на #benefits.
-// Анімація (уточнення власника 2026-09-17): частини пункту (номер → жовта → сіра) виїжджають зліва
-// скрабом по позиції — нижче лінії вводу зсунуті й прозорі, лінія пройшла — на місці, проміжний прогрес —
-// сіра відстає від жовтої, назад — знову зсунуті (показаний стан наздоганяє позицію з інерцією smoothMs); кінець сторінки (benefits — останній блок) — усе на
-// місці; «менше руху» і без JS — інлайн-стилів немає, усе видно; без горизонтального скролу в будь-якій
-// фазі на 320/360/390/430 (mobile) і 1440 (desktop). Контент — дефолти (герметично до правок клієнта).
+// Блок «Що ви отримуєте?» (2026-09-17, вариант D без зачёркивания): секция между #cases и #process,
+// h2 в порядке заголовков, N пунктов (пустой не выводится), пункт меню ведёт на #benefits.
+// Анимация (уточнение владельца 2026-09-17): части пункта (номер → жёлтая → серая) выезжают слева
+// скрабом по позиции — ниже линии ввода сдвинуты и прозрачны, линия прошла — на месте, промежуточный прогресс —
+// серая отстаёт от жёлтой, назад — снова сдвинуты (показанное состояние догоняет позицию с инерцией smoothMs); конец страницы (benefits — последний блок) — всё на
+// месте; «меньше движения» и без JS — инлайн-стилей нет, всё видно; без горизонтального скролла в любой
+// фазе на 320/360/390/430 (mobile) и 1440 (desktop). Контент — дефолты (герметично к правкам клиента).
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import { SLIDE_IN_DEFAULTS as P, slideDistance, smoothTransitionMs } from '../../src/core/domain/layout/slide-in'
 import { setContent, horizontalOverflow } from './helpers'
 
 const ITEMS = uk.benefits.items.filter((it) => it.title.trim())
-/** Повна тривалість переходу інерції + запас: після неї показаний стан дорівнює цільовому. */
+/** Полная длительность перехода инерции + запас: после неё показанное состояние равно целевому. */
 const SETTLE_MS = smoothTransitionMs(P.smoothMs) + 150
 
 type PartState = { o: number; x: number; inline: boolean }
 
-/** Стан частин пункту idx: opacity, translateX (px) з computed transform, чи є інлайн-стиль. */
+/** Состояние частей пункта idx: opacity, translateX (px) из computed transform, есть ли инлайн-стиль. */
 async function parts(page: Page, idx = 1): Promise<PartState[]> {
   return page.evaluate((idx) => {
     const li = document.querySelectorAll<HTMLElement>('#benefits [data-slide-in]')[idx]!
@@ -27,7 +27,7 @@ async function parts(page: Page, idx = 1): Promise<PartState[]> {
   }, idx)
 }
 
-/** Ставить верх пункту idx на frac висоти вьюпорту й чекає, поки частини доїдуть (перехід інерції). */
+/** Ставит верх пункта idx на frac высоты вьюпорта и ждёт, пока части доедут (переход инерции). */
 async function placeItem(page: Page, idx: number, frac: number) {
   await page.evaluate(
     ({ idx, frac }) => {
@@ -40,7 +40,7 @@ async function placeItem(page: Page, idx: number, frac: number) {
   await page.waitForTimeout(SETTLE_MS)
 }
 
-/** Чекає гідрації ефекту: клас js-slide-in ставить інлайн-скрипт ще до гідрації, а інлайн-стилі частин пише лише JS. */
+/** Ждёт гидрации эффекта: класс js-slide-in ставит инлайн-скрипт ещё до гидрации, а инлайн-стили частей пишет только JS. */
 async function ready(page: Page) {
   await page.waitForFunction(() => document.documentElement.classList.contains('js-slide-in'))
   await page.waitForFunction(() => document.querySelector<HTMLElement>('#benefits [data-slide-part]')?.style.opacity !== '')
@@ -61,7 +61,7 @@ test('секція на місці, пункти й меню; порядок с�
   await expect(section.locator('h2')).toHaveText(uk.benefits.title)
   await expect(section.locator('ol > li')).toHaveCount(ITEMS.length)
   await expect(section.locator('ol')).toHaveAttribute('data-items', String(ITEMS.length))
-  // Кожен пункт: жовта частина + підпис «замість» + сіра частина; три частини виїзду.
+  // Каждый пункт: жёлтая часть + подпись «замість» + серая часть; три части выезда.
   for (let i = 0; i < ITEMS.length; i++) {
     const li = section.locator('ol > li').nth(i)
     await expect(li).toContainText(ITEMS[i].title)
@@ -73,7 +73,7 @@ test('секція на місці, пункти й меню; порядок с�
   const ids = await page.evaluate(() => Array.from(document.querySelectorAll('main section')).map((s) => s.id))
   expect(ids.indexOf('benefits')).toBe(ids.indexOf('cases') + 1)
   expect(ids.indexOf('process')).toBe(ids.indexOf('benefits') + 1)
-  // Пункт меню (шапка + футер) веде на якір секції.
+  // Пункт меню (шапка + футер) ведёт на якорь секции.
   await expect(page.locator('header nav a[href="#benefits"]').filter({ hasText: uk.nav.benefits }).first()).toHaveCount(1)
   await expect(page.locator('footer nav a[href="#benefits"]')).toHaveCount(1)
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
@@ -84,7 +84,7 @@ test('скраб: нижче лінії — зсунуті й прозорі; п
   await ready(page)
   const d = await distance(page)
 
-  // Пункт нижче лінії вводу: усі частини прозорі й зсунуті на відстань виїзду.
+  // Пункт ниже линии ввода: все части прозрачны и сдвинуты на расстояние выезда.
   await placeItem(page, 1, P.enterLine + 0.05)
   let s = await parts(page)
   expect(s).toHaveLength(3)
@@ -95,7 +95,7 @@ test('скраб: нижче лінії — зсунуті й прозорі; п
   }
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
-  // Проміжний прогрес (половина шляху): сходинки — номер ≥ жовта > сіра; сіра ще зсунута.
+  // Промежуточный прогресс (половина пути): ступеньки — номер ≥ жёлтая > серая; серая ещё сдвинута.
   await placeItem(page, 1, P.enterLine - 0.5 * P.band)
   s = await parts(page)
   expect(s[0].o).toBeGreaterThanOrEqual(s[1].o)
@@ -104,7 +104,7 @@ test('скраб: нижче лінії — зсунуті й прозорі; п
   expect(s[2].x).toBeLessThan(s[1].x)
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
-  // Лінія пройшла пункт на весь шлях: усе на місці.
+  // Линия прошла пункт на весь путь: всё на месте.
   await placeItem(page, 1, P.enterLine - P.band - 0.05)
   s = await parts(page)
   for (const p of s) {
@@ -113,7 +113,7 @@ test('скраб: нижче лінії — зсунуті й прозорі; п
   }
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
-  // Назад — чистий скраб по позиції: знову зсунуті й прозорі.
+  // Назад — чистый скраб по позиции: снова сдвинуты и прозрачны.
   await placeItem(page, 1, P.enterLine + 0.05)
   s = await parts(page)
   for (const p of s) {
@@ -128,7 +128,7 @@ test('кінець сторінки: benefits — останній блок → 
   await ready(page)
   const ids = await page.evaluate(() => Array.from(document.querySelectorAll('main section')).map((s) => s.id))
   expect(ids[ids.length - 1]).toBe('benefits')
-  // Двічі: висота сторінки осідає після завантаження шрифтів — друга прокрутка ловить справжній низ.
+  // Дважды: высота страницы оседает после загрузки шрифтов — вторая прокрутка ловит настоящий низ.
   for (let k = 0; k < 2; k++) {
     await page.evaluate(() => {
       document.documentElement.style.scrollBehavior = 'auto'

@@ -1,5 +1,5 @@
-// Приховування блоків, включно з першим екраном (розділ 9): приховане не в DOM, посилання на
-// прихований блок не виводяться ніде, h1 переходить до першого видимого блоку.
+// Скрытие блоков, включая первый экран (раздел 9): скрытое не в DOM, ссылки на
+// скрытый блок не выводятся нигде, h1 переходит к первому видимому блоку.
 import { test, expect } from '@playwright/test'
 import { setContent } from './helpers'
 
@@ -12,7 +12,7 @@ test('приховані hero, usp і faq: секцій немає в DOM, ме�
   await expect(page.locator('#services')).toHaveCount(1)
   await expect(page.locator('h1')).toHaveCount(1)
   await expect(page.locator('#about, #services').first()).toBeVisible()
-  // Перший видимий блок (about прихований у проді — тут дефолт hidden: [] ⊕ наші правки → about видимий) несе h1.
+  // Первый видимый блок (about скрыт в проде — здесь дефолт hidden: [] ⊕ наши правки → about видим) несёт h1.
   const h1Section = await page.locator('h1').evaluate((el) => el.closest('section')?.id ?? null)
   expect(['about', 'services']).toContain(h1Section)
   await expect(page.locator('header nav a[href="#usp"], header nav a[href="/#usp"]')).toHaveCount(0)

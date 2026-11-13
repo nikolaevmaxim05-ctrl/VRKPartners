@@ -1,5 +1,5 @@
-// Хелпери e2e: контент поверх дефолтів (cookie або файл — як у розділі 19), стрес-тексти за
-// лімітами полів (розділ 12), перевірки переповнення.
+// Хелперы e2e: контент поверх дефолтов (cookie или файл — как в разделе 19), стресс-тексты по
+// лимитам полей (раздел 12), проверки переполнения.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,7 +10,7 @@ import { fieldLimit, fieldKind, TECHNICAL_KEYS } from '../../src/core/domain/con
 
 const HOST = '127.0.0.1'
 
-/** Кладе правки контенту в cookie (малі) або у файл tmp (великі), як читає i18n/request.ts. */
+/** Кладёт правки контента в cookie (малые) или в файл tmp (большие), как читает i18n/request.ts. */
 export async function setContent(context: BrowserContext, overrides: unknown, name = 'e2e'): Promise<void> {
   const json = JSON.stringify(overrides)
   let value: string
@@ -27,7 +27,7 @@ export async function setContent(context: BrowserContext, overrides: unknown, na
 
 export type StressKind = 'word' | 'stream'
 
-/** Найгірший текст заданої довжини: одне нерозривне слово або суцільний потік слів. */
+/** Наихудший текст заданной длины: одно неразрывное слово или сплошной поток слов. */
 export function stressText(limit: number, kind: StressKind): string {
   const n = Math.max(1, limit)
   if (kind === 'word') return 'Ж'.repeat(n)
@@ -44,8 +44,8 @@ export function stressText(limit: number, kind: StressKind): string {
 }
 
 /**
- * Правки для КОЖНОГО текстового поля сторінки: значення максимальної довжини за лімітом типу.
- * Посилання/картинки/іконки/технічні ключі не чіпаємо; масиви лишаємо тієї ж довжини.
+ * Правки для КАЖДОГО текстового поля страницы: значение максимальной длины по лимиту типа.
+ * Ссылки/картинки/иконки/технические ключи не трогаем; массивы оставляем той же длины.
  */
 export function stressOverrides(kind: StressKind): Record<string, unknown> {
   const out: Record<string, unknown> = {}
@@ -72,7 +72,7 @@ export function stressOverrides(kind: StressKind): Record<string, unknown> {
   return out
 }
 
-/** Горизонтальний скрол сторінки (розділ 12, «скан переповнення»). */
+/** Горизонтальный скролл страницы (раздел 12, «скан переполнения»). */
 export async function horizontalOverflow(page: Page): Promise<number> {
   return page.evaluate(() => {
     const d = document.documentElement
@@ -80,14 +80,14 @@ export async function horizontalOverflow(page: Page): Promise<number> {
   })
 }
 
-/** Елементи, які вилізли за правий/лівий край вікна (текстові вузли в main + шапка/футер). */
+/** Элементы, вылезшие за правый/левый край окна (текстовые узлы в main + шапка/футер). */
 export async function overflowingElements(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const out: string[] = []
     const vw = document.documentElement.clientWidth
     const els = document.querySelectorAll<HTMLElement>('main *, header *, footer *')
-    // Обрізані/прокручувані контейнери (hidden/clip/auto/scroll) не дають вмісту вилізти за вікно:
-    // горизонтальний трек (карусель послуг) тримає картки поза екраном навмисно.
+    // Обрезанные/прокручиваемые контейнеры (hidden/clip/auto/scroll) не дают содержимому вылезти за окно:
+    // горизонтальный трек (карусель услуг) держит карточки за экраном намеренно.
     const clipped = (el: HTMLElement): boolean => {
       let cur = el.parentElement
       while (cur && cur !== document.body) {

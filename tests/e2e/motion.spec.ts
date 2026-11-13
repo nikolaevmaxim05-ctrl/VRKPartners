@@ -1,4 +1,4 @@
-// Режим «менше руху» (розділ 14): нічого не їде, елементи видимі, спливаючі шари відкриваються.
+// Режим «меньше движения» (раздел 14): ничего не едет, элементы видимы, всплывающие слои открываются.
 import { test, expect } from '@playwright/test'
 
 test.use({ reducedMotion: 'reduce' })
@@ -6,7 +6,7 @@ test.use({ reducedMotion: 'reduce' })
 test('reduced motion: контент видимий одразу, модалка відкривається й закривається', async ({ page }) => {
   await page.goto('/')
   await page.waitForTimeout(300)
-  // Стартовий стан видимий; після прокрутки до елемента він стає видимим миттєво (без руху).
+  // Стартовое состояние видимое; после прокрутки к элементу он становится видимым мгновенно (без движения).
   const opacities = await page.evaluate(async () => {
     const out: number[] = []
     for (const el of Array.from(document.querySelectorAll<HTMLElement>('main .reveal')).slice(0, 5)) {
@@ -19,7 +19,7 @@ test('reduced motion: контент видимий одразу, модалка
   expect(opacities.length).toBeGreaterThan(0)
   for (const o of opacities) expect(o).toBeGreaterThan(0.9)
 
-  // Нескінченні цикли (бігуча стрічка партнерів) зупинені.
+  // Бесконечные циклы (бегущая лента партнёров) остановлены.
   const marquee = await page.evaluate(() => {
     const t = document.querySelector<HTMLElement>('.partners-track')
     return t ? getComputedStyle(t).animationName : 'none'

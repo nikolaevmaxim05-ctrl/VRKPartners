@@ -1,6 +1,6 @@
-// Розгорання слів у пунктах Audit (крок 4 мобільних анімацій), 390×844 і 1440×900: слова вище лінії
-// читання яскраві, нижче — тьмяні; прокрутка назад — знову тьмяні (скраб); у самому низу документа
-// (блоки після audit приховано) — все яскраве; «менше руху» і без JS — усе яскраве, текст незмінний.
+// Разгорание слов в пунктах Audit (шаг 4 мобильных анимаций), 390×844 и 1440×900: слова выше линии
+// чтения яркие, ниже — тусклые; прокрутка назад — снова тусклые (скраб); в самом низу документа
+// (блоки после audit скрыты) — всё яркое; «меньше движения» и без JS — всё яркое, текст неизменен.
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import { WORD_REVEAL_DEFAULTS } from '../../src/core/domain/layout/word-reveal'
@@ -22,7 +22,7 @@ async function words(page: Page): Promise<WordInfo[]> {
 
 const hasHtmlClass = (page: Page) => page.evaluate(() => document.documentElement.classList.contains('js-word-reveal'))
 
-/** Прокрутка так, щоб точка сітки карток (частка її висоти: 0 — верх, 1 — низ) стала на лінію читання. */
+/** Прокрутка так, чтобы точка сетки карточек (доля её высоты: 0 — верх, 1 — низ) встала на линию чтения. */
 async function scrollGridToLine(page: Page, frac: number) {
   await page.evaluate(({ readingLine, frac }) => {
     document.documentElement.style.scrollBehavior = 'auto'
@@ -42,7 +42,7 @@ test('скраб: слова вище лінії яскраві, нижче — 
 
   expect(await hasHtmlClass(page)).toBe(true)
 
-  // Верх сітки трохи нижче лінії: усе (назви, описи, пункти) нижче лінії + смуги — невидиме (0).
+  // Верх сетки чуть ниже линии: всё (названия, описания, пункты) ниже линии + полосы — невидимо (0).
   await scrollGridToLine(page, -0.05)
   let w = await words(page)
   expect(w.length).toBeGreaterThan(60)
@@ -54,7 +54,7 @@ test('скраб: слова вище лінії яскраві, нижче — 
   for (const x of below) expect(x.opacity).toBeLessThan(0.02)
   expect(minOpacity).toBe(0)
 
-  // Низ сітки на лінії: усе, що вище лінії з урахуванням зсуву в рядку, — яскраве (назви, описи, пункти).
+  // Низ сетки на линии: всё, что выше линии с учётом сдвига в строке, — яркое (названия, описания, пункты).
   await scrollGridToLine(page, 1)
   w = await words(page)
   const above = w.filter((x) => x.top <= line - spread * vh - 2)
@@ -63,14 +63,14 @@ test('скраб: слова вище лінії яскраві, нижче — 
   expect(above.some((x) => x.kind === 'p')).toBe(true)
   expect(above.some((x) => x.kind === 'li')).toBe(true)
   for (const x of above) expect(x.opacity).toBeGreaterThan(0.95)
-  // Галочка першого пункту = яскравість першого слова.
+  // Галочка первого пункта = яркость первого слова.
   const check = await page.evaluate(() => {
     const li = document.querySelector<HTMLElement>('#audit [data-word-reveal] li')!
     return { check: Number(getComputedStyle(li.querySelector('[data-word-check]')!).opacity), word: Number(getComputedStyle(li.querySelector('[data-word]')!).opacity) }
   })
   expect(Math.abs(check.check - check.word)).toBeLessThan(0.05)
 
-  // Назад — усе нижче лінії знову тьмяне.
+  // Назад — всё ниже линии снова тусклое.
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.waitForTimeout(400)
   const back = await words(page)
@@ -81,7 +81,7 @@ test('скраб: слова вище лінії яскраві, нижче — 
 })
 
 test('кінець сторінки: audit — останній блок → при максимальній прокрутці все у вікні яскраве', async ({ page, context }) => {
-  // benefits (блок «Що ви отримуєте?», з 2026-09-17 між cases і process) теж ховаємо — audit має бути останнім.
+  // benefits (блок «Що ви отримуєте?», с 2026-09-17 между cases и process) тоже скрываем — audit должен быть последним.
   await setContent(context, { home: { hidden: ['cases', 'benefits', 'process', 'faq', 'finalCta'] } })
   await page.goto('/')
   await page.waitForTimeout(300)
@@ -92,11 +92,11 @@ test('кінець сторінки: audit — останній блок → п�
   await page.waitForTimeout(400)
   const w = await words(page)
   const vh = page.viewportSize()!.height
-  // Усе, що у вікні або вище нього, — яскраве (лінія опустилася до низу вьюпорту).
+  // Всё, что в окне или выше него, — яркое (линия опустилась до низа вьюпорта).
   const reachable = w.filter((x) => x.top < vh - 4)
   expect(reachable.length).toBeGreaterThan(20)
   for (const x of reachable) expect(x.opacity).toBeGreaterThan(0.95)
-  // На десктопі футер коротший за вікно — частина слів справді у вікні при максимальній прокрутці.
+  // На десктопе футер короче окна — часть слов действительно в окне при максимальной прокрутке.
   const inView = w.filter((x) => x.top >= 0 && x.top < vh - 4)
   if (page.viewportSize()!.width >= 1024) expect(inView.length).toBeGreaterThan(5)
 })

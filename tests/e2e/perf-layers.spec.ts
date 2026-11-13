@@ -1,21 +1,21 @@
-// Регресія «слабкі пристрої та вбудовані браузери» (2026-10-26): на мобільному вьюпорті 390×844 при
-// DPR 3 сторінка не тримає важких композитних шарів і фільтрів. Лише Chromium (CDP):
-//  • стилі: немає елементів із filter: blur > 40px, backdrop-filter, mask-image; нескінченних анімацій
-//    у режимі lite немає (вузький вьюпорт → html.lite, core/domain/layout/device-tier);
-//  • LayerTree: жоден композитний шар із filter/mask/backdrop не більший за 1.5 вьюпорту по стороні
-//    (плоскі шари контенту — секції, скрол-контейнери — браузер тайлить, їхній номінальний розмір не
-//    дорівнює памʼяті; шари з фільтром — окрема поверхня у повний розмір);
-//  • memory-infra: реальна памʼять тайлів композитора (cc/tile_memory) і GPU-текстур (gpu/shared_images)
-//    нижча за поріг. Пороги — за фактом «після» (≈ 12 МБ / ≈ 22 МБ) із запасом ≈ ×3; «до» на тому ж
-//    вьюпорті: 9 шарів ≈ 72 МБ кожен (blur 140px), оцінка ≈ 1360 МБ, 24 елементи з filter.
+// Регрессия «слабые устройства и встроенные браузеры» (2026-10-26): на мобильном вьюпорте 390×844 при
+// DPR 3 страница не держит тяжёлых композитных слоёв и фильтров. Только Chromium (CDP):
+//  • стили: нет элементов с filter: blur > 40px, backdrop-filter, mask-image; бесконечных анимаций
+//    в режиме lite нет (узкий вьюпорт → html.lite, core/domain/layout/device-tier);
+//  • LayerTree: ни один композитный слой с filter/mask/backdrop не больше 1.5 вьюпорта по стороне
+//    (плоские слои контента — секции, скролл-контейнеры — браузер тайлит, их номинальный размер не
+//    равен памяти; слои с фильтром — отдельная поверхность в полный размер);
+//  • memory-infra: реальная память тайлов композитора (cc/tile_memory) и GPU-текстур (gpu/shared_images)
+//    ниже порога. Пороги — по факту «после» (≈ 12 МБ / ≈ 22 МБ) с запасом ≈ ×3; «до» на том же
+//    вьюпорте: 9 слоёв ≈ 72 МБ каждый (blur 140px), оценка ≈ 1360 МБ, 24 элемента с filter.
 import { test, expect, type CDPSession, type Page } from '@playwright/test'
 
 const DPR = 3
 const VIEW = { width: 390, height: 844 }
 const MAX_BLUR_PX = 40
-/** Памʼять тайлів композитора, МБ (memory-infra cc/tile_memory). */
+/** Память тайлов композитора, МБ (memory-infra cc/tile_memory). */
 const MAX_TILE_MB = 40
-/** GPU-текстури (memory-infra gpu/shared_images), МБ. */
+/** GPU-текстуры (memory-infra gpu/shared_images), МБ. */
 const MAX_GPU_IMAGES_MB = 64
 
 test.use({ deviceScaleFactor: DPR, viewport: VIEW })
@@ -93,7 +93,7 @@ async function styleStats(page: Page) {
   })
 }
 
-/** memory-infra: памʼять тайлів композитора та GPU-текстур, МБ (сума по процесах). */
+/** memory-infra: память тайлов композитора и GPU-текстур, МБ (сумма по процессам). */
 async function memoryMB(cdp: CDPSession): Promise<{ tile: number; gpuImages: number }> {
   const events: Array<{ ph?: string; args?: { dumps?: { allocators?: Record<string, { attrs?: Record<string, { value?: string }> }> } } }> = []
   const onData = (e: { value: typeof events }) => events.push(...e.value)

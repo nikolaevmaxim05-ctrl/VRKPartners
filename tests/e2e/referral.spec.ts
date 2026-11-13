@@ -1,7 +1,7 @@
-// Реферальна атрибуція на публічному сайті (відхилення 11, first-touch): /r/<code> → 302 на
-// /?ref=<code> зі збереженням UTM, HttpOnly-cookie lead_ref зі СПИСКОМ касань (v2_<code>.<ts>_…; не
-// видна в document.cookie, але йде в запиті), тіло заявки несе refTouches (дзеркало localStorage),
-// нова вкладка того ж контексту теж несе cookie. /api/leads стабиться — заявка в БД не створюється.
+// Реферальная атрибуция на публичном сайте (отклонение 11, first-touch): /r/<code> → 302 на
+// /?ref=<code> с сохранением UTM, HttpOnly-cookie lead_ref со СПИСКОМ касаний (v2_<code>.<ts>_…; не
+// видна в document.cookie, но идёт в запросе), тело заявки несёт refTouches (зеркало localStorage),
+// новая вкладка того же контекста тоже несёт cookie. /api/leads стабится — заявка в БД не создаётся.
 import { test, expect } from '@playwright/test'
 
 const CODE = 'e2eabc12'
@@ -28,10 +28,10 @@ test('/r/<code>: 302 на головну з ref і UTM, cookie HttpOnly, зая�
   expect(ref!.path).toBe('/')
   expect(ref!.expires * 1000 - Date.now()).toBeGreaterThan(390 * 24 * 3600 * 1000)
   expect(await page.evaluate(() => document.cookie), 'HttpOnly — не видна скрипту').not.toContain('lead_ref')
-  // Дзеркало пише useEffect після гідрації — чекаємо, а не читаємо одразу після навігації.
+  // Зеркало пишет useEffect после гидрации — ждём, а не читаем сразу после навигации.
   await expect.poll(() => page.evaluate(() => localStorage.getItem('lead_ref') ?? ''), { message: 'дзеркало в localStorage', timeout: 5000 }).toContain(CODE)
 
-  // Відправка форми: заголовок cookie і поле ref у тілі.
+  // Отправка формы: заголовок cookie и поле ref в теле.
   await page.locator('#top button').first().click()
   const dialog = page.locator('[role="dialog"]')
   await expect(dialog).toBeVisible()
@@ -46,7 +46,7 @@ test('/r/<code>: 302 на головну з ref і UTM, cookie HttpOnly, зая�
   expect(touches.map((t) => t.code)).toEqual([CODE])
   expect(Math.abs(touches[0].at - Date.now() / 1000)).toBeLessThan(120)
 
-  // Нова вкладка того самого контексту — cookie на місці навіть без ?ref.
+  // Новая вкладка того же контекста — cookie на месте даже без ?ref.
   const page2 = await context.newPage()
   await page2.route('**/api/leads', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }))
   await page2.goto('/')
@@ -79,7 +79,7 @@ test('first-touch: /r/A, потім /r/B → cookie несе обидва кас
   const again = await readTouches()
   expect(again.map((t) => t.code)).toEqual([CODE, 'zzzz9999'])
   expect(again[0].at, 'повторний перехід за A не змінює ts').toBe(first[0].at)
-  // Дзеркало і тіло форми — той самий список.
+  // Зеркало и тело формы — тот же список.
   await page.locator('#top button').first().click()
   const dialog = page.locator('[role="dialog"]')
   await dialog.locator('input[id$="-name"]').fill('Тест Тестенко')
@@ -90,7 +90,7 @@ test('first-touch: /r/A, потім /r/B → cookie несе обидва кас
   ])
   const body = (req.postDataJSON() as { refTouches?: { code: string; at: number }[] }).refTouches ?? []
   expect(body.map((t) => t.code)).toEqual([CODE, 'zzzz9999'])
-  // Дзеркало ставить власну (клієнтську) мітку часу — може відставати від cookie на секунду; сервер бере мінімум за кодом.
+  // Зеркало ставит собственную (клиентскую) метку времени — может отставать от cookie на секунду; сервер берёт минимум по коду.
   expect(Math.abs(body[0].at - first[0].at)).toBeLessThanOrEqual(2)
   await context.clearCookies()
   let ref: { value: string } | undefined

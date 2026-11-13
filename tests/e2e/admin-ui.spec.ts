@@ -1,6 +1,6 @@
-// UI-регрес адмінки (1440 і 390): кожна сторінка відкривається без помилок консолі і без 4xx/5xx у
-// мережі, заголовок видимий, тексти uk-UA, вхід/вихід, клавіатурна навігація формою входу,
-// редирект без права на розділ. Нічого не змінює в БД. Пропускається без креденшалів тестового адміна.
+// UI-регресс админки (1440 и 390): каждая страница открывается без ошибок консоли и без 4xx/5xx в
+// сети, заголовок видим, тексты uk-UA, вход/выход, клавиатурная навигация по форме входа,
+// редирект без права на раздел. Ничего не меняет в БД. Пропускается без креденшалов тестового админа.
 import { test, expect, type Page } from '@playwright/test'
 import { ENV, hasAdminCreds, probeLogin } from './admin-helpers'
 
@@ -20,7 +20,7 @@ const PAGES: [string, RegExp][] = [
   ['/admin/audit-log', /Журнал/],
 ]
 
-/** Кирилиця українська, без російських літер (ы, э, ъ, ё) у видимому тексті адмінки. */
+/** Кириллица украинская, без русских букв (ы, э, ъ, ё) в видимом тексте админки. */
 const RU_ONLY = /[ыэъё]/i
 
 test.beforeEach(async ({}, testInfo) => {
@@ -45,14 +45,14 @@ test('вхід: невірний пароль → повідомлення бе�
   await page.locator('button[type="submit"]').click()
   await expect(page.getByText(/Невірний email або пароль/)).toBeVisible()
   expect(page.url()).toContain('/admin/login')
-  // Клавіатурою: фокус на email, Tab до пароля, Enter відправляє.
+  // Клавиатурой: фокус на email, Tab до пароля, Enter отправляет.
   await page.locator('input[type="email"]').focus()
   await page.keyboard.press('Tab')
   await expect(page.locator('input[type="password"]')).toBeFocused()
   await page.locator('input[type="password"]').fill(ENV.password!)
   await page.keyboard.press('Enter')
   await page.waitForURL(/\/admin(\/)?$/, { timeout: 30_000 })
-  // Залогінений на /admin/login → редирект на /admin.
+  // Залогиненный на /admin/login → редирект на /admin.
   await page.goto('/admin/login')
   await page.waitForURL(/\/admin(\/)?$/)
 })
@@ -101,7 +101,7 @@ test('редактор контенту: кнопка збереження вн�
   await page.goto('/admin/content')
   await expect(page.locator('h1')).toHaveText('Контент сайту')
   await expect(page.getByRole('button', { name: /Зберегти зміни/ }), 'без змін кнопки немає').toHaveCount(0)
-  // Кнопка збереження зʼявляється лише за наявності змін: відкриваємо блок, правимо перше поле.
+  // Кнопка сохранения появляется только при наличии изменений: открываем блок, правим первое поле.
   await page.getByRole('button', { name: /Перший екран/ }).first().click()
   const input = page.locator('main input:not([type="number"]):not([type="hidden"]), main textarea').first()
   await input.fill('Ж'.repeat(120))
@@ -113,7 +113,7 @@ test('редактор контенту: кнопка збереження вн�
   expect(box!.x + box!.width, 'кнопка праворуч').toBeGreaterThan(vw.width * 0.5)
   expect(box!.y + box!.height, 'кнопка внизу (закріплена)').toBeGreaterThan(vw.height * 0.6)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
-  // Нічого не зберігаємо: перезавантаження скидає незбережені зміни.
+  // Ничего не сохраняем: перезагрузка сбрасывает несохранённые изменения.
   await page.reload()
   await expect(page.getByRole('button', { name: /Зберегти зміни/ })).toHaveCount(0)
 })

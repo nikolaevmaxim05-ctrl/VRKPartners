@@ -1,10 +1,10 @@
-// Секція послуг. Десктоп (1440×900): 3 картки + «Показати більше», превью після затримки наведення
-// зʼявляється НА МІСЦІ і не виходить за вікно; клік по мініатюрі нічого не відкриває.
-// Мобільний (390×844, touch; крок 3 мобільних анімацій — горизонтальна ЦИКЛІЧНА карусель, рішення власника
-// 2026-09-15): N реальних карток + 2K клонів-буферів (aria-hidden, поза табуляцією) у треку зі snap на всю
-// ширину екрана; старт — перша реальна по центру; крок за останню/першу → після телепорту по центру реальна
-// картка тієї ж послуги; точки за модулем N; постійна маска країв; кнопки «Показати більше» немає; сторінка
-// без горизонтального скролу; тап по мініатюрі — лайтбокс (крестик/фон/Escape, фокус); «менше руху» — те саме.
+// Секция услуг. Десктоп (1440×900): 3 карточки + «Показати більше», превью после задержки наведения
+// появляется НА МЕСТЕ и не выходит за окно; клик по миниатюре ничего не открывает.
+// Мобильный (390×844, touch; шаг 3 мобильных анимаций — горизонтальная ЦИКЛИЧНАЯ карусель, решение владельца
+// 2026-09-15): N реальных карточек + 2K клонов-буферов (aria-hidden, вне табуляции) в треке со snap на всю
+// ширину экрана; старт — первая реальная по центру; шаг за последнюю/первую → после телепорта по центру реальная
+// карточка той же услуги; точки по модулю N; постоянная маска краёв; кнопки «Показати більше» нет; страница
+// без горизонтального скролла; тап по миниатюре — лайтбокс (крестик/фон/Escape, фокус); «меньше движения» — то же.
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import { horizontalOverflow } from './helpers'
@@ -131,7 +131,7 @@ async function trackState(page: Page) {
   })
 }
 
-/** Крок на один слайд (миттєво) і пауза на телепорт (scrollend / таймер). */
+/** Шаг на один слайд (мгновенно) и пауза на телепорт (scrollend / таймер). */
 async function stepSlides(page: Page, dir: number) {
   await page.evaluate((dir) => {
     const t = document.querySelector<HTMLElement>('#services .services-track')!
@@ -154,7 +154,7 @@ function mobileTests() {
     await expect(track).toHaveCount(1)
     await expect(track).toHaveAttribute('aria-label', uk.services.title)
     await expect(track).toHaveAttribute('data-loop', '1')
-    // N реальних + 2K клонів; клони aria-hidden, кнопка лайтбокса в клоні поза табуляцією.
+    // N реальных + 2K клонов; клоны aria-hidden, кнопка лайтбокса в клоне вне табуляции.
     await expect(page.locator('#services article:not([data-clone])')).toHaveCount(ITEM_COUNT)
     await expect(page.locator('#services article[data-clone]')).toHaveCount(4)
     await expect(page.locator('#services button', { hasText: uk.services.showMore })).toBeHidden()
@@ -164,11 +164,11 @@ function mobileTests() {
     expect(s.clones.every((c) => c.ariaHidden === 'true' && c.tab === '-1')).toBe(true)
     expect(s.clones.map((c) => `${c.side}:${c.slide}`).sort()).toEqual(['left:7', 'left:8', 'right:0', 'right:1'])
     expect(s.snap).toContain('x')
-    // Вузький вьюпорт → html.lite (2026-10-26): маски країв немає (композитний ефект на скрол-контейнері).
+    // Узкий вьюпорт → html.lite (2026-10-26): маски краёв нет (композитный эффект на скролл-контейнере).
     expect(s.hasMask).toBe(false)
     expect(s.trackLeft).toBeCloseTo(0, 0)
     expect(s.trackRight).toBeCloseTo(s.vw, 0)
-    // Старт: перша РЕАЛЬНА картка по центру, активна точка — перша.
+    // Старт: первая РЕАЛЬНАЯ карточка по центру, активная точка — первая.
     expect(s.nearestSlide).toBe(0)
     expect(s.nearestIsClone).toBe(false)
     expect(Math.abs(s.nearestCenter - s.vw / 2)).toBeLessThanOrEqual(2)
@@ -176,7 +176,7 @@ function mobileTests() {
     expect(s.activeDot).toBe(0)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
 
-    // Крок вліво з першої → після телепорту по центру остання РЕАЛЬНА, точка N−1.
+    // Шаг влево с первой → после телепорта по центру последняя РЕАЛЬНАЯ, точка N−1.
     await stepSlides(page, -1)
     s = await trackState(page)
     expect(s.nearestSlide).toBe(ITEM_COUNT - 1)
@@ -185,14 +185,14 @@ function mobileTests() {
     expect(s.activeDot).toBe(ITEM_COUNT - 1)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
 
-    // Крок вправо з останньої → перша, точка 0.
+    // Шаг вправо с последней → первая, точка 0.
     await stepSlides(page, 1)
     s = await trackState(page)
     expect(s.nearestSlide).toBe(0)
     expect(s.nearestIsClone).toBe(false)
     expect(s.activeDot).toBe(0)
 
-    // Середина треку — теж без переповнення.
+    // Середина трека — тоже без переполнения.
     await stepSlides(page, 1)
     await stepSlides(page, 1)
     s = await trackState(page)
@@ -200,7 +200,7 @@ function mobileTests() {
     expect(s.activeDot).toBe(2)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
 
-    // З останньої клік по точці 0 — один крок вправо (до клона), потім телепорт на реальну першу.
+    // С последней клик по точке 0 — один шаг вправо (до клона), затем телепорт на реальную первую.
     await stepSlides(page, -3)
     s = await trackState(page)
     expect(s.nearestSlide).toBe(ITEM_COUNT - 1)
@@ -208,8 +208,8 @@ function mobileTests() {
     await page.locator('#services [data-carousel-dots] > button').nth(0).evaluate((el) => (el as HTMLElement).click())
     await page.waitForTimeout(120)
     const during = await trackState(page)
-    // Рух у бік збільшення scrollLeft (вправо на один слайд), а не назад через весь трек. У режимі
-    // «менше руху» прокрутка миттєва і телепорт уже відбувся — перевіряємо лише кінцевий стан.
+    // Движение в сторону увеличения scrollLeft (вправо на один слайд), а не назад через весь трек. В режиме
+    // «меньше движения» прокрутка мгновенная и телепорт уже произошёл — проверяем только конечное состояние.
     const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
     if (!reduced) expect(during.scrollLeft).toBeGreaterThanOrEqual(before - 1)
     await track.evaluate(async (el) => {
@@ -227,7 +227,7 @@ function mobileTests() {
     expect(s.activeDot).toBe(0)
     expect(s.pageOverflow).toBeLessThanOrEqual(0)
 
-    // Клавіатура: стрілка вліво з першої — snap на клон останньої, телепорт → по центру реальна остання.
+    // Клавиатура: стрелка влево с первой — snap на клон последней, телепорт → по центру реальная последняя.
     await track.focus()
     await page.keyboard.press('ArrowLeft')
     await page.waitForTimeout(900)
@@ -252,7 +252,7 @@ function mobileTests() {
     await trigger.tap()
     await expect(dialog).toBeVisible()
     await expect(dialog).toHaveAttribute('aria-modal', 'true')
-    // Портал у body: лайтбокс не всередині треку (маска/overflow треку його не ріжуть).
+    // Портал в body: лайтбокс не внутри трека (маска/overflow трека его не режут).
     expect(await page.evaluate(() => document.querySelector('[data-lightbox]')?.parentElement === document.body)).toBe(true)
     expect(await dialog.locator('img').getAttribute('src')).toContain(encodeURIComponent(full))
     await expect(page.locator('[data-lightbox] button')).toBeFocused()

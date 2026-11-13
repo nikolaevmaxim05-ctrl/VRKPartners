@@ -1,9 +1,9 @@
-// API адмінки з сесією тестового адміна (розділи 5, 6, 9, 15, 16): матриця прав, CRUD-цикли
-// «створити → перевірити → видалити», воронка конверсій, редактор контенту з відкатом, журнал дій.
-// Проти ПРОДОВОЇ БД: усе створене має маркер [E2E] і прибирається в afterAll; site_content порівнюється
-// зі знімком до тестів. Без E2E_ADMIN_EMAIL/PASSWORD або без користувача в Auth — увесь файл пропускається.
-// Побічні ефекти з реальними відправками (Telegram-тест, інвайт, публічний приймач) — за окремими
-// env-прапорцями E2E_ALLOW_INTEGRATION_TESTS / E2E_ALLOW_INVITE (без них пропускаються).
+// API админки с сессией тестового админа (разделы 5, 6, 9, 15, 16): матрица прав, CRUD-циклы
+// «создать → проверить → удалить», воронка конверсий, редактор контента с откатом, журнал действий.
+// Против ПРОДОВОЙ БД: всё созданное имеет маркер [E2E] и убирается в afterAll; site_content сравнивается
+// со снимком до тестов. Без E2E_ADMIN_EMAIL/PASSWORD или без пользователя в Auth — весь файл пропускается.
+// Побочные эффекты с реальными отправками (Telegram-тест, инвайт, публичный приёмник) — за отдельными
+// env-флагами E2E_ALLOW_INTEGRATION_TESTS / E2E_ALLOW_INVITE (без них пропускаются).
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import {
@@ -57,7 +57,7 @@ test.afterAll(async () => {
     report.analytics_events_restored = error ? `ERR ${error.message}` : true
   }
   if (attributionDaysBefore !== undefined) {
-    // Вікно атрибуції: відновлюємо значення клієнта (або прибираємо ключ, якщо його не було).
+    // Окно атрибуции: восстанавливаем значение клиента (или убираем ключ, если его не было).
     const { error } = attributionDaysBefore === null
       ? await db().from('site_settings').delete().eq('key', 'referral_attribution_days')
       : await db().from('site_settings').upsert({ key: 'referral_attribution_days', value: attributionDaysBefore, type: 'number' }, { onConflict: 'key' })
@@ -69,7 +69,7 @@ test.afterAll(async () => {
   for (const [t, n] of Object.entries(leftovers)) expect(n, `залишки [E2E] у ${t}`).toBe(0)
 })
 
-// ── 1. Доступ і матриця прав ────────────────────────────────────────────────────────────────────
+// ── 1. Доступ и матрица прав ────────────────────────────────────────────────────────────────────
 const READ_ROUTES: [string, string[]][] = [
   ['/api/admin/leads', ['manage_leads', 'view_reports', 'export_data', 'manage_conversions']],
   ['/api/admin/lead-statuses', []],
@@ -143,7 +143,7 @@ test('1.3 деактивація мінімального користувача
   expect((await api2!.get('/api/admin/lead-statuses')).status()).toBe(200)
 })
 
-// ── 2. Ліди: список, фільтри, картка, PATCH, коментарі, кастомні поля, видалення, 404 ────────────
+// ── 2. Лиды: список, фильтры, карточка, PATCH, комментарии, кастомные поля, удаление, 404 ────────
 let leadA: { id: string; order_no: number }
 let leadB: { id: string; order_no: number }
 let stages: { id: string; name: string; is_initial: boolean; conversion_type: string | null; requires_amount: boolean; position: number }[]
@@ -169,7 +169,7 @@ test('2.1 список і фільтри: пошук за маркером, ст
   const initial = stages.find((s) => s.is_initial)!
   const byStatus = (await (await api.get(`/api/admin/leads?search=${encodeURIComponent(E2E_TAG)}&status_id=${initial.id}`)).json()) as { total: number }
   expect(byStatus.total).toBe(2)
-  // Межі дат сервер рахує за Києвом — беремо вікно ±1 день, щоб тест не залежав від часу доби.
+  // Границы дат сервер считает по Киеву — берём окно ±1 день, чтобы тест не зависел от времени суток.
   const dayFrom = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
   const dayTo = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
   const byDate = (await (await api.get(`/api/admin/leads?search=${encodeURIComponent(E2E_TAG)}&date_from=${dayFrom}&date_to=${dayTo}`)).json()) as { total: number }
@@ -216,7 +216,7 @@ test('2.2 PATCH: валідація (порожнє тіло, відʼємна �
   const sys = (await (await api.get(`/api/admin/leads/${leadA.id}/comments?type=system`)).json()) as { data: { content: string }[] }
   expect(sys.data.length, 'системний коментар про відповідального').toBeGreaterThanOrEqual(1)
 
-  // Кастомне поле select: значення поза опціями → 400; валідне → збережено; видалення визначення → значення зникає.
+  // Кастомное поле select: значение вне опций → 400; валидное → сохранено; удаление определения → значение исчезает.
   const cf = await api.post('/api/admin/custom-fields', { data: { name: `${E2E_TAG} Джерело`, field_key: 'e2e_source', type: 'select', options: ['A', 'B', ''] } })
   expect(cf.status(), await cf.text()).toBe(200)
   const field = ((await cf.json()) as { data: { id: string; options: string[] } }).data
@@ -246,14 +246,14 @@ test('2.3 видалення: неіснуючий id → 404, реальний 
   expect(del.status()).toBe(200)
   const { data } = await db().from('leads').select('id').eq('id', leadB.id)
   expect(data).toEqual([])
-  // Журнал пишеться після відповіді (after()) — чекаємо появи рядка.
+  // Журнал пишется после ответа (after()) — ждём появления строки.
   await expect.poll(async () => {
     const { data: audit } = await db().from('audit_log').select('action, resource').eq('user_id', selfId).gte('created_at', startIso).eq('action', 'lead.delete')
     return (audit ?? []).some((a) => a.resource === `leads/${leadB.id}`)
   }, { timeout: 10_000 }).toBe(true)
 })
 
-// ── 3. Воронка конверсій (розділ 6, Фаза 5 п. 1, ревью п. 1) ────────────────────────────────────
+// ── 3. Воронка конверсий (раздел 6, Фаза 5 п. 1, ревью п. 1) ────────────────────────────────────
 test('3.1 цільовий лід: enter → pending; exported → leave → RETRACT + retracted; resend/export-pending не перебивають; повторний enter → pending', async () => {
   const target = stages.find((s) => s.conversion_type === 'target_lead')!
   const work = stages.find((s) => !s.conversion_type && !s.is_initial) ?? stages.find((s) => s.is_initial)!
@@ -266,7 +266,7 @@ test('3.1 цільовий лід: enter → pending; exported → leave → RET
   const { data: hist } = await db().from('lead_status_history').select('to_status_id').eq('lead_id', leadA.id)
   expect(hist!.some((h) => h.to_status_id === target.id), 'історія стадій').toBe(true)
 
-  // Масове вивантаження: Sheets не налаштовано → 400, статус лишається pending.
+  // Массовая выгрузка: Sheets не настроен → 400, статус остаётся pending.
   const bulk = await api.post('/api/admin/conversions/export-pending')
   expect(bulk.status()).toBe(400)
   ;({ data: oc } = await db().from('offline_conversions').select('id, export_status, conversion_action').eq('lead_id', leadA.id).maybeSingle())
@@ -318,7 +318,7 @@ test('3.2 угода: сума → конверсія зі значенням; e
   expect(lead!.deal_amount, 'вихід з угоди обнуляє суму').toBeNull()
 })
 
-// ── 4. Стадії ───────────────────────────────────────────────────────────────────────────────────
+// ── 4. Стадии ───────────────────────────────────────────────────────────────────────────────────
 test('4 стадії: валідація, унікальність, стадія з лідом не видаляється, reorder, 404', async () => {
   expect((await api.post('/api/admin/lead-statuses', { data: { name: '' } })).status()).toBe(400)
   expect((await api.post('/api/admin/lead-statuses', { data: { name: `${E2E_TAG} x`, color: 'red' } })).status()).toBe(400)
@@ -333,7 +333,7 @@ test('4 стадії: валідація, унікальність, стадія
   expect((await api.patch(`/api/admin/lead-statuses/${stage.id}`, { data: { name: `${E2E_TAG} Стадія 2` } })).status()).toBe(200)
   expect((await api.patch(`/api/admin/lead-statuses/${NIL_UUID}`, { data: { name: 'x' } })).status()).toBe(404)
 
-  // Лід на стадії → видалення заборонено.
+  // Лид на стадии → удаление запрещено.
   expect((await api.patch(`/api/admin/leads/${leadA.id}`, { data: { status_id: stage.id } })).status()).toBe(200)
   const delBusy = await api.delete(`/api/admin/lead-statuses/${stage.id}`)
   expect(delBusy.status()).toBe(400)
@@ -343,7 +343,7 @@ test('4 стадії: валідація, унікальність, стадія
   const delInitial = await api.delete(`/api/admin/lead-statuses/${initial.id}`)
   expect(delInitial.status(), 'початкову стадію не видалити').toBe(400)
 
-  // Reorder: ті самі позиції існуючих + нова в кінці → 200; сміття → 400.
+  // Reorder: те же позиции существующих + новая в конце → 200; мусор → 400.
   const cur = ((await (await api.get('/api/admin/lead-statuses')).json()) as { data: { id: string; position: number }[] }).data
   const items = cur.map((s) => ({ id: s.id, position: s.position }))
   expect((await api.put('/api/admin/lead-statuses/reorder', { data: { items } })).status()).toBe(200)
@@ -355,7 +355,7 @@ test('4 стадії: валідація, унікальність, стадія
   expect(after.map((s) => [s.id, s.position])).toEqual(cur.filter((s) => s.id !== stage.id).map((s) => [s.id, s.position]))
 })
 
-// ── 4b. Реферальні посилання ────────────────────────────────────────────────────────────────────
+// ── 4b. Реферальные ссылки ──────────────────────────────────────────────────────────────────────
 test('4b реферальні посилання: валідація, створення з кодом сервера, 409 назва, код незмінний, 404, із заявкою не видаляється, статистика, довідник', async () => {
   expect((await api.post('/api/admin/referral-links', { data: { name: '' } })).status()).toBe(400)
   expect((await api.post('/api/admin/referral-links', { data: { name: 'x'.repeat(81) } })).status()).toBe(400)
@@ -373,7 +373,7 @@ test('4b реферальні посилання: валідація, створ
   expect(off.status(), await off.text()).toBe(200)
   expect(((await off.json()) as { data: { is_active: boolean; notes: string } }).data).toMatchObject({ is_active: false, notes: 'off' })
 
-  // Лід із посиланням → видалення заборонено, статистика бачить заявку.
+  // Лид со ссылкой → удаление запрещено, статистика видит заявку.
   const bind = await db().from('leads').update({ referral_link_id: link.id, referral_code: link.code }).eq('id', leadA.id)
   expect(bind.error).toBeNull()
   const del = await api.delete(`/api/admin/referral-links/${link.id}`)
@@ -381,7 +381,7 @@ test('4b реферальні посилання: валідація, створ
   expect(await del.text()).toContain('вимкніть')
   const stats = (await (await api.get('/api/admin/referral-links/stats')).json()) as { data: { link_id: string; total: number; last30: number }[]; truncated: boolean }
   expect(stats.data.find((s) => s.link_id === link.id)).toMatchObject({ total: 1, last30: 1 })
-  // Фільтр списку і картка: embed партнера.
+  // Фильтр списка и карточка: embed партнёра.
   const byLink = (await (await api.get(`/api/admin/leads?referral_link_id=${link.id}`)).json()) as { total: number; data: { id: string; referral_link: { name: string } | null }[] }
   expect(byLink.total).toBe(1)
   expect(byLink.data[0]).toMatchObject({ id: leadA.id, referral_link: { name: `${E2E_TAG} Партнер` } })
@@ -418,11 +418,11 @@ test('4c вікно атрибуції: GET дефолт/пресети, PATCH 1
     const audit = (await (await api.get('/api/admin/audit-log?page=1&limit=20')).json()) as { data: { action: string; new_value: unknown }[] }
     return audit.data.some((a) => a.action === 'settings.update' && JSON.stringify(a.new_value ?? {}).includes('referral_attribution_days'))
   }, { message: 'аудит settings.update з ключем вікна', timeout: 10_000 }).toBe(true)
-  // Повертаємо 90 для решти прогону (afterAll відновить значення клієнта).
+  // Возвращаем 90 для остатка прогона (afterAll восстановит значение клиента).
   expect((await api.patch('/api/admin/referral-links/settings', { data: { days: 90 } })).status()).toBe(200)
 })
 
-// ── 5. Ролі та користувачі ──────────────────────────────────────────────────────────────────────
+// ── 5. Роли и пользователи ──────────────────────────────────────────────────────────────────────
 test('5.1 ролі: створення з санітизацією прав, власну роль не змінити, системну не видалити, reorder, 404', async () => {
   const users = (await (await api.get('/api/admin/users')).json()) as { data: { id: string; email: string; role_id: string | null }[] }
   const me = users.data.find((u) => u.id === selfId)!
@@ -467,7 +467,7 @@ test('5.2 користувачі: самодеактивація і самови
   const minimal = roles.data.find((r) => r.name === 'e2e-minimal') ?? roles.data.find((r) => !r.is_system && r.permissions.length <= 1) ?? roles.data.find((r) => !r.is_system)!
   const inv = await api.post('/api/admin/users', { data: { email: process.env.E2E_INVITE_EMAIL, role_id: minimal.id } })
   if (inv.status() === 500) {
-    // Supabase Auth обмежує листи з вбудованого SMTP (кілька на годину): «email rate limit exceeded».
+    // Supabase Auth ограничивает письма со встроенного SMTP (несколько в час): «email rate limit exceeded».
     const { data: users } = await db().auth.admin.listUsers({ perPage: 1000 })
     const exists = users.users.some((u) => u.email === process.env.E2E_INVITE_EMAIL)
     test.skip(!exists, 'Supabase Auth: ліміт листів вичерпано (email rate limit exceeded) — повторити пізніше')
@@ -479,7 +479,7 @@ test('5.2 користувачі: самодеактивація і самови
   expect((await api.delete(`/api/admin/users/${u.id}`)).status()).toBe(200)
 })
 
-// ── 6. Контент: тексти, SEO, юр.документи, картинки ─────────────────────────────────────────────
+// ── 6. Контент: тексты, SEO, юр.документы, картинки ─────────────────────────────────────────────
 test('6.1 тексти: правка доїжджає до сайту, ліміти/чужий розділ/невідомий блок/telegram → 400, оптимістична блокировка 409, відкат побайтово', async () => {
   const got = (await (await api.get('/api/admin/content')).json()) as { messages: Record<string, unknown>; updatedAt: string | null }
   const original = JSON.parse(JSON.stringify(got.messages)) as Record<string, Record<string, unknown>>
@@ -519,7 +519,7 @@ test('6.1 тексти: правка доїжджає до сайту, лімі�
   (tooMany as Record<string, unknown>).faq = Array.from({ length: 51 }, () => ({ q: 'q', a: 'a' }))
   expect((await api.put('/api/admin/content', { data: { overrides: tooMany, baseUpdatedAt: updatedAt } })).status(), 'масив > 50').toBe(400)
 
-  // Приховування блоку benefits: зберігається, сайт без секції, відкат.
+  // Скрытие блока benefits: сохраняется, сайт без секции, откат.
   const hide = JSON.parse(JSON.stringify(original)) as Record<string, Record<string, unknown>>
   hide.home.hidden = Array.from(new Set([...((original.home.hidden as string[]) ?? []), 'benefits']))
   const h = await api.put('/api/admin/content', { data: { overrides: hide, baseUpdatedAt: updatedAt } })
@@ -586,9 +586,9 @@ test('6.3 завантаження картинок: svg і не-картинк�
   expect(objectPath, 'імʼя файлу генерується сервером').toMatch(/^\d+-[a-z0-9]{4,8}\.png$/)
 })
 
-// ── 7. Інтеграції, теги, налаштування, події аналітики ──────────────────────────────────────────
+// ── 7. Интеграции, теги, настройки, события аналитики ───────────────────────────────────────────
 test('7.1 інтеграції: список без секретів, невідомий ключ → 400, запис без ADMIN_ENCRYPTION_KEY → контрольована помилка, ключі Telegram не зачеплені', async () => {
-  // CSRF: мутація з чужого Origin → 403 навіть із сесією; свій Origin — проходить далі.
+  // CSRF: мутация с чужого Origin → 403 даже с сессией; свой Origin — проходит дальше.
   const foreign = await api.put('/api/admin/integrations/not_a_key', { data: { value: 'x' }, headers: { origin: 'https://evil.example' } })
   expect(foreign.status()).toBe(403)
   const own = await api.put('/api/admin/integrations/not_a_key', { data: { value: 'x' }, headers: { origin: 'http://127.0.0.1:3100' } })
@@ -671,14 +671,14 @@ test('7.4 події аналітики: GET, невідомий ключ → 40
   expect((await api.patch('/api/admin/analytics-events', { data: { events: { header_cta_click: { enabled: true, eventNames: ['a', 'b', 'c', 'd', 'e', 'f'] } } } })).status()).toBe(400)
   expect((await api.patch('/api/admin/analytics-events', { data: { events: { header_cta_click: { enabled: true, eventNames: ['Bad Name'] } } } })).status()).toBe(400)
   const forbidden = await api.patch('/api/admin/analytics-events', { data: { events: { header_cta_click: { enabled: true, eventNames: ['form_start'] } } } })
-  // Правило AGENTS.md/розділ 15: імена form_start/form_submit заборонені (виправлено 2026-09-18).
+  // Правило AGENTS.md/раздел 15: имена form_start/form_submit запрещены (исправлено 2026-09-18).
   expect(forbidden.status()).toBe(400)
   expect(await forbidden.text()).toContain('form_start')
 })
 
-// ── 8. Аналітика ────────────────────────────────────────────────────────────────────────────────
+// ── 8. Аналитика ────────────────────────────────────────────────────────────────────────────────
 test('8 аналітика: звіт по відомих лідах, значення вимірів, експорт CSV (екранування), невалідні дати → 400', async () => {
-  // Межі дат сервер рахує за Києвом — беремо вікно ±1 день, щоб тест не залежав від часу доби.
+  // Границы дат сервер считает по Киеву — берём окно ±1 день, чтобы тест не зависел от времени суток.
   const dayFrom = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
   const dayTo = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
   const extra = await insertTestLead({ utm_source: 'e2e-src', name: `${E2E_TAG} Кома, "лапки"\nрядок` })
@@ -706,7 +706,7 @@ test('8 аналітика: звіт по відомих лідах, значе�
   const empty = await api.get('/api/admin/analytics/report?date_from=2000-01-01&date_to=2000-01-02')
   expect(empty.status(), 'порожній період → 200').toBe(200)
 
-  // Реферальне посилання: розріз, розбивка, фільтр (UUID | none | невалідний → 400), колонка CSV.
+  // Реферальная ссылка: разрез, разбивка, фильтр (UUID | none | невалидный → 400), колонка CSV.
   const refLinkRes = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер аналітика` } })
   expect(refLinkRes.status(), await refLinkRes.text()).toBe(200)
   const refLink = ((await refLinkRes.json()) as { data: { id: string; code: string; name: string } }).data
@@ -732,7 +732,7 @@ test('8 аналітика: звіт по відомих лідах, значе�
   expect((await api.delete(`/api/admin/referral-links/${refLink.id}`)).status()).toBe(200)
 })
 
-// ── 10. Публічний приймач: повний шлях із записом (за прапорцем — реальні сповіщення клієнту) ──
+// ── 10. Публичный приёмник: полный путь с записью (за флагом — реальные уведомления клиенту) ────
 test('10 POST /api/leads з записом: лід у початковій стадії з IP/locale, дедуп по телефону → duplicate + коментар, 4-й з IP → 429', async () => {
   test.skip(process.env.E2E_ALLOW_LEAD_WRITES !== '1', 'повний шлях пише ліди й шле сповіщення — лише з E2E_ALLOW_LEAD_WRITES=1')
   const ip = { 'x-forwarded-for': '198.51.100.21' }
@@ -748,8 +748,8 @@ test('10 POST /api/leads з записом: лід у початковій ст�
   expect(lead!.status_id, 'лід у початковій стадії').toBe(initial.id)
   expect(lead!.ip_address).toBe('198.51.100.21')
   expect(lead!.locale).toBe('uk')
-  // Дедуп по телефону залежить від налаштування клієнта (site_settings.dedup_by_phone, дефолт true):
-  // увімкнено → повтор = { ok, duplicate }, нового ліда немає, коментар «повтор»; вимкнено → другий лід.
+  // Дедуп по телефону зависит от настройки клиента (site_settings.dedup_by_phone, дефолт true):
+  // включено → повтор = { ok, duplicate }, нового лида нет, комментарий «повтор»; выключено → второй лид.
   const { data: dedupRow } = await db().from('site_settings').select('value').eq('key', 'dedup_by_phone').maybeSingle()
   const dedupByPhone = (dedupRow?.value ?? 'true') === 'true'
   const dup = await post('+380990005001')
@@ -765,7 +765,7 @@ test('10 POST /api/leads з записом: лід у початковій ст�
     expect(samePhone!.length, 'дедуп вимкнено — другий лід записано').toBe(2)
   }
   created.leads.push(...samePhone!.map((l) => l.id))
-  // Ліміт 3/10 хв з IP рахує лише збережені ліди: з дедупом збережено 1, без — 2.
+  // Лимит 3/10 мин с IP считает только сохранённые лиды: с дедупом сохранён 1, без — 2.
   const saved = samePhone!.length
   const rest = ['+380990005002', '+380990005003', '+380990005004']
   const statuses: number[] = []
@@ -779,9 +779,9 @@ test('10 POST /api/leads з записом: лід у початковій ст�
   expect(last.status()).toBe(429)
   expect(last.headers()['retry-after']).toBe('600')
 
-  // Реферал (first-touch): cookie-список касань — найраніше у вікні (90 днів) виграє пізніше;
-  // перше поза вікном → друге; невідомий ref у тілі → лише код; вимкнене посилання → лише код.
-  // Інші IP — щоб не впертися в ліміт.
+  // Реферал (first-touch): cookie-список касаний — самое раннее в окне (90 дней) выигрывает у позднего;
+  // первое вне окна → второе; неизвестный ref в теле → только код; выключенная ссылка → только код.
+  // Другие IP — чтобы не упереться в лимит.
   const linkRes = await api.post('/api/admin/referral-links', { data: { name: `${E2E_TAG} Партнер cookie` } })
   expect(linkRes.status(), await linkRes.text()).toBe(200)
   const link = ((await linkRes.json()) as { data: { id: string; code: string } }).data
@@ -817,11 +817,11 @@ test('10 POST /api/leads з записом: лід у початковій ст�
   const { data: l3 } = await db().from('leads').select('id, referral_link_id, referral_code').eq('phone', '+380990005013').single()
   expect(l3, 'вимкнене посилання не зараховує').toMatchObject({ referral_link_id: null, referral_code: link.code })
   created.leads.push(l3!.id)
-  // Посилання із заявкою не видаляється — приберемо в afterAll після лідів.
+  // Ссылка с заявкой не удаляется — уберём в afterAll после лидов.
   expect((await api.delete(`/api/admin/referral-links/${link.id}`)).status()).toBe(409)
 })
 
-// ── 9. Журнал дій ───────────────────────────────────────────────────────────────────────────────
+// ── 9. Журнал действий ──────────────────────────────────────────────────────────────────────────
 test('9 журнал дій: усі дії цього прогону є в журналі з актором і без значень ключів інтеграцій; пагінація', async () => {
   const page1 = await api.get('/api/admin/audit-log?page=1&limit=100')
   expect(page1.status()).toBe(200)

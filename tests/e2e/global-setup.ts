@@ -1,5 +1,5 @@
-// Прогрів сервера перед тестами: перші рендери після свіжої збірки повільні (ISR, кеш модулів),
-// щоб перший тест у кожному воркері не впирався в таймаут навігації.
+// Прогрев сервера перед тестами: первые рендеры после свежей сборки медленные (ISR, кэш модулей),
+// чтобы первый тест в каждом воркере не упирался в таймаут навигации.
 import type { FullConfig } from '@playwright/test'
 
 export default async function globalSetup(config: FullConfig) {
@@ -8,7 +8,7 @@ export default async function globalSetup(config: FullConfig) {
     try {
       await fetch(base + path, { headers: { cookie: 'e2e_content=%7B%7D' } })
     } catch {
-      // сервер підніме webServer; помилка прогріву не критична
+      // сервер поднимет webServer; ошибка прогрева не критична
     }
   }
 }

@@ -1,14 +1,14 @@
-// Форма заявки: порядок Enhanced Conversions (розділ 15) — gtag('set','user_data') →
-// gtag('event','conversion',{send_to}) → generate_lead → перехід на /thanks. API стабиться.
+// Форма заявки: порядок Enhanced Conversions (раздел 15) — gtag('set','user_data') →
+// gtag('event','conversion',{send_to}) → generate_lead → переход на /thanks. API стабится.
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  // Зовнішній gtag.js не вантажимо (герметично; інакше він перехоплює dataLayer.push).
+  // Внешний gtag.js не загружаем (герметично; иначе он перехватывает dataLayer.push).
   await page.route('**/*googletagmanager.com/**', (route) => route.abort())
-  // Виклики gtag фіксуємо через dataLayer.push: якщо в БД є Google-теги, layout інлайнить
-  // `function gtag(){dataLayer.push(arguments)}` і перекриває будь-який стаб window.gtag; без тегів
-  // працює наш стаб. Список Ads-тегів фіксований (сеттер ігнорує присвоєння з layout).
-  // Виклики зберігаємо в sessionStorage — переживають перехід на /thanks.
+  // Вызовы gtag фиксируем через dataLayer.push: если в БД есть Google-теги, layout инлайнит
+  // `function gtag(){dataLayer.push(arguments)}` и перекрывает любой стаб window.gtag; без тегов
+  // работает наш стаб. Список Ads-тегов фиксированный (сеттер игнорирует присваивание из layout).
+  // Вызовы сохраняем в sessionStorage — переживают переход на /thanks.
   await page.addInitScript(() => {
     const calls: unknown[][] = []
     const record = (args: unknown[]) => {
@@ -36,7 +36,7 @@ test('порядок подій при відправці: user_data → convers
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }),
   )
   await page.goto('/')
-  // Форма живе в модалці: відкриваємо з першого екрана.
+  // Форма живёт в модалке: открываем с первого экрана.
   await page.locator('#top button').first().click()
   const dialog = page.locator('[role="dialog"]')
   await expect(dialog).toBeVisible()

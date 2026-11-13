@@ -1,5 +1,5 @@
-// Кожна сторінка: рівно один <main> і один <h1>, порядок заголовків без пропусків,
-// без горизонтального скролу (розділи 12, 14, 19).
+// Каждая страница: ровно один <main> и один <h1>, порядок заголовков без пропусков,
+// без горизонтального скролла (разделы 12, 14, 19).
 import { test, expect } from '@playwright/test'
 import { horizontalOverflow } from './helpers'
 
@@ -29,6 +29,6 @@ test('/uk → без префікса (профіль A), /admin поза мов
   expect(new URL(page.url()).pathname).toBe('/')
   expect(r?.ok()).toBeTruthy()
   const admin = await page.goto('/admin/login')
-  // Без Supabase-env локально сторінка може віддати 500 — головне, що вона не потрапила в next-intl (не 404 сайту).
+  // Без Supabase-env локально страница может отдать 500 — главное, что она не попала в next-intl (не 404 сайта).
   expect(admin?.status()).not.toBe(404)
 })

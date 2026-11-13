@@ -1,11 +1,11 @@
-// Хелпери e2e адмінки: вхід тестовим адміном (UI-форма → cookie-сесія → API-контекст), сервісний клієнт
-// Supabase для перевірок і прибирання, маркування тестових даних, знімок/відкат site_content.
-// Тести проти ПРОДОВОЇ БД (рішення власника): усе, що створюється, має префікс E2E_TAG і видаляється в teardown.
+// Хелперы e2e админки: вход тестовым админом (UI-форма → cookie-сессия → API-контекст), сервисный клиент
+// Supabase для проверок и очистки, маркировка тестовых данных, снимок/откат site_content.
+// Тесты против ПРОДОВОЙ БД (решение владельца): всё, что создаётся, имеет префикс E2E_TAG и удаляется в teardown.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { request as playwrightRequest, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 
 export const E2E_TAG = '[E2E]'
-/** Імʼя для публічного приймача (Zod не пускає дужки/цифри): теж маркер тестових даних. */
+/** Имя для публичного приёмника (Zod не пускает скобки/цифры): тоже маркер тестовых данных. */
 export const E2E_PUBLIC_NAME = 'Тест Автотест'
 export const E2E_PHONE_PREFIX = '+38099000'
 export const NIL_UUID = '00000000-0000-0000-0000-000000000000'
@@ -16,7 +16,7 @@ export const ENV = {
   service: process.env.SUPABASE_SERVICE_ROLE_KEY,
   email: process.env.E2E_ADMIN_EMAIL,
   password: process.env.E2E_ADMIN_PASSWORD,
-  /** Другий користувач із мінімальною роллю (лише manage_leads) — для матриці прав. */
+  /** Второй пользователь с минимальной ролью (только manage_leads) — для матрицы прав. */
   email2: process.env.E2E_ADMIN2_EMAIL,
   password2: process.env.E2E_ADMIN2_PASSWORD,
 }
@@ -26,13 +26,13 @@ export function hasAdminCreds(): boolean {
 }
 
 let dbClient: SupabaseClient | null = null
-/** Сервісний клієнт (RLS обходиться) — лише для перевірок і прибирання тестових даних. */
+/** Сервисный клиент (RLS обходится) — только для проверок и очистки тестовых данных. */
 export function db(): SupabaseClient {
   if (!dbClient) dbClient = createClient(ENV.url!, ENV.service!, { auth: { persistSession: false } })
   return dbClient
 }
 
-/** Чи існує користувач і чи підходить пароль — через Auth REST (без cookie). null = не вдалося увійти. */
+/** Существует ли пользователь и подходит ли пароль — через Auth REST (без cookie). null = войти не удалось. */
 export async function probeLogin(email: string, password: string): Promise<{ userId: string; accessToken: string } | null> {
   const res = await fetch(`${ENV.url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -44,7 +44,7 @@ export async function probeLogin(email: string, password: string): Promise<{ use
   return { userId: json.user.id, accessToken: json.access_token }
 }
 
-/** Вхід через форму /admin/login; повертає API-контекст із cookie-сесією цього користувача. */
+/** Вход через форму /admin/login; возвращает API-контекст с cookie-сессией этого пользователя. */
 export async function loginApi(browser: Browser, baseURL: string, email: string, password: string): Promise<{ api: APIRequestContext; page: Page }> {
   const context = await browser.newContext({ baseURL })
   const page = await context.newPage()
@@ -60,7 +60,7 @@ export async function loginApi(browser: Browser, baseURL: string, email: string,
 
 export type ContentSnapshot = Record<string, { data: unknown; updated_at: string; updated_by: string | null }>
 
-/** Знімок рядків site_content (landing/seo/legal) — для побайтового порівняння після тестів. */
+/** Снимок строк site_content (landing/seo/legal) — для побайтового сравнения после тестов. */
 export async function snapshotContent(): Promise<ContentSnapshot> {
   const { data, error } = await db().from('site_content').select('id, data, updated_at, updated_by').in('id', ['landing', 'seo', 'legal'])
   if (error) throw new Error(error.message)
@@ -69,7 +69,7 @@ export async function snapshotContent(): Promise<ContentSnapshot> {
   return out
 }
 
-/** Відновлює рядки до знімка (дані + мітки часу клієнта). Повертає список відновлених id. */
+/** Восстанавливает строки до снимка (данные + метки времени клиента). Возвращает список восстановленных id. */
 export async function restoreContent(snapshot: ContentSnapshot): Promise<string[]> {
   const restored: string[] = []
   const current = await snapshotContent()
@@ -83,7 +83,7 @@ export async function restoreContent(snapshot: ContentSnapshot): Promise<string[
   return restored
 }
 
-/** Тестовий лід напряму в БД (без сповіщень і ліміту). */
+/** Тестовый лид напрямую в БД (без уведомлений и лимита). */
 export async function insertTestLead(over: Record<string, unknown> = {}): Promise<{ id: string; order_no: number }> {
   const { data: initial } = await db().from('lead_statuses').select('id').eq('is_initial', true).limit(1).maybeSingle()
   const n = Math.floor(Math.random() * 900) + 100
@@ -101,7 +101,7 @@ export async function insertTestLead(over: Record<string, unknown> = {}): Promis
 
 export type CleanupReport = Record<string, number | string | boolean>
 
-/** Видаляє все з маркером E2E: ліди (з залежностями), стадії, поля, ролі, теги, записи журналу тестового користувача. */
+/** Удаляет всё с маркером E2E: лиды (с зависимостями), стадии, поля, роли, теги, записи журнала тестового пользователя. */
 export async function cleanupE2E(opts: { sinceIso: string; userIds?: string[] }): Promise<CleanupReport> {
   const report: CleanupReport = {}
   const client = db()
@@ -115,7 +115,7 @@ export async function cleanupE2E(opts: { sinceIso: string; userIds?: string[] })
     const { error, count } = await client.from('leads').delete({ count: 'exact' }).in('id', ids)
     report.leads = error ? `ERR ${error.message}` : (count ?? 0)
   } else report.leads = 0
-  // referral_links — після лідів (FK on delete restrict).
+  // referral_links — после лидов (FK on delete restrict).
   for (const [table, col] of [['lead_custom_fields', 'name'], ['lead_statuses', 'name'], ['tracking_tags', 'label'], ['admin_roles', 'name'], ['referral_links', 'name']] as const) {
     const { error, count } = await client.from(table).delete({ count: 'exact' }).like(col, `${E2E_TAG}%`)
     report[table] = error ? `ERR ${error.message}` : (count ?? 0)
@@ -127,7 +127,7 @@ export async function cleanupE2E(opts: { sinceIso: string; userIds?: string[] })
   return report
 }
 
-/** Залишки з маркером E2E у всіх задіяних таблицях — має бути порожньо після прибирання. */
+/** Остатки с маркером E2E во всех задействованных таблицах — после очистки должно быть пусто. */
 export async function leftoversE2E(): Promise<Record<string, number>> {
   const client = db()
   const out: Record<string, number> = {}

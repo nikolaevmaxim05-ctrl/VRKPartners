@@ -1,6 +1,6 @@
-// Стрес-тест тексту (розділ 12): у КОЖНЕ поле сторінки — текст максимальної довжини двома
-// найгіршими видами (одне нерозривне слово і суцільний потік). Перевіряємо: сторінка не поїхала
-// вбік, ніщо не вилізло за край, слова в кнопках не розірвані, слово з дефісом не рветься по дефісу.
+// Стресс-тест текста (раздел 12): в КАЖДОЕ поле страницы — текст максимальной длины двумя
+// наихудшими видами (одно неразрывное слово и сплошной поток). Проверяем: страница не уехала
+// вбок, ничто не вылезло за край, слова в кнопках не разорваны, слово с дефисом не рвётся по дефису.
 import { test, expect } from '@playwright/test'
 import { setContent, stressOverrides, horizontalOverflow, overflowingElements, type StressKind } from './helpers'
 
@@ -8,14 +8,14 @@ for (const kind of ['word', 'stream'] as StressKind[]) {
   test(`стрес «${kind}»: без переповнення, кнопки цілі, заголовки підігнані`, async ({ page, context }, testInfo) => {
     await setContent(context, stressOverrides(kind), `stress-${kind}-${testInfo.project.name}`)
     await page.goto('/')
-    // Дати fit-text відпрацювати після завантаження шрифтів.
+    // Дать fit-text отработать после загрузки шрифтов.
     await page.waitForTimeout(600)
 
     const overflow = await overflowingElements(page)
     expect(overflow, `елементи за краєм:\n${overflow.join('\n')}`).toEqual([])
     expect(await horizontalOverflow(page), 'горизонтальний скрол сторінки').toBeLessThanOrEqual(0)
 
-    // Кнопки: текст не вилазить за кнопку, кнопка не ширша за батька.
+    // Кнопки: текст не вылезает за кнопку, кнопка не шире родителя.
     const buttons = await page.evaluate(() =>
       Array.from(document.querySelectorAll<HTMLElement>('main button, main a[class*="btn"], header button'))
         .filter((b) => b.offsetWidth > 0)
@@ -27,7 +27,7 @@ for (const kind of ['word', 'stream'] as StressKind[]) {
     )
     expect(buttons.filter((b) => !b.inner || !b.parent)).toEqual([])
 
-    // Підігнані заголовки: розмір не менший за 60 % базового (fit-text не зменшує нижче мінімуму).
+    // Подогнанные заголовки: размер не меньше 60 % базового (fit-text не уменьшает ниже минимума).
     const fits = await page.evaluate(() =>
       Array.from(document.querySelectorAll<HTMLElement>('[data-fit]')).map((el) => ({
         text: (el.textContent ?? '').slice(0, 20),

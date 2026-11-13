@@ -1,8 +1,8 @@
-// Скріншот кейсу (крок 5 мобільних анімацій). 390×844 touch: у центрі екрана картинка масштабується
-// до ширини вьюпорту (transform), поза зоною — 1, при перемиканні кейсу ефект працює на новій; тап —
-// лайтбокс із тим самим src (закриття хрестиком/Escape/фоном, фокус на кнопку); «менше руху» — масштаб
-// завжди 1, лайтбокс працює. 1440×900: transform немає, клік відкриває лайтбокс (рішення власника).
-// Контент — дефолтні кейси (герметично до правок клієнта в БД).
+// Скриншот кейса (шаг 5 мобильных анимаций). 390×844 touch: в центре экрана картинка масштабируется
+// до ширины вьюпорта (transform), вне зоны — 1, при переключении кейса эффект работает на новой; тап —
+// лайтбокс с тем же src (закрытие крестиком/Escape/фоном, фокус на кнопку); «меньше движения» — масштаб
+// всегда 1, лайтбокс работает. 1440×900: transform нет, клик открывает лайтбокс (решение владельца).
+// Контент — дефолтные кейсы (герметично к правкам клиента в БД).
 import { test, expect, type Page } from '@playwright/test'
 import uk from '../../src/messages/uk.json'
 import { CASE_ZOOM_EDGE_PX } from '../../src/core/domain/layout/case-image-zoom'
@@ -15,23 +15,23 @@ const first = withImage[0]
 const second = withImage.find((x) => x.c.client !== first.c.client)!
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-/** Вибрати нішу та кейс за назвами (кнопки перемикача в картці кейсів). */
+/** Выбрать нишу и кейс по названиям (кнопки переключателя в карточке кейсов). */
 async function selectCase(page: Page, niche: string, client: string) {
-  // Програмний click: після прокрутки кнопки можуть опинитися під фіксованою шапкою (клік по
-  // координатах перехопила б вона).
+  // Программный click: после прокрутки кнопки могут оказаться под фиксированной шапкой (клик по
+  // координатам перехватила бы она).
   await page.locator('#cases button', { hasText: niche }).first().evaluate((el) => (el as HTMLElement).click())
   await page.locator('#cases button', { hasText: client }).first().evaluate((el) => (el as HTMLElement).click())
   await expect(page.locator('[data-case-zoom] img')).toHaveAttribute('alt', new RegExp(esc(client)))
   await page.waitForTimeout(200)
 }
 
-/** Прокрутка так, щоб центр обгортки картинки став на частку frac висоти вікна; чекаємо кадри. */
+/** Прокрутка так, чтобы центр обёртки картинки встал на долю frac высоты окна; ждём кадры. */
 async function placeImage(page: Page, frac: number) {
   await page.evaluate((frac) => {
     document.documentElement.style.scrollBehavior = 'auto'
     document.querySelectorAll('.reveal, .reveal-stagger').forEach((e) => e.classList.add('is-visible'))
     const el = document.querySelector<HTMLElement>('[data-case-zoom]')!
-    // Позиція без впливу поточного transform — через offset*.
+    // Позиция без влияния текущего transform — через offset*.
     let top = 0
     let cur: HTMLElement | null = el
     while (cur) {
@@ -79,13 +79,13 @@ test.describe('мобільний: автозбільшення скріншот
     expect(s.zoomed).toBe('1')
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
-    // Поза зоною (центр картинки на 95 % висоти вікна) — масштаб 1.
+    // Вне зоны (центр картинки на 95 % высоты окна) — масштаб 1.
     await placeImage(page, 0.95)
     s = await zoomState(page)
     expect(s.scale).toBeCloseTo(1, 2)
     expect(s.zoomed).toBe('0')
 
-    // Інший кейс із картинкою: ефект працює на новому скріншоті, старий transform не «залипає».
+    // Другой кейс с картинкой: эффект работает на новом скриншоте, старый transform не «залипает».
     await selectCase(page, second.niche, second.c.client)
     await placeImage(page, 0.5)
     s = await zoomState(page)

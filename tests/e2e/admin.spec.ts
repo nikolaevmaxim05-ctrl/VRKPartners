@@ -1,5 +1,5 @@
-// Адмінка: вхід → контент → правка доїжджає до сайту. Потрібні реальні креденшали Supabase
-// (E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD) і env Supabase у сервера — без них тест пропускається.
+// Админка: вход → контент → правка доезжает до сайта. Нужны реальные креденшалы Supabase
+// (E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD) и env Supabase у сервера — без них тест пропускается.
 import { test, expect } from '@playwright/test'
 import { probeLogin } from './admin-helpers'
 
@@ -8,7 +8,7 @@ const PASSWORD = process.env.E2E_ADMIN_PASSWORD
 
 test.skip(!EMAIL || !PASSWORD, 'Задайте E2E_ADMIN_EMAIL і E2E_ADMIN_PASSWORD (і env Supabase для сервера)')
 test.beforeEach(async () => {
-  // Користувача могли видалити з Auth — тоді тест пропускається, а не падає на формі входу.
+  // Пользователя могли удалить из Auth — тогда тест пропускается, а не падает на форме входа.
   test.skip(!(await probeLogin(EMAIL!, PASSWORD!)), `Тестового адміна ${EMAIL} немає в Supabase Auth або пароль не підходить`)
 })
 
