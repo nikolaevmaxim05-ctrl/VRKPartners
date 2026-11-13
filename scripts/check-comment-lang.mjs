@@ -348,11 +348,16 @@ function analyzeTs(text, file, opts = {}) {
   const tokens = []
   const byPos = new Map()
   const isJsDoc = (n) => n.kind >= ts.SyntaxKind.FirstJSDocNode && n.kind <= ts.SyntaxKind.LastJSDocNode
-  const addComments = (pos) => {
-    for (const r of ts.getLeadingCommentRanges(text, pos) ?? []) {
+  // Ведущие комментарии токена начинаются только после перевода строки; комментарий на той же строке после
+  // кода (`x = 1 // …`, `f(/* … */)`, `{/* … */}` в JSX) TypeScript относит к хвостовым предыдущего токена.
+  // Без хвостовых такие комментарии не попадали ни в check, ни в счёт блоков (найдено 2026-11-13).
+  const addRanges = (ranges) => {
+    for (const r of ranges ?? []) {
       if (!byPos.has(r.pos)) byPos.set(r.pos, { pos: r.pos, end: r.end, single: r.kind === ts.SyntaxKind.SingleLineCommentTrivia })
     }
   }
+  const addComments = (pos) => addRanges(ts.getLeadingCommentRanges(text, pos))
+  const addTrailing = (end) => addRanges(ts.getTrailingCommentRanges(text, end))
   // Режим --added: комментарий в JSX — это `{/* … */}` (пустой JsxExpression), а перенос строки вокруг него
   // дробит пробельный JsxText. Компилятор не выдаёт ни то ни другое в разметку: пустое выражение опускается,
   // пробельный текст с переводом строки JSX отбрасывает. Поэтому такие токены не сравниваются; текст с
@@ -373,7 +378,10 @@ function analyzeTs(text, file, opts = {}) {
     }
     const children = node.getChildren(sf)
     if (children.length === 0) {
-      if (node.kind !== ts.SyntaxKind.JsxText) addComments(node.pos)
+      if (node.kind !== ts.SyntaxKind.JsxText) {
+        addComments(node.pos)
+        addTrailing(node.end)
+      }
       if (insideEmptyJsxExpression || ignoredJsxToken(node)) return
       if (node.kind < ts.SyntaxKind.FirstNode) {
         const start = node.kind === ts.SyntaxKind.JsxText ? node.pos : node.getStart(sf)
