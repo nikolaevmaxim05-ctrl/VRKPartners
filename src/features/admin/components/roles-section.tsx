@@ -1,8 +1,8 @@
 'use client'
 
-// Спільний контейнер сторінки «Ролі»: тримає ЄДИНИЙ стан списку ролей і віддає його
-// в редактор (RolesManager) і в панель ієрархії (RoleHierarchy). Завдяки цьому
-// створення/видалення/перепорядкування ролі одразу видно в обох місцях без перезавантаження.
+// Общий контейнер страницы «Ролі»: держит ЕДИНОЕ состояние списка ролей и отдаёт его
+// в редактор (RolesManager) и в панель иерархии (RoleHierarchy). Благодаря этому
+// создание/удаление/переупорядочивание роли сразу видно в обоих местах без перезагрузки.
 
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -40,7 +40,7 @@ export function RolesSection({
     const next = orderedIds
       .map((id) => roles.find((r) => r.id === id))
       .filter((r): r is Role => !!r)
-    setRoles(next) // оптимістично
+    setRoles(next) // оптимистично
     setSavingOrder(true)
     try {
       const res = await fetch('/api/admin/roles/reorder', {
@@ -53,7 +53,7 @@ export function RolesSection({
       toast.success('Ієрархію оновлено')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Помилка')
-      setRoles(prev) // відкат
+      setRoles(prev) // откат
     } finally {
       setSavingOrder(false)
     }

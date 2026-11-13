@@ -19,13 +19,13 @@ type AdminSidebarProps = {
   roleLabel?: string
 }
 
-// Меню адмінки — один масив розділів (features/admin/lib/sections.ts), той самий, що й картки
-// головної: пункт показується, якщо є хоча б одне з прав anyPermission.
+// Меню админки — один массив разделов (features/admin/lib/sections.ts), тот же, что и карточки
+// главной: пункт показывается, если есть хотя бы одно из прав anyPermission.
 export function AdminSidebar({ user, permissions = [], roleLabel = 'Адміністратор' }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  // Миттєва підсвітка натиснутого пункту: до завершення переходу активним вважається пункт, по
-  // якому клікнули (а не поточний шлях); після зміни шляху тимчасовий стан скидається.
+  // Мгновенная подсветка нажатого пункта: до завершения перехода активным считается пункт, по
+  // которому кликнули (а не текущий путь); после смены пути временное состояние сбрасывается.
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   useEffect(() => { setPendingHref(null) }, [pathname])
   const current = pendingHref ?? pathname

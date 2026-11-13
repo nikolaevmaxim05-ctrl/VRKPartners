@@ -1,9 +1,9 @@
 'use client'
 
-// Розділ «Реферальні посилання»: список посилань партнерів (URL з кнопкою копіювання, вмикач,
-// статистика заявок, перейменування, видалення з підтвердженням) + діалог створення.
-// Код генерує сервер і після створення він незмінний (рішення власника 5). URL — із siteUrl
-// (NEXT_PUBLIC_SITE_URL), не з window.location: превʼю на localhost показує прод-адресу.
+// Раздел «Реферальні посилання»: список ссылок партнёров (URL с кнопкой копирования, переключатель,
+// статистика заявок, переименование, удаление с подтверждением) + диалог создания.
+// Код генерирует сервер, и после создания он неизменен (решение владельца 5). URL — из siteUrl
+// (NEXT_PUBLIC_SITE_URL), не из window.location: превью на localhost показывает прод-адрес.
 
 import { useEffect, useState } from 'react'
 import { useInvalidateDictionaries } from '@/features/admin/lib/dictionary-cache'
@@ -41,7 +41,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return json
 }
 
-/** Поле URL з кнопкою «Копіювати». */
+/** Поле URL с кнопкой «Копіювати». */
 function CopyUrl({ url, name }: { url: string; name: string }) {
   const [copied, setCopied] = useState(false)
   return (
@@ -66,7 +66,7 @@ function CopyUrl({ url, name }: { url: string; name: string }) {
 }
 
 export function ReferralLinksSection() {
-  // Назви партнерів — довідник у фільтрах заявок/аналітики: скидаємо клієнтський кеш при вході/виході.
+  // Названия партнёров — справочник в фильтрах заявок/аналитики: сбрасываем клиентский кэш при входе/выходе.
   useInvalidateDictionaries()
   const [links, setLinks] = useState<ReferralLink[]>([])
   const [stats, setStats] = useState<Record<string, ReferralLinkStats>>({})
@@ -264,7 +264,7 @@ export function ReferralLinksSection() {
         )}
       </CardContent>
 
-      {/* Діалог створення */}
+      {/* Диалог создания */}
       <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setForm(EMPTY_FORM) }}>
         <DialogContent>
           <DialogHeader>
@@ -306,7 +306,7 @@ export function ReferralLinksSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Діалог перейменування */}
+      {/* Диалог переименования */}
       <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null) }}>
         <DialogContent>
           <DialogHeader>
@@ -345,7 +345,7 @@ export function ReferralLinksSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Підтвердження видалення */}
+      {/* Подтверждение удаления */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>

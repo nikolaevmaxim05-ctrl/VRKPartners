@@ -1,8 +1,8 @@
 'use client'
 
-// Редактор ролей: перемикання прав, збереження, створення нових ролей,
-// видалення кастомних. Системні ролі (admin/manager) можна редагувати (права),
-// але не перейменовувати/видаляти.
+// Редактор ролей: переключение прав, сохранение, создание новых ролей,
+// удаление кастомных. Системные роли (admin/manager) можно редактировать (права),
+// но не переименовывать/удалять.
 
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import { toast } from 'sonner'
@@ -35,16 +35,16 @@ export function RolesManager({
   ownRoleId,
   actorRank,
 }: {
-  // Список ролей — керований ззовні (спільний стан з панеллю ієрархії)
+  // Список ролей — управляется снаружи (общее состояние с панелью иерархии)
   roles: Role[]
   setRoles: Dispatch<SetStateAction<Role[]>>
   permissionList: PermOption[]
   canManage: boolean
   ownRoleId: string | null
-  // Ранг ролі поточного користувача: редагувати можна лише ролі СТРОГО нижче (rank більший).
+  // Ранг роли текущего пользователя: редактировать можно только роли СТРОГО ниже (rank больше).
   actorRank: number
 }) {
-  // Чернетки прав по ролі (для відстеження «брудного» стану)
+  // Черновики прав по роли (для отслеживания «грязного» состояния)
   const [draft, setDraft] = useState<Record<string, string[]>>(
     () => Object.fromEntries(roles.map((r) => [r.id, [...r.permissions]])),
   )
@@ -52,7 +52,7 @@ export function RolesManager({
   const [deleteRole, setDeleteRole] = useState<Role | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Створення
+  // Создание
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPerms, setNewPerms] = useState<string[]>([])
@@ -86,7 +86,7 @@ export function RolesManager({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      // Зберігаємо ранг (порядок ієрархії не змінюється при збереженні прав)
+      // Сохраняем ранг (порядок иерархии не меняется при сохранении прав)
       setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...json.data, rank: r.rank } : r)))
       setDraft((prev) => ({ ...prev, [role.id]: [...json.data.permissions] }))
       toast.success('Права збережено')
@@ -154,8 +154,8 @@ export function RolesManager({
       {roles.map((role) => {
         const perms = draft[role.id] ?? role.permissions
         const isOwn = role.id === ownRoleId
-        // Редагувати можна лише роль СТРОГО нижче за власну (rank більший за actorRank).
-        // Це автоматично виключає власну роль і всі вищі/рівні.
+        // Редактировать можно только роль СТРОГО ниже собственной (rank больше actorRank).
+        // Это автоматически исключает собственную роль и все вышестоящие/равные.
         const editable = canManage && role.rank > actorRank
         const lockedHigher = !editable && !isOwn
         return (
@@ -234,7 +234,7 @@ export function RolesManager({
         )
       })}
 
-      {/* Створення ролі */}
+      {/* Создание роли */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Нова роль</DialogTitle></DialogHeader>
@@ -279,7 +279,7 @@ export function RolesManager({
         </DialogContent>
       </Dialog>
 
-      {/* Видалення */}
+      {/* Удаление */}
       <AlertDialog open={!!deleteRole} onOpenChange={(o) => { if (!o) setDeleteRole(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>

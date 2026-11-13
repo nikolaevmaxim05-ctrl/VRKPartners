@@ -83,12 +83,12 @@ type Lead = {
 type ReferralRef = { id: string; name: string; code: string; is_active: boolean }
 
 /**
- * Позначка партнера в таблиці (відхилення 11, рішення 12): 'badge' — у клітинці «Джерело»,
- * 'column' — окрема колонка «Партнер», 'both' — обидва (превʼю для власника).
+ * Пометка партнёра в таблице (отклонение 11, решение 12): 'badge' — в ячейке «Джерело»,
+ * 'column' — отдельная колонка «Партнер», 'both' — оба (превью для владельца).
  */
 const PARTNER_MARK: 'badge' | 'column' | 'both' = 'both'
 
-/** Бейдж партнера: активне посилання — назва; лише код — «реф. код» (не знайдено/вимкнене на момент заявки). */
+/** Бейдж партнёра: активная ссылка — название; только код — «реф. код» (не найдена/выключена на момент заявки). */
 function PartnerBadge({ lead }: { lead: Pick<Lead, 'referral_code' | 'referral_link'> }) {
   if (lead.referral_link) {
     return (
@@ -124,8 +124,8 @@ const UTM_SOURCE_OPTIONS = [
   'direct',
 ]
 
-// UTM-мітки, за якими можна фільтрувати (крім utm_source — він окремим селектом «Джерело»).
-// Значення довільні (задаються в URL), тож фільтр — текстове поле (ilike, частковий збіг).
+// UTM-метки, по которым можно фильтровать (кроме utm_source — он отдельным селектом «Джерело»).
+// Значения произвольные (задаются в URL), поэтому фильтр — текстовое поле (ilike, частичное совпадение).
 const UTM_FIELD_OPTIONS: { value: string; label: string }[] = [
   { value: 'utm_campaign', label: 'Кампанія (utm_campaign)' },
   { value: 'utm_medium', label: 'Канал (utm_medium)' },
@@ -133,8 +133,8 @@ const UTM_FIELD_OPTIONS: { value: string; label: string }[] = [
   { value: 'utm_content', label: 'Контент (utm_content)' },
 ]
 
-// Ключ для збереження стану списку (сторінка + позиція скролу) між переходами
-// «список → лід → назад». У sessionStorage лежать ЛИШЕ номер сторінки і scrollY — без PII.
+// Ключ для сохранения состояния списка (страница + позиция скролла) между переходами
+// «список → лид → назад». В sessionStorage лежат ТОЛЬКО номер страницы и scrollY — без PII.
 const LIST_STATE_KEY = 'admin-leads-list-state'
 
 export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
@@ -149,12 +149,12 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  // Довідники
+  // Справочники
   const [statuses, setStatuses] = useState<Status[]>([])
   const [assignees, setAssignees] = useState<Assignee[]>([])
   const [referralLinks, setReferralLinks] = useState<ReferralRef[]>([])
 
-  // Фільтри
+  // Фильтры
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [service, setService] = useState('')
@@ -164,14 +164,14 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
   const [utmValueInput, setUtmValueInput] = useState('')
   const [statusId, setStatusId] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
-  // Початкове значення — з URL (посилання «Заявки →» з розділу «Реферальні посилання»).
+  // Начальное значение — из URL (ссылка «Заявки →» из раздела «Реферальні посилання»).
   const [referralLinkId, setReferralLinkId] = useState(() => searchParams.get('referral_link_id') ?? '')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
-  // Відновлення стану списку при поверненні з картки ліда: читаємо збережену
-  // сторінку + scrollY, прибираємо запис (щоб «свіжий» захід з меню починався
-  // з 1-ї сторінки зверху) і лише після цього дозволяємо перший fetch (hydrated).
+  // Восстановление состояния списка при возврате из карточки лида: читаем сохранённую
+  // страницу + scrollY, убираем запись (чтобы «свежий» заход из меню начинался
+  // с 1-й страницы сверху) и только после этого разрешаем первый fetch (hydrated).
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(LIST_STATE_KEY)
@@ -187,16 +187,16 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     setHydrated(true)
   }, [])
 
-  // Завантажуємо довідники один раз
+  // Загружаем справочники один раз
   useEffect(() => {
-    // Довідники — з клієнтського кешу (повернення з картки заявки не перезапитує їх).
+    // Справочники — из клиентского кэша (возврат из карточки заявки не перезапрашивает их).
     fetchDictionary<{ data?: Status[] }>('/api/admin/lead-statuses').then((j) => setStatuses(j.data ?? []))
     fetchDictionary<{ data?: Assignee[] }>('/api/admin/assignees').then((j) => setAssignees(j.data ?? []))
     fetchDictionary<{ data?: ReferralRef[] }>('/api/admin/referral-links').then((j) => setReferralLinks(j.data ?? []))
   }, [])
 
   const fetchLeads = useCallback(async (opts?: { silent?: boolean }) => {
-    // silent — фоновое оновлення (авто-опитування): без скелетона, без миготіння
+    // silent — фоновое обновление (авто-опрос): без скелетона, без мигания
     if (!opts?.silent) setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -234,7 +234,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
         toast.error(j.error ?? 'Помилка видалення')
         return
       }
-      // Оновити список після видалення
+      // Обновить список после удаления
       await fetchLeads()
       toast.success('Заявку видалено')
     } finally {
@@ -243,12 +243,12 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
   }, [fetchLeads])
 
   useEffect(() => {
-    // Чекаємо, поки відновимо збережену сторінку, щоб не робити зайвий fetch 1-ї сторінки.
+    // Ждём, пока восстановим сохранённую страницу, чтобы не делать лишний fetch 1-й страницы.
     if (!hydrated) return
     fetchLeads()
   }, [fetchLeads, hydrated])
 
-  // Відновлюємо позицію скролу після того, як перелік відмалювався (один раз).
+  // Восстанавливаем позицию скролла после того, как список отрисовался (один раз).
   useEffect(() => {
     if (loading) return
     if (pendingScrollRef.current == null) return
@@ -257,17 +257,17 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     requestAnimationFrame(() => window.scrollTo(0, y))
   }, [loading, data])
 
-  // Авто-оновлення списку: нові заявки зʼявляються самі, без ручного оновлення.
-  // Тихий рефетч кожні 30с (поки вкладка активна) + миттєвий рефетч при поверненні
-  // на вкладку. Завжди викликаємо АКТУАЛЬНИЙ fetchLeads через ref (не пере-підписуємось).
+  // Авто-обновление списка: новые заявки появляются сами, без ручного обновления.
+  // Тихий рефетч каждые 30с (пока вкладка активна) + мгновенный рефетч при возврате
+  // на вкладку. Всегда вызываем АКТУАЛЬНЫЙ fetchLeads через ref (не переподписываемся).
   const fetchRef = useRef(fetchLeads)
   useEffect(() => {
     fetchRef.current = fetchLeads
   }, [fetchLeads])
 
-  // 1) Supabase Realtime — миттєве оновлення (доля секунди) при INSERT/UPDATE/DELETE leads.
-  //    Потребує таблиці leads у публікації supabase_realtime (міграція 017). RLS вже дозволяє
-  //    authenticated SELECT, тож події доставляються залогіненому адміну.
+  // 1) Supabase Realtime — мгновенное обновление (доля секунды) при INSERT/UPDATE/DELETE leads.
+  //    Требует таблицы leads в публикации supabase_realtime (миграция 017). RLS уже разрешает
+  //    authenticated SELECT, поэтому события доставляются залогиненному админу.
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -281,8 +281,8 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     }
   }, [])
 
-  // 2) Підстраховка: тихий опит раз на 30с (якщо realtime недоступний/відвалився) +
-  //    миттєвий рефетч при поверненні на вкладку.
+  // 2) Подстраховка: тихий опрос раз в 30с (если realtime недоступен/отвалился) +
+  //    мгновенный рефетч при возврате на вкладку.
   useEffect(() => {
     const tick = () => {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
@@ -299,8 +299,8 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     }
   }, [])
 
-  // Скидання сторінки при зміні фільтрів.
-  // Пропускаємо перший прогін (монтування), щоб не затерти відновлену сторінку.
+  // Сброс страницы при смене фильтров.
+  // Пропускаем первый прогон (монтирование), чтобы не затереть восстановленную страницу.
   const filtersInitialized = useRef(false)
   useEffect(() => {
     if (!filtersInitialized.current) {
@@ -310,15 +310,15 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
     setPage(1)
   }, [search, service, utmSource, utmField, utmValue, statusId, assignedTo, referralLinkId, dateFrom, dateTo])
 
-  // Автопошук з дебаунсом: search завжди синхронізований з полем вводу.
-  // Завдяки цьому очищення поля коректно скидає пошук (немає «залиплого» search,
-  // який раніше ламав інші фільтри — показувало 0 заявок).
+  // Автопоиск с дебаунсом: search всегда синхронизирован с полем ввода.
+  // Благодаря этому очистка поля корректно сбрасывает поиск (нет «залипшего» search,
+  // который раньше ломал другие фильтры — показывало 0 заявок).
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 350)
     return () => clearTimeout(t)
   }, [searchInput])
 
-  // Автофільтр за значенням UTM-мітки (теж з дебаунсом).
+  // Автофильтр по значению UTM-метки (тоже с дебаунсом).
   useEffect(() => {
     const t = setTimeout(() => setUtmValue(utmValueInput.trim()), 350)
     return () => clearTimeout(t)
@@ -369,7 +369,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
       cell: ({ getValue }) => {
         const v = getValue() as string | null
         if (!v) return <span className="text-muted-foreground">—</span>
-        // stopPropagation: клік по телефону копіює + tel:, але НЕ відкриває картку ліда.
+        // stopPropagation: клик по телефону копирует + tel:, но НЕ открывает карточку лида.
         return (
           <CopyContactLink
             value={v}
@@ -483,7 +483,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
 
   return (
     <div className="space-y-4">
-      {/* Фільтри */}
+      {/* Фильтры */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -567,7 +567,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
           </SelectContent>
         </Select>
 
-        {/* Фільтр за UTM-міткою: поле + значення (частковий збіг, автопошук) */}
+        {/* Фильтр по UTM-метке: поле + значение (частичное совпадение, автопоиск) */}
         <div className="flex gap-2">
           <Select value={utmField} onValueChange={setUtmField}>
             <SelectTrigger className="w-44">
@@ -606,7 +606,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
         </div>
       </div>
 
-      {/* Таблиця */}
+      {/* Таблица */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -643,7 +643,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
                   key={row.original.id}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => {
-                    // Запамʼятовуємо сторінку та позицію скролу, щоб повернутися сюди ж.
+                    // Запоминаем страницу и позицию скролла, чтобы вернуться сюда же.
                     try {
                       sessionStorage.setItem(
                         LIST_STATE_KEY,
@@ -667,7 +667,7 @@ export function LeadsTable({ canDelete = false }: { canDelete?: boolean }) {
         </Table>
       </div>
 
-      {/* Пагінація */}
+      {/* Пагинация */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <Button

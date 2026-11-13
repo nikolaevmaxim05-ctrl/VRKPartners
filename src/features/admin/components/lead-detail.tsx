@@ -1,6 +1,6 @@
 'use client'
 
-// Детальна сторінка лида: двоколонковий layout + smart status select + табы Чат/Нотатки/Журнал.
+// Детальная страница лида: двухколоночный layout + smart status select + табы Чат/Нотатки/Журнал.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchDictionary } from '@/features/admin/lib/dictionary-cache'
 import Link from 'next/link'
@@ -32,7 +32,7 @@ import { StatusBadge } from './status-badge'
 import { getServiceLabel } from '@/features/admin/lib/services'
 import { CopyContactLink } from '@/shared/ui/copy-contact-link'
 
-// ── Типи ─────────────────────────────────────────────────────────────────────
+// ── Типы ─────────────────────────────────────────────────────────────────────
 type Status = {
   id: string
   name: string
@@ -122,7 +122,7 @@ type Lead = {
   history: HistoryRow[]
 }
 
-// ── Утиліти ──────────────────────────────────────────────────────────────────
+// ── Утилиты ──────────────────────────────────────────────────────────────────
 const fmtDate = (iso: string) =>
   format(new Date(iso), 'd MMM yyyy, HH:mm', { locale: uk })
 
@@ -146,7 +146,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
   const [activeTab, setActiveTab] = useState<'chat' | 'notes' | 'journal'>('chat')
   const [pipelinesEnabled, setPipelinesEnabled] = useState(false)
 
-  // Стан попапу для введення суми при зміні стадії з requires_amount = true
+  // Состояние попапа для ввода суммы при смене стадии с requires_amount = true
   type PendingStatusChange = {
     status_id: string
     conversion_type: 'target_lead' | 'non_target_lead' | 'deal' | 'deal_adjustment' | null
@@ -156,12 +156,12 @@ export function LeadDetail({ leadId }: { leadId: string }) {
   const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange>(null)
   const [amountInput, setAmountInput] = useState<string>('')
 
-  // ── Завантаження
+  // ── Загрузка
   const loadAll = useCallback(async () => {
     setLoading(true)
     setFetchError(null)
     try {
-      // Стадії й відповідальні — з клієнтського кешу довідників (їх уже завантажив список заявок).
+      // Стадии и ответственные — из клиентского кэша справочников (их уже загрузил список заявок).
       const [leadRes, statusesJson, assigneesJson, commentsRes] = await Promise.all([
         fetch(`/api/admin/leads/${leadId}`),
         fetchDictionary<{ data?: Status[]; pipelines_enabled?: boolean }>('/api/admin/lead-statuses'),
@@ -170,8 +170,8 @@ export function LeadDetail({ leadId }: { leadId: string }) {
       ])
 
       if (!leadRes.ok) {
-        // 404 — лід не існує (видалено або неправильний id)
-        // інші статуси — серверна помилка
+        // 404 — лид не существует (удалён или неверный id)
+        // другие статусы — серверная ошибка
         setFetchError(leadRes.status === 404 ? 'not_found' : 'server_error')
         return
       }
@@ -200,7 +200,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
   const patchLead = useCallback(
     async (
       body: Partial<{ status_id: string | null; assigned_to: string | null; deal_amount: number | null; deal_profit: number | null }>,
-      // Оптимістичне оновлення: селект показує нове значення одразу; при помилці — відкат.
+      // Оптимистичное обновление: селект показывает новое значение сразу; при ошибке — откат.
       optimistic?: { apply: Partial<Lead>; rollback: Partial<Lead> },
     ) => {
       if (optimistic) setLead((prev) => (prev ? { ...prev, ...optimistic.apply } : prev))
@@ -224,7 +224,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
       }
       const j = await res.json()
       setLead((prev) => (prev ? { ...prev, ...j.data } : prev))
-      // Перезавантажуємо коментарі — там додалися system events
+      // Перезагружаем комментарии — там добавились system events
       fetch(`/api/admin/leads/${leadId}/comments`)
         .then((r) => r.json())
         .then((cj) => setComments(cj.data ?? []))
@@ -239,7 +239,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     const target = statuses.find((s) => s.id === newId)
     if (!target) return
 
-    // Якщо requires_amount = false — PATCH одразу
+    // Если requires_amount = false — PATCH сразу
     if (!target.requires_amount) {
       patchLead(
         { status_id: newId },
@@ -248,14 +248,14 @@ export function LeadDetail({ leadId }: { leadId: string }) {
       return
     }
 
-    // Інакше — відкриваємо попап для введення суми
+    // Иначе — открываем попап для ввода суммы
     setPendingStatusChange({
       status_id: target.id,
       conversion_type: target.conversion_type ?? null,
       amount_is_profit: !!target.amount_is_profit,
       status_name: target.name,
     })
-    // Підставляємо поточне значення відповідного поля з ліда як стартовий інпут
+    // Подставляем текущее значение соответствующего поля из лида как стартовый инпут
     const initial =
       target.conversion_type === 'deal_adjustment'
         ? (lead.deal_profit?.toString() ?? '')
@@ -263,7 +263,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     setAmountInput(initial)
   }
 
-  // Юзер закрив без сабміту — тост + відкат селекта через форс-ре-рендер
+  // Юзер закрыл без сабмита — тост + откат селекта через форс-ре-рендер
   const onDialogCancel = () => {
     toast.error('Стадію не змінено: ціну не вказано')
     setPendingStatusChange(null)
@@ -306,11 +306,11 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     return comments.filter((c) => c.type === type)
   }, [comments, activeTab])
 
-  // Фільтруємо статуси для селектора відповідно до налаштувань воронки
+  // Фильтруем статусы для селектора в соответствии с настройками воронки
   const visibleStatuses = useMemo(() => {
     if (!pipelinesEnabled) return statuses
     const current = statuses.find((s) => s.id === lead?.status_id)
-    // Якщо ліду ще не призначено статус — показуємо всі, щоб менеджер міг обрати
+    // Если лиду ещё не назначен статус — показываем все, чтобы менеджер мог выбрать
     if (!current) return statuses
     const allowed = new Set<string>()
     allowed.add(current.id)
@@ -319,7 +319,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     return statuses.filter((s) => allowed.has(s.id))
   }, [statuses, pipelinesEnabled, lead?.status_id])
 
-  // К-сть повторних звернень — рахуємо system-комментарі, що починаються з [ПОВТОР]
+  // Кол-во повторных обращений — считаем system-комментарии, начинающиеся с [ПОВТОР]
   const repeatCount = useMemo(
     () => comments.filter((c) => c.type === 'system' && c.content.startsWith('[ПОВТОР]')).length,
     [comments]
@@ -367,7 +367,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Хедер сторінки */}
+      {/* Хедер страницы */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
@@ -404,11 +404,11 @@ export function LeadDetail({ leadId }: { leadId: string }) {
         {lead.status && <StatusBadge name={lead.status.name} color={lead.status.color} />}
       </div>
 
-      {/* Баннер повторного звернення.
-          За поточною логікою дедупу (Блок 6, варіант А промпту) is_repeat=true
-          ставиться НА ОРИГІНАЛ. Повторні звернення фіксуються system-комментарями
-          [ПОВТОР] у lead_comments. Якщо ж лід має original_lead_id (зарезервоване
-          поле на майбутнє) — показуємо посилання на першоджерело. */}
+      {/* Баннер повторного обращения.
+          По текущей логике дедупа (Блок 6, вариант А промпта) is_repeat=true
+          ставится НА ОРИГИНАЛ. Повторные обращения фиксируются system-комментариями
+          [ПОВТОР] в lead_comments. Если же у лида есть original_lead_id (зарезервированное
+          поле на будущее) — показываем ссылку на первоисточник. */}
       {lead.is_repeat && (
         <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm">
           <div className="font-medium text-orange-900">Повторні звернення</div>
@@ -440,9 +440,9 @@ export function LeadDetail({ leadId }: { leadId: string }) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
-        {/* ── ЛІВА КОЛОНКА ─────────────────────────────────────────────────── */}
+        {/* ── ЛЕВАЯ КОЛОНКА ────────────────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* Основні дані */}
+          {/* Основные данные */}
           <section className="rounded-lg border bg-card p-5 space-y-4">
             <h2 className="font-semibold text-base">Дані заявки</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -467,13 +467,13 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             )}
           </section>
 
-          {/* Управління: збережена сума (read-only) → стадія → відповідальний.
-              Сума вводиться через попап при виборі стадії з requires_amount = true. */}
+          {/* Управление: сохранённая сумма (read-only) → стадия → ответственный.
+              Сумма вводится через попап при выборе стадии с requires_amount = true. */}
           <section className="rounded-lg border bg-card p-5 space-y-4">
             <h2 className="font-semibold text-base">Управління</h2>
 
             {(lead.deal_amount != null || lead.deal_profit != null) && (() => {
-              // Лейбли залежать від amount_is_profit стадії, яка записала суму
+              // Лейблы зависят от amount_is_profit стадии, которая записала сумму
               const dealStage = statuses.find((s) => s.conversion_type === 'deal')
               const adjustmentStage = statuses.find((s) => s.conversion_type === 'deal_adjustment')
               const dealIsProfit = !!dealStage?.amount_is_profit
@@ -496,7 +496,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
               )
             })()}
 
-            {/* Стадія + Відповідальний */}
+            {/* Стадия + Ответственный */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Стадія</label>
@@ -561,7 +561,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             </div>
           </section>
 
-          {/* Кастомні поля — inline-редагування */}
+          {/* Кастомные поля — inline-редактирование */}
           {lead.custom_fields.length > 0 && (
             <section className="rounded-lg border bg-card p-5 space-y-3">
               <h2 className="font-semibold text-base">Додаткові поля</h2>
@@ -589,7 +589,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             </section>
           )}
 
-          {/* Джерело */}
+          {/* Источник */}
           <section className="rounded-lg border bg-card p-5 space-y-3">
             <h2 className="font-semibold text-base">Джерело</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -625,7 +625,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             </dl>
           </section>
 
-          {/* Трекінг ID */}
+          {/* Трекинг ID */}
           {(lead.gclid || lead.gbraid || lead.wbraid || lead.fbclid || lead.ttclid) && (
             <section className="rounded-lg border bg-card p-5 space-y-3">
               <h2 className="font-semibold text-base">Трекінг ID</h2>
@@ -639,7 +639,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             </section>
           )}
 
-          {/* Історія повторних звернень (всі з тим самим phone) */}
+          {/* История повторных обращений (все с тем же phone) */}
           {lead.history.length > 1 && (
             <section className="rounded-lg border bg-card p-5 space-y-3">
               <h2 className="font-semibold text-base">Історія звернень за телефоном</h2>
@@ -662,7 +662,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
           )}
         </div>
 
-        {/* ── ПРАВА КОЛОНКА — Активність ──────────────────────────────────── */}
+        {/* ── ПРАВАЯ КОЛОНКА — Активность ─────────────────────────────────── */}
         <aside className="rounded-lg border bg-card flex flex-col h-fit lg:sticky lg:top-4">
           {/* Таб-меню */}
           <div className="flex border-b">
@@ -694,7 +694,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
         </aside>
       </div>
 
-      {/* Попап введення суми при переведенні у стадію з requires_amount = true */}
+      {/* Попап ввода суммы при переводе в стадию с requires_amount = true */}
       <Dialog
         open={pendingStatusChange !== null}
         onOpenChange={(open) => {
@@ -751,7 +751,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
   )
 }
 
-// ── Маленькі допоміжні компоненти ────────────────────────────────────────────
+// ── Маленькие вспомогательные компоненты ─────────────────────────────────────
 function Field({
   label,
   value,
@@ -795,10 +795,10 @@ function TabButton({
   )
 }
 
-// Перетворює URL у тексті коментаря на клікабельні посилання.
-// Використовується в «Журналі» — зокрема для рядка «Сторінка: …» у [ПОВТОР]-записах,
-// щоб адмін міг одразу відкрити сторінку, з якої прийшло повторне звернення.
-// React-елементи (без dangerouslySetInnerHTML), посилання відкриваються безпечно.
+// Превращает URL в тексте комментария в кликабельные ссылки.
+// Используется в «Журналі» — в частности для строки «Сторінка: …» в [ПОВТОР]-записях,
+// чтобы админ мог сразу открыть страницу, с которой пришло повторное обращение.
+// React-элементы (без dangerouslySetInnerHTML), ссылки открываются безопасно.
 function Linkify({ text }: { text: string }) {
   const parts = text.split(/(https?:\/\/[^\s]+)/g)
   return (
@@ -868,7 +868,7 @@ function CustomFieldRow({
   const [value, setValue] = useState<string>(field.value ?? '')
   const [saving, setSaving] = useState(false)
 
-  // Синхронізація локального стану з пропом (на випадок зовнішніх оновлень)
+  // Синхронизация локального состояния с пропом (на случай внешних обновлений)
   useEffect(() => {
     if (!editing) setValue(field.value ?? '')
   }, [field.value, editing])
@@ -911,7 +911,7 @@ function CustomFieldRow({
     }
   }
 
-  // Форматування для відображення
+  // Форматирование для отображения
   const displayValue = (() => {
     if (field.value == null || field.value === '') return '—'
     if (field.type === 'date') {
@@ -958,7 +958,7 @@ function CustomFieldRow({
       )
     }
     if (field.type === 'date') {
-      // Спільний українізований календар (а не нативний, що був російською)
+      // Общий украинизированный календарь (а не нативный, который был на русском)
       return <DatePicker value={value} onChange={setValue} className={common} />
     }
     return (

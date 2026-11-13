@@ -1,10 +1,10 @@
 'use client'
 
-// Панель налаштувань /admin/settings. 4 секції в одному компоненті:
-// • Загальні (валюта)
-// • Дедуплікація (флаги + вікно годин)
-// • Стадії лідів (CRUD + dnd reorder + is_initial + conversion_type + conversion_action)
-// • Кастомні поля (CRUD + опції для select)
+// Панель настроек /admin/settings. 4 секции в одном компоненте:
+// • Общие (валюта)
+// • Дедупликация (флаги + окно в часах)
+// • Стадии лидов (CRUD + dnd reorder + is_initial + conversion_type + conversion_action)
+// • Кастомные поля (CRUD + опции для select)
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useInvalidateDictionaries } from '@/features/admin/lib/dictionary-cache'
@@ -57,7 +57,7 @@ import { StatusBadge } from './status-badge'
 import { AnalyticsEventsSection } from './analytics-events-section'
 import { DevToolsSection } from './dev-tools-section'
 
-// ── Типи ─────────────────────────────────────────────────────────────────────
+// ── Типы ─────────────────────────────────────────────────────────────────────
 type SettingRow = { key: string; value: string; type: string; updated_at: string }
 
 type ConversionType = 'target_lead' | 'non_target_lead' | 'deal' | 'deal_adjustment' | null
@@ -89,8 +89,8 @@ type CustomField = {
 
 type Tab = 'general' | 'dedup' | 'statuses' | 'fields' | 'telephony' | 'gsheets' | 'analytics' | 'devtools'
 
-// Dev tools — приховано за env-прапором. Клієнт (навіть Власник) вкладки не бачить
-// і не має до неї доступу. Розробник вмикає у своєму оточенні: NEXT_PUBLIC_DEV_TOOLS=1.
+// Dev tools — скрыто за env-флагом. Клиент (даже Владелец) вкладку не видит
+// и не имеет к ней доступа. Разработчик включает в своём окружении: NEXT_PUBLIC_DEV_TOOLS=1.
 const DEV_TOOLS_ENABLED = process.env.NEXT_PUBLIC_DEV_TOOLS === '1'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -104,16 +104,16 @@ const TABS: { id: Tab; label: string }[] = [
   ...(DEV_TOOLS_ENABLED ? [{ id: 'devtools' as Tab, label: 'Dev tools' }] : []),
 ]
 
-// ── Кореневий компонент ─────────────────────────────────────────────────────
+// ── Корневой компонент ──────────────────────────────────────────────────────
 export function SettingsPanel() {
   const [activeTab, setActiveTab] = useState<Tab>('general')
-  // Відвідані вкладки лишаються змонтованими (прихованими) — повторний клік не перезапитує дані.
+  // Посещённые вкладки остаются смонтированными (скрытыми) — повторный клик не перезапрашивает данные.
   const [visited, setVisited] = useState<Set<Tab>>(() => new Set<Tab>(['general']))
   const openTab = (id: Tab) => {
     setActiveTab(id)
     setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
   }
-  // Тут змінюються стадії й кастомні поля — клієнтський кеш довідників скидається при вході/виході.
+  // Здесь меняются стадии и кастомные поля — клиентский кэш справочников сбрасывается при входе/выходе.
   useInvalidateDictionaries()
   const pane = (id: Tab, node: React.ReactNode) =>
     visited.has(id) ? <div key={id} hidden={activeTab !== id}>{node}</div> : null
@@ -152,7 +152,7 @@ export function SettingsPanel() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Секція: ЗАГАЛЬНІ — валюта
+// Секция: ОБЩИЕ — валюта
 // ─────────────────────────────────────────────────────────────────────────────
 function GeneralSection() {
   const [currency, setCurrency] = useState<string>('UAH')
@@ -168,7 +168,7 @@ function GeneralSection() {
         const find = (k: string) => rows.find((r) => r.key === k)?.value
         setCurrency(find('internal_currency') ?? 'UAH')
         setConversionAction(find('google_ads_conversion_action') ?? 'Lead')
-        // deal_amount_type більше не читаємо — логіка перенесена на рівень стадії (amount_is_profit)
+        // deal_amount_type больше не читаем — логика перенесена на уровень стадии (amount_is_profit)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -244,7 +244,7 @@ function GeneralSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Секція: ДЕДУПЛІКАЦІЯ
+// Секция: ДЕДУПЛИКАЦИЯ
 // ─────────────────────────────────────────────────────────────────────────────
 function DedupSection() {
   const [byPhone, setByPhone] = useState(true)
@@ -354,7 +354,7 @@ function DedupSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Секція: СТАДІЇ ЛІДІВ — список + dnd reorder + conversion_type + conversion_action
+// Секция: СТАДИИ ЛИДОВ — список + dnd reorder + conversion_type + conversion_action
 // ─────────────────────────────────────────────────────────────────────────────
 const PRESET_COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
@@ -368,7 +368,7 @@ const CONVERSION_TYPE_LABELS: Record<NonNullable<ConversionType>, string> = {
   deal_adjustment: 'Корекція угоди (частина 2)',
 }
 
-// Tooltips для полів форми стадії
+// Tooltips для полей формы стадии
 const TOOLTIPS = {
   isInitial: 'Нові заявки автоматично потрапляють у цю стадію. Лише одна стадія може бути первинною — при виборі нової попередня скидається.',
   isFinal: 'Стадія, після якої лід вважається закритим. Якщо задано тип конверсії — прапор виставляється автоматично.',
@@ -378,7 +378,7 @@ const TOOLTIPS = {
   amountIsProfit: 'Якщо увімкнено — введена сума буде вважатися чистим прибутком, а не загальною сумою угоди.',
 } as const
 
-// ── Допоміжний компонент: іконка підказки ────────────────────────────────────
+// ── Вспомогательный компонент: иконка подсказки ──────────────────────────────
 function FieldTooltip({ text }: { text: string }) {
   return (
     <TooltipProvider>
@@ -401,7 +401,7 @@ function FieldTooltip({ text }: { text: string }) {
   )
 }
 
-// ── Один рядок статусу у DnD-списку ──────────────────────────────────────────
+// ── Одна строка статуса в DnD-списке ─────────────────────────────────────────
 type StatusRowProps = {
   status: Status
   allStatuses: Status[]
@@ -449,25 +449,25 @@ function StatusRow({
     zIndex: isDragging ? 10 : undefined,
   }
 
-  // Локальний стан для conversion_action щоб не блокувати набір тексту
+  // Локальное состояние для conversion_action, чтобы не блокировать набор текста
   const [convLocal, setConvLocal] = useState(s.conversion_action ?? '')
-  // Помилка формату Conversion Name (null = валідно або порожньо)
+  // Ошибка формата Conversion Name (null = валидно или пусто)
   const convError = validateConversionAction(convLocal)
-  // Синхронізуємо якщо пропс змінився зовні (після збереження)
+  // Синхронизируем, если пропс изменился снаружи (после сохранения)
   useEffect(() => {
     setConvLocal(s.conversion_action ?? '')
   }, [s.conversion_action])
 
-  // Стан розгорнутості блоку переходів
+  // Состояние развёрнутости блока переходов
   const [transitionsOpen, setTransitionsOpen] = useState(false)
 
-  // Інші статуси (крім поточного) — для вибору prev/next
+  // Другие статусы (кроме текущего) — для выбора prev/next
   const otherStatuses = useMemo(
     () => allStatuses.filter((x) => x.id !== s.id),
     [allStatuses, s.id]
   )
 
-  // is_final disabled якщо conversion_type != null (бекенд примусово ставить true)
+  // is_final disabled, если conversion_type != null (бэкенд принудительно ставит true)
   const isFinalDisabled = s.conversion_type !== null
 
   return (
@@ -476,7 +476,7 @@ function StatusRow({
       style={style}
       className="p-3 border-b last:border-b-0"
     >
-      {/* ── Перший рядок: drag handle + колір + бейдж + is_initial + is_final + видалити ── */}
+      {/* ── Первая строка: drag handle + цвет + бейдж + is_initial + is_final + удалить ── */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Drag handle */}
         <button
@@ -502,7 +502,7 @@ function StatusRow({
           <StatusBadge name={s.name} color={s.color} />
         </div>
 
-        {/* Radio-індикатор «Первинна» — radio-логіка: клік на неактивній → PATCH */}
+        {/* Radio-индикатор «Первинна» — radio-логика: клик по неактивной → PATCH */}
         <button
           type="button"
           onClick={() => onIsInitialToggle(s)}
@@ -514,7 +514,7 @@ function StatusRow({
           title={s.is_initial ? 'Первинна стадія' : 'Зробити первинною'}
           aria-label={s.is_initial ? 'Первинна стадія' : 'Зробити первинною'}
         >
-          {/* Кругла radio-іконка */}
+          {/* Круглая radio-иконка */}
           <span className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
             s.is_initial ? 'border-emerald-600 bg-emerald-600' : 'border-current'
           }`}>
@@ -535,7 +535,7 @@ function StatusRow({
           Кінцева
         </label>
 
-        {/* Видалити — доступно для будь-якої стадії */}
+        {/* Удалить — доступно для любой стадии */}
         <Button
           variant="ghost"
           size="icon"
@@ -547,17 +547,17 @@ function StatusRow({
         </Button>
       </div>
 
-      {/* ── Блок конверсії (показується тільки якщо is_final = true) ── */}
+      {/* ── Блок конверсии (показывается только если is_final = true) ── */}
       {s.is_final && (
         <div className="mt-3 ml-9 space-y-3">
-          {/* Radio-група «Тип конверсії» */}
+          {/* Radio-группа «Тип конверсії» */}
           <div>
             <div className="flex items-center gap-1 mb-2">
               <span className="text-xs font-medium text-muted-foreground">Тип конверсії</span>
               <FieldTooltip text={TOOLTIPS.conversionType} />
             </div>
             <div className="space-y-1.5">
-              {/* Без конверсії */}
+              {/* Без конверсии */}
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <input
                   type="radio"
@@ -568,7 +568,7 @@ function StatusRow({
                 />
                 Без конверсії
               </label>
-              {/* Решта типів */}
+              {/* Остальные типы */}
               {(Object.entries(CONVERSION_TYPE_LABELS) as [NonNullable<ConversionType>, string][]).map(
                 ([val, label]) => (
                   <label key={val} className="flex items-center gap-2 text-xs cursor-pointer">
@@ -586,7 +586,7 @@ function StatusRow({
             </div>
           </div>
 
-          {/* Поле «Назва конверсії Google Ads» — якщо conversion_type != null */}
+          {/* Поле «Назва конверсії Google Ads» — если conversion_type != null */}
           {s.conversion_type !== null && (
             <div>
               <div className="flex items-center gap-1 mb-1">
@@ -597,7 +597,7 @@ function StatusRow({
                 value={convLocal}
                 onChange={(e) => setConvLocal(e.target.value)}
                 onBlur={() => {
-                  // Невалідний формат не зберігаємо — показуємо підказку під полем
+                  // Невалидный формат не сохраняем — показываем подсказку под полем
                   if (!convError) onConversionActionBlur(s, convLocal)
                 }}
                 placeholder="напр. lead_form_offline"
@@ -618,7 +618,7 @@ function StatusRow({
             </div>
           )}
 
-          {/* requires_amount — тільки для deal / deal_adjustment */}
+          {/* requires_amount — только для deal / deal_adjustment */}
           {(s.conversion_type === 'deal' || s.conversion_type === 'deal_adjustment') && (
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -630,7 +630,7 @@ function StatusRow({
                 <FieldTooltip text={TOOLTIPS.requiresAmount} />
               </label>
 
-              {/* amount_is_profit — тільки якщо requires_amount = true */}
+              {/* amount_is_profit — только если requires_amount = true */}
               {s.requires_amount && (
                 <label className="flex items-center gap-2 text-xs cursor-pointer ml-5">
                   <Checkbox
@@ -646,7 +646,7 @@ function StatusRow({
         </div>
       )}
 
-      {/* ── Блок: Дозволені переходи (тільки якщо pipelines_enabled) ── */}
+      {/* ── Блок: Разрешённые переходы (только если pipelines_enabled) ── */}
       {pipelinesEnabled && (
         <div className="mt-2 ml-9">
           <button
@@ -663,7 +663,7 @@ function StatusRow({
 
           {transitionsOpen && (
             <div className="mt-2 space-y-3 border rounded-md p-3 bg-muted/30">
-              {/* Дозволені попередні стадії (multi-select) */}
+              {/* Разрешённые предыдущие стадии (multi-select) */}
               <div>
                 <Label className="text-xs mb-1.5 block text-muted-foreground">
                   Дозволені попередні стадії
@@ -701,7 +701,7 @@ function StatusRow({
                 </p>
               </div>
 
-              {/* Дозволені наступні стадії */}
+              {/* Разрешённые следующие стадии */}
               <div>
                 <Label className="text-xs mb-1.5 block text-muted-foreground">
                   Дозволені наступні стадії
@@ -743,7 +743,7 @@ function StatusRow({
   )
 }
 
-// ── Основна секція ─────────────────────────────────────────────────────────────
+// ── Основная секция ────────────────────────────────────────────────────────────
 function StatusesSection() {
   const [statuses, setStatuses] = useState<Status[]>([])
   const [pipelinesEnabled, setPipelinesEnabled] = useState(false)
@@ -752,7 +752,7 @@ function StatusesSection() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Форма нової стадії
+  // Форма новой стадии
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(PRESET_COLORS[0])
   const [newIsInitial, setNewIsInitial] = useState(false)
@@ -761,7 +761,7 @@ function StatusesSection() {
   const [newConversionAction, setNewConversionAction] = useState('')
   const [newRequiresAmount, setNewRequiresAmount] = useState(false)
   const [newAmountIsProfit, setNewAmountIsProfit] = useState(false)
-  // Помилка формату Conversion Name у формі нової стадії (null = ок/порожньо)
+  // Ошибка формата Conversion Name в форме новой стадии (null = ок/пусто)
   const newConvError = validateConversionAction(newConversionAction)
 
   const sensors = useSensors(
@@ -789,7 +789,7 @@ function StatusesSection() {
     }
   }, [])
 
-  // ── Зберегти pipelines_enabled у /api/admin/settings ──────────────────────
+  // ── Сохранить pipelines_enabled в /api/admin/settings ─────────────────────
   const handlePipelinesToggle = async (val: boolean) => {
     setPipelinesEnabled(val)
     setPipelinesSaving(true)
@@ -818,13 +818,13 @@ function StatusesSection() {
     load()
   }, [load])
 
-  // Інваріант I1: хоча б одна стадія з is_initial=true
+  // Инвариант I1: хотя бы одна стадия с is_initial=true
   const hasInitialStatus = useMemo(
     () => statuses.some((s) => s.is_initial),
     [statuses]
   )
 
-  // Інваріант I2: хоча б одна стадія з будь-яким conversion_type
+  // Инвариант I2: хотя бы одна стадия с любым conversion_type
   const hasAnyConversionStatus = useMemo(
     () => statuses.some((s) => s.conversion_type !== null),
     [statuses]
@@ -858,7 +858,7 @@ function StatusesSection() {
     }
   }
 
-  // ── Зміна кольору ──────────────────────────────────────────────────────────
+  // ── Смена цвета ────────────────────────────────────────────────────────────
   const handleColorChange = async (s: Status, color: string) => {
     setStatuses((prev) => prev.map((x) => (x.id === s.id ? { ...x, color } : x)))
     const res = await fetch(`/api/admin/lead-statuses/${s.id}`, {
@@ -872,11 +872,11 @@ function StatusesSection() {
     }
   }
 
-  // ── is_initial: radio-логіка — тільки якщо стадія не є вже первинною ──────
+  // ── is_initial: radio-логика — только если стадия ещё не первичная ────────
   const handleIsInitialToggle = async (s: Status) => {
-    if (s.is_initial) return // клік на вже активній — нічого
+    if (s.is_initial) return // клик по уже активной — ничего
 
-    // Оптимістично: знімаємо у всіх, ставимо у поточній
+    // Оптимистично: снимаем у всех, ставим у текущей
     setStatuses((prev) =>
       prev.map((x) => ({ ...x, is_initial: x.id === s.id }))
     )
@@ -889,13 +889,13 @@ function StatusesSection() {
       const j = await res.json().catch(() => ({}))
       toast.error(j.error ?? 'Не вдалося зберегти')
     }
-    // Завжди перезавантажуємо — бекенд атомарно скидає у решти
+    // Всегда перезагружаем — бэкенд атомарно сбрасывает у остальных
     load()
   }
 
-  // ── Зміна is_final ─────────────────────────────────────────────────────────
+  // ── Смена is_final ─────────────────────────────────────────────────────────
   const handleIsFinalChange = async (s: Status, val: boolean) => {
-    // Якщо conversion_type != null — чекбокс disabled, цей хендлер не викликається
+    // Если conversion_type != null — чекбокс disabled, этот хендлер не вызывается
     setStatuses((prev) =>
       prev.map((x) => (x.id === s.id ? { ...x, is_final: val } : x))
     )
@@ -911,12 +911,12 @@ function StatusesSection() {
     }
   }
 
-  // ── Зміна conversion_type ──────────────────────────────────────────────────
+  // ── Смена conversion_type ──────────────────────────────────────────────────
   const handleConversionTypeChange = async (s: Status, value: ConversionType) => {
-    // conversion_type != null примусово виставляє is_final = true;
-    // повернення на «Без конверсії» скидає is_final у false (щоб прапор не залипав)
+    // conversion_type != null принудительно выставляет is_final = true;
+    // возврат на «Без конверсії» сбрасывает is_final в false (чтобы флаг не залипал)
     const newIsFinal = value !== null
-    // Якщо скидаємо — оптимістично скидаємо requires_amount / amount_is_profit
+    // Если сбрасываем — оптимистично сбрасываем requires_amount / amount_is_profit
     const newRequires = value !== null ? s.requires_amount : false
     const newProfit = value !== null ? s.amount_is_profit : false
 
@@ -945,7 +945,7 @@ function StatusesSection() {
     }
   }
 
-  // ── Зміна conversion_action (blur) ─────────────────────────────────────────
+  // ── Смена conversion_action (blur) ─────────────────────────────────────────
   const handleConversionActionBlur = async (s: Status, val: string) => {
     const trimmed = val.trim() || null
     if (trimmed === (s.conversion_action ?? null)) return
@@ -964,9 +964,9 @@ function StatusesSection() {
     }
   }
 
-  // ── Зміна requires_amount ──────────────────────────────────────────────────
+  // ── Смена requires_amount ──────────────────────────────────────────────────
   const handleRequiresAmountChange = async (s: Status, val: boolean) => {
-    // Якщо знімаємо — оптимістично скидаємо amount_is_profit
+    // Если снимаем — оптимистично сбрасываем amount_is_profit
     setStatuses((prev) =>
       prev.map((x) =>
         x.id === s.id
@@ -986,7 +986,7 @@ function StatusesSection() {
     }
   }
 
-  // ── Зміна amount_is_profit ─────────────────────────────────────────────────
+  // ── Смена amount_is_profit ─────────────────────────────────────────────────
   const handleAmountIsProfitChange = async (s: Status, val: boolean) => {
     setStatuses((prev) =>
       prev.map((x) => (x.id === s.id ? { ...x, amount_is_profit: val } : x))
@@ -1003,10 +1003,10 @@ function StatusesSection() {
     }
   }
 
-  // ── Перемикання одного дозволеного попереднього статусу (multi) ──────────
+  // ── Переключение одного разрешённого предыдущего статуса (multi) ─────────
   const handleAllowedPrevToggle = useCallback(
     async (statusId: string, prevId: string, checked: boolean) => {
-      // Оптимістичний апдейт — обчислюємо новий масив на базі поточного стану
+      // Оптимистичный апдейт — вычисляем новый массив на основе текущего состояния
       let nextArr: string[] = []
       setStatuses((prev) => {
         const updated = prev.map((s) => {
@@ -1020,7 +1020,7 @@ function StatusesSection() {
         })
         return updated
       })
-      // Якщо після setState nextArr ще порожній (edge-case) — обчислюємо знову
+      // Если после setState nextArr ещё пустой (edge-case) — вычисляем заново
       const currentEntry = statuses.find((s) => s.id === statusId)
       if (nextArr.length === 0 && !checked) {
         const base = currentEntry?.allowed_prev_status_ids ?? []
@@ -1042,7 +1042,7 @@ function StatusesSection() {
     [statuses, load],
   )
 
-  // ── Перемикання одного дозволеного наступного статусу ─────────────────────
+  // ── Переключение одного разрешённого следующего статуса ───────────────────
   const handleAllowedNextToggle = async (s: Status, targetId: string, checked: boolean) => {
     const current = s.allowed_next_status_ids ?? []
     const next = checked
@@ -1065,7 +1065,7 @@ function StatusesSection() {
     }
   }
 
-  // ── Видалення ──────────────────────────────────────────────────────────────
+  // ── Удаление ───────────────────────────────────────────────────────────────
   const handleRemove = async (s: Status) => {
     if (!confirm(`Видалити стадію "${s.name}"?`)) return
     const res = await fetch(`/api/admin/lead-statuses/${s.id}`, { method: 'DELETE' })
@@ -1078,7 +1078,7 @@ function StatusesSection() {
     load()
   }
 
-  // ── Створення нової стадії ─────────────────────────────────────────────────
+  // ── Создание новой стадии ──────────────────────────────────────────────────
   const resetDialog = () => {
     setNewName('')
     setNewColor(PRESET_COLORS[0])
@@ -1095,17 +1095,17 @@ function StatusesSection() {
       toast.error('Введіть назву')
       return
     }
-    // conversion_type != null → conversion_action обов'язковий
+    // conversion_type != null → conversion_action обязателен
     if (newConversionType !== null && !newConversionAction.trim()) {
       toast.error('Введіть назву конверсії в Google Ads')
       return
     }
-    // Формат Conversion Name (та сама перевірка, що й на API)
+    // Формат Conversion Name (та же проверка, что и на API)
     if (newConversionType !== null && newConvError) {
       toast.error(newConvError)
       return
     }
-    // requires_amount тільки для deal / deal_adjustment
+    // requires_amount только для deal / deal_adjustment
     if (newRequiresAmount && newConversionType !== 'deal' && newConversionType !== 'deal_adjustment') {
       toast.error('Сума угоди можлива тільки для типів «Угода» або «Корекція угоди»')
       return
@@ -1146,7 +1146,7 @@ function StatusesSection() {
 
   return (
     <div className="space-y-4">
-      {/* ── Тогл: обмеження переходів між стадіями ── */}
+      {/* ── Тогл: ограничение переходов между стадиями ── */}
       <div className="rounded-md border p-4 space-y-1">
         <label className="flex items-center gap-3 cursor-pointer">
           <Checkbox
@@ -1176,7 +1176,7 @@ function StatusesSection() {
         </Button>
       </div>
 
-      {/* Warning I1: немає жодної первинної стадії */}
+      {/* Warning I1: нет ни одной первичной стадии */}
       {!loading && !hasInitialStatus && (
         <div className="rounded-md border border-amber-400/60 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <strong>Увага:</strong> має існувати щонайменше одна первинна стадія (індикатор «Первинна»).
@@ -1184,7 +1184,7 @@ function StatusesSection() {
         </div>
       )}
 
-      {/* Info I2: жодна стадія не має типу конверсії */}
+      {/* Info I2: ни у одной стадии нет типа конверсии */}
       {!loading && !hasAnyConversionStatus && (
         <div className="rounded-md border border-sky-300/60 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           <strong>Інформація:</strong> не налаштовано жодної стадії з типом конверсії.
@@ -1228,7 +1228,7 @@ function StatusesSection() {
         </DndContext>
       )}
 
-      {/* ── Dialog: нова стадія ─────────────────────────────────────────── */}
+      {/* ── Dialog: новая стадия ────────────────────────────────────────── */}
       <Dialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -1241,7 +1241,7 @@ function StatusesSection() {
             <DialogTitle>Нова стадія</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Назва */}
+            {/* Название */}
             <div>
               <Label className="text-xs mb-1.5 block">Назва</Label>
               <Input
@@ -1252,7 +1252,7 @@ function StatusesSection() {
               />
             </div>
 
-            {/* Колір */}
+            {/* Цвет */}
             <div>
               <Label className="text-xs mb-1.5 block">Колір</Label>
               <div className="flex flex-wrap gap-2">
@@ -1277,7 +1277,7 @@ function StatusesSection() {
               </div>
             </div>
 
-            {/* Первинна стадія */}
+            {/* Первичная стадия */}
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <Checkbox
                 checked={newIsInitial}
@@ -1287,7 +1287,7 @@ function StatusesSection() {
               <FieldTooltip text={TOOLTIPS.isInitial} />
             </label>
 
-            {/* Кінцева стадія */}
+            {/* Конечная стадия */}
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <Checkbox
                 checked={newConversionType !== null ? true : newIsFinal}
@@ -1298,7 +1298,7 @@ function StatusesSection() {
               <FieldTooltip text={TOOLTIPS.isFinal} />
             </label>
 
-            {/* Тип конверсії */}
+            {/* Тип конверсии */}
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <Label className="text-xs">Тип конверсії</Label>
@@ -1312,7 +1312,7 @@ function StatusesSection() {
                     checked={newConversionType === null}
                     onChange={() => {
                       setNewConversionType(null)
-                      // Повернення на «Без конверсії» скидає «Кінцева стадія»
+                      // Возврат на «Без конверсії» сбрасывает «Кінцева стадія»
                       setNewIsFinal(false)
                       setNewRequiresAmount(false)
                       setNewAmountIsProfit(false)
@@ -1347,7 +1347,7 @@ function StatusesSection() {
               </div>
             </div>
 
-            {/* conversion_action — показується якщо conversion_type != null */}
+            {/* conversion_action — показывается, если conversion_type != null */}
             {newConversionType !== null && (
               <div>
                 <div className="flex items-center gap-1 mb-1.5">
@@ -1403,7 +1403,7 @@ function StatusesSection() {
               </div>
             )}
 
-            {/* Превʼю */}
+            {/* Превью */}
             {newName && (
               <div className="text-sm">
                 Превʼю: <StatusBadge name={newName} color={newColor} />
@@ -1433,7 +1433,7 @@ function StatusesSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Секція: КАСТОМНІ ПОЛЯ
+// Секция: КАСТОМНЫЕ ПОЛЯ
 // ─────────────────────────────────────────────────────────────────────────────
 const FIELD_TYPE_LABELS: Record<CustomField['type'], string> = {
   text: 'Текст',
@@ -1449,7 +1449,7 @@ function CustomFieldsSection() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Форма створення
+  // Форма создания
   const [fName, setFName] = useState('')
   const [fKey, setFKey] = useState('')
   const [fType, setFType] = useState<CustomField['type']>('text')
@@ -1470,7 +1470,7 @@ function CustomFieldsSection() {
     load()
   }, [load])
 
-  // Авто-генерація field_key з назви
+  // Авто-генерация field_key из названия
   const autoKey = useMemo(() => {
     return fName
       .toLowerCase()
@@ -1498,7 +1498,7 @@ function CustomFieldsSection() {
   }, [fName])
 
   useEffect(() => {
-    // Підтягуємо ключ автоматично якщо користувач його не редагував вручну
+    // Подтягиваем ключ автоматически, если пользователь его не редактировал вручную
     setFKey((prev) => (prev === '' || prev === autoKey ? autoKey : prev))
   }, [autoKey])
 
@@ -1686,7 +1686,7 @@ function CustomFieldsSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Секція: ТЕЛЕФОНІЯ — секрет + URL вебхуків по провайдерах
+// Секция: ТЕЛЕФОНИЯ — секрет + URL вебхуков по провайдерам
 // ─────────────────────────────────────────────────────────────────────────────
 const TELEPHONY_PROVIDERS = ['binotel', 'ringostat', 'unitel', 'generic'] as const
 
@@ -1708,9 +1708,9 @@ function TelephonySection() {
 
   useEffect(() => {
     setOrigin(window.location.origin)
-    // S6: секрет зберігається зашифрованим у integrations і НЕ повертається plaintext.
-    // Тут лише дізнаємось, чи він встановлений. Повний секрет видно тільки поки ви
-    // самі його згенерували/ввели (до перезавантаження) — як у App Password.
+    // S6: секрет хранится зашифрованным в integrations и НЕ возвращается plaintext.
+    // Здесь только узнаём, установлен ли он. Полный секрет виден только пока вы
+    // сами его сгенерировали/ввели (до перезагрузки) — как в App Password.
     fetch('/api/admin/integrations')
       .then((r) => r.json())
       .then((j) => {
@@ -1728,7 +1728,7 @@ function TelephonySection() {
     }
     setSaving(true)
     try {
-      // S6: пишемо у зашифроване сховище integrations, а не у site_settings.
+      // S6: пишем в зашифрованное хранилище integrations, а не в site_settings.
       const res = await fetch('/api/admin/integrations/telephony_secret', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1841,7 +1841,7 @@ function TelephonySection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Секція: GOOGLE SHEETS — налаштування інтеграції
+// Секция: GOOGLE SHEETS — настройки интеграции
 // ─────────────────────────────────────────────────────────────────────────────
 
 type IntegrationRow = {
@@ -1852,7 +1852,7 @@ type IntegrationRow = {
   updated_at: string | null
 }
 
-// Рядок результату тесту зʼєднання Google Sheets (per-table).
+// Строка результата теста соединения Google Sheets (per-table).
 type TestLine = { level: 'ok' | 'warn' | 'error'; text: string }
 
 function GoogleSheetsSection() {
@@ -1868,12 +1868,12 @@ function GoogleSheetsSection() {
   const [dragOver, setDragOver] = useState(false)
   const [showSaJson, setShowSaJson] = useState(false)
 
-  // Прихований file input для вибору JSON
+  // Скрытый file input для выбора JSON
   const fileInputRef = useCallback((el: HTMLInputElement | null) => {
     if (el) el.value = ''
   }, [])
 
-  // Завантаження поточних masked-значень
+  // Загрузка текущих masked-значений
   const loadIntegrations = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/integrations')
@@ -1883,7 +1883,7 @@ function GoogleSheetsSection() {
       const sidRow = rows.find((r) => r.key === 'google_spreadsheet_id')
       const adjRow = rows.find((r) => r.key === 'google_adjustments_spreadsheet_id')
       setMaskedSaJson(saRow?.is_set ? (saRow.masked_value ?? '***') : null)
-      // Spreadsheet ID — не секрет: prefill реальним значенням (редаговане)
+      // Spreadsheet ID — не секрет: prefill реальным значением (редактируемое)
       setSpreadsheetId(sidRow?.value ?? '')
       setAdjustmentsSpreadsheetId(adjRow?.value ?? '')
     } finally {
@@ -1895,7 +1895,7 @@ function GoogleSheetsSection() {
     loadIntegrations()
   }, [loadIntegrations])
 
-  // Читання JSON-файлу через FileReader
+  // Чтение JSON-файла через FileReader
   function readJsonFile(file: File) {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -1927,7 +1927,7 @@ function GoogleSheetsSection() {
     if (file) readJsonFile(file)
   }
 
-  // Збереження
+  // Сохранение
   const save = async () => {
     const sidTrimmed = spreadsheetId.trim()
     const adjTrimmed = adjustmentsSpreadsheetId.trim()
@@ -1963,7 +1963,7 @@ function GoogleSheetsSection() {
       }
 
       if (saTrimmed) {
-        // Базова валідація JSON перед відправкою
+        // Базовая валидация JSON перед отправкой
         try {
           JSON.parse(saTrimmed)
         } catch {
@@ -1988,8 +1988,8 @@ function GoogleSheetsSection() {
       }
 
       toast.success('Збережено')
-      // SA JSON — очищаємо (write-only). Spreadsheet ID — не чіпаємо,
-      // loadIntegrations() перечитає збережені значення в поля.
+      // SA JSON — очищаем (write-only). Spreadsheet ID — не трогаем,
+      // loadIntegrations() перечитает сохранённые значения в поля.
       setServiceAccountJson('')
       setShowSaJson(false)
       await loadIntegrations()
@@ -1998,7 +1998,7 @@ function GoogleSheetsSection() {
     }
   }
 
-  // Перевірка з'єднання — тестує обидві таблиці, per-table результат
+  // Проверка соединения — тестирует обе таблицы, per-table результат
   const testConnection = async () => {
     setTesting(true)
     setTestResult(null)
@@ -2013,17 +2013,17 @@ function GoogleSheetsSection() {
       const lines: TestLine[] = []
 
       if (!j.ok) {
-        // Основна таблиця недоступна
+        // Основная таблица недоступна
         const msg = j.main?.message ?? j.message ?? 'немає доступу'
         lines.push({ level: 'error', text: `Основна таблиця: ${msg}` })
         setTestResult(lines)
         return
       }
 
-      // Основна таблиця доступна
+      // Основная таблица доступна
       lines.push({ level: 'ok', text: `Основна таблиця: «${j.main.title}»` })
 
-      // Таблиця корекцій
+      // Таблица корректировок
       const adj = j.adjustments
       if (adj?.status === 'ok') {
         lines.push({ level: 'ok', text: `Таблиця корекцій: «${adj.title}»` })
@@ -2057,7 +2057,7 @@ function GoogleSheetsSection() {
         </p>
       </div>
 
-      {/* Кнопка допомоги */}
+      {/* Кнопка помощи */}
       <Button
         variant="outline"
         size="sm"
@@ -2077,7 +2077,7 @@ function GoogleSheetsSection() {
         />
       </div>
 
-      {/* Поле Adjustments Spreadsheet ID (окрема таблиця корекцій RETRACT/RESTATE) */}
+      {/* Поле Adjustments Spreadsheet ID (отдельная таблица корректировок RETRACT/RESTATE) */}
       <div className="space-y-1.5">
         <Label className="text-xs">Adjustments Spreadsheet ID (таблиця корекцій)</Label>
         <Input
@@ -2121,7 +2121,7 @@ function GoogleSheetsSection() {
           </p>
         </div>
 
-        {/* Textarea для перегляду/редагування JSON */}
+        {/* Textarea для просмотра/редактирования JSON */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
@@ -2159,7 +2159,7 @@ function GoogleSheetsSection() {
         )}
       </div>
 
-      {/* Результат тесту — per-table рядки, рамка за найгіршим рівнем */}
+      {/* Результат теста — per-table строки, рамка по худшему уровню */}
       {testResult && testResult.length > 0 && (() => {
         const worst = testResult.some((l) => l.level === 'error')
           ? 'error'
@@ -2183,7 +2183,7 @@ function GoogleSheetsSection() {
         )
       })()}
 
-      {/* Кнопки дій */}
+      {/* Кнопки действий */}
       <div className="flex gap-2 flex-wrap">
         <Button onClick={save} disabled={saving}>
           <Save className="h-4 w-4 mr-1.5" />
@@ -2195,7 +2195,7 @@ function GoogleSheetsSection() {
         </Button>
       </div>
 
-      {/* Dialog: покрокова інструкція */}
+      {/* Dialog: пошаговая инструкция */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>

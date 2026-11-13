@@ -1,10 +1,10 @@
 'use client'
 
-// Панель ієрархії ролей з drag-and-drop (нативний HTML5 DnD, без бібліотек).
-// Керована ззовні: рендерить порядок з пропа `roles`, а при перетягуванні віддає
-// новий порядок через onReorder (батько оновлює спільний стан і пише в API).
-// Вище у списку = більше повноважень. Рухати можна лише ролі СТРОГО нижче за власну;
-// «admin» та ролі на рівні/вище — заблоковані (locked).
+// Панель иерархии ролей с drag-and-drop (нативный HTML5 DnD, без библиотек).
+// Управляется снаружи: рендерит порядок из пропа `roles`, а при перетаскивании отдаёт
+// новый порядок через onReorder (родитель обновляет общее состояние и пишет в API).
+// Выше в списке = больше полномочий. Двигать можно только роли СТРОГО ниже собственной;
+// «admin» и роли на уровне/выше — заблокированы (locked).
 
 import { useState } from 'react'
 import { GripVertical, Lock, Loader2 } from 'lucide-react'
@@ -36,7 +36,7 @@ export function RoleHierarchy({
     const from = roles.findIndex((r) => r.id === dragId)
     const to = roles.findIndex((r) => r.id === targetId)
     if (from < 0 || to < 0) { setDragId(null); return }
-    // Рухати можна лише рухомі (нижчі за власну) ролі
+    // Двигать можно только подвижные (ниже собственной) роли
     if (!isMovable(roles[from]) || !isMovable(roles[to])) { setDragId(null); return }
     const next = [...roles]
     const [moved] = next.splice(from, 1)

@@ -62,20 +62,20 @@ export function UsersTable({
   adminRoles: AdminRole[]
   currentUserId: string
   canManageUsers: boolean
-  // Ранг поточного користувача + карта roleId→ранг. Керувати можна лише тими,
-  // чия роль СТРОГО нижче (rank більший) або без ролі.
+  // Ранг текущего пользователя + карта roleId→ранг. Управлять можно только теми,
+  // чья роль СТРОГО ниже (rank больше) или без роли.
   actorRank: number
   roleRanks: Record<string, number>
 }) {
-  // Користувачі — довідник «Відповідальні» у заявках/аналітиці: скидаємо клієнтський кеш при вході/виході.
+  // Пользователи — справочник «Відповідальні» в заявках/аналитике: сбрасываем клиентский кэш при входе/выходе.
   useInvalidateDictionaries()
-  // Роль користувача без ролі вважаємо «найнижчою» (керована).
+  // Роль пользователя без роли считаем «самой низкой» (управляемой).
   const roleRankOf = (roleId: string | null) =>
     roleId ? (roleRanks[roleId] ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY
-  // Чи може поточний користувач керувати цим рядком (роль/активність/видалення).
+  // Может ли текущий пользователь управлять этой строкой (роль/активность/удаление).
   const canManageRow = (u: AdminUser) =>
     canManageUsers && u.id !== currentUserId && roleRankOf(u.role_id) > actorRank
-  // Ролі, які можна призначати: лише строго нижче за власну.
+  // Роли, которые можно назначать: только строго ниже собственной.
   const assignableRoles = adminRoles.filter((r) => r.rank > actorRank)
   const [users, setUsers] = useState<AdminUser[]>(initialUsers)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -104,7 +104,7 @@ export function UsersTable({
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
       if (json.warning) toast(json.warning)
-      // Додаємо запрошеного користувача у список без перезавантаження сторінки.
+      // Добавляем приглашённого пользователя в список без перезагрузки страницы.
       if (json.user) {
         const roleName =
           adminRoles.find((r) => r.id === json.user.role_id)?.name ?? null
@@ -328,7 +328,7 @@ export function UsersTable({
         </table>
       </div>
 
-      {/* Модалка запрошення */}
+      {/* Модалка приглашения */}
       <Dialog
         open={inviteOpen}
         onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteSuccess(false); setInviteError(null) } }}
@@ -394,7 +394,7 @@ export function UsersTable({
         </DialogContent>
       </Dialog>
 
-      {/* Модалка редагування ролі / імені */}
+      {/* Модалка редактирования роли / имени */}
       <Dialog open={!!editUser} onOpenChange={(o) => { if (!o) setEditUser(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -449,7 +449,7 @@ export function UsersTable({
         </DialogContent>
       </Dialog>
 
-      {/* Підтвердження видалення */}
+      {/* Подтверждение удаления */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

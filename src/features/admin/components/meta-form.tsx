@@ -1,12 +1,12 @@
 'use client'
 
-// Редактор метаданих (SEO) головної сторінки. UI у стилі вкладки «Контент»: групи —
-// згортувані блоки CollapsibleCard (той самий компонент, що у content-form), за
-// замовчуванням усі СВЕРНУТІ. Стан полів живе в цьому компоненті (useState m), тож
-// згортання/розгортання блоків нічого не втрачає (навіть якщо вміст розмонтовується).
-// Контакти (телефон/email/telegram) тут НЕ редагуються — джерело один: вкладка
-// «Контент» → Контакти (показуються read-only). Біля кожного поля — іконка «i»
-// (InfoHint). Ендпоінт збереження — /api/admin/seo. Лише plain-текст.
+// Редактор метаданных (SEO) главной страницы. UI в стиле вкладки «Контент»: группы —
+// сворачиваемые блоки CollapsibleCard (тот же компонент, что в content-form), по
+// умолчанию все СВЁРНУТЫ. Состояние полей живёт в этом компоненте (useState m), поэтому
+// сворачивание/разворачивание блоков ничего не теряет (даже если содержимое размонтируется).
+// Контакты (телефон/email/telegram) здесь НЕ редактируются — источник один: вкладка
+// «Контент» → Контакти (показываются read-only). Возле каждого поля — иконка «i»
+// (InfoHint). Эндпоинт сохранения — /api/admin/seo. Только plain-текст.
 
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -31,7 +31,7 @@ type Meta = {
 
 type Contacts = { phone: string; email: string; telegram: string }
 
-/** Заголовок з іконкою-підказкою «i». */
+/** Заголовок с иконкой-подсказкой «i». */
 function LabelWithInfo({ label, info }: { label: string; info: string }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -41,7 +41,7 @@ function LabelWithInfo({ label, info }: { label: string; info: string }) {
   )
 }
 
-/** Поле з підписом, іконкою-підказкою та короткою сірою фразою під полем. */
+/** Поле с подписью, иконкой-подсказкой и короткой серой фразой под полем. */
 function Field({
   label, hint, info, children,
 }: {
@@ -59,7 +59,7 @@ function Field({
   )
 }
 
-/** Лічильник символів: зелений у нормі, помаранчевий при перевищенні (не блокує). */
+/** Счётчик символов: зелёный в норме, оранжевый при превышении (не блокирует). */
 function Counter({ value, max }: { value: string; max: number }) {
   const len = value.length
   const over = len > max
@@ -83,13 +83,13 @@ export function MetaForm({
   initial: Meta
   defaults: Meta
   baseUpdatedAt: string | null
-  /** Адреса сайту — для зеленого URL у прев'ю (з env, редагуванню не підлягає). */
+  /** Адрес сайта — для зелёного URL в превью (из env, редактированию не подлежит). */
   siteUrl: string
-  /** Назва компанії/сайту (messages.site.name) — джерело наслідування для «Назва компанії». */
+  /** Название компании/сайта (messages.site.name) — источник наследования для «Назва компанії». */
   siteName: string
-  /** Контакти з вкладки «Контент» — показуються read-only (джерело для JSON-LD). */
+  /** Контакты из вкладки «Контент» — показываются read-only (источник для JSON-LD). */
   contacts: Contacts
-  /** Перемкнути на вкладку «Контент» (передається з ContentTabs). */
+  /** Переключить на вкладку «Контент» (передаётся из ContentTabs). */
   onGoToContacts?: () => void
 }) {
   const [m, setM] = useState<Meta>(initial)
@@ -102,13 +102,13 @@ export function MetaForm({
 
   const set = (k: keyof Meta) => (v: string) => setM((s) => ({ ...s, [k]: v }))
 
-  // Ефективні значення для прев'ю (порожні OG наслідують основні).
+  // Эффективные значения для превью (пустые OG наследуют основные).
   const effTitle = m.title || defaults.title
   const effDesc = m.description || defaults.description
   const ogTitle = m.ogTitle.trim() || effTitle
   const ogDesc = m.ogDescription.trim() || effDesc
-  // Наслідування для блоку «Дані організації» (аналогічно OG): порожня назва → назва
-  // сайту; порожній опис → «Опис сторінки». Обчислюється живо при вводі.
+  // Наследование для блока «Дані організації» (аналогично OG): пустое название → название
+  // сайта; пустое описание → «Опис сторінки». Вычисляется вживую при вводе.
   const effOrgName = m.orgName.trim() || siteName
   const effOrgDesc = m.orgDescription.trim() || effDesc
   const domain = (() => {
@@ -137,7 +137,7 @@ export function MetaForm({
 
   return (
     <div className="space-y-4 pb-24">
-      {/* Вступний блок для неспеціаліста (завжди видимий, не згортається) */}
+      {/* Вступительный блок для неспециалиста (всегда видимый, не сворачивается) */}
       <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
         Метадані — це те, як ваш сайт виглядає у Google та під час пересилання
         посилання у месенджерах і соцмережах. На самій сторінці вони не видимі.
@@ -145,7 +145,7 @@ export function MetaForm({
         кілька днів або тижнів — це нормально.
       </div>
 
-      {/* Група 1 — Пошукова видача Google */}
+      {/* Группа 1 — Поисковая выдача Google */}
       <CollapsibleCard
         title="Пошукова видача (Google)"
         description="Як сторінка виглядає в результатах пошуку."
@@ -168,7 +168,7 @@ export function MetaForm({
           <p className="text-xs"><Counter value={m.description} max={160} /></p>
         </Field>
 
-        {/* Живе прев'ю сніпета Google — службова підгрупа на приглушеній підложці */}
+        {/* Живое превью сниппета Google — служебная подгруппа на приглушённой подложке */}
         <div className="space-y-1.5 rounded-lg border bg-muted/40 p-3">
           <LabelWithInfo
             label="Прев’ю у Google"
@@ -183,7 +183,7 @@ export function MetaForm({
         </div>
       </CollapsibleCard>
 
-      {/* Група 2 — Open Graph */}
+      {/* Группа 2 — Open Graph */}
       <CollapsibleCard
         title="Соцмережі (Open Graph)"
         description="Як виглядає посилання при пересиланні у Telegram, Facebook тощо."
@@ -217,7 +217,7 @@ export function MetaForm({
           </p>
         </div>
 
-        {/* Прев'ю картки шарингу — службова підгрупа на приглушеній підложці */}
+        {/* Превью карточки шаринга — служебная подгруппа на приглушённой подложке */}
         <div className="space-y-1.5 rounded-lg border bg-muted/40 p-3">
           <LabelWithInfo
             label="Прев’ю картки при пересиланні"
@@ -239,7 +239,7 @@ export function MetaForm({
         </div>
       </CollapsibleCard>
 
-      {/* Група 3 — Дані організації (JSON-LD) */}
+      {/* Группа 3 — Данные организации (JSON-LD) */}
       <CollapsibleCard
         title="Дані організації"
         description="Структуровані дані про компанію для Google (не видимі на сторінці)."
@@ -259,7 +259,7 @@ export function MetaForm({
           <Textarea value={m.orgDescription} onChange={(e) => set('orgDescription')(e.target.value)} rows={3} placeholder={`Наслідує: ${effOrgDesc}`} />
         </Field>
 
-        {/* Контакти — read-only, з вкладки «Контент» (єдине джерело), службова підгрупа */}
+        {/* Контакты — read-only, из вкладки «Контент» (единый источник), служебная подгруппа */}
         <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
           <LabelWithInfo
             label="Контакти в структурованих даних"
@@ -290,7 +290,7 @@ export function MetaForm({
         </div>
       </CollapsibleCard>
 
-      {/* Плавуча кнопка збереження — як у вкладці «Контент», видима незалежно від згорнутості */}
+      {/* Плавающая кнопка сохранения — как во вкладке «Контент», видима независимо от свёрнутости */}
       {dirty && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
           <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">

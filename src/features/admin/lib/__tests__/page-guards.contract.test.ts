@@ -1,7 +1,7 @@
-// Контракт «сторінка адмінки → права розділу» (розділ 5 стандарту: немає права на розділ → редирект
-// на /admin). Кожна сторінка розділу має викликати requireSectionAccess(<права з ADMIN_SECTIONS>).
-// Сторінки без такого гарду перелічені явно як відомий виняток (див. звіт тестування адмінки
-// 2026-09-18) — новий негардований розділ робить тест червоним.
+// Контракт «страница админки → права раздела» (раздел 5 стандарта: нет права на раздел → редирект
+// на /admin). Каждая страница раздела должна вызывать requireSectionAccess(<права из ADMIN_SECTIONS>).
+// Страницы без такого гарда перечислены явно как известное исключение (см. отчёт тестирования админки
+// 2026-09-18) — новый негардированный раздел делает тест красным.
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -10,7 +10,7 @@ import * as SETS from '@/presentation/permissions'
 
 const PAGES_ROOT = path.resolve(process.cwd(), 'src', 'app', 'admin', '(dashboard)')
 
-/** Сторінки без гарду розділу. Порожньо з 2026-09-18 (виправлення за тестуванням адмінки). */
+/** Страницы без гарда раздела. Пусто с 2026-09-18 (исправление по итогам тестирования админки). */
 const KNOWN_UNGUARDED: string[] = []
 
 function pageFiles(dir: string): string[] {
@@ -51,7 +51,7 @@ describe('контракт гардів сторінок /admin/**', () => {
   })
 
   for (const [href, file] of byHref) {
-    if (href === '/admin') continue // головна: картки за правами, гард — сесія в layout
+    if (href === '/admin') continue // главная: карточки по правам, гард — сессия в layout
     it(`${href}: гард = права розділу`, () => {
       const src = fs.readFileSync(file, 'utf8')
       const arg = guardArg(src)

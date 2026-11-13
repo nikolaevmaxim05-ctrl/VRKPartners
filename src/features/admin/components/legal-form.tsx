@@ -1,10 +1,10 @@
 'use client'
 
-// Редактор юридичних документів (Політика конфіденційності / Публічна оферта).
-// UI у стилі вкладки «Контент»: дві вкладки-документи → розділи-акордеони
-// (CollapsibleItem — той самий компонент, що у content-form для FAQ/кейсів):
-// у шапці — номер і живий заголовок + шеврон + дії (вгору/вниз/видалити),
-// за замовчуванням згорнуті. Дані/ендпоінти/валідація — без змін.
+// Редактор юридических документов («Політика конфіденційності» / «Публічна оферта»).
+// UI в стиле вкладки «Контент»: две вкладки-документа → разделы-аккордеоны
+// (CollapsibleItem — тот же компонент, что в content-form для FAQ/кейсов):
+// в шапке — номер и живой заголовок + шеврон + действия (вверх/вниз/удалить),
+// по умолчанию свёрнуты. Данные/эндпоинты/валидация — без изменений.
 
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -17,9 +17,9 @@ import { CollapsibleItem } from '@/features/admin/components/collapsible-section
 
 type DocKey = 'privacy' | 'offer'
 
-// Секція у стані форми: абзаци й пункти редагуються як текст (рядок = абзац/пункт).
-// id — стабільний ключ для React, щоб згорнутий/розгорнутий стан не «стрибав»
-// під час перестановки чи видалення сусідніх розділів (у dirty-порівнянні не бере участі).
+// Секция в состоянии формы: абзацы и пункты редактируются как текст (строка = абзац/пункт).
+// id — стабильный ключ для React, чтобы свёрнутое/развёрнутое состояние не «прыгало»
+// при перестановке или удалении соседних разделов (в dirty-сравнении не участвует).
 type EditSection = { id: string; heading: string; paragraphsText: string; itemsText: string }
 type InitialDoc = {
   title: string
@@ -59,7 +59,7 @@ function toSections(edit: EditSection[]) {
     .filter((s) => s.heading || s.paragraphs.length > 0 || (s.items && s.items.length > 0))
 }
 
-/** Серіалізація без id — щоб дірті-стан не залежав від службових ключів. */
+/** Сериализация без id — чтобы dirty-состояние не зависело от служебных ключей. */
 function serialize(privacy: EditSection[], offer: EditSection[]) {
   const strip = (arr: EditSection[]) =>
     arr.map(({ heading, paragraphsText, itemsText }) => ({ heading, paragraphsText, itemsText }))
@@ -133,7 +133,7 @@ export function LegalForm({
 
   return (
     <div className="space-y-4 pb-24">
-      {/* Рівень 1 — документ: перемикач вкладок */}
+      {/* Уровень 1 — документ: переключатель вкладок */}
       <div className="flex flex-wrap gap-2">
         {(['privacy', 'offer'] as DocKey[]).map((k) => (
           <Button
@@ -147,7 +147,7 @@ export function LegalForm({
         ))}
       </div>
 
-      {/* Рівень 2 — розділи документа: акордеони */}
+      {/* Уровень 2 — разделы документа: аккордеоны */}
       <div className="space-y-2">
         <p className="text-sm font-medium text-muted-foreground">
           Розділи документа «{DOC_LABELS[tab]}» ({sections.length})
@@ -175,7 +175,7 @@ export function LegalForm({
               </>
             }
           >
-            {/* Рівень 3 — поля розділу */}
+            {/* Уровень 3 — поля раздела */}
             <div className="space-y-1.5">
               <Label className="text-sm">Заголовок розділу</Label>
               <Input
@@ -195,7 +195,7 @@ export function LegalForm({
               />
             </div>
 
-            {/* Вкладена група — глибший рівень, приглушена підложка */}
+            {/* Вложенная группа — более глубокий уровень, приглушённая подложка */}
             <div className="space-y-1.5 rounded-lg border bg-muted/40 p-3">
               <Label className="text-sm">Пункти переліку (необов’язково, кожен рядок — пункт)</Label>
               <Textarea
@@ -213,7 +213,7 @@ export function LegalForm({
         </Button>
       </div>
 
-      {/* Плавуча кнопка збереження — як у вкладці «Контент» */}
+      {/* Плавающая кнопка сохранения — как во вкладке «Контент» */}
       {dirty && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
           <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">

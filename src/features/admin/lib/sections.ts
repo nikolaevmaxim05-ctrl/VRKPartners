@@ -1,5 +1,5 @@
-// Розділи адмінки (розділ 5 стандарту): один масив для меню сайдбара і карток головної.
-// Пункт показується, якщо в користувача є хоча б одне з прав anyPermission (порожньо — усім).
+// Разделы админки (раздел 5 стандарта): один массив для меню сайдбара и карточек главной.
+// Пункт показывается, если у пользователя есть хотя бы одно из прав anyPermission (пусто — всем).
 import {
   PhoneCall, Plug, TrendingUp, Users, Shield, Settings, BarChart3, RotateCcw, FileText, Scale, History, Handshake,
   type LucideIcon,
@@ -29,7 +29,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { href: '/admin/audit-log', label: 'Журнал дій', description: 'Хто, коли і що змінив в адмінці.', icon: History, anyPermission: ['manage_users'] },
 ]
 
-/** Розділи, доступні з набором прав. */
+/** Разделы, доступные при наборе прав. */
 export function visibleSections(permissions: readonly Permission[]): AdminSection[] {
   return ADMIN_SECTIONS.filter((s) => s.anyPermission.length === 0 || s.anyPermission.some((p) => permissions.includes(p)))
 }

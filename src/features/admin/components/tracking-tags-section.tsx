@@ -1,11 +1,11 @@
 'use client'
 
-// Секція «Google теги» на сторінці «Інтеграції».
-// Список тегів (тип, ID, мітка, switch enabled, видалення з підтвердженням)
-// + форма додавання з селектом типу. Для тегів Google Ads — поле Conversion label
-// (друга половина send_to: AW-XXX/LABEL): без нього відправка форми не викликає
-// конверсію Ads і Enhanced Conversions нема до чого привʼязатися.
-// Зміни застосовуються на лендингу миттєво — API робить revalidatePath('/', 'layout').
+// Секция «Google теги» на странице «Інтеграції».
+// Список тегов (тип, ID, метка, switch enabled, удаление с подтверждением)
+// + форма добавления с селектом типа. Для тегов Google Ads — поле Conversion label
+// (вторая половина send_to: AW-XXX/LABEL): без него отправка формы не вызывает
+// конверсию Ads, и Enhanced Conversions не к чему привязаться.
+// Изменения применяются на лендинге мгновенно — API делает revalidatePath('/', 'layout').
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/ui/button'
@@ -46,7 +46,7 @@ type FormState = {
 
 const EMPTY_FORM: FormState = { type: 'gtm', tag_id: '', label: '', conversion_label: '' }
 
-/** Інлайн-редактор Conversion label для тега Google Ads (зберігається окремим PATCH). */
+/** Инлайн-редактор Conversion label для тега Google Ads (сохраняется отдельным PATCH). */
 function ConversionLabelField({ tag, onSaved, onError }: { tag: TrackingTag; onSaved: (t: TrackingTag) => void; onError: (m: string) => void }) {
   const [value, setValue] = useState(tag.conversion_label ?? '')
   const [saving, setSaving] = useState(false)
@@ -140,7 +140,7 @@ export function TrackingTagsSection() {
   async function handleToggle(tag: TrackingTag, enabled: boolean) {
     setToggling(t => ({ ...t, [tag.id]: true }))
     setError(null)
-    // Оптимістичне оновлення
+    // Оптимистичное обновление
     setTags(prev => prev.map(t => t.id === tag.id ? { ...t, enabled } : t))
     try {
       const res = await fetch(`/api/admin/tracking-tags/${tag.id}`, {
@@ -151,7 +151,7 @@ export function TrackingTagsSection() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Помилка оновлення')
     } catch (err) {
-      // Відкат при помилці
+      // Откат при ошибке
       setTags(prev => prev.map(t => t.id === tag.id ? { ...t, enabled: !enabled } : t))
       setError(err instanceof Error ? err.message : 'Помилка оновлення')
     } finally {
@@ -196,7 +196,7 @@ export function TrackingTagsSection() {
           </div>
         ) : (
           <>
-            {/* Список тегів */}
+            {/* Список тегов */}
             {tags.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Тегів поки немає. Використовується GTM-контейнер з налаштувань оточення (якщо заданий).
@@ -245,7 +245,7 @@ export function TrackingTagsSection() {
               </div>
             )}
 
-            {/* Форма додавання */}
+            {/* Форма добавления */}
             <div className="space-y-2 border-t pt-4">
               <Label className="text-sm font-medium">Додати тег</Label>
               <div className="flex flex-wrap gap-2">
@@ -304,7 +304,7 @@ export function TrackingTagsSection() {
         )}
       </CardContent>
 
-      {/* Підтвердження видалення */}
+      {/* Подтверждение удаления */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>

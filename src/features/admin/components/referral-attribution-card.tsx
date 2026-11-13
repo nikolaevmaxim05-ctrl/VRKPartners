@@ -1,9 +1,9 @@
 'use client'
 
-// Картка «Вікно атрибуції» (first-touch, рішення власника 2026-09-29): заявка зараховується партнеру,
-// за посиланням якого відвідувач перейшов ПЕРШИМ протягом останніх N днів. Пресети + «Інше» з полем
-// 1–400 (стеля cookie Chrome). Зберігається в site_settings.referral_attribution_days через
-// GET/PATCH /api/admin/referral-links/settings (право manage_referrals). Зміна діє на нові заявки.
+// Карточка «Вікно атрибуції» (first-touch, решение владельца 2026-09-29): заявка засчитывается партнёру,
+// по ссылке которого посетитель перешёл ПЕРВЫМ в течение последних N дней. Пресеты + «Інше» с полем
+// 1–400 (потолок cookie Chrome). Хранится в site_settings.referral_attribution_days через
+// GET/PATCH /api/admin/referral-links/settings (право manage_referrals). Изменение действует на новые заявки.
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/ui/button'
