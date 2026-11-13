@@ -113,6 +113,8 @@ export async function middleware(request: NextRequest) {
   // ── Ветка 1: админка (страницы и API) → проверка сессии Supabase, без next-intl ──
   if (isAdminApi || isAdminPage) {
     let response = NextResponse.next({ request })
+    // Обновлённые токены сессии пишутся дважды: в cookies запроса — их увидят роут и страница в этом же
+    // запросе — и в новый ответ, чтобы браузер их сохранил. Поэтому response пересоздаётся внутри setAll.
     const userId = await getSessionUserId({
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet) => {
@@ -154,12 +156,15 @@ export async function middleware(request: NextRequest) {
     setReferralCookie(redirect, refFromPath, request)
     return applySecurityHeaders(redirect)
   }
+  // Cookie ставится на любой ответ next-intl, в т.ч. на его редирект (/uk → /), — касание не теряется.
   const siteResponse = intlMiddleware(request)
   const refFromQuery = normalizeRefCode(request.nextUrl.searchParams.get(REF_QUERY_KEY))
   if (refFromQuery) setReferralCookie(siteResponse, refFromQuery, request)
   return applySecurityHeaders(siteResponse)
 }
 
+// Список расширений повторяет STATIC_FILE_RE и меняется только вместе с ним: Next читает matcher при
+// сборке, поэтому значение должно быть литералом — ссылку на константу сюда подставить нельзя.
 export const config = {
   matcher: [
     '/((?!_next|_vercel|.*\\.(?:ico|png|jpe?g|gif|webp|avif|svg|css|js|map|txt|xml|json|webmanifest|woff2?|ttf|otf|eot|mp4|webm|pdf)$).*)',

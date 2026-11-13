@@ -26,7 +26,12 @@ import {
   type SlideInParams,
 } from '@core/domain/layout/slide-in'
 
+// Часть пункта. index — ступенька выезда (0 номер, 1 жёлтая фраза, 2 серая часть). lastX (px) и lastO —
+// последние записанные значения; NaN — ещё не записывались, следующая запись ставится без перехода.
+// animated — какой transition стоит в инлайн-стиле сейчас; null — ещё не выставлялся.
 type Part = { el: HTMLElement; index: number; lastX: number; lastO: number; animated: boolean | null }
+// Пункт. gate — родитель пунктов (ol), за ним следит IntersectionObserver; top — кэш верха пункта в
+// документе, px.
 type Item = { el: HTMLElement; gate: HTMLElement; top: number; parts: Part[] }
 
 export type SlideInController = {
@@ -42,6 +47,7 @@ const REDUCED = '(prefers-reduced-motion: reduce)'
 const HTML_CLASS = 'js-slide-in'
 /** Запас гейта: родитель пунктов считается «рядом» за 50 % высоты окна от края. */
 const GATE_MARGIN = '50% 0px 50% 0px'
+// Пороги записи в style: сдвиг меньше EPS_X px и изменение непрозрачности меньше EPS_O (доля 0…1) не пишутся.
 const EPS_X = 0.5
 const EPS_O = 0.01
 /** Кривая easeOutExpo (приближение 1 − 2^(−10t)) — соответствует экспоненциальной инерции. */
@@ -66,6 +72,8 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
   const near = new Set<HTMLElement>()
   let io: IntersectionObserver | null = null
   let ro: ResizeObserver | null = null
+  // Три независимых запроса кадра (0 — не запрошен): raf — проход по пунктам в гейте на прокрутке;
+  // forceRaf — полный проход без перехода (вход/выход из гейта, новые параметры); measureRaf — перемер.
   let raf = 0
   let forceRaf = 0
   let measureRaf = 0
@@ -81,6 +89,7 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
   const write = (part: Part, x: number, opacity: number, snap: boolean) => {
     const xr = Math.round(x * 10) / 10
     const o = opacity >= 0.995 ? 1 : Math.round(opacity * 1000) / 1000
+    // Финальная «1» пишется всегда, даже если шаг меньше порога, — иначе часть осталась бы чуть прозрачной.
     if (Math.abs(xr - part.lastX) < EPS_X && Math.abs(o - part.lastO) < EPS_O && !(o === 1 && part.lastO !== 1)) return
     const first = Number.isNaN(part.lastX)
     part.lastX = xr
@@ -110,6 +119,7 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
       }
   }
 
+  /** all — все пункты, а не только те, чей список в гейте; snap — ставить значения без перехода. */
   const compute = (all: boolean, snap: boolean) => {
     if (!active || items.length === 0) return
     if (!all && near.size === 0) return
@@ -177,6 +187,7 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
         parts.push({ el: pe, index: Number.isFinite(index) ? index : 0, lastX: NaN, lastO: NaN, animated: null })
       })
       if (parts.length === 0) return
+      // Гейт — общий родитель пунктов: один наблюдаемый элемент на список, а не на каждый пункт.
       const gate = el.parentElement ?? el
       seen.add(gate)
       items.push({ el, gate, top: 0, parts })

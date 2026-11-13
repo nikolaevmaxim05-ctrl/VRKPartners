@@ -61,6 +61,14 @@ export type SubmitLeadValue = { duplicate: boolean }
 /** Стадия по умолчанию, если ни одна не помечена is_initial. */
 const FALLBACK_INITIAL_STAGE_NAME = 'Новий клієнт'
 
+/**
+ * Собирает сценарий приёма заявки; возвращённая функция обрабатывает одну отправку формы.
+ * Итоги: invalid (400) — тело не прошло схему; rate_limited (429, retryAfter в секундах); failed (500) —
+ * не записалась строка в БД и не дошло ни одно уведомление; ok({ duplicate: true }) — повтор приклеен
+ * к первой заявке, новой строки нет; ok({ duplicate: false }) — новая заявка или honeypot (бот).
+ * Побочные эффекты: строка leads, у повтора — флаг is_repeat и системный комментарий оригиналу,
+ * сообщения в Telegram / KeyCRM / email. В журнал действий приём заявки не пишется.
+ */
 export function makeSubmitLead(deps: SubmitLeadDeps) {
   const { schema, leads, statuses, comments, settings, notifiers, clock } = deps
 
@@ -73,6 +81,11 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     return parseDedupSettings(res.data)
   }
 
+  /**
+   * Первая заявка, повтором которой считается эта: сначала по телефону, затем по IP в окне часов — оба
+   * правила включаются в настройках клиента. Ошибка поиска не блокирует: заявка пойдёт как новая.
+   * ip = null — адрес не определён, проверка по IP пропускается.
+   */
   async function findDuplicate(phone: string, ip: string | null): Promise<{ id: string; reason: DedupReason } | null> {
     const s = await getDedupSettings()
     if (s.dedupByPhone) {
@@ -199,6 +212,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     }
 
     // Ключи всех каналов доставки — одним запросом в кэш.
+    // До дедупа: ветка повтора тоже шлёт Telegram.
     await deps.integrationConfig.prefetch(LEAD_DELIVERY_KEYS)
 
     // 6. Дедуп: оригинал маркируется is_repeat + system-комментарий, Telegram с [ПОВТОР].
@@ -224,6 +238,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       ])
       if (!note.ok) console.error('[dedup] system_comment_failed', note.error)
 
+      // О повторе сообщает только Telegram; KeyCRM и email не вызываются — новой заявки нет.
       const tg = await notifiers.telegram.send(leadData, { isRepeat: true })
       if (tg.ok) console.log('[lead] repeat_notified channel=telegram')
       else console.error('[lead] repeat_telegram_failed', tg.error)
@@ -233,6 +248,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     }
 
     // 7. Запись лида в начальную стадию — ДО уведомлений; ошибка БД → 500.
+    // Если не нашлась ни стадия is_initial, ни стадия с именем по умолчанию, лид пишется без стадии (null).
     const statusId = (await statuses.findInitialId()) ?? (await statuses.findIdByName(FALLBACK_INITIAL_STAGE_NAME))
     const row: LeadInsert = {
       name: lead.name,
@@ -255,8 +271,8 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       user_agent: ctx.userAgent,
       status_id: statusId,
       locale: lead.locale || DEFAULT_LEAD_LOCALE,
-      referral_link_id: referral.linkId,
-      referral_code: touch?.code ?? null,
+      referral_link_id: referral.linkId, // только активная ссылка; выключенная или неизвестная → null
+      referral_code: touch?.code ?? null, // код сохраняется всегда, когда касание попало в окно атрибуции
       referral_touched_at: referral.touchedAt,
     }
     const saved = await insertLead(row)

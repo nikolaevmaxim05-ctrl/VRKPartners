@@ -11,13 +11,14 @@ import { isAmountConversionType, type ConversionType } from './stage-rules'
 /** Типы конверсий, которые считаются «целевым» состоянием (для RETRACT при замене). */
 export const TARGET_TYPES: readonly string[] = ['target_lead', 'deal', 'deal_adjustment']
 
+/** Поля стадии, по которым решается судьба конверсии (таблица стадий — раздел 6 стандарта). */
 export type StatusForTransition = {
   id: string
   name: string
   is_final: boolean
-  conversion_type: ConversionType | null
-  conversion_action: string | null
-  requires_amount: boolean
+  conversion_type: ConversionType | null // null — стадия без конверсии (поведение решает тип, а не название)
+  conversion_action: string | null // имя конверсии в Google Ads; обязательно у конверсионной стадии
+  requires_amount: boolean // при переходе на стадию спрашивается сумма; допустимо только для deal / deal_adjustment
   amount_is_profit: boolean
 }
 
@@ -25,6 +26,7 @@ export type StatusForTransition = {
  * Обнуление суммы при переходе «из сделки → без сделки».
  * Не трогает поля, которые клиент передал явно (bodyKeys).
  * Возвращает дополнение к update и флаг для system-комментария.
+ * Правило — раздел 6 стандарта, п. 1; комментарий «Сума угоди очищена…» пишет сценарий по флагу cleared.
  */
 export function planDealClearing(args: {
   before: { deal_amount: unknown; deal_profit: unknown }
@@ -34,8 +36,11 @@ export function planDealClearing(args: {
 }): { update: { deal_amount?: null; deal_profit?: null }; cleared: boolean } {
   const wasDeal = isAmountConversionType(args.oldConversionType)
   const willBeDeal = isAmountConversionType(args.newConversionType)
+  // Только уход с типа с суммой на тип без суммы; переход deal ↔ deal_adjustment сумму сохраняет.
   if (!(wasDeal && !willBeDeal)) return { update: {}, cleared: false }
 
+  // Пустое поле не «обнуляется»: cleared = true только при реальном изменении, иначе в истории лида
+  // появился бы комментарий об очистке, которой не было.
   const willClearAmount = !args.bodyKeys.has('deal_amount') && args.before.deal_amount != null
   const willClearProfit = !args.bodyKeys.has('deal_profit') && args.before.deal_profit != null
   const update: { deal_amount?: null; deal_profit?: null } = {}
@@ -47,6 +52,8 @@ export function planDealClearing(args: {
 /**
  * Значение конверсии для стадии: только если requires_amount; для deal_adjustment —
  * прибыль, иначе — сумма сделки. Без суммы → null.
+ * Правило дословно из раздела 6 стандарта. Флаг стадии amount_is_profit здесь не участвует: что уходит
+ * в Google, определяет только тип конверсии.
  */
 export function resolveConversionValue(
   status: { requires_amount?: boolean; conversion_type?: string | null },
@@ -78,6 +85,8 @@ export function classifyLeadChange(args: {
 }): LeadChangeCase {
   const { statusChanged, oldStatus, newStatus, amountChanged } = args
   if (statusChanged) {
+    // enter проверяется первым: переход с одной конверсионной стадии на другую — это enter (замену
+    // конверсии разбирает decideAdjustment), а не leave.
     if (isConversionStage(newStatus)) return 'enter'
     if (isConversionStage(oldStatus)) return 'leave'
     return 'none'
@@ -86,18 +95,27 @@ export function classifyLeadChange(args: {
   return 'none'
 }
 
+/**
+ * Итог записи конверсии (conversion-flow.recordConversion): inserted — создана первая строка лида;
+ * updated — изменилось состояние, prev* — значения до изменения; noop — состояние то же, ничего не
+ * записано; error — сбой БД (уже в логе), корректировки и выгрузка не выполняются.
+ */
 export type RecordOutcome =
   | { outcome: 'inserted' }
   | { outcome: 'updated'; action: string; prevAction: string; prevType: string | null; prevValue: number | null; valueChanged: boolean }
   | { outcome: 'noop' }
   | { outcome: 'error' }
 
+/** Строка offline_conversions до изменения лида. */
 export type ExistingConversionState = {
   id: string
+  // pending — ждёт выгрузки (Google её ещё не видел); exported — выгружена; retracted — отозвана и не
+  // стоит в очереди массовой выгрузки (миграция 034, исправление 1 ревью после Фазы 6).
   export_status: 'pending' | 'exported' | 'retracted'
   conversion_action: string
 }
 
+/** План корректировки для сценария: retract отзывает выгруженную строку, restate переотправляет сумму. */
 export type AdjustmentDecision =
   | { kind: 'retract'; conversionAction: string; offlineConversionId: string }
   | { kind: 'restate'; conversionAction: string; value: number | null }
@@ -120,6 +138,8 @@ export function decideAdjustment(args: {
   const { oldConversionType, newConversionType, outcome, ocBefore } = args
   const wasTarget = oldConversionType != null && TARGET_TYPES.includes(oldConversionType)
 
+  // Три признака замены из п. 3 раздела 6 по порядку: целевое → нецелевой лид; целевой лид → тип с
+  // суммой; сменилось имя конверсии (видно только по итогу 'updated').
   const replaced =
     (wasTarget && newConversionType === 'non_target_lead') ||
     (oldConversionType === 'target_lead' && isAmountConversionType(newConversionType)) ||
@@ -132,6 +152,8 @@ export function decideAdjustment(args: {
     return { kind: 'none' }
   }
 
+  // RESTATE при enter не смотрит на export_status (в отличие от decideAmountAdjustment): так сформулирован
+  // п. 3 раздела 6 — «та же сделка, изменилась сумма».
   if (
     outcome.outcome === 'updated' &&
     outcome.valueChanged &&

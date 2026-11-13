@@ -14,7 +14,9 @@ type RouteParams = { params: Promise<{ id: string }> }
 export const GET = (_request: NextRequest, { params }: RouteParams) =>
   withAdmin(LEAD_VIEW_PERMISSIONS, async () => {
     const { id } = await params
+    // Не-UUID в пути — 404 до запроса в БД (исправление 12 тестирования админки 2026-09-18).
     if (!isUuid(id)) return notFound()
+    // Сценарий уже отдаёт { data: … }; тождественное преобразование — чтобы не обернуть второй раз.
     return respond(await getLeadUseCases().getLeadDetail(id), (v) => v)
   })
 
@@ -32,5 +34,6 @@ export const DELETE = (_request: NextRequest, { params }: RouteParams) =>
     const { id } = await params
     if (!isUuid(id)) return notFound()
     const result = await getLeadUseCases().deleteLead(id, actor)
+    // Несуществующий лид — not_found → 404 через respond (исправление 7 тестирования админки 2026-09-18).
     return result.ok ? NextResponse.json({ ok: true }) : respond(result)
   })

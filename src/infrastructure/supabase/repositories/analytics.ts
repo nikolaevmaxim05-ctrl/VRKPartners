@@ -5,7 +5,7 @@ import type { AnalyticsRepository } from '@core/application/ports/analytics'
 import type { DbLeadRow } from '@core/domain/analytics/report-breakdown'
 import type { ExportLeadRow, ExportHistoryRow, ExportCommentRow } from '@core/domain/analytics/export-leads'
 
-const CHUNK_SIZE = 500
+const CHUNK_SIZE = 500 // id лидов в одном фильтре .in(...) при дочитывании полей, истории и комментариев
 
 // referral_links!left — название партнёра для разреза/разбивки/экспорта (селекты держать синхронно).
 const REPORT_SELECT = `
@@ -38,8 +38,16 @@ async function inChunks<T>(ids: string[], fn: (chunk: string[]) => Promise<T[]>)
   return out
 }
 
+/**
+ * Выборки отчётов и выгрузок аналитики. Клиент — service_role (RLS не действует): право смотреть
+ * отчёт уже проверил withAdmin в роуте (решение 2 Фазы 2). Защиту от слишком больших выборок держит
+ * сценарий: он просит limit + 1 строк и по лишней строке понимает, что диапазон надо сузить.
+ * Справочники (statusFlags, statusNames, customFieldDefs) и дочитывание по id при ошибке БД молча
+ * отдают пустой список — отчёт или файл выгрузки строится без этих данных.
+ */
 export function makeAnalyticsRepository(db: () => Db): AnalyticsRepository {
   return {
+    // count: 'exact' — общее число подходящих строк без учёта limit (сценарий сравнивает его с лимитом).
     async reportLeads(q) {
       let query = db()
         .from('leads')
@@ -48,6 +56,7 @@ export function makeAnalyticsRepository(db: () => Db): AnalyticsRepository {
         .lte('created_at', q.utcTo)
       if (q.utmSource) query = query.eq('utm_source', q.utmSource)
       if (q.service) query = query.eq('service', q.service)
+      // Несколько ответственных (assigneeIds) важнее одного (assignedTo), если пришли оба.
       if (q.assigneeIds.length > 0) query = query.in('assigned_to', q.assigneeIds)
       else if (q.assignedTo) query = query.eq('assigned_to', q.assignedTo)
       if (q.gclid === 'with') query = query.not('gclid', 'is', null)
@@ -60,6 +69,7 @@ export function makeAnalyticsRepository(db: () => Db): AnalyticsRepository {
       return dbOk({ rows: (data ?? []) as unknown as DbLeadRow[], count: count ?? null })
     },
 
+    // Без count: здесь count всегда null, и сценарий узнаёт о превышении лимита по числу строк (limit + 1).
     async exportLeads(q) {
       let query = db()
         .from('leads')
@@ -69,6 +79,8 @@ export function makeAnalyticsRepository(db: () => Db): AnalyticsRepository {
         .order('created_at', { ascending: false })
       if (q.utmSource) query = query.eq('utm_source', q.utmSource)
       if (q.service) query = query.eq('service', q.service)
+      // Только один ответственный: фильтр по нескольким выгрузка не учитывает — как до перестройки
+      // (решение владельца 2026-09-11 «не исправлять»).
       if (q.assignedTo) query = query.eq('assigned_to', q.assignedTo)
       if (q.gclid === 'with') query = query.not('gclid', 'is', null)
       if (q.gclid === 'without') query = query.is('gclid', null)
@@ -127,12 +139,14 @@ export function makeAnalyticsRepository(db: () => Db): AnalyticsRepository {
           .from('lead_comments')
           .select('lead_id, created_at, user_email, content, type')
           .in('lead_id', chunk)
+          // Системные комментарии (смена стадии, повтор) в выгрузку не входят — только записи людей.
           .in('type', ['comment', 'note'])
           .order('created_at', { ascending: true })
         return (data ?? []) as ExportCommentRow[]
       })
     },
 
+    // Значения UTM-колонки за период (список значений измерения, getDimensionValues), с повторами — уникальные отбирает сценарий.
     async utmValues(col, utcFrom, utcTo, limit) {
       const { data, error } = await db()
         .from('leads')

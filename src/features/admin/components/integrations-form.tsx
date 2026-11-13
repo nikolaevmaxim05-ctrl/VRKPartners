@@ -1,5 +1,8 @@
 'use client'
 
+// Раздел «Інтеграції»: ключи каналов уведомлений о заявках — Telegram, KeyCRM, Gmail (SMTP). Форма
+// показывает только признак «задан» и маску с последними 4 символами; новое значение уходит на сервер и
+// шифруется там (AES-256-GCM). Ключи Google Sheets и телефонии редактируются в settings-panel.
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
@@ -20,15 +23,19 @@ function InfoHint({ text }: { text: string }) {
   )
 }
 
+/** Строка GET /api/admin/integrations: сервер присылает только заданные ключи; нет строки — «Не встановлено». */
 type IntegrationStatus = {
   key: string
   is_set: boolean
-  masked_value: string | null
+  masked_value: string | null // null — значение есть, но не расшифровалось (нет или другой ADMIN_ENCRYPTION_KEY)
   updated_at: string | null
 }
 
 type TestResult = { ok: boolean; message: string }
 
+// Карточки формы. testable — для ключа есть настоящая проверка на сервере: Telegram — бот по токену
+// (getMe; сообщение не отправляется, Chat ID не проверяется), KeyCRM — запрос к API, App Password —
+// тестовое письмо (вместе с сохранёнными Gmail-адресом и From).
 const GROUPS = [
   {
     title: 'Telegram',
@@ -92,6 +99,8 @@ export function IntegrationsForm() {
   const [saveMsg, setSaveMsg]       = useState<Record<string, { ok: boolean; text: string }>>({})
   const [loading, setLoading]       = useState(true)
 
+  // Состояние ключей загружается один раз при открытии раздела. Ответ с ошибкой (403, 500) не
+  // показывается: data нет, список остаётся пустым, и все ключи выглядят как «Не встановлено».
   useEffect(() => {
     fetch('/api/admin/integrations')
       .then(r => r.json())
@@ -116,6 +125,8 @@ export function IntegrationsForm() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
+      // Сохранено: строку статуса обновляем на месте, без повторной загрузки списка. Маска собирается
+      // здесь же по образцу серверной maskValue (core/domain/integrations/keys).
       setStatuses(prev => {
         const existing = prev.find(s => s.key === key)
         if (existing) return prev.map(s => s.key === key ? { ...s, is_set: true, masked_value: '••••••••••••' + value.slice(-4), updated_at: new Date().toISOString() } : s)
@@ -130,6 +141,7 @@ export function IntegrationsForm() {
     }
   }
 
+  /** Проверяет значение, уже сохранённое в БД, а не введённое в поле, — поэтому кнопка ждёт сохранения. */
   async function handleTest(key: string) {
     setTesting(t => ({ ...t, [key]: true }))
     setTestResults(r => ({ ...r, [key]: { ok: false, message: '' } }))
