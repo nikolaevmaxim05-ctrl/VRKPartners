@@ -629,25 +629,25 @@ describe("aggregateByAssignee", () => {
 
 // ─── filterLeads ───────────────────────────────────────────────────────────
 
-describe("filterLeads — реферальне посилання", () => {
+describe("filterLeads — реферальная ссылка", () => {
   const leads = [
     makeLead({ id: "1", referral_link_id: "r1", referral_link_name: "Партнер А" }),
     makeLead({ id: "2" }),
     makeLead({ id: "3", referral_link_id: "r2", referral_link_name: "Партнер Б" }),
   ];
 
-  it("getGroupKey('referral_link'): id посилання або '(без посилання)'", () => {
+  it("getGroupKey('referral_link'): id ссылки или '(без посилання)'", () => {
     expect(getGroupKey(leads[0], "referral_link")).toBe("r1");
     expect(getGroupKey(leads[1], "referral_link")).toBe("(без посилання)");
   });
 
-  it("filterReferralLinkId=UUID → лише це посилання; 'none' → лише без посилання; порожній → всі", () => {
+  it("filterReferralLinkId=UUID → только эта ссылка; 'none' → только без ссылки; пустой → все", () => {
     expect(filterLeads(leads, { filterReferralLinkId: "r1" }).map((l) => l.id)).toEqual(["1"]);
     expect(filterLeads(leads, { filterReferralLinkId: "none" }).map((l) => l.id)).toEqual(["2"]);
     expect(filterLeads(leads, { filterReferralLinkId: "" })).toHaveLength(3);
   });
 
-  it("aggregateLeads по referral_link: підпис з labelMap, ключ без посилання лишається ключем без мапи", () => {
+  it("aggregateLeads по referral_link: подпись из labelMap, ключ без ссылки остаётся ключом без мапы", () => {
     const rows = aggregateLeads(leads, "referral_link", { r1: "Партнер А", r2: "Партнер Б" });
     expect(rows.map((r) => [r.key, r.label, r.total])).toEqual([
       ["r1", "Партнер А", 1], ["(без посилання)", "(без посилання)", 1], ["r2", "Партнер Б", 1],

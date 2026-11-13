@@ -8,14 +8,14 @@ import { refCodeFromPageUrl } from '../attribution'
 import { planNewReferralLink, planReferralLinkPatch, aggregateLeadStats, REF_ERRORS } from '../link-rules'
 
 describe('code', () => {
-  it('константи: cookie lead_ref, ?ref, алфавіт без 0/o/1/l/i', () => {
+  it('константы: cookie lead_ref, ?ref, алфавит без 0/o/1/l/i', () => {
     expect(REF_COOKIE).toBe('lead_ref')
     expect(REF_QUERY_KEY).toBe('ref')
     for (const ch of '0o1li') expect(REF_CODE_ALPHABET).not.toContain(ch)
     expect(REF_CODE_LENGTH).toBe(8)
   })
 
-  it('normalizeRefCode: trim + lower-case; не рядок / порожньо / поза форматом → null', () => {
+  it('normalizeRefCode: trim + lower-case; не строка / пусто / вне формата → null', () => {
     expect(normalizeRefCode('  AbC123 ')).toBe('abc123')
     expect(normalizeRefCode('ab')).toBeNull()
     expect(normalizeRefCode('a'.repeat(41))).toBeNull()
@@ -26,7 +26,7 @@ describe('code', () => {
     expect(normalizeRefCode('x'.repeat(200))).toBeNull()
   })
 
-  it('generateRefCode: 8 символів з алфавіту, детерміновано від randomInt', () => {
+  it('generateRefCode: 8 символов из алфавита, детерминированно от randomInt', () => {
     const code = generateRefCode(() => 0)
     expect(code).toBe(REF_CODE_ALPHABET[0].repeat(8))
     let i = 0
@@ -36,7 +36,7 @@ describe('code', () => {
     expect(new Set(varied).size).toBeGreaterThan(1)
   })
 
-  it('buildReferralUrl і refCodeFromPath', () => {
+  it('buildReferralUrl и refCodeFromPath', () => {
     expect(buildReferralUrl('https://vrk.com.ua/', 'abc123')).toBe('https://vrk.com.ua/r/abc123')
     expect(buildReferralUrl('http://127.0.0.1:3100', 'abc123')).toBe('http://127.0.0.1:3100/r/abc123')
     expect(refCodeFromPath('/r/ABC123')).toBe('abc123')
@@ -50,7 +50,7 @@ describe('code', () => {
 })
 
 describe('attribution', () => {
-  it('refCodeFromPageUrl: ?ref з URL сторінки, невалідний URL/хеш → null (збір касань — touches.test)', () => {
+  it('refCodeFromPageUrl: ?ref из URL страницы, невалидный URL/хеш → null (сбор касаний — touches.test)', () => {
     expect(refCodeFromPageUrl('https://vrk.com.ua/?utm_source=x&ref=CCC333')).toBe('ccc333')
     expect(refCodeFromPageUrl('not a url')).toBeNull()
     expect(refCodeFromPageUrl('https://vrk.com.ua/#ref=zzz')).toBeNull()
@@ -59,7 +59,7 @@ describe('attribution', () => {
 })
 
 describe('link-rules', () => {
-  it('planNewReferralLink: назва 1–80 (trim), нотатки ≤ 500 або null', () => {
+  it('planNewReferralLink: название 1–80 (trim), заметки ≤ 500 или null', () => {
     expect(planNewReferralLink({ name: '  Агенція Промо ', notes: '  ' })).toEqual({ ok: true, value: { name: 'Агенція Промо', notes: null } })
     expect(planNewReferralLink({ name: '' }).ok).toBe(false)
     expect(planNewReferralLink({ name: 'x'.repeat(81) }).ok).toBe(false)
@@ -68,7 +68,7 @@ describe('link-rules', () => {
     expect(planNewReferralLink({ name: 'ok', notes: 'note' })).toEqual({ ok: true, value: { name: 'ok', notes: 'note' } })
   })
 
-  it('planReferralLinkPatch: код незмінний, порожній патч, is_active лише boolean', () => {
+  it('planReferralLinkPatch: код неизменен, пустой патч, is_active только boolean', () => {
     expect(planReferralLinkPatch({ code: 'newcode1' })).toEqual({ ok: false, message: REF_ERRORS.codeImmutable })
     expect(planReferralLinkPatch({})).toEqual({ ok: false, message: REF_ERRORS.nothing })
     expect(planReferralLinkPatch({ is_active: 'yes' }).ok).toBe(false)
@@ -76,7 +76,7 @@ describe('link-rules', () => {
     expect(planReferralLinkPatch({ name: '' }).ok).toBe(false)
   })
 
-  it('aggregateLeadStats: всього / за 30 днів / остання', () => {
+  it('aggregateLeadStats: всего / за 30 дней / последняя', () => {
     const now = new Date('2026-09-27T12:00:00Z')
     const rows = [
       { referral_link_id: 'a', created_at: '2026-09-26T10:00:00Z' },

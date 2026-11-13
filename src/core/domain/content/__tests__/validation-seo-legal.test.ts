@@ -15,7 +15,7 @@ import { diffLegalOverrides, mergeLegalContent, cleanSection, type LegalContent 
 // ── Картинки ─────────────────────────────────────────────────────────────────
 
 describe('validateImageUpload', () => {
-  it('png / jpeg / webp / gif — ок, з розширенням', () => {
+  it('png / jpeg / webp / gif — ок, с расширением', () => {
     expect(validateImageUpload('image/png', 10)).toEqual({ ok: true, value: { ext: 'png' } })
     expect(validateImageUpload('image/jpeg', 10)).toEqual({ ok: true, value: { ext: 'jpg' } })
     expect(validateImageUpload('image/webp', 10)).toEqual({ ok: true, value: { ext: 'webp' } })
@@ -23,26 +23,26 @@ describe('validateImageUpload', () => {
     expect([...IMAGE_ALLOWED_TYPES].sort()).toEqual(['image/gif', 'image/jpeg', 'image/png', 'image/webp'])
   })
 
-  it('svg та інші типи відхиляються', () => {
+  it('svg и другие типы отклоняются', () => {
     for (const t of ['image/svg+xml', 'text/html', 'application/pdf', '', 'image/PNG']) {
       expect(validateImageUpload(t, 10)).toEqual({ ok: false, message: 'Дозволені лише зображення: png, jpg, webp, gif' })
     }
   })
 
-  it('розмір > 5 МБ → помилка; рівно 5 МБ — ок', () => {
+  it('размер > 5 МБ → ошибка; ровно 5 МБ — ок', () => {
     expect(IMAGE_MAX_BYTES).toBe(5 * 1024 * 1024)
     expect(validateImageUpload('image/png', IMAGE_MAX_BYTES)).toEqual({ ok: true, value: { ext: 'png' } })
     expect(validateImageUpload('image/png', IMAGE_MAX_BYTES + 1)).toEqual({ ok: false, message: 'Максимальний розмір — 5 МБ' })
   })
 
-  it('тип перевіряється раніше за розмір', () => {
+  it('тип проверяется раньше размера', () => {
     const r = validateImageUpload('image/svg+xml', IMAGE_MAX_BYTES + 1)
     expect(!r.ok && r.message).toContain('Дозволені лише зображення')
   })
 })
 
 describe('buildUploadPath', () => {
-  it('формат <timestamp>-<6 символів>.<ext>', () => {
+  it('формат <timestamp>-<6 символов>.<ext>', () => {
     const p = buildUploadPath(1758153600000, 'abc123', 'png')
     expect(p).toBe('1758153600000-abc123.png')
     expect(p).toMatch(/^\d+-[a-z0-9]{6}\.[a-z]+$/)
@@ -52,12 +52,12 @@ describe('buildUploadPath', () => {
 describe('extractOwnObjectPath', () => {
   const marker = '/storage/v1/object/public/content/'
 
-  it('URL нашого bucket → шлях обʼєкта', () => {
+  it('URL нашего bucket → путь объекта', () => {
     expect(extractOwnObjectPath(`https://x.supabase.co${marker}123-abcdef.png`, marker)).toBe('123-abcdef.png')
     expect(extractOwnObjectPath(`https://x.supabase.co${marker}dir/file.webp`, marker)).toBe('dir/file.webp')
   })
 
-  it('чужий URL → null; порожній шлях після маркера → null', () => {
+  it('чужой URL → null; пустой путь после маркера → null', () => {
     expect(extractOwnObjectPath('https://evil.example/img.png', marker)).toBeNull()
     expect(extractOwnObjectPath('', marker)).toBeNull()
     expect(extractOwnObjectPath(`https://x.supabase.co${marker}`, marker)).toBeNull()
@@ -67,7 +67,7 @@ describe('extractOwnObjectPath', () => {
 // ── Схемы ────────────────────────────────────────────────────────────────────
 
 describe('seoOverridesSchema', () => {
-  it('ліміти: title/ogTitle/orgName ≤ 200, description/ogDescription/ogImage/orgDescription ≤ 500', () => {
+  it('лимиты: title/ogTitle/orgName ≤ 200, description/ogDescription/ogImage/orgDescription ≤ 500', () => {
     expect(seoOverridesSchema.safeParse({ title: 'x'.repeat(200), ogTitle: 'x'.repeat(200), orgName: 'x'.repeat(200) }).success).toBe(true)
     expect(seoOverridesSchema.safeParse({ title: 'x'.repeat(201) }).success).toBe(false)
     expect(seoOverridesSchema.safeParse({ ogTitle: 'x'.repeat(201) }).success).toBe(false)
@@ -79,7 +79,7 @@ describe('seoOverridesSchema', () => {
     expect(seoOverridesSchema.safeParse({ orgDescription: 'x'.repeat(501) }).success).toBe(false)
   })
 
-  it('невідомі ключі (старі контакти) відкидаються; усі поля необовʼязкові', () => {
+  it('неизвестные ключи (старые контакты) отбрасываются; все поля необязательны', () => {
     const r = seoOverridesSchema.safeParse({ title: 'T', phone: '+380', email: 'a@b.c', telegram: 'x' })
     expect(r.success).toBe(true)
     if (r.success) expect(r.data).toEqual({ title: 'T' })
@@ -93,7 +93,7 @@ describe('legalOverridesSchema', () => {
     heading: 'H', paragraphs: ['p'], ...over,
   })
 
-  it('валідний оверрайд; privacy/offer необовʼязкові', () => {
+  it('валидный оверрайд; privacy/offer необязательны', () => {
     expect(legalOverridesSchema.safeParse({}).success).toBe(true)
     expect(legalOverridesSchema.safeParse({ privacy: { sections: [section({ items: ['i'] })] } }).success).toBe(true)
     expect(legalOverridesSchema.safeParse({ offer: { sections: [] } }).success).toBe(true)
@@ -116,13 +116,13 @@ describe('legalOverridesSchema', () => {
     expect(legalOverridesSchema.safeParse({ offer: { sections: [section({ paragraphs: ['x'.repeat(6001)] })] } }).success).toBe(false)
   })
 
-  it('items ≤ 60 × 1500, необовʼязкові', () => {
+  it('items ≤ 60 × 1500, необязательны', () => {
     expect(legalOverridesSchema.safeParse({ offer: { sections: [section({ items: Array(60).fill('x'.repeat(1500)) })] } }).success).toBe(true)
     expect(legalOverridesSchema.safeParse({ offer: { sections: [section({ items: Array(61).fill('i') })] } }).success).toBe(false)
     expect(legalOverridesSchema.safeParse({ offer: { sections: [section({ items: ['x'.repeat(1501)] })] } }).success).toBe(false)
   })
 
-  it('paragraphs обовʼязкові; чужі ключі секції стрижуться', () => {
+  it('paragraphs обязательны; чужие ключи секции срезаются', () => {
     expect(legalOverridesSchema.safeParse({ offer: { sections: [{ heading: 'H' }] } }).success).toBe(false)
     const r = legalOverridesSchema.safeParse({ offer: { sections: [{ ...section(), html: '<b>' }] } })
     expect(r.success).toBe(true)
@@ -143,38 +143,38 @@ const seoDefaults: SeoMeta = {
 }
 
 describe('mergeSeo / diffSeo', () => {
-  it('SEO_KEYS — 7 полів у фіксованому порядку', () => {
+  it('SEO_KEYS — 7 полей в фиксированном порядке', () => {
     expect(SEO_KEYS).toEqual(['title', 'description', 'ogTitle', 'ogDescription', 'ogImage', 'orgName', 'orgDescription'])
   })
 
-  it('мерж: порожні/невалідні оверрайди → дефолт; null/undefined → дефолти', () => {
+  it('мерж: пустые/невалидные оверрайды → дефолт; null/undefined → дефолты', () => {
     expect(mergeSeo(seoDefaults, null)).toEqual(seoDefaults)
     expect(mergeSeo(seoDefaults, undefined)).toEqual(seoDefaults)
     expect(mergeSeo(seoDefaults, { title: '', description: '   ', ogImage: 5 as never })).toEqual(seoDefaults)
     expect(mergeSeo(seoDefaults, { title: 'New' })).toEqual({ ...seoDefaults, title: 'New' })
   })
 
-  it('мерж ігнорує чужі ключі', () => {
+  it('мерж игнорирует чужие ключи', () => {
     const merged = mergeSeo(seoDefaults, { phone: '+380' } as never)
     expect(merged).toEqual(seoDefaults)
     expect('phone' in merged).toBe(false)
   })
 
-  it('дифф: лише непорожні поля, що відрізняються від дефолту', () => {
+  it('дифф: только непустые поля, отличающиеся от дефолта', () => {
     expect(diffSeo({ title: 'Def title', description: 'New desc', ogTitle: '', ogImage: '  ' }, seoDefaults))
       .toEqual({ description: 'New desc' })
     expect(diffSeo({}, seoDefaults)).toEqual({})
     expect(diffSeo({ ...seoDefaults }, seoDefaults)).toEqual({})
   })
 
-  it('round-trip: merge(defaults, diff(incoming)) відтворює непорожні поля incoming', () => {
+  it('round-trip: merge(defaults, diff(incoming)) воспроизводит непустые поля incoming', () => {
     const incoming = { ...seoDefaults, title: 'T2', ogTitle: 'OG', orgName: 'Org' }
     const diff = diffSeo(incoming, seoDefaults)
     expect(diff).toEqual({ title: 'T2', ogTitle: 'OG', orgName: 'Org' })
     expect(mergeSeo(seoDefaults, diff)).toEqual(incoming)
   })
 
-  it('effectiveOg / effectiveOrg — наслідування порожніх полів', () => {
+  it('effectiveOg / effectiveOrg — наследование пустых полей', () => {
     expect(effectiveOg(seoDefaults)).toEqual({ title: 'Def title', description: 'Def desc' })
     expect(effectiveOg({ ...seoDefaults, ogTitle: 'OG', ogDescription: 'OD' })).toEqual({ title: 'OG', description: 'OD' })
     expect(effectiveOrg(seoDefaults, 'Site')).toEqual({ name: 'Site', description: 'Def desc' })
@@ -191,7 +191,7 @@ const legalDefaults: LegalContent = {
 }
 
 describe('diffLegalOverrides / mergeLegalContent', () => {
-  it('дифф: лишає лише документи, чиї секції відрізняються', () => {
+  it('дифф: оставляет только документы, чьи секции отличаются', () => {
     const same = { privacy: { sections: legalDefaults.privacy.sections } }
     expect(diffLegalOverrides(same, legalDefaults)).toEqual({})
     const changed = { offer: { sections: [{ heading: 'O2', paragraphs: ['c'] }] } }
@@ -200,14 +200,14 @@ describe('diffLegalOverrides / mergeLegalContent', () => {
     expect(diffLegalOverrides({ privacy: { sections: 'x' as never } }, legalDefaults)).toEqual({})
   })
 
-  it('мерж: заголовок і updatedAt лишаються з дефолтів, секції — з оверрайду', () => {
+  it('мерж: заголовок и updatedAt остаются из дефолтов, секции — из оверрайда', () => {
     const ov = { privacy: { sections: [{ heading: 'New', paragraphs: ['n'] }] } }
     const merged = mergeLegalContent(legalDefaults, ov)
     expect(merged.privacy).toEqual({ title: 'Політика', updatedAt: '2026-01-01', sections: [{ heading: 'New', paragraphs: ['n'] }] })
     expect(merged.offer).toEqual(legalDefaults.offer)
   })
 
-  it('мерж: порожні/невалідні оверрайди → дефолти', () => {
+  it('мерж: пустые/невалидные оверрайды → дефолты', () => {
     expect(mergeLegalContent(legalDefaults, null)).toEqual(legalDefaults)
     expect(mergeLegalContent(legalDefaults, undefined)).toEqual(legalDefaults)
     expect(mergeLegalContent(legalDefaults, { privacy: { sections: [] } })).toEqual(legalDefaults)
@@ -215,7 +215,7 @@ describe('diffLegalOverrides / mergeLegalContent', () => {
     expect(mergeLegalContent(legalDefaults, { offer: { sections: [{ heading: '', paragraphs: [] }] } })).toEqual(legalDefaults)
   })
 
-  it('round-trip: merge(defaults, diff(incoming)) відтворює секції incoming', () => {
+  it('round-trip: merge(defaults, diff(incoming)) воспроизводит секции incoming', () => {
     const incoming = {
       privacy: { sections: [{ heading: 'P9', paragraphs: ['x', 'y'], items: ['z'] }] },
       offer: { sections: legalDefaults.offer.sections },
@@ -227,7 +227,7 @@ describe('diffLegalOverrides / mergeLegalContent', () => {
     expect(merged.offer.sections).toEqual(legalDefaults.offer.sections)
   })
 
-  it('cleanSection: лише plain-текст, порожня секція → null, items лише непорожні', () => {
+  it('cleanSection: только plain-текст, пустая секция → null, items только непустые', () => {
     expect(cleanSection(null)).toBeNull()
     expect(cleanSection('x')).toBeNull()
     expect(cleanSection({ heading: ' ', paragraphs: [], items: [] })).toBeNull()

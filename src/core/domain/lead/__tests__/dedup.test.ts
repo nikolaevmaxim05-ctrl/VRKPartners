@@ -3,10 +3,10 @@ import { parseDedupSettings, buildRepeatComment, DEFAULT_DEDUP_SETTINGS } from '
 import { normalizeUtm, hasUtm, utmEntries, formatUtmSummary } from '../utm'
 
 describe('parseDedupSettings', () => {
-  it('дефолти при порожній мапі', () => {
+  it('дефолты при пустой мапе', () => {
     expect(parseDedupSettings(new Map())).toEqual(DEFAULT_DEDUP_SETTINGS)
   })
-  it('читає прапори та вікно; невалідне вікно → 24', () => {
+  it('читает флаги и окно; невалидное окно → 24', () => {
     expect(parseDedupSettings(new Map([['dedup_by_phone', 'false'], ['dedup_by_ip', 'true'], ['dedup_ip_window_hours', '48']])))
       .toEqual({ dedupByPhone: false, dedupByIp: true, ipWindowHours: 48 })
     expect(parseDedupSettings(new Map([['dedup_ip_window_hours', '-5']])).ipWindowHours).toBe(24)
@@ -15,14 +15,14 @@ describe('parseDedupSettings', () => {
 })
 
 describe('buildRepeatComment', () => {
-  it('реферал: «Партнер» / код зі станом', () => {
+  it('реферал: «Партнер» / код с состоянием', () => {
     expect(buildRepeatComment({ reason: 'phone', referral: { code: 'abcd1234', name: 'Агенція', state: 'active' } })).toContain('Партнер: Агенція')
     expect(buildRepeatComment({ reason: 'phone', referral: { code: 'abcd1234', name: null, state: 'unknown' } })).toContain('Реф. код: abcd1234 — посилання не знайдено')
     expect(buildRepeatComment({ reason: 'ip', referral: { code: 'abcd1234', name: 'Старий', state: 'inactive' } })).toContain('вимкнене (Старий)')
     expect(buildRepeatComment({ reason: 'ip' })).not.toContain('Реф. код')
   })
 
-  it('формує system-коментар із причиною, полями та UTM', () => {
+  it('формирует system-комментарий с причиной, полями и UTM', () => {
     const text = buildRepeatComment({ reason: 'phone', service: 'Аудит', message: 'Привіт', utm: { utm_source: 'google', utm_medium: '' }, source: 'https://vrk.com.ua/' })
     expect(text.split('\n')).toEqual([
       '[ПОВТОР] Нове повторне звернення',
@@ -38,7 +38,7 @@ describe('buildRepeatComment', () => {
 })
 
 describe('utm', () => {
-  it('normalizeUtm лишає лише відомі непорожні ключі', () => {
+  it('normalizeUtm оставляет только известные непустые ключи', () => {
     expect(normalizeUtm({ utm_source: 'g', utm_medium: ' ', foo: 'x', gclid: 'abc' })).toEqual({ utm_source: 'g', gclid: 'abc' })
     expect(normalizeUtm(null)).toEqual({})
   })

@@ -16,7 +16,7 @@ const A = 'aaaa2345'
 const B = 'bbbb2345'
 
 describe('кодек cookie', () => {
-  it('константи: 8 касань, 400 днів, дефолт 90, пресети, межі 1–400', () => {
+  it('константы: 8 касаний, 400 дней, дефолт 90, пресеты, границы 1–400', () => {
     expect(REF_MAX_TOUCHES).toBe(8)
     expect(REF_COOKIE_MAX_DAYS).toBe(400)
     expect(REF_ATTRIBUTION_DEFAULT_DAYS).toBe(90)
@@ -25,7 +25,7 @@ describe('кодек cookie', () => {
     expect(REF_ATTRIBUTION_MAX_DAYS).toBe(400)
   })
 
-  it('encode → decode round-trip, порядок за ts, лише cookie-безпечні символи', () => {
+  it('encode → decode round-trip, порядок по ts, только cookie-безопасные символы', () => {
     const touches = [{ code: A, at: NOW - 5 * DAY }, { code: B, at: NOW - DAY }]
     const value = encodeRefCookie(touches)
     expect(value).toBe(`v2_${A}.${NOW - 5 * DAY}_${B}.${NOW - DAY}`)
@@ -34,7 +34,7 @@ describe('кодек cookie', () => {
     expect(encodeRefCookie([])).toBe('')
   })
 
-  it('легасі голий код → одне касання «зараз»; мусор → []', () => {
+  it('легаси голый код → одно касание «сейчас»; мусор → []', () => {
     expect(decodeRefCookie('AbCd2345', NOW)).toEqual([{ code: 'abcd2345', at: NOW }])
     expect(decodeRefCookie('', NOW)).toEqual([])
     expect(decodeRefCookie(null, NOW)).toEqual([])
@@ -45,7 +45,7 @@ describe('кодек cookie', () => {
     expect(decodeRefCookie(`v2_${A}.-5`, NOW)).toEqual([])
   })
 
-  it('decode: невалідні пари пропускаються, дублікати коду — мінімальний ts, не більше 8', () => {
+  it('decode: невалидные пары пропускаются, дубликаты кода — минимальный ts, не больше 8', () => {
     const parts = [`${A}.${NOW - 3}`, 'junk', `${B}.${NOW - 1}`, `${A}.${NOW - 10}`]
     expect(decodeRefCookie('v2_' + parts.join('_'), NOW)).toEqual([{ code: A, at: NOW - 10 }, { code: B, at: NOW - 1 }])
     const many = Array.from({ length: 12 }, (_, i) => `code${i}x.${NOW - i}`)
@@ -54,7 +54,7 @@ describe('кодек cookie', () => {
 })
 
 describe('addTouch', () => {
-  it('новий код додається з ts=now; повторний перехід за тим самим кодом ts не змінює', () => {
+  it('новый код добавляется с ts=now; повторный переход по тому же коду ts не меняет', () => {
     const first = addTouch([], A, NOW - 10 * DAY)
     expect(first).toEqual([{ code: A, at: NOW - 10 * DAY }])
     const again = addTouch(first, A, NOW)
@@ -62,7 +62,7 @@ describe('addTouch', () => {
     expect(addTouch(first, B, NOW)).toEqual([{ code: A, at: NOW - 10 * DAY }, { code: B, at: NOW }])
   })
 
-  it('список повний → замінюється ОСТАННЄ касання, ранні не чіпаються', () => {
+  it('список полон → заменяется ПОСЛЕДНЕЕ касание, ранние не трогаются', () => {
     const full = Array.from({ length: REF_MAX_TOUCHES }, (_, i) => ({ code: `code${i}xx`, at: NOW - (100 - i) * DAY }))
     const out = addTouch(full, 'newcode1', NOW)
     expect(out).toHaveLength(REF_MAX_TOUCHES)
@@ -70,34 +70,34 @@ describe('addTouch', () => {
     expect(out[7]).toEqual({ code: 'newcode1', at: NOW })
   })
 
-  it('касання старші за 400 днів і «з майбутнього» відкидаються', () => {
+  it('касания старше 400 дней и «из будущего» отбрасываются', () => {
     const touches = [{ code: A, at: NOW - 401 * DAY }, { code: B, at: NOW + 60 }, { code: 'cccc2345', at: NOW - 399 * DAY }]
     expect(addTouch(touches, 'dddd2345', NOW)).toEqual([{ code: 'cccc2345', at: NOW - 399 * DAY }, { code: 'dddd2345', at: NOW }])
   })
 })
 
 describe('mergeTouches / normalizeTouches', () => {
-  it('за кодом — мінімальний ts; результат відсортований за часом', () => {
+  it('по коду — минимальный ts; результат отсортирован по времени', () => {
     expect(mergeTouches([{ code: B, at: NOW - 1 }], [{ code: A, at: NOW - 5 }, { code: B, at: NOW - 9 }])).toEqual([
       { code: B, at: NOW - 9 }, { code: A, at: NOW - 5 },
     ])
   })
 
-  it('normalizeTouches: не масив → [], елементи без коду/ts → пропуск, at як рядок → число, ≤ 8', () => {
+  it('normalizeTouches: не массив → [], элементы без кода/ts → пропуск, at как строка → число, ≤ 8', () => {
     expect(normalizeTouches('x')).toEqual([])
     expect(normalizeTouches([{ code: ' AAAA2345 ', at: String(NOW) }, { code: 'bad!', at: NOW }, { code: B }, null, { code: B, at: 1.5 }])).toEqual([{ code: A, at: NOW }])
     expect(normalizeTouches(Array.from({ length: 20 }, (_, i) => ({ code: `c${i}xxxxx`, at: NOW - i })))).toHaveLength(8)
   })
 })
 
-describe('pickReferralTouch — first-touch у вікні', () => {
+describe('pickReferralTouch — first-touch в окне', () => {
   const touches = [{ code: A, at: NOW - 5 * DAY }, { code: B, at: NOW - DAY }]
 
-  it('найраніше касання у вікні виграє, навіть якщо пізніше є інший партнер', () => {
+  it('самое раннее касание в окне выигрывает, даже если позже есть другой партнёр', () => {
     expect(pickReferralTouch(touches, { windowDays: 90, now: NOW })).toEqual({ code: A, at: NOW - 5 * DAY })
   })
 
-  it('перше поза вікном → наступне; усі поза вікном → null; межа вікна включно', () => {
+  it('первое вне окна → следующее; все вне окна → null; граница окна включительно', () => {
     const old = [{ code: A, at: NOW - 200 * DAY }, { code: B, at: NOW - DAY }]
     expect(pickReferralTouch(old, { windowDays: 90, now: NOW })).toEqual({ code: B, at: NOW - DAY })
     expect(pickReferralTouch(old, { windowDays: 1, now: NOW })).toEqual({ code: B, at: NOW - DAY })
@@ -105,14 +105,14 @@ describe('pickReferralTouch — first-touch у вікні', () => {
     expect(pickReferralTouch([], { windowDays: 90, now: NOW })).toBeNull()
   })
 
-  it('касання «з майбутнього» і з невалідним ts ігноруються', () => {
+  it('касания «из будущего» и с невалидным ts игнорируются', () => {
     expect(pickReferralTouch([{ code: A, at: NOW + 10 }, { code: B, at: NOW - 1 }], { windowDays: 90, now: NOW })).toEqual({ code: B, at: NOW - 1 })
     expect(pickReferralTouch([{ code: A, at: Number.NaN }], { windowDays: 90, now: NOW })).toBeNull()
   })
 })
 
-describe('collectReferralTouches — cookie ⊕ тіло ⊕ ?ref сторінки', () => {
-  it('обʼєднання за кодом з мінімальним ts; легасі ref і ?ref сторінки — касання «зараз»', () => {
+describe('collectReferralTouches — cookie ⊕ тело ⊕ ?ref страницы', () => {
+  it('объединение по коду с минимальным ts; легаси ref и ?ref страницы — касание «сейчас»', () => {
     const out = collectReferralTouches({
       cookie: `v2_${A}.${NOW - 5 * DAY}`,
       body: [{ code: A, at: NOW - 9 * DAY }, { code: B, at: NOW - DAY }],
@@ -126,8 +126,8 @@ describe('collectReferralTouches — cookie ⊕ тіло ⊕ ?ref сторінк
   })
 })
 
-describe('вікно атрибуції (налаштування)', () => {
-  it('parseAttributionDays: рядок/число у [1, 400] → значення; інакше дефолт 90', () => {
+describe('окно атрибуции (настройка)', () => {
+  it('parseAttributionDays: строка/число в [1, 400] → значение; иначе дефолт 90', () => {
     expect(parseAttributionDays('30')).toBe(30)
     expect(parseAttributionDays(400)).toBe(400)
     expect(parseAttributionDays(null)).toBe(90)
@@ -137,7 +137,7 @@ describe('вікно атрибуції (налаштування)', () => {
     expect(parseAttributionDays('abc')).toBe(90)
   })
 
-  it('planAttributionDays: строго — поза межами повідомлення uk-UA', () => {
+  it('planAttributionDays: строго — вне границ сообщение uk-UA', () => {
     expect(planAttributionDays(14)).toEqual({ ok: true, days: 14 })
     expect(planAttributionDays(' 365 ')).toEqual({ ok: true, days: 365 })
     for (const bad of [0, 401, 1.5, 'x', null, undefined]) expect(planAttributionDays(bad)).toEqual({ ok: false, message: REF_ATTRIBUTION_RANGE_MESSAGE })

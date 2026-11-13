@@ -16,12 +16,12 @@ const leadSchema = makeLeadSchema(T);
 const validLead = { name: "Іван Петренко", phone: "+380 (99) 123-45-67" };
 
 describe("makeLeadSchema", () => {
-  it("приймає мінімально валідні дані (ім'я + телефон) і дефолти форми", () => {
+  it("принимает минимально валидные данные (имя + телефон) и дефолты формы", () => {
     expect(leadSchema.safeParse(validLead).success).toBe(true);
     expect(leadSchema.safeParse({ ...leadDefaults, ...validLead }).success).toBe(true);
   });
 
-  it("приймає повний набір полів і нормалізує телефон у E.164", () => {
+  it("принимает полный набор полей и нормализует телефон в E.164", () => {
     const result = leadSchema.safeParse({
       ...validLead,
       comment: "Цікавить аудит кампаній",
@@ -36,13 +36,13 @@ describe("makeLeadSchema", () => {
     if (result.success) expect(result.data.phone).toBe("+380991234567");
   });
 
-  it("невідомі поля (website, adFormat, budget, goal) відкидаються без помилки", () => {
+  it("неизвестные поля (website, adFormat, budget, goal) отбрасываются без ошибки", () => {
     const result = leadSchema.safeParse({ ...validLead, website: "x.com", adFormat: "a", budget: "b", goal: "g" });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data).not.toHaveProperty("website");
   });
 
-  it("телефон: без маски ок; неповний / порожній — помилка з текстом із messages", () => {
+  it("телефон: без маски ок; неполный / пустой — ошибка с текстом из messages", () => {
     expect(leadSchema.safeParse({ ...validLead, phone: "+380991234567" }).success).toBe(true);
     const short = leadSchema.safeParse({ ...validLead, phone: "+380 (99) 123-45" });
     expect(short.success).toBe(false);
@@ -51,14 +51,14 @@ describe("makeLeadSchema", () => {
     expect(empty.error?.flatten().fieldErrors.phone?.[0]).toBe(T.errorPhoneRequired);
   });
 
-  it("ім'я: порожнє / 1 символ / >60 / цифри — помилки з текстом із messages", () => {
+  it("имя: пустое / 1 символ / >60 / цифры — ошибки с текстом из messages", () => {
     expect(leadSchema.safeParse({ ...validLead, name: "" }).error?.flatten().fieldErrors.name?.[0]).toBe(T.errorNameMin);
     expect(leadSchema.safeParse({ ...validLead, name: "І" }).success).toBe(false);
     expect(leadSchema.safeParse({ ...validLead, name: "а".repeat(61) }).error?.flatten().fieldErrors.name?.[0]).toBe(T.errorNameMax);
     expect(leadSchema.safeParse({ ...validLead, name: "Іван123" }).error?.flatten().fieldErrors.name?.[0]).toBe(T.errorNameLetters);
   });
 
-  it("comment ≤ 500, service ≤ 50; email порожній/відсутній ок, некоректний — помилка", () => {
+  it("comment ≤ 500, service ≤ 50; email пустой/отсутствует ок, некорректный — ошибка", () => {
     expect(leadSchema.safeParse({ ...validLead, comment: "а".repeat(500) }).success).toBe(true);
     expect(leadSchema.safeParse({ ...validLead, comment: "а".repeat(501) }).success).toBe(false);
     expect(leadSchema.safeParse({ ...validLead, service: "x".repeat(51) }).success).toBe(false);
@@ -66,21 +66,21 @@ describe("makeLeadSchema", () => {
     expect(leadSchema.safeParse({ ...validLead, email: "not-an-email" }).error?.flatten().fieldErrors.email?.[0]).toBe(T.errorEmailInvalid);
   });
 
-  it("ref: нормалізується; невалідний/задовгий/не рядок → undefined, ніколи не помилка", () => {
+  it("ref: нормализуется; невалидный/слишком длинный/не строка → undefined, никогда не ошибка", () => {
     expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567", ref: " ABC123 " }).ref).toBe("abc123");
     expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567", ref: "x".repeat(200) }).ref).toBeUndefined();
     expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567", ref: 42 }).ref).toBeUndefined();
     expect(leadSchema.parse({ name: "Тест Тест", phone: "+380501234567" }).ref).toBeUndefined();
   });
 
-  it("honeypot `company` проходить Zod (рішення — у сценарії, фейковий успіх)", () => {
+  it("honeypot `company` проходит Zod (решение — в сценарии, фейковый успех)", () => {
     const result = leadSchema.safeParse({ ...validLead, company: "Spam Inc" });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.company).toBe("Spam Inc");
     expect(leadSchema.safeParse({ ...validLead, company: "" }).success).toBe(true);
   });
 
-  it("utm: задовгий gclid (>512) — помилка; невідомі ключі ігноруються", () => {
+  it("utm: слишком длинный gclid (>512) — ошибка; неизвестные ключи игнорируются", () => {
     expect(leadSchema.safeParse({ ...validLead, utm: { gclid: "x".repeat(513) } }).success).toBe(false);
     const result = leadSchema.safeParse({ ...validLead, utm: { utm_source: "google", yclid: "заборонено" } });
     expect(result.success).toBe(true);

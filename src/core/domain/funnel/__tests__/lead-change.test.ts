@@ -9,18 +9,18 @@ const exported = { id: 'oc', export_status: 'exported' as const, conversion_acti
 const pending = { ...exported, export_status: 'pending' as const }
 
 describe('classifyLeadChange', () => {
-  it('enter: стадія змінилась на конверсійну', () => {
+  it('enter: стадия сменилась на конверсионную', () => {
     expect(classifyLeadChange({ statusChanged: true, oldStatus: plain, newStatus: conv, amountChanged: false })).toBe('enter')
     expect(classifyLeadChange({ statusChanged: true, oldStatus: null, newStatus: convNoAmount, amountChanged: false })).toBe('enter')
   })
-  it('leave: із конверсійної на неконверсійну', () => {
+  it('leave: с конверсионной на неконверсионную', () => {
     expect(classifyLeadChange({ statusChanged: true, oldStatus: conv, newStatus: plain, amountChanged: false })).toBe('leave')
     expect(classifyLeadChange({ statusChanged: true, oldStatus: conv, newStatus: null, amountChanged: false })).toBe('leave')
   })
-  it('none: між неконверсійними стадіями', () => {
+  it('none: между неконверсионными стадиями', () => {
     expect(classifyLeadChange({ statusChanged: true, oldStatus: plain, newStatus: plain, amountChanged: false })).toBe('none')
   })
-  it('amount: стадія та сама, конверсійна з сумою, сума змінилась', () => {
+  it('amount: стадия та же, конверсионная с суммой, сумма изменилась', () => {
     expect(classifyLeadChange({ statusChanged: false, oldStatus: conv, newStatus: conv, amountChanged: true })).toBe('amount')
     expect(classifyLeadChange({ statusChanged: false, oldStatus: conv, newStatus: conv, amountChanged: false })).toBe('none')
     expect(classifyLeadChange({ statusChanged: false, oldStatus: convNoAmount, newStatus: convNoAmount, amountChanged: true })).toBe('none')
@@ -29,7 +29,7 @@ describe('classifyLeadChange', () => {
 })
 
 describe('decideLeave', () => {
-  it('RETRACT лише для вивантаженої конверсії', () => {
+  it('RETRACT только для выгруженной конверсии', () => {
     expect(decideLeave(exported)).toEqual({ kind: 'retract', conversionAction: 'deal_offline', offlineConversionId: 'oc' })
     expect(decideLeave(pending)).toEqual({ kind: 'none' })
     expect(decideLeave(null)).toEqual({ kind: 'none' })
@@ -38,12 +38,12 @@ describe('decideLeave', () => {
 
 describe('decideAmountAdjustment', () => {
   const updated = { outcome: 'updated' as const, action: 'deal_offline', prevAction: 'deal_offline', prevType: 'deal', prevValue: 100, valueChanged: true }
-  it('RESTATE: сума змінилась і конверсію вивантажено', () => {
+  it('RESTATE: сумма изменилась и конверсия выгружена', () => {
     expect(decideAmountAdjustment({ outcome: updated, ocBefore: exported, conversionValue: 250 })).toEqual({
       kind: 'restate', conversionAction: 'deal_offline', value: 250,
     })
   })
-  it('pending / без змін / помилка → нічого', () => {
+  it('pending / без изменений / ошибка → ничего', () => {
     expect(decideAmountAdjustment({ outcome: updated, ocBefore: pending, conversionValue: 250 })).toEqual({ kind: 'none' })
     expect(decideAmountAdjustment({ outcome: { ...updated, valueChanged: false }, ocBefore: exported, conversionValue: 100 })).toEqual({ kind: 'none' })
     expect(decideAmountAdjustment({ outcome: { outcome: 'noop' }, ocBefore: exported, conversionValue: 100 })).toEqual({ kind: 'none' })

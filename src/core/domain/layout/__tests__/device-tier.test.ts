@@ -28,7 +28,7 @@ describe('isEmbeddedBrowser', () => {
     expect(isEmbeddedBrowser('Mozilla/5.0 (iPhone) [FBAN/FBIOS;FBAV/430.0.0]')).toBe(true)
     expect(isEmbeddedBrowser('Mozilla/5.0 (Linux; Android 12; Pixel 6 Build/SP1A; wv) AppleWebKit/537.36 Chrome/118 Mobile Safari/537.36')).toBe(true)
   })
-  it('звичайні Chrome / Safari / Firefox — ні; порожній UA — ні', () => {
+  it('обычные Chrome / Safari / Firefox — нет; пустой UA — нет', () => {
     expect(isEmbeddedBrowser(STRONG.userAgent)).toBe(false)
     expect(isEmbeddedBrowser('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36')).toBe(false)
     expect(isEmbeddedBrowser('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1')).toBe(false)
@@ -38,11 +38,11 @@ describe('isEmbeddedBrowser', () => {
 })
 
 describe('isLiteDevice', () => {
-  it('сильний пристрій на десктопі — не lite', () => {
+  it('сильное устройство на десктопе — не lite', () => {
     expect(isLiteDevice(STRONG)).toBe(false)
     expect(isLiteDevice({})).toBe(false)
   })
-  it('кожен сигнал окремо вмикає lite', () => {
+  it('каждый сигнал по отдельности включает lite', () => {
     expect(isLiteDevice({ ...STRONG, deviceMemory: LITE_MAX_MEMORY_GB })).toBe(true)
     expect(isLiteDevice({ ...STRONG, deviceMemory: 2 })).toBe(true)
     expect(isLiteDevice({ ...STRONG, hardwareConcurrency: LITE_MAX_CORES })).toBe(true)
@@ -50,12 +50,12 @@ describe('isLiteDevice', () => {
     expect(isLiteDevice({ ...STRONG, reducedMotion: true })).toBe(true)
     expect(isLiteDevice({ ...STRONG, userAgent: STRONG.userAgent + ' Instagram 1.0' })).toBe(true)
   })
-  it('значення трохи вище порогів — не lite; невідомі (undefined/0) — не сигнал', () => {
+  it('значения чуть выше порогов — не lite; неизвестные (undefined/0) — не сигнал', () => {
     expect(isLiteDevice({ ...STRONG, deviceMemory: LITE_MAX_MEMORY_GB + 2 })).toBe(false)
     expect(isLiteDevice({ ...STRONG, hardwareConcurrency: LITE_MAX_CORES + 2 })).toBe(false)
     expect(isLiteDevice({ ...STRONG, deviceMemory: undefined, hardwareConcurrency: 0 })).toBe(false)
   })
-  it('вузький вьюпорт — lite за рішенням власника (LITE_ON_NARROW_VIEWPORTS)', () => {
+  it('узкий вьюпорт — lite по решению владельца (LITE_ON_NARROW_VIEWPORTS)', () => {
     expect(isLiteDevice({ ...STRONG, viewportWidth: 390 })).toBe(LITE_ON_NARROW_VIEWPORTS)
     expect(isLiteDevice({ ...STRONG, viewportWidth: LITE_NARROW_MAX_WIDTH - 1 })).toBe(LITE_ON_NARROW_VIEWPORTS)
     expect(isLiteDevice({ ...STRONG, viewportWidth: LITE_NARROW_MAX_WIDTH })).toBe(false)
@@ -77,7 +77,7 @@ function runScript(s: DeviceSignals): boolean {
   return classes.has(LITE_CLASS)
 }
 
-describe('liteDetectionScript — та сама логіка, що isLiteDevice', () => {
+describe('liteDetectionScript — та же логика, что isLiteDevice', () => {
   const cases: DeviceSignals[] = [
     STRONG,
     {},
@@ -91,16 +91,16 @@ describe('liteDetectionScript — та сама логіка, що isLiteDevice'
     { ...STRONG, viewportWidth: 640 },
     { ...STRONG, viewportWidth: 0 },
   ]
-  it.each(cases.map((c, i) => [i, c] as const))('випадок %i', (_i, c) => {
+  it.each(cases.map((c, i) => [i, c] as const))('случай %i', (_i, c) => {
     expect(runScript(c)).toBe(isLiteDevice(c))
   })
-  it('скрипт самодостатній: без коми в маркерах, із try/catch, усі маркери всередині', () => {
+  it('скрипт самодостаточный: без запятой в маркерах, с try/catch, все маркеры внутри', () => {
     const js = liteDetectionScript()
     expect(js.startsWith('try{')).toBe(true)
     expect(js.endsWith('catch(e){}')).toBe(true)
     for (const m of EMBEDDED_BROWSER_MARKERS) expect(js).toContain(m.replace(')', '\\)'))
   })
-  it('без matchMedia/navigator скрипт не кидає', () => {
+  it('без matchMedia/navigator скрипт не бросает', () => {
     expect(() => new Function(liteDetectionScript())()).not.toThrow()
   })
 })

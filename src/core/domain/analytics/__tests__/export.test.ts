@@ -93,16 +93,16 @@ function makePeriod(label: string, report: ReportResponse): ComparisonPeriod {
 
 // ─── buildComparisonTable ──────────────────────────────────────────────────────
 
-describe('buildComparisonTable — базові', () => {
+describe('buildComparisonTable — базовые', () => {
   const cols: SummaryColumn[] = ['total', 'targetLeads', 'deals']
 
-  it('порожній масив periods → порожня таблиця', () => {
+  it('пустой массив periods → пустая таблица', () => {
     const t = buildComparisonTable([], cols)
     expect(t.headers).toEqual([])
     expect(t.rows).toEqual([])
   })
 
-  it('один period → без Δ-стовпців', () => {
+  it('один period → без Δ-столбцов', () => {
     const p0 = makePeriod('Янв', makeReport({ total: 10 }))
     const t = buildComparisonTable([p0], cols)
     expect(t.headers).toEqual(['', 'Янв'])
@@ -112,7 +112,7 @@ describe('buildComparisonTable — базові', () => {
     }
   })
 
-  it('два periods → P0 + P1 + Δ стовпці', () => {
+  it('два periods → P0 + P1 + Δ столбцы', () => {
     const p0 = makePeriod('Янв', makeReport({ total: 100 }))
     const p1 = makePeriod('Лют', makeReport({ total: 150 }))
     const t = buildComparisonTable([p0, p1], ['total'])
@@ -125,7 +125,7 @@ describe('buildComparisonTable — базові', () => {
   })
 })
 
-describe('buildComparisonTable — дельти', () => {
+describe('buildComparisonTable — дельты', () => {
   it('P0=100, P1=150 → Δ = +50%', () => {
     const p0 = makePeriod('P0', makeReport({ total: 100 }))
     const p1 = makePeriod('P1', makeReport({ total: 150 }))
@@ -158,7 +158,7 @@ describe('buildComparisonTable — дельти', () => {
     expect(t.rows[0].cells[2]).toBe('—')
   })
 
-  it('три periods → дві Δ-колонки, кожна відносно P0', () => {
+  it('три periods → две Δ-колонки, каждая относительно P0', () => {
     const p0 = makePeriod('P0', makeReport({ total: 100 }))
     const p1 = makePeriod('P1', makeReport({ total: 120 }))
     const p2 = makePeriod('P2', makeReport({ total: 80 }))
@@ -169,7 +169,7 @@ describe('buildComparisonTable — дельти', () => {
     expect(t.rows[0].cells[4]).toBeCloseTo(-20, 5) // (80-100)/100*100
   })
 
-  it('три periods з нульовим основним (P0=0) → обидві Δ = "—", значення лишаються', () => {
+  it('три periods с нулевым основным (P0=0) → обе Δ = "—", значения остаются', () => {
     const p0 = makePeriod('P0', makeReport({ total: 0 }))
     const p1 = makePeriod('P1', makeReport({ total: 120 }))
     const p2 = makePeriod('P2', makeReport({ total: 80 }))
@@ -185,7 +185,7 @@ describe('buildComparisonTable — дельти', () => {
     expect(t.headers).toEqual(['', 'P0', 'P1', 'Δ % до P0', 'P2', 'Δ % до P0'])
   })
 
-  it('п\'ять periods (Zod-максимум) → чотири Δ-колонки', () => {
+  it('пять periods (Zod-максимум) → четыре Δ-колонки', () => {
     const mk = (lbl: string, total: number) => makePeriod(lbl, makeReport({ total }))
     const t = buildComparisonTable(
       [mk('P0', 100), mk('P1', 110), mk('P2', 120), mk('P3', 130), mk('P4', 140)],
@@ -199,7 +199,7 @@ describe('buildComparisonTable — дельти', () => {
 })
 
 describe('buildComparisonTable — порядок колонок', () => {
-  it('метрики йдуть у порядку columns[]', () => {
+  it('метрики идут в порядке columns[]', () => {
     const p0 = makePeriod('P0', makeReport({ total: 10, deals: 3, dealAmountSum: 1000 }))
     const cols: SummaryColumn[] = ['deals', 'total', 'dealAmountSum']
     const t = buildComparisonTable([p0], cols)
@@ -236,14 +236,14 @@ describe('buildPeriodRows — без date breakdown', () => {
   const report = makeReport({ total: 20, targetLeads: 5, deals: 2 })
   const cols: SummaryColumn[] = ['total', 'targetLeads', 'deals']
 
-  it('тільки рядок «Разом»', () => {
+  it('только строка «Разом»', () => {
     const rows = buildPeriodRows(report, false, cols)
     expect(rows).toHaveLength(1)
     expect(rows[0].label).toBe('Разом')
     expect(rows[0].isTotal).toBe(true)
   })
 
-  it('значення в рядку «Разом» відповідають total', () => {
+  it('значения в строке «Разом» соответствуют total', () => {
     const rows = buildPeriodRows(report, false, cols)
     expect(rows[0].values.total).toBe(20)
     expect(rows[0].values.targetLeads).toBe(5)
@@ -251,7 +251,7 @@ describe('buildPeriodRows — без date breakdown', () => {
   })
 })
 
-describe('buildPeriodRows — з date breakdown', () => {
+describe('buildPeriodRows — с date breakdown', () => {
   const report = makeReport(
     { total: 10 },
     [
@@ -261,7 +261,7 @@ describe('buildPeriodRows — з date breakdown', () => {
   )
   const cols: SummaryColumn[] = ['total', 'targetLeads', 'deals']
 
-  it('рядки timeseries + рядок «Разом»', () => {
+  it('строки timeseries + строка «Разом»', () => {
     const rows = buildPeriodRows(report, true, cols)
     expect(rows).toHaveLength(3)
     expect(rows[0].label).toBe('01.06')
@@ -271,7 +271,7 @@ describe('buildPeriodRows — з date breakdown', () => {
     expect(rows[2].isTotal).toBe(true)
   })
 
-  it('значення в рядках timeseries коректні', () => {
+  it('значения в строках timeseries корректны', () => {
     const rows = buildPeriodRows(report, true, cols)
     expect(rows[0].values.total).toBe(3)
     expect(rows[0].values.targetLeads).toBe(1)
@@ -279,7 +279,7 @@ describe('buildPeriodRows — з date breakdown', () => {
     expect(rows[1].values.deals).toBe(2)
   })
 
-  it('конверсії в timeseries-рядках рахуються on-the-fly', () => {
+  it('конверсии в timeseries-строках считаются on-the-fly', () => {
     const report2 = makeReport(
       { total: 10 },
       [{ label: 'день', total: 4, targetLeads: 2 }],
@@ -289,7 +289,7 @@ describe('buildPeriodRows — з date breakdown', () => {
     expect(rows[0].values.conversionToTarget).toBeCloseTo(50, 5)
   })
 
-  it('порожня timeseries → тільки рядок «Разом»', () => {
+  it('пустая timeseries → только строка «Разом»', () => {
     const emptyReport = makeReport({ total: 5 }, [])
     const rows = buildPeriodRows(emptyReport, true, ['total'])
     expect(rows).toHaveLength(1)
@@ -300,25 +300,25 @@ describe('buildPeriodRows — з date breakdown', () => {
 // ─── filterByDealAmount ───────────────────────────────────────────────────────
 
 describe('filterByDealAmount', () => {
-  it('немає обмежень → все проходить (включно null)', () => {
+  it('нет ограничений → всё проходит (включая null)', () => {
     expect(filterByDealAmount(null, null, null)).toBe(true)
     expect(filterByDealAmount(500, null, null)).toBe(true)
     expect(filterByDealAmount(0, null, null)).toBe(true)
   })
 
-  it('тільки from: deal_amount >= from', () => {
+  it('только from: deal_amount >= from', () => {
     expect(filterByDealAmount(100, 100, null)).toBe(true)  // граница включительно
     expect(filterByDealAmount(99, 100, null)).toBe(false)
     expect(filterByDealAmount(200, 100, null)).toBe(true)
   })
 
-  it('тільки to: deal_amount <= to', () => {
+  it('только to: deal_amount <= to', () => {
     expect(filterByDealAmount(100, null, 100)).toBe(true)  // граница включительно
     expect(filterByDealAmount(101, null, 100)).toBe(false)
     expect(filterByDealAmount(0, null, 100)).toBe(true)
   })
 
-  it('from і to: from ≤ deal_amount ≤ to', () => {
+  it('from и to: from ≤ deal_amount ≤ to', () => {
     expect(filterByDealAmount(100, 100, 200)).toBe(true)
     expect(filterByDealAmount(200, 100, 200)).toBe(true)
     expect(filterByDealAmount(150, 100, 200)).toBe(true)
@@ -326,25 +326,25 @@ describe('filterByDealAmount', () => {
     expect(filterByDealAmount(201, 100, 200)).toBe(false)
   })
 
-  it('deal_amount = null при заданому from → false', () => {
+  it('deal_amount = null при заданном from → false', () => {
     expect(filterByDealAmount(null, 100, null)).toBe(false)
   })
 
-  it('deal_amount = null при заданому to → false', () => {
+  it('deal_amount = null при заданном to → false', () => {
     expect(filterByDealAmount(null, null, 200)).toBe(false)
   })
 
-  it('deal_amount = null при from і to → false', () => {
+  it('deal_amount = null при from и to → false', () => {
     expect(filterByDealAmount(null, 100, 200)).toBe(false)
   })
 
-  it('from > to → false для будь-якого значення (некоректний діапазон)', () => {
+  it('from > to → false для любого значения (некорректный диапазон)', () => {
     expect(filterByDealAmount(150, 200, 100)).toBe(false)
     expect(filterByDealAmount(50, 200, 100)).toBe(false)
     expect(filterByDealAmount(250, 200, 100)).toBe(false)
   })
 
-  it('нульові значення from/to обробляються коректно', () => {
+  it('нулевые значения from/to обрабатываются корректно', () => {
     expect(filterByDealAmount(0, 0, 0)).toBe(true)
     expect(filterByDealAmount(1, 0, 0)).toBe(false)
     expect(filterByDealAmount(-1, 0, null)).toBe(false)
@@ -354,52 +354,52 @@ describe('filterByDealAmount', () => {
 // ─── wasTargetPredicate / wasNonTargetPredicate ───────────────────────────────
 
 describe('wasTargetPredicate', () => {
-  it('history має target_lead → true', () => {
+  it('history содержит target_lead → true', () => {
     const h = new Set(['target_lead'])
     expect(wasTargetPredicate(h, null)).toBe(true)
   })
 
-  it('поточна стадія target_lead і порожня history → true', () => {
+  it('текущая стадия target_lead и пустая history → true', () => {
     expect(wasTargetPredicate(new Set(), 'target_lead')).toBe(true)
   })
 
-  it('history non_target_lead, поточна null → false', () => {
+  it('history non_target_lead, текущая null → false', () => {
     expect(wasTargetPredicate(new Set(['non_target_lead']), null)).toBe(false)
   })
 
-  it('порожня history і null поточна → false', () => {
+  it('пустая history и null текущая → false', () => {
     expect(wasTargetPredicate(new Set(), null)).toBe(false)
   })
 
-  it('history deal, поточна target_lead → true (OR-логіка)', () => {
+  it('history deal, текущая target_lead → true (OR-логика)', () => {
     const h = new Set(['deal'])
     expect(wasTargetPredicate(h, 'target_lead')).toBe(true)
   })
 
-  it('history має обидва типи → true', () => {
+  it('history содержит оба типа → true', () => {
     const h = new Set(['target_lead', 'non_target_lead'])
     expect(wasTargetPredicate(h, null)).toBe(true)
   })
 })
 
 describe('wasNonTargetPredicate', () => {
-  it('history має non_target_lead → true', () => {
+  it('history содержит non_target_lead → true', () => {
     expect(wasNonTargetPredicate(new Set(['non_target_lead']), null)).toBe(true)
   })
 
-  it('поточна стадія non_target_lead → true', () => {
+  it('текущая стадия non_target_lead → true', () => {
     expect(wasNonTargetPredicate(new Set(), 'non_target_lead')).toBe(true)
   })
 
-  it('history target_lead, поточна null → false', () => {
+  it('history target_lead, текущая null → false', () => {
     expect(wasNonTargetPredicate(new Set(['target_lead']), null)).toBe(false)
   })
 
-  it('порожня history і null поточна → false', () => {
+  it('пустая history и null текущая → false', () => {
     expect(wasNonTargetPredicate(new Set(), null)).toBe(false)
   })
 
-  it('лід перейшов з цільового у нецільовий: history має обидва → true', () => {
+  it('лид перешёл из целевого в нецелевой: history содержит оба → true', () => {
     const h = new Set(['target_lead', 'non_target_lead'])
     expect(wasNonTargetPredicate(h, 'target_lead')).toBe(true)
   })
@@ -408,33 +408,33 @@ describe('wasNonTargetPredicate', () => {
 // ─── sanitizeCsvCell ──────────────────────────────────────────────────────────
 
 describe('sanitizeCsvCell', () => {
-  it('звичайний текст → без змін', () => {
+  it('обычный текст → без изменений', () => {
     expect(sanitizeCsvCell('Hello World')).toBe('Hello World')
     expect(sanitizeCsvCell('Нормальний текст')).toBe('Нормальний текст')
     expect(sanitizeCsvCell('')).toBe('')
   })
 
-  it('= на початку → апостроф', () => {
+  it('= в начале → апостроф', () => {
     expect(sanitizeCsvCell('=SUM(A1)')).toBe("'=SUM(A1)")
   })
 
-  it('+ на початку → апостроф', () => {
+  it('+ в начале → апостроф', () => {
     expect(sanitizeCsvCell('+link')).toBe("'+link")
   })
 
-  it('- на початку → апостроф', () => {
+  it('- в начале → апостроф', () => {
     expect(sanitizeCsvCell('-1+2')).toBe("'-1+2")
   })
 
-  it('@ на початку → апостроф', () => {
+  it('@ в начале → апостроф', () => {
     expect(sanitizeCsvCell('@user')).toBe("'@user")
   })
 
-  it('\t на початку → апостроф', () => {
+  it('\t в начале → апостроф', () => {
     expect(sanitizeCsvCell('\ttest')).toBe("'\ttest")
   })
 
-  it('рядок що не починається з небезпечних символів → без змін', () => {
+  it('строка, которая не начинается с опасных символов → без изменений', () => {
     expect(sanitizeCsvCell('text=more')).toBe('text=more')
     expect(sanitizeCsvCell('a+b')).toBe('a+b')
   })
@@ -443,12 +443,12 @@ describe('sanitizeCsvCell', () => {
 // ─── sanitizeSheetName ────────────────────────────────────────────────────────
 
 describe('sanitizeSheetName', () => {
-  it('звичайна назва → без змін', () => {
+  it('обычное название → без изменений', () => {
     expect(sanitizeSheetName('Аналітика')).toBe('Аналітика')
     expect(sanitizeSheetName('01.06.2026 – 30.06.2026')).toBe('01.06.2026 – 30.06.2026')
   })
 
-  it('заборонені символи замінюються на "-"', () => {
+  it('запрещённые символы заменяются на "-"', () => {
     expect(sanitizeSheetName('Sheet:1')).toBe('Sheet-1')
     expect(sanitizeSheetName('data\\file')).toBe('data-file')
     expect(sanitizeSheetName('path/to')).toBe('path-to')
@@ -457,18 +457,18 @@ describe('sanitizeSheetName', () => {
     expect(sanitizeSheetName('[bracket]')).toBe('-bracket-')
   })
 
-  it('обрізає до 31 символу', () => {
+  it('обрезает до 31 символа', () => {
     const long = 'A'.repeat(40)
     const result = sanitizeSheetName(long)
     expect(result.length).toBe(31)
   })
 
-  it('обрізка відбувається після санітизації', () => {
+  it('обрезка происходит после санитизации', () => {
     const s = 'A'.repeat(35)
     expect(sanitizeSheetName(s).length).toBe(31)
   })
 
-  it('порожній рядок → порожній', () => {
+  it('пустая строка → пустая', () => {
     expect(sanitizeSheetName('')).toBe('')
   })
 })
@@ -476,26 +476,26 @@ describe('sanitizeSheetName', () => {
 // ─── uniqueSheetName ──────────────────────────────────────────────────────────
 
 describe('uniqueSheetName', () => {
-  it('немає колізії → повертає base без змін', () => {
+  it('нет коллизии → возвращает base без изменений', () => {
     const existing = new Set<string>(['Інший лист'])
     expect(uniqueSheetName(existing, 'Мій лист')).toBe('Мій лист')
   })
 
-  it('одна колізія → додає суфікс (2)', () => {
+  it('одна коллизия → добавляет суффикс (2)', () => {
     const existing = new Set<string>(['01.06 – 30.06'])
     const result = uniqueSheetName(existing, '01.06 – 30.06')
     expect(result).toBe('01.06 – 30.06 (2)')
     expect(result.length).toBeLessThanOrEqual(31)
   })
 
-  it('подвійна колізія → суфікс (3)', () => {
+  it('двойная коллизия → суффикс (3)', () => {
     const existing = new Set<string>(['01.06 – 30.06', '01.06 – 30.06 (2)'])
     const result = uniqueSheetName(existing, '01.06 – 30.06')
     expect(result).toBe('01.06 – 30.06 (3)')
     expect(result.length).toBeLessThanOrEqual(31)
   })
 
-  it('довге ім\'я + суфікс ≤31 символу', () => {
+  it('длинное имя + суффикс ≤31 символа', () => {
     // base ровно 31 символ
     const base = 'A'.repeat(31)
     const existing = new Set<string>([base])
@@ -504,7 +504,7 @@ describe('uniqueSheetName', () => {
     expect(result).toMatch(/\(2\)$/)
   })
 
-  it('довге ім\'я без колізії → повертається без обрізки (вже ≤31)', () => {
+  it('длинное имя без коллизии → возвращается без обрезки (уже ≤31)', () => {
     const base = 'B'.repeat(28)
     const existing = new Set<string>()
     const result = uniqueSheetName(existing, base)
@@ -515,15 +515,15 @@ describe('uniqueSheetName', () => {
 // ─── wrapPhoneForCsv ──────────────────────────────────────────────────────────
 
 describe('wrapPhoneForCsv', () => {
-  it('телефон обертається у формулу ="+380..."', () => {
+  it('телефон оборачивается в формулу ="+380..."', () => {
     expect(wrapPhoneForCsv('+380501234567')).toBe('="+380501234567"')
   })
 
-  it('внутрішні лапки екрануються', () => {
+  it('внутренние кавычки экранируются', () => {
     expect(wrapPhoneForCsv('+38"050"')).toBe('="+38""050"""')
   })
 
-  it('порожній рядок → порожня формула', () => {
+  it('пустая строка → пустая формула', () => {
     expect(wrapPhoneForCsv('')).toBe('=""')
   })
 })
@@ -531,7 +531,7 @@ describe('wrapPhoneForCsv', () => {
 // ─── Канонический порядок показателей (SUMMARY_COLUMN_ORDER) ──────────────────
 
 describe('SUMMARY_COLUMN_ORDER / orderSummaryColumns', () => {
-  it('порядок як у таблиці екрана: «Конверсія у цільові» після «Нецільові», перед «Угоди»; усі показники покриті', () => {
+  it('порядок как в таблице экрана: «Конверсія у цільові» после «Нецільові», перед «Угоди»; все показатели покрыты', () => {
     expect(SUMMARY_COLUMN_ORDER).toEqual([
       'total', 'targetLeads', 'nonTargetLeads', 'conversionToTarget', 'conversionToNonTarget',
       'deals', 'dealAmountSum', 'dealProfitSum', 'conversionToDeal',
@@ -539,14 +539,14 @@ describe('SUMMARY_COLUMN_ORDER / orderSummaryColumns', () => {
     expect([...SUMMARY_COLUMN_ORDER].sort()).toEqual(Object.keys(SUMMARY_COLUMN_HEADERS).sort())
   })
 
-  it('обрані в довільному порядку → канонічний порядок, без дублікатів', () => {
+  it('выбранные в произвольном порядке → канонический порядок, без дубликатов', () => {
     expect(orderSummaryColumns(['conversionToDeal', 'deals', 'conversionToTarget', 'total', 'deals', 'nonTargetLeads'])).toEqual([
       'total', 'nonTargetLeads', 'conversionToTarget', 'deals', 'conversionToDeal',
     ])
     expect(orderSummaryColumns([])).toEqual([])
   })
 
-  it('CSV: заголовки стовпців ідуть у канонічному порядку незалежно від порядку вибору', () => {
+  it('CSV: заголовки столбцов идут в каноническом порядке независимо от порядка выбора', () => {
     const period = makePeriod('Вересень', makeReport({ total: 10, targetLeads: 4, nonTargetLeads: 2, deals: 1 }))
     const csv = buildSummaryCsv([period], orderSummaryColumns(['deals', 'conversionToTarget', 'nonTargetLeads', 'targetLeads', 'total']), false)
     const header = csv.replace(/^\uFEFF/, '').split(/\r?\n/).find((l) => l.includes('Заявки')) ?? ''

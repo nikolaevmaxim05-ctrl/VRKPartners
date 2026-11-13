@@ -7,11 +7,11 @@ const KEY = 'header_cta_click'
 const LABEL = 'Шапка — Клік по CTA-кнопці у шапці'
 
 describe('validateEventsPatch', () => {
-  it('undefined → ok, patch=null (нічого не міняємо)', () => {
+  it('undefined → ok, patch=null (ничего не меняем)', () => {
     expect(validateEventsPatch(undefined)).toEqual({ ok: true, patch: null })
   })
 
-  it('не обʼєкт / масив / null → помилка', () => {
+  it('не объект / массив / null → ошибка', () => {
     for (const bad of [null, 'x', 5, true, [], [{ enabled: true }]]) {
       const r = validateEventsPatch(bad)
       expect(r.ok).toBe(false)
@@ -19,17 +19,17 @@ describe('validateEventsPatch', () => {
     }
   })
 
-  it('порожній обʼєкт → ok, порожній patch', () => {
+  it('пустой объект → ok, пустой patch', () => {
     expect(validateEventsPatch({})).toEqual({ ok: true, patch: {} })
   })
 
-  it('невідомий ключ → помилка з іменем ключа', () => {
+  it('неизвестный ключ → ошибка с именем ключа', () => {
     const r = validateEventsPatch({ nope_key: { enabled: true } })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.message).toContain('nope_key')
   })
 
-  it('запис не обʼєкт → помилка з лейблом точки', () => {
+  it('запись не объект → ошибка с лейблом точки', () => {
     for (const bad of [null, 'x', 1, ['a']]) {
       const r = validateEventsPatch({ [KEY]: bad })
       expect(r.ok).toBe(false)
@@ -37,7 +37,7 @@ describe('validateEventsPatch', () => {
     }
   })
 
-  it('enabled не boolean → помилка', () => {
+  it('enabled не boolean → ошибка', () => {
     for (const bad of [undefined, 'true', 1, null]) {
       const r = validateEventsPatch({ [KEY]: { enabled: bad, eventNames: ['cta_click'] } })
       expect(r.ok).toBe(false)
@@ -45,7 +45,7 @@ describe('validateEventsPatch', () => {
     }
   })
 
-  it('валідний запис → patch з eventNames і легасі eventName = перше імʼя', () => {
+  it('валидная запись → patch с eventNames и легаси eventName = первое имя', () => {
     const r = validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['cta_click', 'hdr_cta'] } })
     expect(r).toEqual({
       ok: true,
@@ -53,7 +53,7 @@ describe('validateEventsPatch', () => {
     })
   })
 
-  it('більше 5 імен → помилка', () => {
+  it('больше 5 имён → ошибка', () => {
     const names = Array.from({ length: MAX_EVENT_NAMES_PER_KEY + 1 }, (_, i) => `ev_${i}`)
     const r = validateEventsPatch({ [KEY]: { enabled: true, eventNames: names } })
     expect(r.ok).toBe(false)
@@ -62,7 +62,7 @@ describe('validateEventsPatch', () => {
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: names.slice(0, 5) } }).ok).toBe(true)
   })
 
-  it('невірне імʼя (великі літери, пробіли, >40, не рядок) → помилка', () => {
+  it('неверное имя (заглавные буквы, пробелы, >40, не строка) → ошибка', () => {
     for (const bad of ['Cta_Click', 'cta click', 'a'.repeat(41), '', 5, null, 'cta-click']) {
       const r = validateEventsPatch({ [KEY]: { enabled: true, eventNames: [bad] } })
       expect(r.ok).toBe(false)
@@ -72,13 +72,13 @@ describe('validateEventsPatch', () => {
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['a'.repeat(40)] } }).ok).toBe(true)
   })
 
-  it('дублікати імен → помилка', () => {
+  it('дубликаты имён → ошибка', () => {
     const r = validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['cta_click', 'cta_click'] } })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.message).toBe(`Імена подій не повинні повторюватись (${LABEL})`)
   })
 
-  it('легасі eventName (рядок) приймається з trim', () => {
+  it('легаси eventName (строка) принимается с trim', () => {
     const r = validateEventsPatch({ [KEY]: { enabled: false, eventName: '  legacy_name ' } })
     expect(r).toEqual({
       ok: true,
@@ -88,19 +88,19 @@ describe('validateEventsPatch', () => {
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventName: 'Bad Name' } }).ok).toBe(false)
   })
 
-  it('eventNames має пріоритет над легасі eventName', () => {
+  it('eventNames имеет приоритет над легаси eventName', () => {
     const r = validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['a_1'], eventName: 'b_2' } })
     expect(r.ok && r.patch?.[KEY].eventNames).toEqual(['a_1'])
   })
 
-  it('без імен → порожній масив, eventName = ключ (точка мовчить)', () => {
+  it('без имён → пустой массив, eventName = ключ (точка молчит)', () => {
     const r = validateEventsPatch({ [KEY]: { enabled: true } })
     expect(r).toEqual({ ok: true, patch: { [KEY]: { enabled: true, eventNames: [], eventName: KEY } } })
     const r2 = validateEventsPatch({ [KEY]: { enabled: true, eventNames: [] } })
     expect(r2).toEqual({ ok: true, patch: { [KEY]: { enabled: true, eventNames: [], eventName: KEY } } })
   })
 
-  it('усі ключі реєстру приймаються', () => {
+  it('все ключи реестра принимаются', () => {
     const events = Object.fromEntries(ANALYTICS_REGISTRY.map((e) => [e.key, { enabled: true, eventNames: [...e.defaultEventNames] }]))
     const r = validateEventsPatch(events)
     expect(r.ok).toBe(true)
@@ -110,7 +110,7 @@ describe('validateEventsPatch', () => {
   // AGENTS.md: «Имена form_start / form_submit запрещены» — комментарий в registry.ts:39-41 гласит
   // «form_start/form_submit НЕ используем — конфликт с GA4 Enhanced Measurement»,
   // с 2026-09-18 validateEventsPatch отклоняет их (RESERVED_EVENT_NAMES в registry.ts).
-  it('заборонені імена form_start / form_submit відхиляються (розділ 15, виправлено 2026-09-18)', () => {
+  it('запрещённые имена form_start / form_submit отклоняются (раздел 15, исправлено 2026-09-18)', () => {
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['form_start'] } }).ok).toBe(false)
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['cta_click', 'form_submit'] } }).ok).toBe(false)
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventName: 'form_submit' } }).ok).toBe(false)

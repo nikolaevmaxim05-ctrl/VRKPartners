@@ -12,7 +12,7 @@ const defaults = {
 }
 
 describe('mergeMessages', () => {
-  it('без правок → копія дефолтів', () => {
+  it('без правок → копия дефолтов', () => {
     const m = mergeMessages(defaults, undefined)
     expect(m).toEqual(defaults)
     expect(m).not.toBe(defaults)
@@ -20,20 +20,20 @@ describe('mergeMessages', () => {
     expect(mergeMessages(defaults, 'junk')).toEqual(defaults)
   })
 
-  it('рядок із правки перемагає завжди, навіть порожній («пусто = убрано»)', () => {
+  it('строка из правки побеждает всегда, даже пустая («пусто = убрано»)', () => {
     const m = mergeMessages(defaults, { hero: { title: '', subtitle: 'Новий' } })
     expect(m.hero.title).toBe('')
     expect(m.hero.subtitle).toBe('Новий')
     expect(m.hero.trustHref).toBe('https://a')
   })
 
-  it('масив із правки замінює дефолтний цілком — коротший, довший, порожній', () => {
+  it('массив из правки заменяет дефолтный целиком — короче, длиннее, пустой', () => {
     expect(mergeMessages(defaults, { trust: { facts: ['x'] } }).trust.facts).toEqual(['x'])
     expect(mergeMessages(defaults, { trust: { facts: [] } }).trust.facts).toEqual([])
     expect(mergeMessages(defaults, { faq: [{ q: '1', a: '1' }, { q: '2', a: '2' }] }).faq).toHaveLength(2)
   })
 
-  it('число/булеве — лише якщо тип збігається; тип не збігся → дефолт', () => {
+  it('число/булево — только если тип совпадает; тип не совпал → дефолт', () => {
     const m = mergeMessages(defaults, { flags: { wide: true, n: '5' }, hero: { title: 42, partners: 'nope' } })
     expect(m.flags.wide).toBe(true)
     expect(m.flags.n).toBe(3)
@@ -41,13 +41,13 @@ describe('mergeMessages', () => {
     expect(m.hero.partners).toEqual(defaults.hero.partners)
   })
 
-  it('ключі правки, яких немає в дефолтах, ігноруються', () => {
+  it('ключи правки, которых нет в дефолтах, игнорируются', () => {
     const m = mergeMessages(defaults, { hero: { badge: 'old', formTitle: 'old' }, unknownNs: { a: 1 } }) as unknown as Record<string, unknown>
     expect((m.hero as Record<string, unknown>).badge).toBeUndefined()
     expect(m.unknownNs).toBeUndefined()
   })
 
-  it('сумісний зі старим форматом правок клієнта (hero/site/trust цілим блоком)', () => {
+  it('совместим со старым форматом правок клиента (hero/site/trust целым блоком)', () => {
     const old = {
       hero: { trust: 'Довіра', trustHref: 'https://p' },
       trust: { eyebrow: 'старий ключ', cta: 'старий', facts: ['новий факт', 'два'], caseGroups: [{ id: 'g1', niche: 'N', cases: [{ id: 'c1', client: 'x', image: '' }] }] },
@@ -62,30 +62,30 @@ describe('mergeMessages', () => {
 })
 
 describe('diffMessages', () => {
-  it('без відмінностей → undefined (порожній обʼєкт не зберігається)', () => {
+  it('без различий → undefined (пустой объект не сохраняется)', () => {
     expect(diffMessages(defaults, JSON.parse(JSON.stringify(defaults)))).toBeUndefined()
   })
 
-  it('лишає лише змінені рядки; повернуте до дефолту значення зникає', () => {
+  it('оставляет только изменённые строки; возвращённое к дефолту значение исчезает', () => {
     const d = diffMessages(defaults, { hero: { title: 'Новий', subtitle: 'Підзаголовок' } })
     expect(d).toEqual({ hero: { title: 'Новий' } })
   })
 
-  it('порожній рядок — теж правка (він прибирає текст)', () => {
+  it('пустая строка — тоже правка (она убирает текст)', () => {
     expect(diffMessages(defaults, { hero: { title: '' } })).toEqual({ hero: { title: '' } })
   })
 
-  it('масив зберігається цілком, якщо JSON відрізняється', () => {
+  it('массив сохраняется целиком, если JSON отличается', () => {
     expect(diffMessages(defaults, { trust: { facts: ['один', 'ДВА'] } })).toEqual({ trust: { facts: ['один', 'ДВА'] } })
     expect(diffMessages(defaults, { trust: { facts: ['один', 'два'] } })).toBeUndefined()
     expect(diffMessages(defaults, { home: { hidden: ['about'] } })).toEqual({ home: { hidden: ['about'] } })
   })
 
-  it('число/булеве — якщо відрізняється і тип той самий; чужі ключі не потрапляють', () => {
+  it('число/булево — если отличается и тип тот же; чужие ключи не попадают', () => {
     expect(diffMessages(defaults, { flags: { wide: true, n: '7', extra: 1 } })).toEqual({ flags: { wide: true } })
   })
 
-  it('мерж диффу повертає повне значення (кругова сумісність)', () => {
+  it('мерж диффа возвращает полное значение (круговая совместимость)', () => {
     const edited = JSON.parse(JSON.stringify(defaults))
     edited.workflow.bonus.terms.push({ label: 'x', value: 'y' })
     edited.hero.title = ''
@@ -95,12 +95,12 @@ describe('diffMessages', () => {
 })
 
 describe('contentList / countChanges / pickEditable', () => {
-  it('contentList лишає лише непорожні рядки', () => {
+  it('contentList оставляет только непустые строки', () => {
     expect(contentList(['a', '', '  ', 1, null, 'b'])).toEqual(['a', 'b'])
     expect(contentList('x')).toEqual([])
   })
 
-  it('countChanges рахує змінені листки, зайві та відсутні елементи', () => {
+  it('countChanges считает изменённые листья, лишние и отсутствующие элементы', () => {
     expect(countChanges(defaults, defaults)).toBe(0)
     expect(countChanges(defaults, { ...defaults, hero: { ...defaults.hero, title: 'x', subtitle: 'y' } })).toBe(2)
     expect(countChanges(defaults, { ...defaults, trust: { ...defaults.trust, facts: ['один'] } })).toBe(1)
@@ -108,7 +108,7 @@ describe('contentList / countChanges / pickEditable', () => {
     expect(countChanges(defaults, { ...defaults, home: { hidden: ['about'] } })).toBe(1)
   })
 
-  it('pickEditable не віддає pageMeta', () => {
+  it('pickEditable не отдаёт pageMeta', () => {
     const picked = pickEditable({ hero: {}, pageMeta: { title: 'x' }, faq: [] })
     expect(Object.keys(picked)).toEqual(['hero', 'faq'])
     expect(EDITABLE_NAMESPACES).not.toContain('pageMeta')

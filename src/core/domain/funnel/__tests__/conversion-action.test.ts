@@ -15,7 +15,7 @@ describe('validateConversionAction', () => {
     expect(validateConversionAction('Deal Offline 2')).toBeNull()
   })
 
-  it('принимает украинские буквы (юникод-літери)', () => {
+  it('принимает украинские буквы (юникод-буквы)', () => {
     expect(validateConversionAction('Заявка з сайту')).toBeNull()
   })
 

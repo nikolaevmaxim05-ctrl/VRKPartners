@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { KNOWN_INTEGRATION_KEYS, PLAINTEXT_INTEGRATION_KEYS, LEAD_DELIVERY_KEYS, maskValue } from '../keys'
 
 describe('KNOWN_INTEGRATION_KEYS', () => {
-  it('рівно 10 відомих ключів', () => {
+  it('ровно 10 известных ключей', () => {
     expect(KNOWN_INTEGRATION_KEYS.size).toBe(10)
     expect([...KNOWN_INTEGRATION_KEYS].sort()).toEqual([
       'google_adjustments_spreadsheet_id',
@@ -19,7 +19,7 @@ describe('KNOWN_INTEGRATION_KEYS', () => {
     ])
   })
 
-  it('містить Telegram, KeyCRM, SMTP, Google Sheets і telephony_secret', () => {
+  it('содержит Telegram, KeyCRM, SMTP, Google Sheets и telephony_secret', () => {
     for (const k of ['telegram_bot_token', 'telegram_chat_id', 'keycrm_api_key', 'telephony_secret', 'google_sheets_service_account_json']) {
       expect(KNOWN_INTEGRATION_KEYS.has(k)).toBe(true)
     }
@@ -29,7 +29,7 @@ describe('KNOWN_INTEGRATION_KEYS', () => {
 })
 
 describe('PLAINTEXT_INTEGRATION_KEYS', () => {
-  it('4 несекретні ключі, усі — з відомих', () => {
+  it('4 несекретных ключа, все — из известных', () => {
     expect([...PLAINTEXT_INTEGRATION_KEYS].sort()).toEqual([
       'google_adjustments_spreadsheet_id',
       'google_spreadsheet_id',
@@ -39,7 +39,7 @@ describe('PLAINTEXT_INTEGRATION_KEYS', () => {
     for (const k of PLAINTEXT_INTEGRATION_KEYS) expect(KNOWN_INTEGRATION_KEYS.has(k)).toBe(true)
   })
 
-  it('не містить токенів / паролів / секретів', () => {
+  it('не содержит токенов / паролей / секретов', () => {
     for (const k of PLAINTEXT_INTEGRATION_KEYS) {
       expect(k).not.toMatch(/token|password|secret|api_key|service_account/)
     }
@@ -50,7 +50,7 @@ describe('PLAINTEXT_INTEGRATION_KEYS', () => {
 })
 
 describe('LEAD_DELIVERY_KEYS', () => {
-  it('ключі каналів доставки заявки — з відомих, без telephony/sheets', () => {
+  it('ключи каналов доставки заявки — из известных, без telephony/sheets', () => {
     expect(LEAD_DELIVERY_KEYS).toEqual([
       'telegram_bot_token', 'telegram_chat_id', 'keycrm_api_key', 'smtp_user', 'smtp_password', 'smtp_from',
     ])
@@ -60,20 +60,20 @@ describe('LEAD_DELIVERY_KEYS', () => {
 })
 
 describe('maskValue', () => {
-  it('видимі лише останні 4 символи', () => {
+  it('видны только последние 4 символа', () => {
     expect(maskValue('123456:ABCDEFtoken')).toBe('••••••••••••oken')
     expect(maskValue('12345')).toBe('••••••••••••2345')
     expect(maskValue('abcdefgh').endsWith('efgh')).toBe(true)
     expect(maskValue('abcdefgh')).not.toContain('abcd')
   })
 
-  it('короткі значення (≤ 4) маскуються повністю', () => {
+  it('короткие значения (≤ 4) маскируются полностью', () => {
     expect(maskValue('')).toBe('••••')
     expect(maskValue('a')).toBe('••••')
     expect(maskValue('abcd')).toBe('••••')
   })
 
-  it('довжина маски не розкриває довжину значення (префікс фіксований)', () => {
+  it('длина маски не раскрывает длину значения (префикс фиксированный)', () => {
     expect(maskValue('12345').length).toBe(maskValue('x'.repeat(100)).length)
   })
 })

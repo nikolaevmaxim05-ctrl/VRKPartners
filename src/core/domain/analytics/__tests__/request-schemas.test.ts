@@ -20,14 +20,14 @@ const getFrom = (q: Record<string, string>) => (k: string) => (k in q ? q[k] : n
 // ── Отчёт ────────────────────────────────────────────────────────────────────
 
 describe('defaultDateFrom / defaultDateTo', () => {
-  it('30 днів назад і сьогодні (UTC)', () => {
+  it('30 дней назад и сегодня (UTC)', () => {
     expect(defaultDateTo(NOW)).toBe('2026-09-18')
     expect(defaultDateFrom(NOW)).toBe('2026-08-19')
   })
 })
 
 describe('parseReportQuery', () => {
-  it('порожній query → дефолти', () => {
+  it('пустой query → дефолты', () => {
     const r = parseReportQuery(getFrom({}), NOW)
     expect(r).toEqual({
       ok: true,
@@ -52,7 +52,7 @@ describe('parseReportQuery', () => {
     })
   })
 
-  it('дата не YYYY-MM-DD → помилка з текстом', () => {
+  it('дата не YYYY-MM-DD → ошибка с текстом', () => {
     const r = parseReportQuery(getFrom({ date_from: '18.09.2026' }), NOW)
     expect(r).toEqual({ ok: false, message: 'date_from має бути YYYY-MM-DD' })
     const r2 = parseReportQuery(getFrom({ date_to: '2026-9-1' }), NOW)
@@ -62,7 +62,7 @@ describe('parseReportQuery', () => {
     expect(!r3.ok && r3.message).toBe('date_from має бути YYYY-MM-DD; date_to має бути YYYY-MM-DD')
   })
 
-  it('enum-и: group_by, ts_granularity, filter_gclid, breakdown, breakdown_metric', () => {
+  it('enum-ы: group_by, ts_granularity, filter_gclid, breakdown, breakdown_metric', () => {
     expect(parseReportQuery(getFrom({ group_by: 'nope' }), NOW).ok).toBe(false)
     expect(parseReportQuery(getFrom({ ts_granularity: 'hour' }), NOW).ok).toBe(false)
     expect(parseReportQuery(getFrom({ filter_gclid: 'yes' }), NOW).ok).toBe(false)
@@ -72,7 +72,7 @@ describe('parseReportQuery', () => {
     expect(ok.ok && ok.params).toMatchObject({ group_by: 'month', ts_granularity: 'week', filter_gclid: 'with', breakdown: 'status', breakdown_metric: 'deals' })
   })
 
-  it('group_by=custom_field вимагає валідний UUID custom_field_id', () => {
+  it('group_by=custom_field требует валидный UUID custom_field_id', () => {
     const msg = "custom_field_id є обов'язковим і має бути валідним UUID при group_by=custom_field"
     expect(parseReportQuery(getFrom({ group_by: 'custom_field' }), NOW)).toEqual({ ok: false, message: msg })
     expect(parseReportQuery(getFrom({ group_by: 'custom_field', custom_field_id: 'abc' }), NOW)).toEqual({ ok: false, message: msg })
@@ -82,7 +82,7 @@ describe('parseReportQuery', () => {
     expect(parseReportQuery(getFrom({ group_by: 'status', custom_field_id: 'abc' }), NOW).ok).toBe(true)
   })
 
-  it("referral_link: розріз і розбивка приймаються; filter_referral_link_id — '' | 'none' | UUID, інакше помилка", () => {
+  it("referral_link: разрез и разбивка принимаются; filter_referral_link_id — '' | 'none' | UUID, иначе ошибка", () => {
     const ok = parseReportQuery(getFrom({ group_by: 'referral_link', breakdown: 'referral_link', filter_referral_link_id: UUID }), NOW)
     expect(ok.ok && ok.params).toMatchObject({ group_by: 'referral_link', breakdown: 'referral_link', filter_referral_link_id: UUID })
     expect(parseReportQuery(getFrom({ filter_referral_link_id: 'none' }), NOW).ok).toBe(true)
@@ -90,20 +90,20 @@ describe('parseReportQuery', () => {
     expect(bad).toEqual({ ok: false, message: "filter_referral_link_id має бути UUID або 'none'" })
   })
 
-  it('UUID_REGEX — нечутливий до регістру', () => {
+  it('UUID_REGEX — нечувствителен к регистру', () => {
     expect(UUID_REGEX.test(UUID)).toBe(true)
     expect(UUID_REGEX.test(UUID.toUpperCase())).toBe(true)
     expect(UUID_REGEX.test('11111111-2222-4333-8444-55555555555')).toBe(false)
   })
 
-  it('рядкові фільтри передаються як є', () => {
+  it('строковые фильтры передаются как есть', () => {
     const r = parseReportQuery(getFrom({ filter_status_ids: 'a,b', filter_assignee_ids: 'x', filter_group_value: 'google', breakdown_metrics: 'total,deals' }), NOW)
     expect(r.ok && r.params).toMatchObject({ filter_status_ids: 'a,b', filter_assignee_ids: 'x', filter_group_value: 'google', breakdown_metrics: 'total,deals' })
   })
 })
 
 describe('reportParamsSchema', () => {
-  it('дати обовʼязкові, решта — з дефолтами', () => {
+  it('даты обязательны, остальное — с дефолтами', () => {
     expect(reportParamsSchema.safeParse({}).success).toBe(false)
     const r = reportParamsSchema.safeParse({ date_from: '2026-01-01', date_to: '2026-01-31' })
     expect(r.success).toBe(true)
@@ -114,7 +114,7 @@ describe('reportParamsSchema', () => {
 // ── Значения измерения ───────────────────────────────────────────────────────
 
 describe('dimensionParamsSchema', () => {
-  it('dimension — utm_* або custom_field, обовʼязковий', () => {
+  it('dimension — utm_* или custom_field, обязательный', () => {
     expect(dimensionParamsSchema.safeParse({}).success).toBe(false)
     expect(dimensionParamsSchema.safeParse({ dimension: 'status' }).success).toBe(false)
     for (const d of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'custom_field']) {
@@ -122,7 +122,7 @@ describe('dimensionParamsSchema', () => {
     }
   })
 
-  it('дати необовʼязкові, але у форматі YYYY-MM-DD; custom_field_id дефолт ""', () => {
+  it('даты необязательны, но в формате YYYY-MM-DD; custom_field_id дефолт ""', () => {
     const r = dimensionParamsSchema.safeParse({ dimension: 'utm_source' })
     expect(r.success && r.data).toEqual({ dimension: 'utm_source', custom_field_id: '' })
     expect(dimensionParamsSchema.safeParse({ dimension: 'utm_source', date_from: '2026-01-01', date_to: '2026-01-31' }).success).toBe(true)
@@ -131,7 +131,7 @@ describe('dimensionParamsSchema', () => {
 })
 
 describe('dedupeSorted / splitIds', () => {
-  it('унікальні непорожні рядки, сортування uk, обрізання', () => {
+  it('уникальные непустые строки, сортировка uk, обрезка', () => {
     expect(dedupeSorted([' b ', 'a', 'b', '', 3, null, 'я', 'А'])).toEqual(['a', 'А', 'b', 'я'].sort((x, y) => x.localeCompare(y, 'uk')))
     expect(dedupeSorted(Array.from({ length: DIMENSION_MAX_VALUES + 10 }, (_, i) => `v${i}`))).toHaveLength(DIMENSION_MAX_VALUES)
   })
@@ -148,7 +148,7 @@ describe('dedupeSorted / splitIds', () => {
 const filters = { date_from: '2026-01-01', date_to: '2026-01-31' }
 
 describe('exportFiltersSchema', () => {
-  it('дати обовʼязкові у форматі; масиви/enum з дефолтами', () => {
+  it('даты обязательны в формате; массивы/enum с дефолтами', () => {
     const r = exportFiltersSchema.safeParse(filters)
     expect(r.success && r.data).toEqual({
       ...filters,
@@ -164,7 +164,7 @@ describe('exportFiltersSchema', () => {
 })
 
 describe('exportBodySchema', () => {
-  it('tab=leads: leadFields непорожній', () => {
+  it('tab=leads: leadFields непустой', () => {
     const ok = exportBodySchema.safeParse({ format: 'csv', tab: 'leads', filters, leadFields: ['phone'] })
     expect(ok.success).toBe(true)
     const empty = exportBodySchema.safeParse({ format: 'csv', tab: 'leads', filters, leadFields: [] })
@@ -174,7 +174,7 @@ describe('exportBodySchema', () => {
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'leads', filters, leadFields: ['unknown'] }).success).toBe(false)
   })
 
-  it('tab=summary: summaryColumns непорожній; дефолти includeDateBreakdown=false, granularity=day', () => {
+  it('tab=summary: summaryColumns непустой; дефолты includeDateBreakdown=false, granularity=day', () => {
     const ok = exportBodySchema.safeParse({ format: 'xlsx', tab: 'summary', filters, summaryColumns: ['total'] })
     expect(ok.success).toBe(true)
     if (ok.success && ok.data.tab === 'summary') {
@@ -188,13 +188,13 @@ describe('exportBodySchema', () => {
     expect(exportBodySchema.safeParse({ format: 'xlsx', tab: 'summary', filters, summaryColumns: ['nope'] }).success).toBe(false)
   })
 
-  it('дискримінатор tab і format', () => {
+  it('дискриминатор tab и format', () => {
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'other', filters, leadFields: ['phone'] }).success).toBe(false)
     expect(exportBodySchema.safeParse({ format: 'pdf', tab: 'leads', filters, leadFields: ['phone'] }).success).toBe(false)
     expect(exportBodySchema.safeParse({ format: 'csv', filters, leadFields: ['phone'] }).success).toBe(false)
   })
 
-  it('comparePeriods ≤ 5 і у форматі дат', () => {
+  it('comparePeriods ≤ 5 и в формате дат', () => {
     const period = { date_from: '2026-01-01', date_to: '2026-01-31' }
     const five = Array(5).fill(period)
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'summary', filters, summaryColumns: ['total'], comparePeriods: five }).success).toBe(true)
@@ -203,7 +203,7 @@ describe('exportBodySchema', () => {
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'leads', filters, leadFields: ['phone'], comparePeriods: [{ date_from: 'x', date_to: 'y' }] }).success).toBe(false)
   })
 
-  it('dealAmountFrom/To — число або null; granularity enum', () => {
+  it('dealAmountFrom/To — число или null; granularity enum', () => {
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'leads', filters, leadFields: ['phone'], dealAmountFrom: null, dealAmountTo: 100 }).success).toBe(true)
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'leads', filters, leadFields: ['phone'], dealAmountFrom: '10' }).success).toBe(false)
     expect(exportBodySchema.safeParse({ format: 'csv', tab: 'summary', filters, summaryColumns: ['total'], granularity: 'year' }).success).toBe(false)
@@ -211,7 +211,7 @@ describe('exportBodySchema', () => {
 })
 
 describe('buildExportFileName / orderLeadFields / filtersToReportParams', () => {
-  it('імʼя файлу за вкладкою, форматом і порівнянням', () => {
+  it('имя файла по вкладке, формату и сравнению', () => {
     const leads = exportBodySchema.parse({ format: 'csv', tab: 'leads', filters, leadFields: ['phone'] })
     expect(buildExportFileName(leads)).toBe('leads_2026-01-01_2026-01-31.csv')
     const summary = exportBodySchema.parse({ format: 'xlsx', tab: 'summary', filters, summaryColumns: ['total'] })
@@ -220,11 +220,11 @@ describe('buildExportFileName / orderLeadFields / filtersToReportParams', () => 
     expect(buildExportFileName(cmp)).toBe('analytics_2026-01-01_2026-01-31_compare.xlsx')
   })
 
-  it('порядок полів — за LEAD_FIELD_ORDER', () => {
+  it('порядок полей — по LEAD_FIELD_ORDER', () => {
     expect(orderLeadFields(['comments', 'phone', 'dates'])).toEqual(['dates', 'phone', 'comments'])
   })
 
-  it('фільтри → параметри звіту (масиви через кому, granularity = group_by)', () => {
+  it('фильтры → параметры отчёта (массивы через запятую, granularity = group_by)', () => {
     const f = exportFiltersSchema.parse({ ...filters, filter_assignee_ids: ['a', 'b'], filter_status_ids: ['s'] })
     expect(filtersToReportParams(f, 'week')).toEqual({
       date_from: '2026-01-01', date_to: '2026-01-31', group_by: 'week', ts_granularity: 'week',

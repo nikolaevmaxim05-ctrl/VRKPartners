@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { fieldType, fieldLimit, fieldKind, validateMessages, isAllowedHref, MAX_ARRAY_ITEMS } from '../limits'
 
 describe('fieldType / fieldLimit', () => {
-  it('тип за іменем ключа у порядку таблиці', () => {
+  it('тип по имени ключа в порядке таблицы', () => {
     expect(fieldType('price')).toBe('number')
     expect(fieldType('desc')).toBe('paragraph')
     expect(fieldType('subtitle')).toBe('paragraph')
@@ -18,7 +18,7 @@ describe('fieldType / fieldLimit', () => {
     expect(fieldType('facts')).toBe('other')
   })
 
-  it('явні винятки — імʼя обманює про тип', () => {
+  it('явные исключения — имя обманывает насчёт типа', () => {
     expect(fieldType('q')).toBe('title')
     expect(fieldType('a')).toBe('paragraph')
     expect(fieldType('partnerLinkText')).toBe('label')
@@ -27,14 +27,14 @@ describe('fieldType / fieldLimit', () => {
     expect(fieldType('trust', 'hero.trust')).toBe('paragraph')
   })
 
-  it('ліміт = max(ліміт типу, ceil(дефолт × 1.2)); «прочее» — 2×дефолт + 500', () => {
+  it('лимит = max(лимит типа, ceil(дефолт × 1.2)); «прочее» — 2×дефолт + 500', () => {
     expect(fieldLimit('title', 'короткий')).toBe(80)
     expect(fieldLimit('title', 'x'.repeat(100))).toBe(120)
     expect(fieldLimit('facts', 'x'.repeat(10))).toBe(520)
     expect(fieldLimit('facts', undefined)).toBe(500)
   })
 
-  it('вид поля для віджета/URL', () => {
+  it('вид поля для виджета/URL', () => {
     expect(fieldKind('image')).toBe('image')
     expect(fieldKind('photo')).toBe('image')
     expect(fieldKind('mockupFull')).toBe('image')
@@ -46,7 +46,7 @@ describe('fieldType / fieldLimit', () => {
     expect(fieldKind('title')).toBe('text')
   })
 
-  it('href: https/http/tel/mailto або відносний шлях', () => {
+  it('href: https/http/tel/mailto или относительный путь', () => {
     expect(isAllowedHref('https://x.com')).toBe(true)
     expect(isAllowedHref('tel:+380')).toBe(true)
     expect(isAllowedHref('mailto:a@b.c')).toBe(true)
@@ -68,7 +68,7 @@ const defaults = {
 }
 
 describe('validateMessages', () => {
-  it('чужий верхньорівневий ключ → помилка', () => {
+  it('чужой ключ верхнего уровня → ошибка', () => {
     const r = validateMessages(defaults, { pageMeta: { title: 'x' } })
     expect(r.ok).toBe(false)
     const r2 = validateMessages(defaults, { junk: {} })
@@ -76,7 +76,7 @@ describe('validateMessages', () => {
     expect(validateMessages(defaults, null).ok).toBe(false)
   })
 
-  it('санітизує: чужі ключі відкинуто, відсутні — з дефолтів, типи узгоджено', () => {
+  it('санитизирует: чужие ключи отброшены, отсутствующие — из дефолтов, типы согласованы', () => {
     const r = validateMessages(defaults, { hero: { title: 'Новий', badge: 'old', trustHref: 5 } })
     expect(r.ok).toBe(true)
     if (r.ok) {
@@ -85,7 +85,7 @@ describe('validateMessages', () => {
     }
   })
 
-  it('елементи масивів санітизуються за шаблоном; необовʼязкові поля лишаються', () => {
+  it('элементы массивов санитизируются по шаблону; необязательные поля остаются', () => {
     const r = validateMessages(defaults, {
       usp: { items: [{ title: 'x', text: 'y', junk: 1 }, { title: 'z', icon: '', text: '' }] },
       services: { items: [{ key: 'k', name: 'n', desc: 'd', previewWide: true, mockup: '/m.png' }] },
@@ -98,7 +98,7 @@ describe('validateMessages', () => {
     }
   })
 
-  it('елемент масиву без обовʼязкового вкладеного масиву → порожній масив (не дефолтний); необовʼязковий (approach) не дозаповнюється', () => {
+  it('элемент массива без обязательного вложенного массива → пустой массив (не дефолтный); необязательный (approach) не дозаполняется', () => {
     const defs = { trust: { caseGroups: [{ id: 'g1', niche: 'N', cases: [{ id: 'c1', client: 'C', title: 'T', metrics: [{ label: 'l', value: 'v' }], approach: ['a'] }, { id: 'c2', client: 'D', title: 'U', metrics: [] }] }] } }
     const r = validateMessages(defs, { trust: { caseGroups: [{ id: 'g2', niche: 'X' }, { id: 'g3', niche: 'Y', cases: [{ id: 'c9', client: 'K', title: 'Q' }] }] } })
     expect(r.ok).toBe(true)
@@ -108,7 +108,7 @@ describe('validateMessages', () => {
     }
   })
 
-  it('site.telegram і site.telegramCtaUrl — лише t.me/telegram.me (рендеряться в href)', () => {
+  it('site.telegram и site.telegramCtaUrl — только t.me/telegram.me (рендерятся в href)', () => {
     const defs = { site: { telegram: 'https://t.me/a', telegramCtaUrl: 'https://t.me/b' } }
     expect(validateMessages(defs, { site: { telegram: 'javascript:alert(1)' } }).ok).toBe(false)
     expect(validateMessages(defs, { site: { telegram: 'https://evil.example/x' } }).ok).toBe(false)
@@ -116,7 +116,7 @@ describe('validateMessages', () => {
     expect(validateMessages(defs, { site: { telegram: '' } }).ok).toBe(true)
   })
 
-  it('перевищення ліміту → помилка зі шляхом', () => {
+  it('превышение лимита → ошибка с путём', () => {
     const r = validateMessages(defaults, { hero: { title: 'x'.repeat(81) } })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.error.path).toBe('hero.title')
@@ -125,7 +125,7 @@ describe('validateMessages', () => {
     if (!r2.ok) expect(r2.error.path).toBe('faq[0].a')
   })
 
-  it('масиви ≤ 50', () => {
+  it('массивы ≤ 50', () => {
     const r = validateMessages(defaults, { trust: { facts: Array.from({ length: MAX_ARRAY_ITEMS + 1 }, () => 'x') } })
     expect(r.ok).toBe(false)
   })
@@ -139,7 +139,7 @@ describe('validateMessages', () => {
     expect(validateMessages(defaults, { hero: { trustHref: 'tel:+380' } }).ok).toBe(true)
   })
 
-  it('hidden: невідомий id → помилка; дублі та порядок нормалізуються', () => {
+  it('hidden: неизвестный id → ошибка; дубли и порядок нормализуются', () => {
     expect(validateMessages(defaults, { home: { hidden: ['nope'] } }).ok).toBe(false)
     const r = validateMessages(defaults, { home: { hidden: ['faq', 'about', 'about'] } })
     expect(r.ok).toBe(true)

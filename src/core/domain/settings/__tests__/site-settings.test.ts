@@ -8,8 +8,8 @@ import {
   ALLOWED_CURRENCIES,
 } from '../site-settings'
 
-describe('константи', () => {
-  it('білий список — 8 ключів, без секретів', () => {
+describe('константы', () => {
+  it('белый список — 8 ключей, без секретов', () => {
     expect([...ALLOWED_SETTING_KEYS].sort()).toEqual([
       'deal_amount_type',
       'dedup_by_ip',
@@ -23,18 +23,18 @@ describe('константи', () => {
     for (const k of SECRET_SETTING_KEYS) expect(ALLOWED_SETTING_KEYS.has(k)).toBe(false)
   })
 
-  it('telephony_secret — секрет, не в білому списку', () => {
+  it('telephony_secret — секрет, не в белом списке', () => {
     expect(SECRET_SETTING_KEYS.has('telephony_secret')).toBe(true)
     expect(ALLOWED_SETTING_KEYS.has('telephony_secret')).toBe(false)
   })
 
-  it('валюти', () => {
+  it('валюты', () => {
     expect(ALLOWED_CURRENCIES).toEqual(['UAH', 'USD', 'EUR'])
   })
 })
 
 describe('inferSettingType', () => {
-  it('тип за ключем', () => {
+  it('тип по ключу', () => {
     expect(inferSettingType('dedup_by_phone')).toBe('boolean')
     expect(inferSettingType('dedup_by_ip')).toBe('boolean')
     expect(inferSettingType('pipelines_enabled')).toBe('boolean')
@@ -46,25 +46,25 @@ describe('inferSettingType', () => {
 })
 
 describe('normalizeSettingItems', () => {
-  it('порожні items / не масив → помилка', () => {
+  it('пустые items / не массив → ошибка', () => {
     for (const bad of [[], null, undefined, {}, 'x']) {
       expect(normalizeSettingItems(bad)).toEqual({ ok: false, message: 'Порожній items' })
     }
   })
 
-  it('невідомий ключ → помилка з іменем ключа', () => {
+  it('неизвестный ключ → ошибка с именем ключа', () => {
     const r = normalizeSettingItems([{ key: 'evil_key', value: '1' }])
     expect(r).toEqual({ ok: false, message: 'Невідомий ключ: evil_key' })
   })
 
-  it('telephony_secret відхиляється (зберігається в integrations)', () => {
+  it('telephony_secret отклоняется (хранится в integrations)', () => {
     expect(normalizeSettingItems([{ key: 'telephony_secret', value: 's3cret' }])).toEqual({
       ok: false,
       message: 'Невідомий ключ: telephony_secret',
     })
   })
 
-  it('один невідомий ключ у списку валить весь запит', () => {
+  it('один неизвестный ключ в списке валит весь запрос', () => {
     const r = normalizeSettingItems([
       { key: 'dedup_by_phone', value: true },
       { key: 'nope', value: 1 },
@@ -72,7 +72,7 @@ describe('normalizeSettingItems', () => {
     expect(r.ok).toBe(false)
   })
 
-  it('boolean: true / "true" → "true", решта → "false"', () => {
+  it('boolean: true / "true" → "true", остальное → "false"', () => {
     const r = normalizeSettingItems([
       { key: 'dedup_by_phone', value: true },
       { key: 'dedup_by_ip', value: 'true' },
@@ -88,7 +88,7 @@ describe('normalizeSettingItems', () => {
     }
   })
 
-  it('number: ≥ 0, floor; NaN / відʼємне / нескінченність → помилка', () => {
+  it('number: ≥ 0, floor; NaN / отрицательное / бесконечность → ошибка', () => {
     const ok = normalizeSettingItems([
       { key: 'dedup_ip_window_hours', value: 24.9 },
       { key: 'dedup_ip_window_hours', value: '12' },
@@ -110,12 +110,12 @@ describe('normalizeSettingItems', () => {
     }
   })
 
-  it('явний type у item має пріоритет над inferSettingType', () => {
+  it('явный type в item имеет приоритет над inferSettingType', () => {
     const r = normalizeSettingItems([{ key: 'google_ads_conversion_action', value: 7.5, type: 'number' }])
     expect(r).toEqual({ ok: true, rows: [{ key: 'google_ads_conversion_action', value: '7', type: 'number' }] })
   })
 
-  it('internal_currency: лише UAH/USD/EUR (з trim)', () => {
+  it('internal_currency: только UAH/USD/EUR (с trim)', () => {
     expect(normalizeSettingItems([{ key: 'internal_currency', value: ' USD ' }])).toEqual({
       ok: true,
       rows: [{ key: 'internal_currency', value: 'USD', type: 'string' }],
@@ -128,7 +128,7 @@ describe('normalizeSettingItems', () => {
     }
   })
 
-  it('deal_amount_type: amount або profit', () => {
+  it('deal_amount_type: amount или profit', () => {
     expect(normalizeSettingItems([{ key: 'deal_amount_type', value: 'profit' }])).toEqual({
       ok: true,
       rows: [{ key: 'deal_amount_type', value: 'profit', type: 'string' }],
@@ -142,7 +142,7 @@ describe('normalizeSettingItems', () => {
     }
   })
 
-  it('string: null → "", інші → String().trim()', () => {
+  it('string: null → "", остальные → String().trim()', () => {
     const r = normalizeSettingItems([
       { key: 'google_ads_conversion_action', value: null },
       { key: 'google_ads_conversion_action', value: '  Purchase  ' },
@@ -159,8 +159,8 @@ describe('normalizeSettingItems', () => {
   })
 })
 
-describe('referral_attribution_days (вікно first-touch-атрибуції)', () => {
-  it('ціле 1–400 → зберігається як текст; 0 / 401 / дріб / текст → помилка uk-UA', () => {
+describe('referral_attribution_days (окно first-touch-атрибуции)', () => {
+  it('целое 1–400 → сохраняется как текст; 0 / 401 / дробь / текст → ошибка uk-UA', () => {
     expect(normalizeSettingItems([{ key: 'referral_attribution_days', value: '30' }])).toEqual({ ok: true, rows: [{ key: 'referral_attribution_days', value: '30', type: 'number' }] })
     expect(normalizeSettingItems([{ key: 'referral_attribution_days', value: 400, type: 'number' }])).toMatchObject({ ok: true })
     for (const bad of ['0', '401', '12.5', 'abc']) {
