@@ -1,5 +1,5 @@
-// GET /api/admin/settings — ключі site_settings (без секретів)
-// PUT /api/admin/settings — items: [{ key, value, type? }] (білий список ключів)
+// GET /api/admin/settings — ключи site_settings (без секретов)
+// PUT /api/admin/settings — items: [{ key, value, type? }] (белый список ключей)
 import { NextRequest, NextResponse } from 'next/server'
 import { getSettingsUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

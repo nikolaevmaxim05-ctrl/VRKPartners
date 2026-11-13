@@ -1,5 +1,5 @@
-// PATCH  /api/admin/roles/[id] — оновити роль (назва/права). Системні: тільки права.
-// DELETE /api/admin/roles/[id] — видалити роль (несистемну, без привʼязаних користувачів).
+// PATCH  /api/admin/roles/[id] — обновить роль (название/права). Системные: только права.
+// DELETE /api/admin/roles/[id] — удалить роль (несистемную, без привязанных пользователей).
 import { NextRequest, NextResponse } from 'next/server'
 import { getRoleUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

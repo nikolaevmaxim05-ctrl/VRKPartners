@@ -1,5 +1,5 @@
-// GET  /api/admin/referral-links — довідник посилань (id, name, code, is_active) для фільтрів і бейджів
-// POST /api/admin/referral-links — створити посилання (код генерує сервер)
+// GET  /api/admin/referral-links — справочник ссылок (id, name, code, is_active) для фильтров и бейджей
+// POST /api/admin/referral-links — создать ссылку (код генерирует сервер)
 import { NextRequest } from 'next/server'
 import { getReferralLinkUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
@@ -10,7 +10,7 @@ export const runtime = 'nodejs'
 
 export const GET = (request: NextRequest) =>
   withAdmin(REFERRAL_READ_PERMISSIONS, async () => {
-    // ?full=1 — повні рядки (нотатки, дати) для розділу; за замовчуванням — довідник.
+    // ?full=1 — полные строки (заметки, даты) для раздела; по умолчанию — справочник.
     const full = new URL(request.url).searchParams.get('full') === '1'
     const uc = getReferralLinkUseCases()
     return respond(full ? await uc.listLinks() : await uc.listRefs())

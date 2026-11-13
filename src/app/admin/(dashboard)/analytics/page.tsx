@@ -1,4 +1,4 @@
-// Сторінка «Аналітика» — серверний shell з перевіркою прав (view_reports).
+// Страница «Аналітика» — серверный shell с проверкой прав (view_reports).
 import { Suspense } from 'react'
 import { requireSectionAccess } from '@/presentation/admin-page'
 import { AnalyticsReport } from '@/features/admin/components/analytics-report'

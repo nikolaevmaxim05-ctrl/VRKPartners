@@ -1,4 +1,4 @@
-// POST /api/admin/conversion-adjustments/[id]/resend — повторна відправка корекції у таблицю корекцій.
+// POST /api/admin/conversion-adjustments/[id]/resend — повторная отправка корректировки в таблицу корректировок.
 import { getConversionExportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { errorResponse, isUuid, notFound } from '@/presentation/http'

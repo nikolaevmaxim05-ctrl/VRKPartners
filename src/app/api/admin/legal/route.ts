@@ -1,5 +1,5 @@
-// GET /api/admin/legal — оверрайди юридичних документів + ефективний контент
-// PUT /api/admin/legal — зберегти (лише plain-текст, Zod-whitelist) + revalidate обох сторінок
+// GET /api/admin/legal — оверрайды юридических документов + эффективный контент
+// PUT /api/admin/legal — сохранить (только plain-текст, Zod-whitelist) + revalidate обеих страниц
 import { NextRequest, NextResponse } from 'next/server'
 import { getContentUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

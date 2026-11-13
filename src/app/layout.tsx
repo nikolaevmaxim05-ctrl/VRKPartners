@@ -11,8 +11,8 @@ const raleway = Raleway({
   variable: "--font-raleway",
 });
 
-// Базові метадані (інваріанти: metadataBase, robots, icons). Заголовок/опис головної
-// перевизначає generateMetadata у [locale]/page.tsx з вкладки «Метадані (SEO)».
+// Базовые метаданные (инварианты: metadataBase, robots, icons). Заголовок/описание главной
+// переопределяет generateMetadata в [locale]/page.tsx из вкладки «Метадані (SEO)».
 const { site, pageMeta } = getDefaultMessages(routing.defaultLocale);
 
 export const metadata: Metadata = {
@@ -48,9 +48,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Кореневий layout — лише скелет (html/body/шрифт). Обгортка сайту (Header/Footer/модалки/
-// трекінг/next-intl) — у [locale]/layout.tsx; адмінка має власну обгортку в admin/layout.tsx і
-// живе поза мовами, тому <html lang> ставиться тут з єдиної карти кодів (профіль A: одна мова).
+// Корневой layout — только скелет (html/body/шрифт). Обёртка сайта (Header/Footer/модалки/
+// трекинг/next-intl) — в [locale]/layout.tsx; админка имеет собственную обёртку в admin/layout.tsx и
+// живёт вне языков, поэтому <html lang> ставится здесь из единой карты кодов (профиль A: один язык).
 export default function RootLayout({
   children,
 }: {

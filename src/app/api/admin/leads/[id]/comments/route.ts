@@ -1,5 +1,5 @@
-// GET  /api/admin/leads/[id]/comments?type=comment|note|system — стрічка коментарів
-// POST /api/admin/leads/[id]/comments — додати comment або note (system пише лише сервер)
+// GET  /api/admin/leads/[id]/comments?type=comment|note|system — лента комментариев
+// POST /api/admin/leads/[id]/comments — добавить comment или note (system пишет только сервер)
 import { NextRequest } from 'next/server'
 import { getLeadUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

@@ -1,4 +1,4 @@
-// GET /api/cron/keepalive — легкий пінг Supabase, щоб проєкт не засинав (Vercel Cron).
+// GET /api/cron/keepalive — лёгкий пинг Supabase, чтобы проект не засыпал (Vercel Cron).
 import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { getCronSecret, getKeepalive } from '@composition/container'
@@ -6,7 +6,7 @@ import { errorResponse } from '@/presentation/http'
 
 export const runtime = 'nodejs'
 
-/** Порівняння сталим часом; різна довжина → false. */
+/** Сравнение за постоянное время; разная длина → false. */
 function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a)
   const bb = Buffer.from(b)
@@ -14,7 +14,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function GET(request: Request) {
-  // Без CRON_SECRET у середовищі роут закритий (інакше «Bearer undefined» проходив би).
+  // Без CRON_SECRET в окружении роут закрыт (иначе «Bearer undefined» проходил бы).
   const secret = getCronSecret()
   const header = request.headers.get('authorization') ?? ''
   if (!secret || !safeEqual(header, `Bearer ${secret}`)) {

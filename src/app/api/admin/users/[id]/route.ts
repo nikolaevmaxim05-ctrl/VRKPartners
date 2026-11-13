@@ -1,5 +1,5 @@
-// PATCH  /api/admin/users/[id] — роль, імʼя, is_active (ієрархія + lockout-guard)
-// DELETE /api/admin/users/[id] — видалити користувача (не себе)
+// PATCH  /api/admin/users/[id] — роль, имя, is_active (иерархия + lockout-guard)
+// DELETE /api/admin/users/[id] — удалить пользователя (не себя)
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

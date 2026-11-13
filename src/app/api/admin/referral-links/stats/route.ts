@@ -1,4 +1,4 @@
-// GET /api/admin/referral-links/stats — заявки по посиланнях: всього / за 30 днів / остання (v1 без візитів)
+// GET /api/admin/referral-links/stats — заявки по ссылкам: всего / за 30 дней / последняя (v1 без визитов)
 import { getReferralLinkUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { respond } from '@/presentation/http'

@@ -1,4 +1,4 @@
-// POST /api/admin/conversions/export-pending — масове вивантаження pending-конверсій у Google Sheets.
+// POST /api/admin/conversions/export-pending — массовая выгрузка pending-конверсий в Google Sheets.
 import { getConversionExportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { respond } from '@/presentation/http'

@@ -1,5 +1,5 @@
-// POST /api/admin/content/upload — картинка контенту у Supabase Storage (bucket `content`).
-// multipart: file, previous (URL файлу, який замінюється — видаляється, якщо наш).
+// POST /api/admin/content/upload — картинка контента в Supabase Storage (bucket `content`).
+// multipart: file, previous (URL файла, который заменяется — удаляется, если наш).
 import { NextRequest, NextResponse } from 'next/server'
 import { getContentUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

@@ -18,9 +18,9 @@ import { pageVisibility, HOME_NS } from "@core/domain/content/visibility";
 import type { SiteMessages } from "@core/domain/content/site-messages";
 import { getDefaultSeo } from "@/shared/content/defaults";
 
-// Метадані головної читаються з merged-конфігу (дефолти pageMeta + оверрайди вкладки
-// «Метадані»). robots/canonical/metadataBase лишаються з кореневого layout (інваріанти).
-// title.absolute — щоб показати рівно те, що ввів адмін (як у прев'ю сніпета).
+// Метаданные главной читаются из merged-конфига (дефолты pageMeta + оверрайды вкладки
+// «Метадані»). robots/canonical/metadataBase остаются из корневого layout (инварианты).
+// title.absolute — чтобы показать ровно то, что ввёл админ (как в превью сниппета).
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const [m, messages] = await Promise.all([
@@ -54,15 +54,15 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-// Головна: секції у порядку сайту. Прихований блок НЕ потрапляє в DOM (розділ 9);
-// список прихованого — messages.home.hidden (правка клієнта з адмінки).
+// Главная: секции в порядке сайта. Скрытый блок НЕ попадает в DOM (раздел 9);
+// список скрытого — messages.home.hidden (правка клиента из админки).
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const messages = (await getMessages()) as unknown as SiteMessages;
   const vis = pageVisibility(HOME_NS, messages.home.hidden);
 
-  // Рівно один h1 (розділ 14): якщо перший екран прихований, h1 отримує перший видимий блок.
+  // Ровно один h1 (раздел 14): если первый экран скрыт, h1 получает первый видимый блок.
   const order = ["usp", "about", "services", "audit", "cases", "benefits", "process", "finalCta"] as const;
   const firstVisible = vis.shown("hero")
     ? null

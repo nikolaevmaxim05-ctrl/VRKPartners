@@ -1,4 +1,4 @@
-// PUT /api/admin/lead-statuses/reorder — масове оновлення position. body: { items: [{ id, position }] }
+// PUT /api/admin/lead-statuses/reorder — массовое обновление position. body: { items: [{ id, position }] }
 import { NextRequest, NextResponse } from 'next/server'
 import { getStageUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

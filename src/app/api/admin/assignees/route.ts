@@ -1,4 +1,4 @@
-// GET /api/admin/assignees — користувачі для селекта «Відповідальний» (неактивні виключено).
+// GET /api/admin/assignees — пользователи для селекта «Відповідальний» (неактивные исключены).
 import { getUserUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { respond } from '@/presentation/http'

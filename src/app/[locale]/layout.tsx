@@ -32,24 +32,24 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? "";
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
 const GOOGLE_VERIFICATION = process.env.GOOGLE_VERIFICATION ?? "";
 
-// Верифікація пошукових систем — лише на публічних сторінках, не на /admin/*.
+// Верификация поисковых систем — только на публичных страницах, не на /admin/*.
 export const metadata: Metadata = GOOGLE_VERIFICATION
   ? { verification: { google: GOOGLE_VERIFICATION } }
   : {};
 
-// TTL-фолбэк для кеша цього layout-сегмента. Основний механізм інвалідації —
-// revalidatePath('/', 'layout') після кожної мутації контенту/тегів з адмінки;
-// цей revalidate=300 спрацьовує тільки якщо on-demand revalidate чомусь не прийшов.
+// TTL-фолбэк для кэша этого layout-сегмента. Основной механизм инвалидации —
+// revalidatePath('/', 'layout') после каждой мутации контента/тегов из админки;
+// этот revalidate=300 срабатывает только если on-demand revalidate почему-то не пришёл.
 export const revalidate = 300;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-// Інлайн window.__analyticsEvents — повний merged-конфіг імен/вкл-викл подій, і
-// window.__awConversions — send_to Ads-тегів з conversion label (розділ 15: конверсія
-// викликається на сайті після gtag('set','user_data'), до generate_lead).
-// Значення вже пройшли whitelist-валідацію + екранування "<".
+// Инлайн window.__analyticsEvents — полный merged-конфиг имён/вкл-выкл событий, и
+// window.__awConversions — send_to Ads-тегов с conversion label (раздел 15: конверсия
+// вызывается на сайте после gtag('set','user_data'), до generate_lead).
+// Значения уже прошли whitelist-валидацию + экранирование "<".
 function AnalyticsEventsScript({
   analyticsEvents,
   awConversions,
@@ -66,9 +66,9 @@ function AnalyticsEventsScript({
   );
 }
 
-// Consent Mode v2 defaults — рендерується РІВНО один раз, ДО всіх тегів.
-// Замовник працює по Україні — аналога GDPR-банера немає, дефолт granted.
-// При ad_storage: denied конверсійний тег Google Ads деградує до моделювання.
+// Consent Mode v2 defaults — рендерится РОВНО один раз, ДО всех тегов.
+// Заказчик работает по Украине — аналога GDPR-баннера нет, дефолт granted.
+// При ad_storage: denied конверсионный тег Google Ads деградирует до моделирования.
 function ConsentDefaults() {
   return (
     <Script id="consent-defaults" strategy="afterInteractive">
@@ -86,7 +86,7 @@ function ConsentDefaults() {
   );
 }
 
-// Завантажувач GTM-контейнера.
+// Загрузчик GTM-контейнера.
 function GtmScript({ id }: { id: string }) {
   return (
     <Script id={`gtm-${id}`} strategy="afterInteractive">
@@ -101,8 +101,8 @@ function GtmScript({ id }: { id: string }) {
   );
 }
 
-// GA4 + Google Ads через gtag.js. Для AW-тегів — allow_enhanced_conversions.
-// ids сортуються: GA4 (G-...) перед AW (AW-...).
+// GA4 + Google Ads через gtag.js. Для AW-тегов — allow_enhanced_conversions.
+// ids сортируются: GA4 (G-...) перед AW (AW-...).
 function GtagScripts({ ids }: { ids: string[] }) {
   const sorted = [
     ...ids.filter((id) => id.startsWith("G-")),
@@ -152,9 +152,9 @@ function GtmNoScript({ id }: { id: string }) {
   );
 }
 
-// JSON-LD Organization: назва/опис — із метаданих (SEO), а контакти (email/телефон/
-// Telegram) — з КОНТАКТІВ сайту (messages.site), щоб було єдине джерело правди й
-// автосинхронізація зі вкладкою «Контент». Тип схеми лишається статичним.
+// JSON-LD Organization: название/описание — из метаданных (SEO), а контакты (email/телефон/
+// Telegram) — из КОНТАКТОВ сайта (messages.site), чтобы был единый источник правды и
+// автосинхронизация со вкладкой «Контент». Тип схемы остаётся статичным.
 function buildJsonLd(args: {
   orgName: string
   orgDescription: string
@@ -182,7 +182,7 @@ function buildJsonLd(args: {
   };
 }
 
-// Layout сайту — обгортка публічних сторінок (головна, /thanks, юр.сторінки, 404).
+// Layout сайта — обёртка публичных страниц (главная, /thanks, юр.страницы, 404).
 export default async function SiteLayout({
   children,
   params,
@@ -194,7 +194,7 @@ export default async function SiteLayout({
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  // Усі читання fail-safe: помилка БД → дефолти (сайт не падає).
+  // Все чтения fail-safe: ошибка БД → дефолты (сайт не падает).
   const [tags, analyticsEvents, messages, seoOverrides] = await Promise.all([
     getTrackingTagUseCases().listEnabledForSite(),
     getAnalyticsEventsUseCases().getMergedConfig(),
@@ -212,7 +212,7 @@ export default async function SiteLayout({
     telegram: site.telegram,
   });
 
-  // Фолбэк на NEXT_PUBLIC_GTM_ID — тільки якщо немає жодного включеного тегу в БД.
+  // Фолбэк на NEXT_PUBLIC_GTM_ID — только если нет ни одного включённого тега в БД.
   const gtmIds =
     tags.length > 0
       ? tags.filter((t) => t.type === "gtm").map((t) => t.tag_id)

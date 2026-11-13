@@ -1,5 +1,5 @@
-// GET  /api/admin/custom-fields — кастомні поля ліда
-// POST /api/admin/custom-fields — створити поле (manage_settings)
+// GET  /api/admin/custom-fields — кастомные поля лида
+// POST /api/admin/custom-fields — создать поле (manage_settings)
 import { NextRequest } from 'next/server'
 import { getCustomFieldUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

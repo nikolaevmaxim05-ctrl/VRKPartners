@@ -1,4 +1,4 @@
-// PATCH /api/admin/roles/reorder — порядок ієрархії ролей. Body: { orderedIds: string[] } (зверху вниз).
+// PATCH /api/admin/roles/reorder — порядок иерархии ролей. Body: { orderedIds: string[] } (сверху вниз).
 import { NextRequest, NextResponse } from 'next/server'
 import { getRoleUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

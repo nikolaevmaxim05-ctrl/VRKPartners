@@ -1,5 +1,5 @@
-// PATCH  /api/admin/lead-statuses/[id] — редагування стадії (правила — core/domain/funnel/stage-rules)
-// DELETE /api/admin/lead-statuses/[id] — видалення (не початкову і не з живими лідами)
+// PATCH  /api/admin/lead-statuses/[id] — редактирование стадии (правила — core/domain/funnel/stage-rules)
+// DELETE /api/admin/lead-statuses/[id] — удаление (не начальную и не с живыми лидами)
 import { NextRequest, NextResponse } from 'next/server'
 import { getStageUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

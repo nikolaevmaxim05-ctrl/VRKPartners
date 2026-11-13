@@ -1,4 +1,4 @@
-// GET /api/admin/audit-log?page=&limit= — журнал дій адмінів (audit_log), найновіші зверху.
+// GET /api/admin/audit-log?page=&limit= — журнал действий админов (audit_log), новейшие сверху.
 import { NextRequest } from 'next/server'
 import { getAuditLogUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

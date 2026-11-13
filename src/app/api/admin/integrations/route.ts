@@ -1,4 +1,4 @@
-// GET /api/admin/integrations — ключі інтеграцій зі статусом і замаскованим значенням.
+// GET /api/admin/integrations — ключи интеграций со статусом и замаскированным значением.
 import { getIntegrationUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { respond } from '@/presentation/http'

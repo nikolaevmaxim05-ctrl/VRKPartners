@@ -1,4 +1,4 @@
-// PATCH /api/admin/leads/[id]/custom-fields — upsert значення кастомного поля ліда.
+// PATCH /api/admin/leads/[id]/custom-fields — upsert значения кастомного поля лида.
 // Body: { field_id: string, value: string | null }
 import { NextRequest } from 'next/server'
 import { getLeadUseCases } from '@composition/container'

@@ -1,5 +1,5 @@
-// PUT    /api/admin/integrations/[key] — зберегти/оновити ключ (AES-256-GCM)
-// DELETE /api/admin/integrations/[key] — видалити ключ
+// PUT    /api/admin/integrations/[key] — сохранить/обновить ключ (AES-256-GCM)
+// DELETE /api/admin/integrations/[key] — удалить ключ
 import { NextRequest, NextResponse } from 'next/server'
 import { getIntegrationUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
@@ -16,7 +16,7 @@ const unknownKey = () => NextResponse.json({ error: 'Невідома інтег
 export const PUT = (request: NextRequest, { params }: RouteParams) =>
   withAdmin(INTEGRATION_PERMISSIONS, async (actor) => {
     const { key } = await params
-    // S9: невідомий ключ відсікаємо ДО читання тіла.
+    // S9: неизвестный ключ отсекаем ДО чтения тела.
     if (!KNOWN_INTEGRATION_KEYS.has(key)) return unknownKey()
     const body = await readJson<{ value?: string }>(request)
     if (!body.ok) return body.response

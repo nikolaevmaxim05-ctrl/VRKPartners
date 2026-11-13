@@ -1,5 +1,5 @@
-// GET  /api/admin/lead-statuses — стадії воронки (по position) + pipelines_enabled
-// POST /api/admin/lead-statuses — створити стадію (manage_settings)
+// GET  /api/admin/lead-statuses — стадии воронки (по position) + pipelines_enabled
+// POST /api/admin/lead-statuses — создать стадию (manage_settings)
 import { NextRequest } from 'next/server'
 import { getStageUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

@@ -1,4 +1,4 @@
-// POST /api/admin/integrations/[key]/test — тест зʼєднання для ключа (значення з БД, реальний API-запит).
+// POST /api/admin/integrations/[key]/test — тест соединения для ключа (значение из БД, реальный API-запрос).
 import { NextRequest, NextResponse } from 'next/server'
 import { getIntegrationUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

@@ -1,6 +1,6 @@
-// PATCH /api/admin/conversions/[id] видалений.
-// offline_conversions є read-only зрізом — редагування заборонено через API.
-// Виправлення робляться через окрему таблицю conversion_corrections (TBD).
+// PATCH /api/admin/conversions/[id] удалён.
+// offline_conversions является read-only срезом — редактирование через API запрещено.
+// Исправления делаются через отдельную таблицу conversion_corrections (TBD).
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'

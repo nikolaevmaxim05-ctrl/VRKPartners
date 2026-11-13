@@ -1,5 +1,5 @@
-// GET /api/admin/analytics/report — зведений аналітичний звіт.
-// Параметри (snake_case): date_from, date_to, group_by, custom_field_id, ts_granularity,
+// GET /api/admin/analytics/report — сводный аналитический отчёт.
+// Параметры (snake_case): date_from, date_to, group_by, custom_field_id, ts_granularity,
 // filter_utm_source, filter_service, filter_assigned_to, filter_assignee_ids, filter_status_ids,
 // filter_gclid, filter_referral_link_id, filter_group_value, breakdown, breakdown_metric, breakdown_metrics.
 import { NextRequest } from 'next/server'

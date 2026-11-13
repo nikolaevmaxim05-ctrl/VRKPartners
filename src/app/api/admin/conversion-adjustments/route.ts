@@ -1,4 +1,4 @@
-// GET /api/admin/conversion-adjustments — корекції конверсій (RETRACT/RESTATE) з даними ліда.
+// GET /api/admin/conversion-adjustments — корректировки конверсий (RETRACT/RESTATE) с данными лида.
 import { NextRequest } from 'next/server'
 import { getConversionExportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

@@ -1,4 +1,4 @@
-// GET /api/admin/leads — заявки з фільтрами/пагінацією + статус, відповідальний, маркер повтору.
+// GET /api/admin/leads — заявки с фильтрами/пагинацией + статус, ответственный, маркер повтора.
 import { NextRequest } from 'next/server'
 import { getLeadUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

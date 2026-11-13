@@ -10,11 +10,11 @@ export const metadata = {
   robots: 'noindex, nofollow',
 }
 
-// Підпис ролі під email у сайдбарі (системні ролі — людською назвою).
+// Подпись роли под email в сайдбаре (системные роли — человеческим названием).
 const ROLE_LABELS: Record<string, string> = { admin: 'Власник', manager: 'Менеджер' }
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  // Деактивований користувач не має жодних прав ролі — permissions порожні.
+  // Деактивированный пользователь не имеет никаких прав роли — permissions пустые.
   const { actor, roleInfo, permissions } = await getAdminAccess()
   if (!actor) redirect('/admin/login')
 

@@ -1,6 +1,6 @@
-// GET/PATCH /api/admin/referral-links/settings — вікно атрибуції first-touch (днів, 1–400, дефолт 90).
-// Зберігається в site_settings.referral_attribution_days через сценарій налаштувань (аудит settings.update);
-// право — manage_referrals (окно задає той, хто веде партнерів), а не manage_settings.
+// GET/PATCH /api/admin/referral-links/settings — окно атрибуции first-touch (дней, 1–400, дефолт 90).
+// Хранится в site_settings.referral_attribution_days через сценарий настроек (аудит settings.update);
+// право — manage_referrals (окно задаёт тот, кто ведёт партнёров), а не manage_settings.
 import { NextRequest } from 'next/server'
 import { getReferralLinkUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

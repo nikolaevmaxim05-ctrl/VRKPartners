@@ -1,6 +1,6 @@
-// POST /api/leads — приймач заявок з лендингу (тонкий роут: запит → сценарій submit-lead → відповідь).
-// Відповіді (розділ 8): 400 Invalid data · 429 Too many requests (+ Retry-After) · 500 DB error ·
-// інакше { ok: true } (honeypot відповідає так само; повтор — { ok: true, duplicate: true }).
+// POST /api/leads — приёмник заявок с лендинга (тонкий роут: запрос → сценарий submit-lead → ответ).
+// Ответы (раздел 8): 400 Invalid data · 429 Too many requests (+ Retry-After) · 500 DB error ·
+// иначе { ok: true } (honeypot отвечает так же; повтор — { ok: true, duplicate: true }).
 import { NextRequest, NextResponse } from 'next/server'
 import { getSubmitLead } from '@composition/container'
 import { errorResponse, readJson } from '@/presentation/http'
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       referralCookie: request.cookies.get(REF_COOKIE)?.value ?? null,
     })
   } catch (err) {
-    // Несподіваний виняток (напр. збірка контейнера без env) — відповідь зі стандартним тілом, не порожній 500.
+    // Неожиданное исключение (напр. сборка контейнера без env) — ответ со стандартным телом, не пустой 500.
     console.error('[lead] unexpected', err)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }

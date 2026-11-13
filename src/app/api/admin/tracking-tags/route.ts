@@ -1,5 +1,5 @@
 // GET  /api/admin/tracking-tags — Google-теги (по position)
-// POST /api/admin/tracking-tags — створити тег (+ revalidate сайту)
+// POST /api/admin/tracking-tags — создать тег (+ revalidate сайта)
 import { NextRequest } from 'next/server'
 import { getTrackingTagUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

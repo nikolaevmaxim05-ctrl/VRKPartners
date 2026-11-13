@@ -1,5 +1,5 @@
-// GET /api/admin/analytics/dimension-values — реальні значення виміру (utm_* / custom_field)
-// для контекстного фільтра «Значення» на вкладці Аналітика. Відповідь: { data: { value, label }[] }
+// GET /api/admin/analytics/dimension-values — реальные значения измерения (utm_* / custom_field)
+// для контекстного фильтра «Значення» на вкладке Аналитика. Ответ: { data: { value, label }[] }
 import { NextRequest } from 'next/server'
 import { getReportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

@@ -1,4 +1,4 @@
-// GET /api/admin/conversions — офлайн-конверсії з даними ліда (пагінація + к-сть pending).
+// GET /api/admin/conversions — офлайн-конверсии с данными лида (пагинация + кол-во pending).
 import { NextRequest } from 'next/server'
 import { getConversionExportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

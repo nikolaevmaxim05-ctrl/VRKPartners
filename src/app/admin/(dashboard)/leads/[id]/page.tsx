@@ -1,5 +1,5 @@
-// Детальна сторінка лида /admin/leads/[id]
-// Серверний shell: сесія — layout, право на розділ — requireSectionAccess. Дані тягне клієнтський LeadDetail.
+// Детальная страница лида /admin/leads/[id]
+// Серверный shell: сессия — layout, право на раздел — requireSectionAccess. Данные тянет клиентский LeadDetail.
 import { requireSectionAccess } from '@/presentation/admin-page'
 import { LEAD_VIEW_PERMISSIONS } from '@/presentation/permissions'
 import { LeadDetail } from '@/features/admin/components/lead-detail'

@@ -1,5 +1,5 @@
-// PATCH  /api/admin/tracking-tags/[id] — редагування тегу (enabled / label / tag_id)
-// DELETE /api/admin/tracking-tags/[id] — видалення тегу. Після змін — revalidate сайту.
+// PATCH  /api/admin/tracking-tags/[id] — редактирование тега (enabled / label / tag_id)
+// DELETE /api/admin/tracking-tags/[id] — удаление тега. После изменений — revalidate сайта.
 import { NextRequest, NextResponse } from 'next/server'
 import { getTrackingTagUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

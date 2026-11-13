@@ -1,5 +1,5 @@
-// GET /api/admin/seo — оверрайди метаданих + ефективні значення (відхилення 2: SEO редагується)
-// PUT /api/admin/seo — зберегти (Zod, ogImage за allowlist) + revalidate сайту
+// GET /api/admin/seo — оверрайды метаданных + эффективные значения (отклонение 2: SEO редактируется)
+// PUT /api/admin/seo — сохранить (Zod, ogImage по allowlist) + revalidate сайта
 import { NextRequest, NextResponse } from 'next/server'
 import { getContentUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

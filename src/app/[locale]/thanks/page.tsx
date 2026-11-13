@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { thanks } = (await getMessages()) as unknown as SiteMessages;
   return {
     title: thanks.metaTitle,
-    // /thanks не індексується
+    // /thanks не индексируется
     robots: { index: false, follow: false },
   };
 }

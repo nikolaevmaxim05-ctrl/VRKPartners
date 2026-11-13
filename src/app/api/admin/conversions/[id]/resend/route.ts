@@ -1,4 +1,4 @@
-// POST /api/admin/conversions/[id]/resend — повторна відправка конверсії у Google Sheets.
+// POST /api/admin/conversions/[id]/resend — повторная отправка конверсии в Google Sheets.
 import { getConversionExportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { errorResponse, isUuid, notFound } from '@/presentation/http'

@@ -1,5 +1,5 @@
-// PATCH  /api/admin/referral-links/[id] — назва / нотатки / вмикач (код незмінний → 400)
-// DELETE /api/admin/referral-links/[id] — видалення (із заявками → 409 «вимкніть замість видалення»)
+// PATCH  /api/admin/referral-links/[id] — название / заметки / переключатель (код неизменен → 400)
+// DELETE /api/admin/referral-links/[id] — удаление (с заявками → 409 «вимкніть замість видалення»)
 import { NextRequest, NextResponse } from 'next/server'
 import { getReferralLinkUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

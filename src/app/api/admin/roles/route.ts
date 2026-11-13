@@ -1,5 +1,5 @@
-// GET  /api/admin/roles — ролі з правами
-// POST /api/admin/roles — створити роль (manage_roles або manage_users)
+// GET  /api/admin/roles — роли с правами
+// POST /api/admin/roles — создать роль (manage_roles или manage_users)
 import { NextRequest } from 'next/server'
 import { getRoleUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

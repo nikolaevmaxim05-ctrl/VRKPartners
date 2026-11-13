@@ -1,4 +1,4 @@
-// POST /api/admin/conversion-adjustments/export-pending — масове вивантаження pending-корекцій.
+// POST /api/admin/conversion-adjustments/export-pending — массовая выгрузка pending-корректировок.
 import { getConversionExportUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'
 import { respond } from '@/presentation/http'

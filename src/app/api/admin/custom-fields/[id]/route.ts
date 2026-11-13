@@ -1,5 +1,5 @@
-// PATCH  /api/admin/custom-fields/[id] — редагувати поле (name, options, required, position)
-// DELETE /api/admin/custom-fields/[id] — видалити (значення каскадно). field_key і type не змінюються.
+// PATCH  /api/admin/custom-fields/[id] — редактировать поле (name, options, required, position)
+// DELETE /api/admin/custom-fields/[id] — удалить (значения каскадно). field_key и type не меняются.
 import { NextRequest, NextResponse } from 'next/server'
 import { getCustomFieldUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

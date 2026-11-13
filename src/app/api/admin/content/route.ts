@@ -1,6 +1,6 @@
-// GET /api/admin/content — тексти сайту для редактора (редаговані розділи + дефолти + версія)
-// PUT /api/admin/content — зберегти повні значення: валідація за розділом 9 → лише дифф від
-//   дефолтів → БД → revalidate сайту. Чужий верхньорівневий розділ → 400.
+// GET /api/admin/content — тексты сайта для редактора (редактируемые разделы + дефолты + версия)
+// PUT /api/admin/content — сохранить полные значения: валидация по разделу 9 → только дифф от
+//   дефолтов → БД → revalidate сайта. Чужой верхнеуровневый раздел → 400.
 import { NextRequest, NextResponse } from 'next/server'
 import { getContentUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

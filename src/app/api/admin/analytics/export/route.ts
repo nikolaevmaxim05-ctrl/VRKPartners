@@ -1,4 +1,4 @@
-// POST /api/admin/analytics/export — конструктор вивантаження (CSV / XLSX).
+// POST /api/admin/analytics/export — конструктор выгрузки (CSV / XLSX).
 import { NextRequest, NextResponse } from 'next/server'
 import { getExportAnalytics } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

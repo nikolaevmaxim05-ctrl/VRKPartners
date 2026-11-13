@@ -1,10 +1,10 @@
 'use client'
 
-// Сторінка встановлення пароля для запрошених користувачів (і скидання пароля).
-// Лист Supabase (invite / recovery) веде сюди з токеном у hash:
+// Страница установки пароля для приглашённых пользователей (и сброса пароля).
+// Письмо Supabase (invite / recovery) ведёт сюда с токеном в hash:
 //   /admin/set-password#access_token=...&refresh_token=...&type=invite
-// Токен у hash НЕ доходить до сервера, тому middleware пропускає цей шлях без
-// сесії. Тут ми піднімаємо сесію з токена і даємо задати пароль.
+// Токен в hash НЕ доходит до сервера, поэтому middleware пропускает этот путь без
+// сессии. Здесь мы поднимаем сессию из токена и даём задать пароль.
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -26,7 +26,7 @@ export default function SetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  // Піднімаємо сесію з токена в URL-hash (invite / recovery).
+  // Поднимаем сессию из токена в URL-hash (invite / recovery).
   useEffect(() => {
     let active = true
     async function bootstrap() {
@@ -40,11 +40,11 @@ export default function SetPasswordPage() {
 
         if (access_token && refresh_token) {
           const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-          // прибираємо токен з адресного рядка (щоб не лишався в історії)
+          // убираем токен из адресной строки (чтобы не оставался в истории)
           window.history.replaceState(null, '', window.location.pathname)
           if (!error && active) setSessionOk(true)
         } else {
-          // Можливо, сесію вже підхопив detectSessionInUrl
+          // Возможно, сессию уже подхватил detectSessionInUrl
           const { data } = await supabase.auth.getSession()
           if (active && data.session) setSessionOk(true)
         }

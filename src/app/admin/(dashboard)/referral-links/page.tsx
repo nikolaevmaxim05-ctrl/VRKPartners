@@ -1,4 +1,4 @@
-// Розділ «Реферальні посилання» (відхилення 11): посилання для компаній-партнерів і заявки за ними.
+// Раздел «Реферальні посилання» (отклонение 11): ссылки для компаний-партнёров и заявки по ним.
 import { requireSectionAccess } from '@/presentation/admin-page'
 import { REFERRAL_PERMISSIONS } from '@/presentation/permissions'
 import { ReferralLinksSection } from '@/features/admin/components/referral-links-section'

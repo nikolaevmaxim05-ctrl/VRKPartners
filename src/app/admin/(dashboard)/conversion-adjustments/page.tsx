@@ -9,7 +9,7 @@ export const metadata = { title: 'Корекції конверсій Google Ads
 export default async function ConversionAdjustmentsPage() {
   await requireSectionAccess(CONVERSION_PERMISSIONS)
 
-  // Окрема таблиця корекцій (з налаштувань Google Sheets) → публічне посилання.
+  // Отдельная таблица корректировок (из настроек Google Sheets) → публичная ссылка.
   const spreadsheetId = (await getIntegrationConfig().get('google_adjustments_spreadsheet_id'))?.trim() || null
   const sheetUrl = spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : null
 

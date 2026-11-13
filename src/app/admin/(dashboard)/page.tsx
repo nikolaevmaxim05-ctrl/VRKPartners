@@ -1,5 +1,5 @@
-// /admin — головна адмінки: картки доступних розділів (розділ 5 стандарту).
-// Достатньо входу; кожна картка показується лише за наявності відповідного права.
+// /admin — главная админки: карточки доступных разделов (раздел 5 стандарта).
+// Достаточно входа; каждая карточка показывается только при наличии соответствующего права.
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
@@ -27,7 +27,7 @@ export default async function AdminRootPage() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {sections.map((s) => (
-          // prefetch вимкнено: ті самі розділи вже prefetch-ить сайдбар — без подвійної хвилі запитів.
+          // prefetch выключен: те же разделы уже prefetch-ит сайдбар — без двойной волны запросов.
           <Link key={s.href} href={s.href} prefetch={false} className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Card className="h-full transition-colors group-hover:border-primary/50">
               <CardHeader className="flex flex-row items-start gap-3 space-y-0">

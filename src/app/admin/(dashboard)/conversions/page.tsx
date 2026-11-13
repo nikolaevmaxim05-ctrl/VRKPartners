@@ -9,7 +9,7 @@ export const metadata = { title: 'Офлайн конверсії Google Ads | �
 export default async function ConversionsPage() {
   await requireSectionAccess(CONVERSION_PERMISSIONS)
 
-  // Поточна підвʼязана таблиця (з налаштувань Інтеграцій) → публічне посилання.
+  // Текущая подвязанная таблица (из настроек Интеграций) → публичная ссылка.
   const spreadsheetId = (await getIntegrationConfig().get('google_spreadsheet_id'))?.trim() || null
   const sheetUrl = spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : null
 

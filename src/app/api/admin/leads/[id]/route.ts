@@ -1,6 +1,6 @@
-// GET    /api/admin/leads/[id] — картка ліда (статус, відповідальний, кастомні поля, історія повторів)
-// PATCH  /api/admin/leads/[id] — стадія / відповідальний / суми (+ system-коментарі, конверсії, корекції)
-// DELETE /api/admin/leads/[id] — видалення ліда
+// GET    /api/admin/leads/[id] — карточка лида (статус, ответственный, кастомные поля, история повторов)
+// PATCH  /api/admin/leads/[id] — стадия / ответственный / суммы (+ system-комментарии, конверсии, корректировки)
+// DELETE /api/admin/leads/[id] — удаление лида
 import { NextRequest, NextResponse } from 'next/server'
 import { getLeadUseCases } from '@composition/container'
 import { withAdmin } from '@/presentation/admin-route'

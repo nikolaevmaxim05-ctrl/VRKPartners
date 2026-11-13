@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Ролі | Адмін' }
 
 export default async function RolesPage() {
-  // Без права керування ролями розділ недоступний для перегляду
+  // Без права управления ролями раздел недоступен для просмотра
   const { roleInfo } = await requireSectionAccess(ROLE_PERMISSIONS)
   const rolesRes = await getRoleUseCases().listRoles()
   const roles = rolesRes.ok ? rolesRes.value : []
@@ -19,11 +19,11 @@ export default async function RolesPage() {
     name: r.name,
     permissions: Array.isArray(r.permissions) ? (r.permissions as string[]) : [],
     is_system: !!r.is_system,
-    // Ранг: admin завжди -1 (зверху), решта — за hierarchy_order
+    // Ранг: admin всегда -1 (сверху), остальные — по hierarchy_order
     rank: effectiveRank(r),
   }))
 
-  // Ранг поточного користувача (велике число = немає ролі; Infinity не серіалізується в JSON).
+  // Ранг текущего пользователя (большое число = нет роли; Infinity не сериализуется в JSON).
   const actorRank = roleInfo?.roleRank ?? 999999
 
   const permissionList = Object.entries(PERMISSION_LABELS).map(([key, label]) => ({
