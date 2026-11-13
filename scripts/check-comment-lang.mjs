@@ -21,7 +21,12 @@
 //     только вид токена, у шаблонов — те же подстановки. Комментарии и число строк тестов не меняются.
 //   node scripts/check-comment-lang.mjs check --titles [--json <файл>] [пути…]
 //     Ищет украинский в строках тестов теми же признаками, что check (цитаты «…» не в счёт).
-//   node scripts/check-comment-lang.mjs diff-files [--titles] <старый> <новый> [--as <путь>]
+//   node scripts/check-comment-lang.mjs verify --added <base> [пути…]
+//     Для задачи «добавить комментарии»: как verify, но число блоков может расти (не уменьшаться), а
+//     комментарии JSX `{/* … */}` и пробельный JsxText с переводом строки вокруг них в потоке токенов не
+//     учитываются (в разметку они не попадают). Строки старых комментариев, исчезнувшие в новой версии,
+//     печатаются списком — это поштучные исправления для отчёта, а не ошибка.
+//   node scripts/check-comment-lang.mjs diff-files [--titles|--added] <старый> <новый> [--as <путь>]
 //     Сравнение двух файлов тем же способом, что verify (для самопроверки скрипта).
 //
 // Комментарий = блок: подряд идущие строки `//`, `--` или `#` (между ними только пробелы) считаются одним
@@ -348,11 +353,28 @@ function analyzeTs(text, file, opts = {}) {
       if (!byPos.has(r.pos)) byPos.set(r.pos, { pos: r.pos, end: r.end, single: r.kind === ts.SyntaxKind.SingleLineCommentTrivia })
     }
   }
+  // Режим --added: комментарий в JSX — это `{/* … */}` (пустой JsxExpression), а перенос строки вокруг него
+  // дробит пробельный JsxText. Компилятор не выдаёт ни то ни другое в разметку: пустое выражение опускается,
+  // пробельный текст с переводом строки JSX отбрасывает. Поэтому такие токены не сравниваются; текст с
+  // буквами и пробелы без перевода строки сравниваются как обычно.
+  const ignoredJsxToken = (node) => {
+    if (!opts.added || node.kind !== ts.SyntaxKind.JsxText) return false
+    const raw = text.slice(node.pos, node.end)
+    return /^\s*$/.test(raw) && raw.includes('\n')
+  }
+  let insideEmptyJsxExpression = 0
   const visit = (node) => {
     if (isJsDoc(node)) return
+    if (opts.added && node.kind === ts.SyntaxKind.JsxExpression && !node.expression) {
+      insideEmptyJsxExpression++
+      for (const c of node.getChildren(sf)) visit(c)
+      insideEmptyJsxExpression--
+      return
+    }
     const children = node.getChildren(sf)
     if (children.length === 0) {
       if (node.kind !== ts.SyntaxKind.JsxText) addComments(node.pos)
+      if (insideEmptyJsxExpression || ignoredJsxToken(node)) return
       if (node.kind < ts.SyntaxKind.FirstNode) {
         const start = node.kind === ts.SyntaxKind.JsxText ? node.pos : node.getStart(sf)
         // Переводимая строка теста: сравнивается только вид токена (строка остаётся строкой, у шаблона — те же подстановки).
@@ -614,8 +636,32 @@ function compareAnalyses(before, after, label, opts = {}) {
   if (before.protectedItems.length !== after.protectedItems.length || before.protectedItems.some((p, i) => p[0] !== after.protectedItems[i][0] || p[1] !== after.protectedItems[i][1])) {
     problems.push('изменились защищённые литералы (comment on / тела $$)')
   }
-  if (before.blocks.length !== after.blocks.length) problems.push(`число комментариев: ${before.blocks.length} → ${after.blocks.length}`)
+  if (opts.added) {
+    // Добавление комментариев: блоков может стать больше (новая строка `//` вплотную к старой склеивается
+    // с ней в один блок — поэтому число может и не вырасти), но не меньше.
+    if (after.blocks.length < before.blocks.length) problems.push(`число комментариев уменьшилось: ${before.blocks.length} → ${after.blocks.length}`)
+  } else if (before.blocks.length !== after.blocks.length) problems.push(`число комментариев: ${before.blocks.length} → ${after.blocks.length}`)
   return problems
+}
+
+/**
+ * Строки старых комментариев, которых нет в новых (по порядку, без учёта отступов). Это не ошибка —
+ * поштучные исправления разрешены, — а список для отчёта, чтобы ни одна правка старого текста не прошла
+ * незамеченной.
+ */
+function changedOldCommentLines(before, after) {
+  const linesOf = (blocks) => blocks.flatMap((b) => b.raw.split('\n').map((l, i) => ({ line: b.line + i, text: l.trim() })))
+  const oldLines = linesOf(before.blocks)
+  const newLines = linesOf(after.blocks)
+  const missing = []
+  let j = 0
+  for (const o of oldLines) {
+    let k = j
+    while (k < newLines.length && newLines[k].text !== o.text) k++
+    if (k < newLines.length) j = k + 1
+    else missing.push(o)
+  }
+  return missing
 }
 
 // При core.autocrlf=true (так на машине владельца) рабочая копия бывает с CRLF, а git хранит LF и сам
@@ -636,6 +682,8 @@ function verifyPair(oldText, newText, file, opts = {}) {
 
 function cmdVerify(args) {
   const opts = takeFlag(args, '--titles') ? { titles: true } : {}
+  if (takeFlag(args, '--added')) opts.added = true
+  let oldChanged = 0
   const base = args[0]
   if (!base) throw new Error('verify: укажите базовый коммит')
   const paths = args.slice(1)
@@ -693,6 +741,11 @@ function cmdVerify(args) {
     } else {
       console.log(`✔ ${file}: комментариев ${r.before.blocks.length} → ${r.after.blocks.length}${delta}`)
     }
+    if (opts.added) {
+      const missing = changedOldCommentLines(r.before, r.after)
+      oldChanged += missing.length
+      for (const m of missing) console.log(`    изменена старая строка ${m.line}: ${m.text.slice(0, 110)}`)
+    }
   }
   if (skipped.length) console.log(`Документы (не проверяются): ${skipped.join(', ')}`)
   if (opts.titles) {
@@ -700,12 +753,13 @@ function cmdVerify(args) {
     process.exitCode = failed ? 1 : 0
     return
   }
-  console.log(`verify: файлов ${changed.length - skipped.length}, комментариев ${commentsBefore} → ${commentsAfter}, строк ${linesDelta >= 0 ? '+' : ''}${linesDelta}, расхождений ${failed}`)
+  console.log(`verify${opts.added ? ' --added' : ''}: файлов ${changed.length - skipped.length}, комментариев ${commentsBefore} → ${commentsAfter}, строк ${linesDelta >= 0 ? '+' : ''}${linesDelta}${opts.added ? `, изменено старых строк комментариев ${oldChanged}` : ''}, расхождений ${failed}`)
   process.exitCode = failed ? 1 : 0
 }
 
 function cmdDiffFiles(args) {
   const opts = takeFlag(args, '--titles') ? { titles: true } : {}
+  if (takeFlag(args, '--added')) opts.added = true
   const asIdx = args.indexOf('--as')
   const as = asIdx !== -1 ? args[asIdx + 1] : args[1]
   const oldText = fs.readFileSync(args[0], 'utf8')
@@ -717,6 +771,7 @@ function cmdDiffFiles(args) {
   } else {
     console.log(`✔ ${as}: комментариев ${r.before.blocks.length} → ${r.after.blocks.length}, строк ${r.lineDelta >= 0 ? '+' : ''}${r.lineDelta}`)
   }
+  if (opts.added) for (const m of changedOldCommentLines(r.before, r.after)) console.log(`    изменена старая строка ${m.line}: ${m.text.slice(0, 110)}`)
 }
 
 /** Убирает флаг из args; true, если он был. */
@@ -799,7 +854,7 @@ try {
   else if (mode === 'check') cmdCheck(rest)
   else if (mode === 'diff-files') cmdDiffFiles(rest)
   else {
-    console.log('Использование: check-comment-lang.mjs list [--json f] [пути] | verify [--titles] <base> [пути] | check [пути] | check --titles [--json f] [пути] | diff-files [--titles] <a> <b> [--as путь]')
+    console.log('Использование: check-comment-lang.mjs list [--json f] [пути] | verify [--titles|--added] <base> [пути] | check [пути] | check --titles [--json f] [пути] | diff-files [--titles|--added] <a> <b> [--as путь]')
     process.exitCode = 2
   }
 } catch (err) {
