@@ -15,7 +15,13 @@
 //   node scripts/check-comment-lang.mjs check  [пути…]
 //     Ищет оставшийся украинский в комментариях: буквы і, ї, є, ґ, апостроф внутри слова (обʼєкт) и
 //     словарь частых украинских слов без этих букв — вне цитат «…» и бэктиков. Исключения — ALLOWLIST.
-//   node scripts/check-comment-lang.mjs diff-files <старый> <новый> [--as <путь>]
+//   node scripts/check-comment-lang.mjs verify --titles <base> [пути…]
+//     То же для перевода строк тестов: TS-токены побайтово, кроме переводимых строк (заголовки
+//     describe/it/test, причины test.skip, сообщения expect — см. collectTestStrings); у них сравнивается
+//     только вид токена, у шаблонов — те же подстановки. Комментарии и число строк тестов не меняются.
+//   node scripts/check-comment-lang.mjs check --titles [--json <файл>] [пути…]
+//     Ищет украинский в строках тестов теми же признаками, что check (цитаты «…» не в счёт).
+//   node scripts/check-comment-lang.mjs diff-files [--titles] <старый> <новый> [--as <путь>]
 //     Сравнение двух файлов тем же способом, что verify (для самопроверки скрипта).
 //
 // Комментарий = блок: подряд идущие строки `//`, `--` или `#` (между ними только пробелы) считаются одним
@@ -234,8 +240,106 @@ function tsScriptKind(file) {
   return ts.ScriptKind.TS
 }
 
-function analyzeTs(text, file) {
+// ── Заголовки тестов ──────────────────────────────────────────────────────────────────────────────
+// Переводимые строки тестов (решение владельца 2026-11-13): заголовки describe/it/test (в т.ч. цепочки
+// test.describe, it.todo, it.each(…)(…)), причина пропуска test.skip/fixme/fail/slow(условие, 'причина'),
+// сообщение expect(x, 'msg') / expect.soft(x, 'msg') / expect.poll(fn, { message: 'msg' }) и строки-данные
+// заголовков в `for (const [name, …] of [['…', …]]) test(name, …)`. Остальное — побайтово.
+const TEST_ROOTS = new Set(['describe', 'it', 'test'])
+const SKIP_CHAINS = new Set(['test.skip', 'test.fixme', 'test.fail', 'test.slow', 'test.describe.skip', 'test.describe.fixme'])
+
+function calleeChain(expr) {
+  const parts = []
+  let e = expr
+  for (;;) {
+    if (ts.isPropertyAccessExpression(e)) {
+      parts.unshift(e.name.text)
+      e = e.expression
+    } else if (ts.isCallExpression(e)) {
+      parts.unshift('()')
+      e = e.expression
+    } else break
+  }
+  if (!ts.isIdentifier(e)) return null
+  parts.unshift(e.text)
+  return parts
+}
+
+const isTextLiteral = (n) => n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) || ts.isTemplateExpression(n))
+
+/** Текст строки для check: значение литерала; у шаблона — части между подстановками. */
+function literalText(n) {
+  if (ts.isTemplateExpression(n)) return [n.head.text, ...n.templateSpans.map((s) => s.literal.text)].join(' … ')
+  return n.text
+}
+
+/** Узлы переводимых строк: [{ node, kind: 'title' | 'skip' | 'expect' | 'data' }]. */
+function collectTestStrings(sf) {
+  const found = []
+  const titleVars = new Map() // имя переменной цикла → true, если она идёт первым аргументом describe/it/test
+  const visit = (n) => {
+    if (ts.isCallExpression(n)) {
+      const chain = calleeChain(n.expression)
+      const name = chain?.join('.')
+      const [a0, a1] = n.arguments
+      if (chain && TEST_ROOTS.has(chain[0])) {
+        if (isTextLiteral(a0)) found.push({ node: a0, kind: 'title' })
+        else if (SKIP_CHAINS.has(name) && a0 && isTextLiteral(a1)) found.push({ node: a1, kind: 'skip' })
+        else if (a0 && ts.isIdentifier(a0)) titleVars.set(a0.text, true)
+      }
+      if (chain && chain[0] === 'expect' && !chain.includes('()')) {
+        if ((name === 'expect' || name === 'expect.soft') && isTextLiteral(a1)) found.push({ node: a1, kind: 'expect' })
+        if (name === 'expect.poll' && a1 && ts.isObjectLiteralExpression(a1)) {
+          for (const p of a1.properties) {
+            if (ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'message' && isTextLiteral(p.initializer)) found.push({ node: p.initializer, kind: 'expect' })
+          }
+        }
+      }
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(sf)
+  // Строки-данные заголовков: for (const [title, …] of [['…', …], …]) / for (const title of ['…', …]).
+  const visitFor = (n) => {
+    let arr = n.expression
+    while (arr && (ts.isAsExpression(arr) || ts.isSatisfiesExpression(arr) || ts.isParenthesizedExpression(arr))) arr = arr.expression
+    if (ts.isForOfStatement(n) && ts.isVariableDeclarationList(n.initializer) && ts.isArrayLiteralExpression(arr)) {
+      const decl = n.initializer.declarations[0]
+      const binding = decl?.name
+      if (binding && ts.isIdentifier(binding) && titleVars.has(binding.text)) {
+        for (const el of arr.elements) if (isTextLiteral(el)) found.push({ node: el, kind: 'data' })
+      } else if (binding && ts.isArrayBindingPattern(binding)) {
+        binding.elements.forEach((b, k) => {
+          if (!ts.isBindingElement(b) || !ts.isIdentifier(b.name) || !titleVars.has(b.name.text)) return
+          for (const row of arr.elements) {
+            const el = ts.isArrayLiteralExpression(row) ? row.elements[k] : null
+            if (isTextLiteral(el)) found.push({ node: el, kind: 'data' })
+          }
+        })
+      }
+    }
+    ts.forEachChild(n, visitFor)
+  }
+  visitFor(sf)
+  return found
+}
+
+/** Позиции начала листовых токенов, текст которых можно менять (части переводимых строк). */
+function maskedStarts(sf, strings) {
+  const starts = new Set()
+  for (const { node } of strings) {
+    if (ts.isTemplateExpression(node)) {
+      starts.add(node.head.getStart(sf))
+      for (const s of node.templateSpans) starts.add(s.literal.getStart(sf))
+    } else starts.add(node.getStart(sf))
+  }
+  return starts
+}
+
+function analyzeTs(text, file, opts = {}) {
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, tsScriptKind(file))
+  const testStrings = opts.titles ? collectTestStrings(sf) : []
+  const masked = opts.titles ? maskedStarts(sf, testStrings) : new Set()
   const tokens = []
   const byPos = new Map()
   const isJsDoc = (n) => n.kind >= ts.SyntaxKind.FirstJSDocNode && n.kind <= ts.SyntaxKind.LastJSDocNode
@@ -251,7 +355,8 @@ function analyzeTs(text, file) {
       if (node.kind !== ts.SyntaxKind.JsxText) addComments(node.pos)
       if (node.kind < ts.SyntaxKind.FirstNode) {
         const start = node.kind === ts.SyntaxKind.JsxText ? node.pos : node.getStart(sf)
-        tokens.push({ kind: node.kind, text: text.slice(start, node.end) })
+        // Переводимая строка теста: сравнивается только вид токена (строка остаётся строкой, у шаблона — те же подстановки).
+        tokens.push({ kind: node.kind, text: masked.has(start) ? '<строка теста>' : text.slice(start, node.end) })
       }
       return
     }
@@ -259,7 +364,9 @@ function analyzeTs(text, file) {
   }
   visit(sf)
   const ranges = [...byPos.values()].sort((a, b) => a.pos - b.pos)
-  return { tokens, blocks: toBlocks(text, ranges), ranges: ranges.length, diagnostics: sf.parseDiagnostics.length, protectedItems: [] }
+  const lineOf = lineIndex(text)
+  const strings = testStrings.map(({ node, kind }) => ({ kind, line: lineOf(node.getStart(sf)), text: literalText(node), source: node.getText(sf) }))
+  return { tokens, blocks: toBlocks(text, ranges), ranges: ranges.length, diagnostics: sf.parseDiagnostics.length, protectedItems: [], strings }
 }
 
 // ── CSS ───────────────────────────────────────────────────────────────────────────────────────────
@@ -434,8 +541,8 @@ function analyzeHash(text) {
   return { tokens, blocks: toBlocks(text, ranges), ranges: ranges.length, diagnostics: 0, protectedItems: [] }
 }
 
-function analyze(text, file, type = fileType(file)) {
-  if (type === 'ts') return analyzeTs(text, file)
+function analyze(text, file, type = fileType(file), opts = {}) {
+  if (type === 'ts') return analyzeTs(text, file, opts)
   if (type === 'css') return analyzeCss(text)
   if (type === 'sql') return analyzeSql(text)
   if (type === 'hash') return analyzeHash(text)
@@ -490,8 +597,13 @@ function cmdList(args) {
 }
 
 // ── verify ────────────────────────────────────────────────────────────────────────────────────────
-function compareAnalyses(before, after, label) {
+function compareAnalyses(before, after, label, opts = {}) {
   const problems = []
+  if (opts.titles) {
+    // Режим заголовков тестов: комментарии не трогаются вовсе, число переводимых строк то же.
+    if (before.blocks.length !== after.blocks.length || before.blocks.some((b, i) => b.raw !== after.blocks[i].raw)) problems.push('изменились комментарии')
+    if ((before.strings?.length ?? 0) !== (after.strings?.length ?? 0)) problems.push(`число строк тестов: ${before.strings?.length ?? 0} → ${after.strings?.length ?? 0}`)
+  }
   if (before.tokens.length !== after.tokens.length || before.tokens.some((t, i) => t.kind !== after.tokens[i].kind || t.text !== after.tokens[i].text)) {
     let i = 0
     while (i < before.tokens.length && i < after.tokens.length && before.tokens[i].kind === after.tokens[i].kind && before.tokens[i].text === after.tokens[i].text) i++
@@ -510,19 +622,20 @@ function compareAnalyses(before, after, label) {
 // нормализует при коммите. Сравниваем так же, как git: CRLF → LF с обеих сторон.
 const normalizeEol = (s) => s.replace(/\r\n/g, '\n')
 
-function verifyPair(oldText, newText, file) {
+function verifyPair(oldText, newText, file, opts = {}) {
   oldText = normalizeEol(oldText)
   newText = normalizeEol(newText)
   const type = fileType(file)
-  const before = analyze(oldText, file, type)
-  const after = analyze(newText, file, type)
-  const problems = compareAnalyses(before, after, file)
+  const before = analyze(oldText, file, type, opts)
+  const after = analyze(newText, file, type, opts)
+  const problems = compareAnalyses(before, after, file, opts)
   const oldLines = oldText.split('\n').length
   const newLines = newText.split('\n').length
   return { problems, before, after, lineDelta: newLines - oldLines }
 }
 
 function cmdVerify(args) {
+  const opts = takeFlag(args, '--titles') ? { titles: true } : {}
   const base = args[0]
   if (!base) throw new Error('verify: укажите базовый коммит')
   const paths = args.slice(1)
@@ -534,6 +647,7 @@ function cmdVerify(args) {
   let commentsBefore = 0
   let commentsAfter = 0
   let linesDelta = 0
+  let stringsChanged = 0
   const skipped = []
   for (const file of changed) {
     const type = fileType(file)
@@ -559,7 +673,16 @@ function cmdVerify(args) {
       failed++
       continue
     }
-    const r = verifyPair(oldText, read(file), file)
+    const r = verifyPair(oldText, read(file), file, opts)
+    if (opts.titles) {
+      const changedStrings = (r.before.strings ?? []).filter((x, i) => x.source !== r.after.strings[i]?.source).length
+      stringsChanged += changedStrings
+      if (r.problems.length) {
+        failed++
+        console.log(`✖ ${file}: ${r.problems.join('; ')}`)
+      } else console.log(`✔ ${file}: строк тестов ${(r.before.strings ?? []).length}, изменено ${changedStrings}${r.lineDelta ? `, строк файла ${r.lineDelta > 0 ? '+' : ''}${r.lineDelta}` : ''}`)
+      continue
+    }
     commentsBefore += r.before.blocks.length
     commentsAfter += r.after.blocks.length
     linesDelta += r.lineDelta
@@ -572,16 +695,22 @@ function cmdVerify(args) {
     }
   }
   if (skipped.length) console.log(`Документы (не проверяются): ${skipped.join(', ')}`)
+  if (opts.titles) {
+    console.log(`verify --titles: файлов ${changed.length - skipped.length}, изменено строк тестов ${stringsChanged}, расхождений ${failed}`)
+    process.exitCode = failed ? 1 : 0
+    return
+  }
   console.log(`verify: файлов ${changed.length - skipped.length}, комментариев ${commentsBefore} → ${commentsAfter}, строк ${linesDelta >= 0 ? '+' : ''}${linesDelta}, расхождений ${failed}`)
   process.exitCode = failed ? 1 : 0
 }
 
 function cmdDiffFiles(args) {
+  const opts = takeFlag(args, '--titles') ? { titles: true } : {}
   const asIdx = args.indexOf('--as')
   const as = asIdx !== -1 ? args[asIdx + 1] : args[1]
   const oldText = fs.readFileSync(args[0], 'utf8')
   const newText = fs.readFileSync(args[1], 'utf8')
-  const r = verifyPair(oldText, newText, as)
+  const r = verifyPair(oldText, newText, as, opts)
   if (r.problems.length) {
     console.log(`✖ ${as}: ${r.problems.join('; ')}`)
     process.exitCode = 1
@@ -590,8 +719,17 @@ function cmdDiffFiles(args) {
   }
 }
 
+/** Убирает флаг из args; true, если он был. */
+function takeFlag(args, flag) {
+  const i = args.indexOf(flag)
+  if (i === -1) return false
+  args.splice(i, 1)
+  return true
+}
+
 // ── check ─────────────────────────────────────────────────────────────────────────────────────────
 function cmdCheck(args) {
+  if (takeFlag(args, '--titles')) return cmdCheckTitles(args)
   const files = trackedFiles(args)
   let found = 0
   let allowed = 0
@@ -614,6 +752,45 @@ function cmdCheck(args) {
   process.exitCode = found ? 1 : 0
 }
 
+// Поимённые исключения для check --titles: { file, pattern (подстрока строки теста), reason }.
+const TITLE_ALLOWLIST = []
+
+const TEST_FILE = /(^|\/)(__tests__\/|tests\/e2e\/)|\.(test|spec)\.[cm]?[tj]sx?$/
+const KIND_LABEL = { title: 'заголовок', skip: 'причина пропуска', expect: 'сообщение expect', data: 'данные заголовка' }
+
+/** check --titles [--json f] [пути…]: украинский в заголовках тестов, причинах пропуска и сообщениях expect. */
+function cmdCheckTitles(args) {
+  const jsonIdx = args.indexOf('--json')
+  let jsonOut = null
+  if (jsonIdx !== -1) {
+    jsonOut = args[jsonIdx + 1]
+    args.splice(jsonIdx, 2)
+  }
+  const files = trackedFiles(args).filter((f) => fileType(f) === 'ts' && TEST_FILE.test(f))
+  const all = []
+  const counts = { title: 0, skip: 0, expect: 0, data: 0 }
+  let found = 0
+  let allowed = 0
+  for (const file of files) {
+    const a = analyze(normalizeEol(read(file)), file, 'ts', { titles: true })
+    for (const s of a.strings) {
+      counts[s.kind]++
+      const evidence = ukrainianEvidence(s.text)
+      all.push({ file, ...s, uk: evidence.length > 0 })
+      if (!evidence.length) continue
+      if (TITLE_ALLOWLIST.find((e) => e.file === file && s.text.includes(e.pattern))) {
+        allowed++
+        continue
+      }
+      found++
+      console.log(`${file}:${s.line}: ${KIND_LABEL[s.kind]}; ${evidence.join('; ')}\n    ${s.text.replace(/\s+/g, ' ').slice(0, 110)}`)
+    }
+  }
+  if (jsonOut) fs.writeFileSync(jsonOut, JSON.stringify(all, null, 1))
+  console.log(`check --titles: украинских строк ${found}${allowed ? `, в allowlist ${allowed}` : ''} (файлов ${files.length}; заголовков ${counts.title}, причин пропуска ${counts.skip}, сообщений expect ${counts.expect}, данных заголовков ${counts.data})`)
+  process.exitCode = found ? 1 : 0
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────────────────────────
 const [mode, ...rest] = process.argv.slice(2)
 try {
@@ -622,7 +799,7 @@ try {
   else if (mode === 'check') cmdCheck(rest)
   else if (mode === 'diff-files') cmdDiffFiles(rest)
   else {
-    console.log('Использование: check-comment-lang.mjs list [--json f] [пути] | verify <base> [пути] | check [пути] | diff-files <a> <b> [--as путь]')
+    console.log('Использование: check-comment-lang.mjs list [--json f] [пути] | verify [--titles] <base> [пути] | check [пути] | check --titles [--json f] [пути] | diff-files [--titles] <a> <b> [--as путь]')
     process.exitCode = 2
   }
 } catch (err) {
