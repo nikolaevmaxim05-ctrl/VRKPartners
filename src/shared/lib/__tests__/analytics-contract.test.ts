@@ -121,8 +121,8 @@ describe("analytics contract — снапшот критичных дефолт�
   });
 });
 
-describe("analytics contract — запобіжники VRK", () => {
-  it("LeadForm трекає submit/success/error через канонічні ключі", () => {
+describe("analytics contract — предохранители VRK", () => {
+  it("LeadForm трекает submit/success/error через канонические ключи", () => {
     const src = fs.readFileSync(
       path.join(SRC_ROOT, "features", "landing", "components", "forms", "LeadForm.tsx"),
       "utf8",
@@ -132,7 +132,7 @@ describe("analytics contract — запобіжники VRK", () => {
     expect(src).toMatch(/track\("form_submit_error"/);
   });
 
-  it("ModalProvider трекає відкриття форми (form_open)", () => {
+  it("ModalProvider трекает открытие формы (form_open)", () => {
     const src = fs.readFileSync(
       path.join(SRC_ROOT, "features", "landing", "components", "forms", "ModalProvider.tsx"),
       "utf8",

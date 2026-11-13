@@ -25,7 +25,7 @@ describe('email notifier (Gmail SMTP)', () => {
     mockSendMail.mockResolvedValue({ messageId: 'test-id' })
   })
 
-  it('ok:false і console.warn без smtp_user/smtp_password', async () => {
+  it('ok:false и console.warn без smtp_user/smtp_password', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const result = await notifier({}).send(VALID_LEAD)
     expect(result).toEqual({ ok: false, error: 'not configured' })
@@ -33,7 +33,7 @@ describe('email notifier (Gmail SMTP)', () => {
     expect(mockSendMail).not.toHaveBeenCalled()
   })
 
-  it('відправляє лист з правильними полями', async () => {
+  it('отправляет письмо с правильными полями', async () => {
     const result = await notifier(SMTP).send(VALID_LEAD)
     expect(result.ok).toBe(true)
     const args = mockSendMail.mock.calls[0][0]
@@ -44,12 +44,12 @@ describe('email notifier (Gmail SMTP)', () => {
     expect(args.html.length).toBeGreaterThan(100)
   })
 
-  it('From за замовчуванням = smtp_user', async () => {
+  it('From по умолчанию = smtp_user', async () => {
     await notifier({ smtp_user: 'team@gmail.com', smtp_password: 'app-password' }).send(VALID_LEAD)
     expect(mockSendMail.mock.calls[0][0].from).toBe('team@gmail.com')
   })
 
-  it('HTML містить імʼя, телефон, послугу, коментар і lang="uk"', async () => {
+  it('HTML содержит имя, телефон, услугу, комментарий и lang="uk"', async () => {
     await notifier(SMTP).send(VALID_LEAD)
     const html = mockSendMail.mock.calls[0][0].html as string
     expect(html).toContain('Петро Сидоренко')
@@ -59,14 +59,14 @@ describe('email notifier (Gmail SMTP)', () => {
     expect(html).toContain('lang="uk"')
   })
 
-  it('без коментаря — немає рядка коментаря', async () => {
+  it('без комментария — нет строки комментария', async () => {
     await notifier(SMTP).send(VALID_LEAD_NO_COMMENT)
     const html = mockSendMail.mock.calls[0][0].html as string
     expect(html).toContain('Наталія Мельник')
     expect(html).not.toMatch(/Коментар.*<\/td>/)
   })
 
-  it('sendMail кидає → ok:false з текстом помилки', async () => {
+  it('sendMail бросает → ok:false с текстом ошибки', async () => {
     mockSendMail.mockRejectedValue(new Error('Invalid login: 535'))
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const result = await notifier(SMTP).send(VALID_LEAD)

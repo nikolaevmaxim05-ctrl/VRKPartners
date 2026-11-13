@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 import { mergeMessages, diffMessages, pickEditable } from '@core/domain/content/messages'
 import { getDefaultMessages, getDefaultSeo, isSafeImageUrl, isSafeHref } from '../defaults'
 
-describe('C10/S7 — валідація URL', () => {
-  it('isSafeImageUrl: локальні і supabase — ок; чуже/js — ні', () => {
+describe('C10/S7 — валидация URL', () => {
+  it('isSafeImageUrl: локальные и supabase — ок; чужое/js — нет', () => {
     expect(isSafeImageUrl('/mockups/x.png')).toBe(true)
     expect(isSafeImageUrl('https://abc.supabase.co/storage/v1/object/public/content/x.png')).toBe(true)
     expect(isSafeImageUrl('https://evil.example.com/x.png')).toBe(false)
@@ -14,7 +14,7 @@ describe('C10/S7 — валідація URL', () => {
     expect(isSafeImageUrl(undefined)).toBe(true)
   })
 
-  it('isSafeHref: лише http(s)', () => {
+  it('isSafeHref: только http(s)', () => {
     expect(isSafeHref('https://client.com/')).toBe(true)
     expect(isSafeHref('http://client.com/')).toBe(true)
     expect(isSafeHref('javascript:alert(1)')).toBe(false)
@@ -23,8 +23,8 @@ describe('C10/S7 — валідація URL', () => {
   })
 })
 
-describe('дефолти messages/uk.json', () => {
-  it('містять усі простори, копія незалежна', () => {
+describe('дефолты messages/uk.json', () => {
+  it('содержат все пространства, копия независима', () => {
     const a = getDefaultMessages()
     const b = getDefaultMessages()
     expect(a).toEqual(b)
@@ -36,7 +36,7 @@ describe('дефолти messages/uk.json', () => {
     expect(getDefaultSeo().title.length).toBeGreaterThan(0)
   })
 
-  it('C5 — блок, рівний дефолту, не зберігається; змінене поле — лишається', () => {
+  it('C5 — блок, равный дефолту, не сохраняется; изменённое поле — остаётся', () => {
     const d = pickEditable(getDefaultMessages())
     expect(diffMessages(d, JSON.parse(JSON.stringify(d)))).toBeUndefined()
     const edited = JSON.parse(JSON.stringify(d))
@@ -44,7 +44,7 @@ describe('дефолти messages/uk.json', () => {
     expect(diffMessages(d, edited)).toEqual({ hero: { title: 'НОВИЙ' } })
   })
 
-  it('старі правки клієнта (hero.trust/trustHref, site.*, trust цілком) мержаться без втрат', () => {
+  it('старые правки клиента (hero.trust/trustHref, site.*, trust целиком) мержатся без потерь', () => {
     const d = getDefaultMessages()
     const overrides = {
       hero: { trust: 'Правка довіри', trustHref: 'https://partners.example' },

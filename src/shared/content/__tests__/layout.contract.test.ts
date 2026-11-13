@@ -39,13 +39,13 @@ function layoutKeys(): { key: string; page: string; shared: boolean }[] {
   return out
 }
 
-describe('розкладка редактора', () => {
-  it('множини вкладок CONTENT_PAGES і ключів PAGE_BLOCKS збігаються', () => {
+describe('раскладка редактора', () => {
+  it('множества вкладок CONTENT_PAGES и ключей PAGE_BLOCKS совпадают', () => {
     const pages = CONTENT_PAGES.flatMap((p) => (p.tabs ? p.tabs.map((t) => t.id) : [p.id])).sort()
     expect(Object.keys(PAGE_BLOCKS).sort()).toEqual(pages)
   })
 
-  it('кожен редагований ключ показано рівно один раз', () => {
+  it('каждый редактируемый ключ показан ровно один раз', () => {
     const shown = layoutKeys()
     const counts = new Map<string, number>()
     for (const s of shown) counts.set(s.key, (counts.get(s.key) ?? 0) + 1)
@@ -53,12 +53,12 @@ describe('розкладка редактора', () => {
     const missing = expected.filter((k) => !counts.has(k))
     const unknown = [...counts.keys()].filter((k) => !expected.includes(k))
     const dup = [...counts.entries()].filter(([k, n]) => n > 1 && !shown.some((s) => s.key === k && s.shared)).map(([k]) => k)
-    expect(missing, `ключі без місця в редакторі: ${missing.join(', ')}`).toEqual([])
-    expect(unknown, `ключі редактора, яких немає в messages: ${unknown.join(', ')}`).toEqual([])
-    expect(dup, `ключі, показані двічі: ${dup.join(', ')}`).toEqual([])
+    expect(missing, `ключи без места в редакторе: ${missing.join(', ')}`).toEqual([])
+    expect(unknown, `ключи редактора, которых нет в messages: ${unknown.join(', ')}`).toEqual([])
+    expect(dup, `ключи, показанные дважды: ${dup.join(', ')}`).toEqual([])
   })
 
-  it('id блоків збігаються з HIDEABLE_BLOCKS в обидва боки', () => {
+  it('id блоков совпадают с HIDEABLE_BLOCKS в обе стороны', () => {
     for (const page of CONTENT_PAGES) {
       if (!page.ns) continue
       const blockIds = PAGE_BLOCKS[page.id].filter((b) => !b.aux).map((b) => b.id).sort()
@@ -67,7 +67,7 @@ describe('розкладка редактора', () => {
     }
   })
 
-  it('у кожного ключа є людський підпис (крім технічних)', () => {
+  it('у каждого ключа есть человеческая подпись (кроме технических)', () => {
     const missing: string[] = []
     const walk = (v: unknown, ns: string) => {
       if (Array.isArray(v)) v.forEach((x) => walk(x, ns))
@@ -80,18 +80,18 @@ describe('розкладка редактора', () => {
       }
     }
     for (const ns of EDITABLE_NAMESPACES) walk((defaults as Record<string, unknown>)[ns], ns)
-    expect([...new Set(missing)], `без підпису в KEY_LABELS: ${missing.join(', ')}`).toEqual([])
+    expect([...new Set(missing)], `без подписи в KEY_LABELS: ${missing.join(', ')}`).toEqual([])
     expect(Object.keys(KEY_LABELS).length).toBeGreaterThan(50)
   })
 
-  it('дефолти messages/uk.json проходять власну валідацію', () => {
+  it('дефолты messages/uk.json проходят собственную валидацию', () => {
     const editable = pickEditable(defaults as unknown as Record<string, unknown>)
     const r = validateMessages(editable, JSON.parse(JSON.stringify(editable)))
     expect(r.ok, r.ok ? '' : `${r.error.path}: ${r.error.message}`).toBe(true)
     if (r.ok) expect(r.value).toEqual(editable)
   })
 
-  it('pageMeta не редагується з редактора текстів', () => {
+  it('pageMeta не редактируется из редактора текстов', () => {
     expect(EDITABLE_NAMESPACES).not.toContain('pageMeta')
     expect('pageMeta' in defaults).toBe(true)
   })

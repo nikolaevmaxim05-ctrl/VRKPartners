@@ -36,7 +36,7 @@ describe('withAdmin', () => {
     headerStore.clear()
   })
 
-  it('без сесії → 401 JSON, обробник не викликається', async () => {
+  it('без сессии → 401 JSON, обработчик не вызывается', async () => {
     getUser.mockResolvedValue(null)
     const handler = vi.fn()
     const res = await withAdmin([], handler)
@@ -46,7 +46,7 @@ describe('withAdmin', () => {
     expect(getRoleInfo).not.toHaveBeenCalled()
   })
 
-  it('anyOf = []: активний користувач з роллю → 200; без ролі або деактивований → 403', async () => {
+  it('anyOf = []: активный пользователь с ролью → 200; без роли или деактивированный → 403', async () => {
     getUser.mockResolvedValue({ id: 'u1', email: 'a@b.c' })
     getRoleInfo.mockResolvedValueOnce(role())
     expect((await withAdmin([], () => Response.json({ ok: true }))).status).toBe(200)
@@ -58,7 +58,7 @@ describe('withAdmin', () => {
     expect(await res.json()).toEqual({ error: 'Доступ заборонено' })
   })
 
-  it('anyOf з правами: достатньо одного (OR); деактивований → 403 навіть з правом', async () => {
+  it('anyOf с правами: достаточно одного (OR); деактивированный → 403 даже с правом', async () => {
     getUser.mockResolvedValue({ id: 'u1', email: 'a@b.c' })
     getRoleInfo.mockResolvedValueOnce(role({ permissions: ['view_reports'] }))
     expect((await withAdmin(['manage_leads', 'view_reports'], () => Response.json({}))).status).toBe(200)
@@ -68,7 +68,7 @@ describe('withAdmin', () => {
     expect((await withAdmin(['manage_users'], () => Response.json({}))).status).toBe(403)
   })
 
-  it('актор: id, email, IP за ланцюжком cf-connecting-ip → x-forwarded-for[0] → x-real-ip → unknown', async () => {
+  it('актор: id, email, IP по цепочке cf-connecting-ip → x-forwarded-for[0] → x-real-ip → unknown', async () => {
     getUser.mockResolvedValue({ id: 'u1', email: 'a@b.c' })
     getRoleInfo.mockResolvedValue(role())
     headerStore.set('x-forwarded-for', '203.0.113.5, 10.0.0.1')
@@ -82,7 +82,7 @@ describe('withAdmin', () => {
 })
 
 describe('presentation/http', () => {
-  it('коди Result → HTTP', () => {
+  it('коды Result → HTTP', () => {
     expect(statusOf('invalid')).toBe(400)
     expect(statusOf('unauthorized')).toBe(401)
     expect(statusOf('forbidden')).toBe(403)
@@ -94,7 +94,7 @@ describe('presentation/http', () => {
     expect(statusOf('failed')).toBe(500)
   })
 
-  it('respond: успіх → { data } (або власний toBody), помилка → { error, ...details } зі статусом', async () => {
+  it('respond: успех → { data } (или собственный toBody), ошибка → { error, ...details } со статусом', async () => {
     const okRes = respond(ok({ a: 1 }))
     expect(okRes.status).toBe(200)
     expect(await okRes.json()).toEqual({ data: { a: 1 } })
@@ -108,7 +108,7 @@ describe('presentation/http', () => {
     expect(await err2.json()).toEqual({ error: 'Не знайдено' })
   })
 
-  it('readJson: невалідний JSON → 400 з переданим повідомленням', async () => {
+  it('readJson: невалидный JSON → 400 с переданным сообщением', async () => {
     const bad = await readJson(new Request('http://x', { method: 'POST', body: '{oops' }), 'Invalid data')
     expect(bad.ok).toBe(false)
     if (!bad.ok) {

@@ -7,15 +7,15 @@ import { sha256Hex } from "@core/domain/funnel/enhanced-conversions";
 const SHA_TEST_EMAIL = "973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b";
 
 describe("sha256Hex", () => {
-  it("відомий вектор: sha256('test@example.com')", async () => {
+  it("известный вектор: sha256('test@example.com')", async () => {
     expect(await sha256Hex("test@example.com")).toBe(SHA_TEST_EMAIL);
   });
 
-  it("64 hex-символи для непорожнього вводу", async () => {
+  it("64 hex-символа для непустого ввода", async () => {
     expect(await sha256Hex("+380671234567")).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it("не кидає без crypto.subtle → ''", async () => {
+  it("не бросает без crypto.subtle → ''", async () => {
     vi.stubGlobal("crypto", {} as Crypto);
     try {
       expect(await sha256Hex("test@example.com")).toBe("");
@@ -30,7 +30,7 @@ describe("setEnhancedConversionUserData", () => {
     vi.unstubAllGlobals();
   });
 
-  it("no-op без window (SSR) і без window.gtag", async () => {
+  it("no-op без window (SSR) и без window.gtag", async () => {
     await expect(setEnhancedConversionUserData({ email: "test@test.com" })).resolves.toBeUndefined();
     const gtag = vi.fn();
     vi.stubGlobal("window", { gtag: undefined, crypto: globalThis.crypto });
@@ -38,7 +38,7 @@ describe("setEnhancedConversionUserData", () => {
     expect(gtag).not.toHaveBeenCalled();
   });
 
-  it("email нормалізується (trim/lowercase) → sha256_email_address, сирий email не передається", async () => {
+  it("email нормализуется (trim/lowercase) → sha256_email_address, сырой email не передаётся", async () => {
     const gtag = vi.fn();
     vi.stubGlobal("window", { gtag, crypto: globalThis.crypto });
     await setEnhancedConversionUserData({ email: "  TEST@EXAMPLE.COM  " });
@@ -50,7 +50,7 @@ describe("setEnhancedConversionUserData", () => {
     expect(JSON.stringify(userData)).not.toContain("@");
   });
 
-  it("gmail: крапки до @ прибираються перед хешем (розділ 15)", async () => {
+  it("gmail: точки до @ убираются перед хешем (раздел 15)", async () => {
     const gtag = vi.fn();
     vi.stubGlobal("window", { gtag, crypto: globalThis.crypto });
     await setEnhancedConversionUserData({ email: "Ivan.Petrenko@gmail.com" });
@@ -58,7 +58,7 @@ describe("setEnhancedConversionUserData", () => {
     expect(userData.sha256_email_address).toBe(await sha256Hex("ivanpetrenko@gmail.com"));
   });
 
-  it("телефон з маски → E.164 через єдину normalizePhone → sha256_phone_number", async () => {
+  it("телефон из маски → E.164 через единую normalizePhone → sha256_phone_number", async () => {
     const gtag = vi.fn();
     vi.stubGlobal("window", { gtag, crypto: globalThis.crypto });
     await setEnhancedConversionUserData({ phone: "+380 (67) 123-45-67" });
@@ -67,7 +67,7 @@ describe("setEnhancedConversionUserData", () => {
     expect(userData).not.toHaveProperty("sha256_email_address");
   });
 
-  it("обидва поля; порожні дані → no-op; помилка gtag не кидає", async () => {
+  it("оба поля; пустые данные → no-op; ошибка gtag не бросает", async () => {
     const gtag = vi.fn();
     vi.stubGlobal("window", { gtag, crypto: globalThis.crypto });
     await setEnhancedConversionUserData({ email: "test@example.com", phone: "+380671234567" });

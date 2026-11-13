@@ -26,9 +26,9 @@ describe("ANALYTICS_REGISTRY", () => {
 
   it("каждая запись имеет непустой defaultEventNames с валидными именами", () => {
     for (const entry of ANALYTICS_REGISTRY) {
-      expect(entry.defaultEventNames.length, `${entry.key}: defaultEventNames не повинен бути порожнім`).toBeGreaterThan(0);
+      expect(entry.defaultEventNames.length, `${entry.key}: defaultEventNames не должен быть пустым`).toBeGreaterThan(0);
       for (const name of entry.defaultEventNames) {
-        expect(name, `${entry.key}: невалідне ім'я в defaultEventNames`).toMatch(ANALYTICS_EVENT_NAME_PATTERN);
+        expect(name, `${entry.key}: невалидное имя в defaultEventNames`).toMatch(ANALYTICS_EVENT_NAME_PATTERN);
       }
     }
   });
@@ -41,7 +41,7 @@ describe("ANALYTICS_REGISTRY", () => {
       "form_submit_error",
     ];
     for (const key of formKeys) {
-      expect(ANALYTICS_EVENT_KEYS.has(key), `реестр має містити ${key}`).toBe(true);
+      expect(ANALYTICS_EVENT_KEYS.has(key), `реестр должен содержать ${key}`).toBe(true);
     }
   });
 
@@ -59,7 +59,7 @@ describe("ANALYTICS_REGISTRY", () => {
     ];
     for (const key of ctaKeys) {
       const entry = ANALYTICS_REGISTRY.find((e) => e.key === key);
-      expect(entry, `відсутній запис для ${key}`).toBeDefined();
+      expect(entry, `отсутствует запись для ${key}`).toBeDefined();
       expect(entry!.defaultEventNames).toEqual(["cta_click"]);
     }
   });
@@ -80,7 +80,7 @@ describe("ANALYTICS_REGISTRY", () => {
     const reserved = new Set(["form_start", "form_submit"]);
     for (const entry of ANALYTICS_REGISTRY) {
       for (const name of entry.defaultEventNames) {
-        expect(reserved.has(name), `${entry.key}: ім'я ${name} конфліктує з GA4`).toBe(false);
+        expect(reserved.has(name), `${entry.key}: имя ${name} конфликтует с GA4`).toBe(false);
       }
     }
   });
@@ -92,7 +92,7 @@ describe("ANALYTICS_REGISTRY", () => {
   it("реестр содержит ключи кейсов и партнёров VRK", () => {
     const vrkKeys = ["case_niche_click", "case_open", "case_site_click", "partner_click"];
     for (const key of vrkKeys) {
-      expect(ANALYTICS_EVENT_KEYS.has(key), `реестр має містити ${key}`).toBe(true);
+      expect(ANALYTICS_EVENT_KEYS.has(key), `реестр должен содержать ${key}`).toBe(true);
     }
   });
 });
@@ -182,7 +182,7 @@ describe("resolveAnalyticsEvent", () => {
     expect(result.eventNames).toEqual(["cta_click"]);
   });
 
-  it("легасі-запис тільки з eventName (без eventNames) → резолвується до [eventName]", () => {
+  it("легаси-запись только с eventName (без eventNames) → резолвится до [eventName]", () => {
     const config: AnalyticsEventsConfig = {
       case_open: { enabled: true, eventName: "my_case_event" },
     };
@@ -373,7 +373,7 @@ describe("track()", () => {
     expect(win.gtag).not.toHaveBeenCalled();
   });
 
-  it("generate_lead без __leadValue → відправляється без value/currency", () => {
+  it("generate_lead без __leadValue → отправляется без value/currency", () => {
     win.__analyticsEvents = {
       form_submit_success: cfg({
         enabled: true,
@@ -411,7 +411,7 @@ describe("track()", () => {
     expect(win.plausible).toHaveBeenCalledWith("lead_form_opened", { props: { source: "modal" } });
   });
 
-  it("легасі-запис без eventNames але з eventName → подія відправляється", () => {
+  it("легаси-запись без eventNames, но с eventName → событие отправляется", () => {
     win.__analyticsEvents = {
       case_open: { enabled: true, eventName: "my_case_event" },
     };

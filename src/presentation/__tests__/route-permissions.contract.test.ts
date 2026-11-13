@@ -115,25 +115,25 @@ function actualMethods(file: string): Methods {
   return out
 }
 
-describe('контракт прав роутів /api/admin/**', () => {
+describe('контракт прав роутов /api/admin/**', () => {
   const files = routeFiles(API_ROOT)
   const byKey = new Map(files.map((f) => [path.relative(API_ROOT, path.dirname(f)).split(path.sep).join('/'), f]))
 
-  it('таблиця покриває всі роути (новий роут → додай у таблицю)', () => {
+  it('таблица покрывает все роуты (новый роут → добавь в таблицу)', () => {
     expect([...byKey.keys()].sort()).toEqual(Object.keys(EXPECTED).sort())
   })
 
   for (const [key, methods] of Object.entries(EXPECTED)) {
-    it(`${key}: методи й права`, () => {
+    it(`${key}: методы и права`, () => {
       const file = byKey.get(key)
-      expect(file, `немає роуту ${key}`).toBeDefined()
+      expect(file, `нет роута ${key}`).toBeDefined()
       const expected: Methods = {}
       for (const [m, perms] of Object.entries(methods)) expected[m as keyof Methods] = perms === null ? null : [...perms].sort()
       expect(actualMethods(file!)).toEqual(expected)
     })
   }
 
-  it('жоден роут не імпортує інфраструктуру чи SDK Supabase напряму', () => {
+  it('ни один роут не импортирует инфраструктуру или SDK Supabase напрямую', () => {
     for (const f of files) {
       const src = fs.readFileSync(f, 'utf8')
       expect(src, path.relative(API_ROOT, f)).not.toMatch(/from ['"](@infra\/|@supabase\/)/)

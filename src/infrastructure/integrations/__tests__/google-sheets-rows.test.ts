@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildConversionRow, buildAdjustmentRow } from '../google-sheets'
 
 describe('buildConversionRow', () => {
-  it('13 колонок; Order ID = order_no (число) в останній колонці; сума — числом', () => {
+  it('13 колонок; Order ID = order_no (число) в последней колонке; сумма — числом', () => {
     const row = buildConversionRow({
       conversionAction: 'Deal',
       email: ' A@B.com ',
@@ -41,7 +41,7 @@ describe('buildAdjustmentRow', () => {
     expect(row[5]).toBe('UAH')
   })
 
-  it('RETRACT: без суми і валюти', () => {
+  it('RETRACT: без суммы и валюты', () => {
     const row = buildAdjustmentRow({ orderNo: 42, conversionAction: 'Deal', adjustmentTime: '2026-01-15T08:30:00.000Z', type: 'retract', value: null, currency: null })
     expect(row[3]).toBe('RETRACT')
     expect(row[4]).toBe('')

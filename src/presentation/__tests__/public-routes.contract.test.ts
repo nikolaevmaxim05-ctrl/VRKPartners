@@ -8,8 +8,8 @@ import path from 'node:path'
 const API = path.resolve(process.cwd(), 'src', 'app', 'api')
 const read = (...p: string[]) => fs.readFileSync(path.join(API, ...p), 'utf8')
 
-describe('контракт публічних роутів', () => {
-  it('/api/leads: POST без withAdmin, runtime nodejs, 429 з Retry-After, 500 "DB error" на виняток', () => {
+describe('контракт публичных роутов', () => {
+  it('/api/leads: POST без withAdmin, runtime nodejs, 429 с Retry-After, 500 "DB error" на исключение', () => {
     const src = read('leads', 'route.ts')
     expect(src).toMatch(/export async function POST/)
     expect(src).not.toContain('withAdmin(')
@@ -18,14 +18,14 @@ describe('контракт публічних роутів', () => {
     expect(src).toContain("{ error: 'DB error' }")
   })
 
-  it('/api/lead — реекспорт POST з /api/leads без власної логіки', () => {
+  it('/api/lead — реэкспорт POST из /api/leads без собственной логики', () => {
     const src = read('lead', 'route.ts')
     expect(src).toMatch(/export \{ POST \} from '\.\.\/leads\/route'/)
     expect(src).toContain("export const runtime = 'nodejs'")
     expect(src.split('\n').filter((l) => l.trim() && !l.trim().startsWith('//')).length).toBe(2)
   })
 
-  it('/api/cron/keepalive — лише Bearer CRON_SECRET, без withAdmin', () => {
+  it('/api/cron/keepalive — только Bearer CRON_SECRET, без withAdmin', () => {
     const src = read('cron', 'keepalive', 'route.ts')
     expect(src).toMatch(/const secret = getCronSecret\(\)/)
     expect(src).toMatch(/!secret \|\| !safeEqual\(/)
@@ -34,7 +34,7 @@ describe('контракт публічних роутів', () => {
     expect(src).toMatch(/status: 401/)
   })
 
-  it('/api/admin/dev/ga4-arrival — 404 до withAdmin, коли dev tools вимкнено', () => {
+  it('/api/admin/dev/ga4-arrival — 404 до withAdmin, когда dev tools выключены', () => {
     const src = read('admin', 'dev', 'ga4-arrival', 'route.ts')
     const gate = src.indexOf('isDevToolsEnabled()')
     const auth = src.indexOf('withAdmin(')
@@ -43,11 +43,11 @@ describe('контракт публічних роутів', () => {
     expect(src).toMatch(/status: 404/)
   })
 
-  it('/api/admin/integrations/[key]: невідомий ключ відкидається до читання тіла', () => {
+  it('/api/admin/integrations/[key]: неизвестный ключ отбрасывается до чтения тела', () => {
     const src = read('admin', 'integrations', '[key]', 'route.ts')
     const known = src.search(/KNOWN_INTEGRATION_KEYS\.has\(|isKnownIntegrationKey\(/)
     const body = src.search(/readJson[<(]/)
-    expect(known, 'немає перевірки ключа').toBeGreaterThan(-1)
+    expect(known, 'нет проверки ключа').toBeGreaterThan(-1)
     expect(body).toBeGreaterThan(known)
   })
 })

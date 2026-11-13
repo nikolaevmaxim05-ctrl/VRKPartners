@@ -19,7 +19,7 @@ describe('telegram notifier', () => {
     vi.unstubAllGlobals()
   })
 
-  it('ok:false і console.warn, якщо немає токена', async () => {
+  it('ok:false и console.warn, если нет токена', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const result = await notifier({}).send(VALID_LEAD)
     expect(result).toEqual({ ok: false, error: 'not configured' })
@@ -28,14 +28,14 @@ describe('telegram notifier', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('ok:false, якщо є токен, але немає chat_id', async () => {
+  it('ok:false, если есть токен, но нет chat_id', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const result = await notifier({ telegram_bot_token: 'bot-token-abc' }).send(VALID_LEAD)
     expect(result.ok).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('правильний URL і payload', async () => {
+  it('правильный URL и payload', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '{}' })
     vi.stubGlobal('fetch', mockFetch)
     const result = await notifier({ telegram_bot_token: '12345:ABC-TOKEN', telegram_chat_id: '-1001234567890' }).send(VALID_LEAD)
@@ -54,7 +54,7 @@ describe('telegram notifier', () => {
     expect(body.text).toContain('Нова заявка — VRK Partners')
   })
 
-  it('без коментаря — немає рядка «Коментар:»', async () => {
+  it('без комментария — нет строки «Коментар:»', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '{}' })
     vi.stubGlobal('fetch', mockFetch)
     await notifier(CONFIGURED).send(VALID_LEAD_NO_COMMENT)
@@ -71,7 +71,7 @@ describe('telegram notifier', () => {
     expect(body.text).toContain('[ПОВТОР] Повторне звернення — VRK Partners')
   })
 
-  it('мережева помилка → ok:false, fetch error', async () => {
+  it('сетевая ошибка → ok:false, fetch error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const result = await notifier(CONFIGURED).send(VALID_LEAD)
@@ -86,7 +86,7 @@ describe('telegram notifier', () => {
     expect(result).toEqual({ ok: false, error: 'HTTP 400' })
   })
 
-  it('екранує HTML-спецсимволи', async () => {
+  it('экранирует HTML-спецсимволы', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '{}' })
     vi.stubGlobal('fetch', mockFetch)
     await notifier(CONFIGURED).send({ name: 'Ivan <Test> & "Quote"', phone: '+380991234567', service: 'therapy' })

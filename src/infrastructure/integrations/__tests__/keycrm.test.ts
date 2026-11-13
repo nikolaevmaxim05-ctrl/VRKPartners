@@ -23,7 +23,7 @@ describe('keycrm notifier', () => {
     vi.unstubAllGlobals()
   })
 
-  it('ok:false і console.warn без API-ключа', async () => {
+  it('ok:false и console.warn без API-ключа', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const result = await notifier(undefined, undefined).send(VALID_LEAD)
     expect(result).toEqual({ ok: false, error: 'not configured' })
@@ -38,7 +38,7 @@ describe('keycrm notifier', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('правильний URL і Bearer-токен', async () => {
+  it('правильный URL и Bearer-токен', async () => {
     const mockFetch = okFetch()
     const result = await notifier('my-secret-key', '42').send(VALID_LEAD)
     expect(result.ok).toBe(true)
@@ -50,7 +50,7 @@ describe('keycrm notifier', () => {
     expect(headers['Content-Type']).toBe('application/json')
   })
 
-  it('payload містить поля ліда', async () => {
+  it('payload содержит поля лида', async () => {
     const mockFetch = okFetch()
     await notifier('key', '7').send(VALID_LEAD)
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
@@ -63,25 +63,25 @@ describe('keycrm notifier', () => {
     expect(body.title).toContain('Контекстна реклама')
   })
 
-  it('без коментаря — поля note немає', async () => {
+  it('без комментария — поля note нет', async () => {
     const mockFetch = okFetch()
     await notifier('key', '7').send(VALID_LEAD_NO_COMMENT)
     expect(JSON.parse(mockFetch.mock.calls[0][1].body as string).note).toBeUndefined()
   })
 
-  it('fetch кидає → ok:false, fetch error', async () => {
+  it('fetch бросает → ok:false, fetch error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')))
     vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(await notifier('key', '7').send(VALID_LEAD)).toEqual({ ok: false, error: 'fetch error' })
   })
 
-  it('не-OK відповідь → HTTP-статус', async () => {
+  it('не-OK ответ → HTTP-статус', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 422, text: async () => '{}' }))
     vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(await notifier('key', '7').send(VALID_LEAD)).toEqual({ ok: false, error: 'HTTP 422' })
   })
 
-  it("джерело без UTM — 'Лендинг'", async () => {
+  it("источник без UTM — 'Лендинг'", async () => {
     const mockFetch = okFetch()
     await notifier('key', '1').send(VALID_LEAD_NO_COMMENT)
     expect(JSON.parse(mockFetch.mock.calls[0][1].body as string).source).toBe('Лендинг')

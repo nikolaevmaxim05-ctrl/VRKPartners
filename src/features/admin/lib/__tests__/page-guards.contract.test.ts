@@ -41,33 +41,33 @@ function resolvePerms(arg: string): string[] {
   return inner.split(',').map((p) => p.trim().replace(/^['"]|['"]$/g, '')).sort()
 }
 
-describe('контракт гардів сторінок /admin/**', () => {
+describe('контракт гардов страниц /admin/**', () => {
   const files = pageFiles(PAGES_ROOT)
   const byHref = new Map(files.map((f) => [hrefOf(f), f]))
   const sections = new Map(ADMIN_SECTIONS.map((s) => [s.href, [...s.anyPermission].sort()]))
 
-  it('кожен розділ з ADMIN_SECTIONS має сторінку', () => {
-    for (const href of sections.keys()) expect(byHref.has(href), `немає сторінки ${href}`).toBe(true)
+  it('у каждого раздела из ADMIN_SECTIONS есть страница', () => {
+    for (const href of sections.keys()) expect(byHref.has(href), `нет страницы ${href}`).toBe(true)
   })
 
   for (const [href, file] of byHref) {
     if (href === '/admin') continue // главная: карточки по правам, гард — сессия в layout
-    it(`${href}: гард = права розділу`, () => {
+    it(`${href}: гард = права раздела`, () => {
       const src = fs.readFileSync(file, 'utf8')
       const arg = guardArg(src)
       if (KNOWN_UNGUARDED.includes(href)) {
-        expect(arg, `${href} тепер має гард — прибери його з KNOWN_UNGUARDED`).toBeNull()
+        expect(arg, `${href} теперь имеет гард — убери его из KNOWN_UNGUARDED`).toBeNull()
         return
       }
-      expect(arg, `${href}: немає requireSectionAccess(...)`).not.toBeNull()
+      expect(arg, `${href}: нет requireSectionAccess(...)`).not.toBeNull()
       const sectionHref = href.replace(/\/\[id\]$/, '')
       const expected = sections.get(sectionHref)
-      expect(expected, `${href}: розділу немає в ADMIN_SECTIONS`).toBeDefined()
+      expect(expected, `${href}: раздела нет в ADMIN_SECTIONS`).toBeDefined()
       expect(resolvePerms(arg!)).toEqual(expected)
     })
   }
 
-  it('ADMIN_SECTIONS не дублює константи presentation/permissions (заявки, конверсії, інтеграції, ролі)', () => {
+  it('ADMIN_SECTIONS не дублирует константы presentation/permissions (заявки, конверсии, интеграции, роли)', () => {
     expect(sections.get('/admin/leads')).toEqual([...SETS.LEAD_VIEW_PERMISSIONS].sort())
     expect(sections.get('/admin/conversions')).toEqual([...SETS.CONVERSION_PERMISSIONS].sort())
     expect(sections.get('/admin/conversion-adjustments')).toEqual([...SETS.CONVERSION_PERMISSIONS].sort())
