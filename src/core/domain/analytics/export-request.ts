@@ -1,5 +1,5 @@
-// core/domain/analytics/export-request — тіло запиту вивантаження (Zod), порядок полів, імʼя файлу.
-// Перенесено з /api/admin/analytics/export без зміни поведінки.
+// core/domain/analytics/export-request — тело запроса выгрузки (Zod), порядок полей, имя файла.
+// Перенесено из /api/admin/analytics/export без изменения поведения.
 import { z } from 'zod'
 import { referralLinkFilterSchema, type ReportServerParams } from './report-request'
 
@@ -26,7 +26,7 @@ export const leadExportFieldSchema = z.enum([
 export type LeadExportField = z.infer<typeof leadExportFieldSchema>
 export type ExportFilters = z.infer<typeof exportFiltersSchema>
 
-// Порядок колонок: від значущих (основні дані ліда) до другорядних (UTM, історія, чат).
+// Порядок колонок: от значимых (основные данные лида) к второстепенным (UTM, история, чат).
 export const LEAD_FIELD_ORDER: LeadExportField[] = [
   'dates', 'phone', 'email', 'service', 'status', 'assigned_to',
   'deal_amount', 'was_target', 'was_non_target',
@@ -85,7 +85,7 @@ export function buildExportFileName(body: ExportBody): string {
   return `analytics_${date_from}_${date_to}${suffix}.${ext}`
 }
 
-/** Фільтри вивантаження → параметри звіту (для summary — розбивка за часом). */
+/** Фильтры выгрузки → параметры отчёта (для summary — разбивка по времени). */
 export function filtersToReportParams(
   filters: ExportFilters,
   granularity: 'day' | 'week' | 'month' = 'day',

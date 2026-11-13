@@ -1,14 +1,14 @@
-// Чиста логіка вибору аналітичної події для кліку по контакту (телефон/email).
-// Винесено з CopyableContact, щоб ловити баг «на десктопі клік копіює, але летіла
-// подія click-to-call» — тепер це покрито юніт-тестом contact-event.test.ts.
+// Чистая логика выбора аналитического события для клика по контакту (телефон/email).
+// Вынесено из CopyableContact, чтобы ловить баг «на десктопе клик копирует, но улетало
+// событие click-to-call» — теперь это покрыто юнит-тестом contact-event.test.ts.
 //
 // Правило:
-//   • мобільний (відкривається дзвінок/пошта) → подія click-to-call (іменна по location);
-//   • десктоп (значення копіюється) → подія копіювання (phone_copied / email_copied).
+//   • мобильный (открывается звонок/почта) → событие click-to-call (именное по location);
+//   • десктоп (значение копируется) → событие копирования (phone_copied / email_copied).
 
 export type ContactType = "phone" | "email";
 
-// Whitelist location → точний ключ реєстру для click-to-call
+// Whitelist location → точный ключ реестра для click-to-call
 export const PHONE_TRACK_KEY: Record<string, string> = {
   header: "header_phone_click",
   mobile_menu: "mobile_menu_phone_click",
@@ -34,13 +34,13 @@ export function resolveContactEvent(
   const params = location ? { location } : undefined;
 
   if (isMobile) {
-    // Дзвінок / пошта — іменна подія по місцю, інакше резервний ключ
+    // Звонок / почта — именное событие по месту, иначе резервный ключ
     const map = type === "phone" ? PHONE_TRACK_KEY : EMAIL_TRACK_KEY;
     const fallback = type === "phone" ? "phone_click" : "email_click";
     const key = (location && map[location]) ?? fallback;
     return { key, params };
   }
 
-  // Десктоп — копіювання
+  // Десктоп — копирование
   return { key: type === "phone" ? "phone_copied" : "email_copied", params };
 }

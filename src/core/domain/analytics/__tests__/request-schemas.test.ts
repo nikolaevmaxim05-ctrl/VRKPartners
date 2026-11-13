@@ -1,4 +1,4 @@
-// Схеми запитів аналітики: параметри звіту, значення виміру, тіло вивантаження.
+// Схемы запросов аналитики: параметры отчёта, значения измерения, тело выгрузки.
 import { describe, it, expect } from 'vitest'
 import {
   parseReportQuery,
@@ -17,7 +17,7 @@ const NOW = new Date('2026-09-18T12:00:00Z')
 const UUID = '11111111-2222-4333-8444-555555555555'
 const getFrom = (q: Record<string, string>) => (k: string) => (k in q ? q[k] : null)
 
-// ── Звіт ─────────────────────────────────────────────────────────────────────
+// ── Отчёт ────────────────────────────────────────────────────────────────────
 
 describe('defaultDateFrom / defaultDateTo', () => {
   it('30 днів назад і сьогодні (UTC)', () => {
@@ -57,7 +57,7 @@ describe('parseReportQuery', () => {
     expect(r).toEqual({ ok: false, message: 'date_from має бути YYYY-MM-DD' })
     const r2 = parseReportQuery(getFrom({ date_to: '2026-9-1' }), NOW)
     expect(r2).toEqual({ ok: false, message: 'date_to має бути YYYY-MM-DD' })
-    // обидві невалідні → повідомлення через «; »
+    // обе невалидные → сообщение через «; »
     const r3 = parseReportQuery(getFrom({ date_from: 'x', date_to: 'y' }), NOW)
     expect(!r3.ok && r3.message).toBe('date_from має бути YYYY-MM-DD; date_to має бути YYYY-MM-DD')
   })
@@ -78,7 +78,7 @@ describe('parseReportQuery', () => {
     expect(parseReportQuery(getFrom({ group_by: 'custom_field', custom_field_id: 'abc' }), NOW)).toEqual({ ok: false, message: msg })
     const ok = parseReportQuery(getFrom({ group_by: 'custom_field', custom_field_id: UUID }), NOW)
     expect(ok.ok && ok.params).toMatchObject({ group_by: 'custom_field', custom_field_id: UUID })
-    // UUID без вимоги — не перевіряється
+    // UUID без требования — не проверяется
     expect(parseReportQuery(getFrom({ group_by: 'status', custom_field_id: 'abc' }), NOW).ok).toBe(true)
   })
 
@@ -111,7 +111,7 @@ describe('reportParamsSchema', () => {
   })
 })
 
-// ── Значення виміру ──────────────────────────────────────────────────────────
+// ── Значения измерения ───────────────────────────────────────────────────────
 
 describe('dimensionParamsSchema', () => {
   it('dimension — utm_* або custom_field, обовʼязковий', () => {
@@ -143,7 +143,7 @@ describe('dedupeSorted / splitIds', () => {
   })
 })
 
-// ── Вивантаження ─────────────────────────────────────────────────────────────
+// ── Выгрузка ─────────────────────────────────────────────────────────────────
 
 const filters = { date_from: '2026-01-01', date_to: '2026-01-31' }
 

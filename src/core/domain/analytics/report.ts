@@ -1,102 +1,102 @@
 /**
  * analytics-report.ts
  *
- * Контракт типів і чисті агрегаторні функції для вкладки «Аналітика».
+ * Контракт типов и чистые агрегирующие функции для вкладки «Аналітика».
  *
- * АРХІТЕКТУРНІ РІШЕННЯ (зафіксовані тут, деталі — prompts/020-plan.md):
+ * АРХИТЕКТУРНЫЕ РЕШЕНИЯ (зафиксированы здесь, детали — prompts/020-plan.md):
  *
- * 1. АГРЕГАЦІЯ — select рядків + JS-агрегація в route.ts.
- *    Лідген-БД містить < 10k рядків, тому SQL RPC не потрібен.
- *    Переваги: простіше тестувати (без міграцій), легше розширювати метрики.
- *    Поріг перегляду: якщо count > 10_000 — route повертає 503 з порадою
- *    звузити період, але SQL RPC залишається опцією для майбутнього.
+ * 1. АГРЕГАЦИЯ — select строк + JS-агрегация в route.ts.
+ *    Лидген-БД содержит < 10k строк, поэтому SQL RPC не нужен.
+ *    Преимущества: проще тестировать (без миграций), легче расширять метрики.
+ *    Порог пересмотра: если count > 10_000 — route возвращает 503 с советом
+ *    сузить период, но SQL RPC остаётся опцией на будущее.
  *
- * 2. ТАЙМЗОНА — date-fns вже є в залежностях (^4.1.0).
- *    Використовуємо Intl.DateTimeFormat з timeZone: 'Europe/Kyiv' для
- *    форматування ключів групування (YYYY-MM-DD, YYYY-Www, YYYY-MM).
- *    date-fns-tz НЕ потрібен — Intl достатньо і не додає вагу до бандлу.
- *    Конкретна реалізація: функція toKyivDateKey() нижче.
+ * 2. ТАЙМЗОНА — date-fns уже есть в зависимостях (^4.1.0).
+ *    Используем Intl.DateTimeFormat с timeZone: 'Europe/Kyiv' для
+ *    форматирования ключей группировки (YYYY-MM-DD, YYYY-Www, YYYY-MM).
+ *    date-fns-tz НЕ нужен — Intl достаточно, и он не добавляет вес к бандлу.
+ *    Конкретная реализация: функция toKyivDateKey() ниже.
  *
- * 3. СЕМАНТИКА МЕТРИК — через conversion_type стадій (міграція 012).
- *    «Цільовий лід»    = поточна стадія ліда має conversion_type = 'target_lead'.
+ * 3. СЕМАНТИКА МЕТРИК — через conversion_type стадий (миграция 012).
+ *    «Цільовий лід»    = текущая стадия лида имеет conversion_type = 'target_lead'.
  *    «Нецільовий лід»  = conversion_type = 'non_target_lead'.
  *    «Угода»           = conversion_type = 'deal'.
  *    «Повторна угода»  = conversion_type = 'deal_adjustment'.
- *    Жодного хардкоду назв стадій — лише conversion_type.
+ *    Ни одного хардкода названий стадий — только conversion_type.
  *
- * 4. ПРАВА — permission 'view_reports' (вже є в lib/permissions.ts).
+ * 4. ПРАВА — permission 'view_reports' (уже есть в lib/permissions.ts).
  *    GET /api/admin/analytics/report  → hasPermission(user.id, 'view_reports')
  *    GET /api/admin/analytics/export  → hasPermission(user.id, 'view_reports')
  */
 
-// ─── Вхідні параметри ────────────────────────────────────────────────────────
+// ─── Входные параметры ───────────────────────────────────────────────────────
 
-/** Розрізи (groupBy) — відповідають UI-селекту «Розріз». */
+/** Разрезы (groupBy) — соответствуют UI-селекту «Розріз». */
 export type GroupBy =
-  | 'utm_source'    // Джерело
+  | 'utm_source'    // Источник
   | 'utm_medium'    // UTM Medium
   | 'utm_campaign'  // UTM Campaign
   | 'utm_term'      // UTM Term
   | 'utm_content'   // UTM Content
-  | 'status'        // Стадія
-  | 'service'       // Послуга
-  | 'assigned_to'   // Відповідальний
-  | 'referral_link' // Реферальне посилання (партнер)
+  | 'status'        // Стадия
+  | 'service'       // Услуга
+  | 'assigned_to'   // Ответственный
+  | 'referral_link' // Реферальная ссылка (партнёр)
   | 'day'           // День
-  | 'week'          // Тиждень
-  | 'month'         // Місяць
-  | 'custom_field'  // Додаткове поле (потребує customFieldId)
+  | 'week'          // Неделя
+  | 'month'         // Месяц
+  | 'custom_field'  // Дополнительное поле (требует customFieldId)
 
-/** Гранулярність таймсерії. */
+/** Гранулярность таймсерии. */
 export type TsGranularity = 'day' | 'week' | 'month'
 
 /**
- * Параметри запиту аналітичного звіту.
- * Усі поля з query string — рядки; парсинг/валідація в route.ts через Zod.
+ * Параметры запроса аналитического отчёта.
+ * Все поля из query string — строки; парсинг/валидация в route.ts через Zod.
  */
 export interface ReportParams {
-  /** ISO-дата початку (включно), напр. '2025-01-01'. */
+  /** ISO-дата начала (включительно), напр. '2025-01-01'. */
   dateFrom: string
-  /** ISO-дата кінця (включно), напр. '2025-01-31'. */
+  /** ISO-дата конца (включительно), напр. '2025-01-31'. */
   dateTo: string
-  /** Розріз агрегації. Default: 'day'. */
+  /** Разрез агрегации. Default: 'day'. */
   groupBy: GroupBy
-  /** При groupBy='custom_field' — обов'язковий UUID кастомного поля. */
+  /** При groupBy='custom_field' — обязательный UUID кастомного поля. */
   customFieldId?: string
-  /** Гранулярність таймсерії. Default: 'day'. */
+  /** Гранулярность таймсерии. Default: 'day'. */
   tsGranularity?: TsGranularity
-  /** Доп. фільтр: джерело (utm_source). Порожній рядок = всі. */
+  /** Доп. фильтр: источник (utm_source). Пустая строка = все. */
   filterUtmSource?: string
-  /** Доп. фільтр: послуга (service). Порожній рядок = всі. */
+  /** Доп. фильтр: услуга (service). Пустая строка = все. */
   filterService?: string
-  /** Доп. фільтр: відповідальний (assigned_to UUID). Порожній рядок = всі. */
+  /** Доп. фильтр: ответственный (assigned_to UUID). Пустая строка = все. */
   filterAssignedTo?: string
-  /** Доп. фільтр: кілька відповідальних (список UUID). Має пріоритет над filterAssignedTo. */
+  /** Доп. фильтр: несколько ответственных (список UUID). Имеет приоритет над filterAssignedTo. */
   filterAssigneeIds?: string[]
-  /** Доп. фільтр: стадії (список UUID). Порожній масив = всі. */
+  /** Доп. фильтр: стадии (список UUID). Пустой массив = все. */
   filterStatusIds?: string[]
-  /** Доп. фільтр: наявність gclid. Default: 'any'. */
+  /** Доп. фильтр: наличие gclid. Default: 'any'. */
   filterGclid?: 'any' | 'with' | 'without'
-  /** Доп. фільтр: реферальне посилання — UUID або 'none' (без посилання). Порожній = всі. */
+  /** Доп. фильтр: реферальная ссылка — UUID или 'none' (без ссылки). Пусто = все. */
   filterReferralLinkId?: string
   /**
-   * Доп. фільтр по КОНКРЕТНОМУ значенню поточного розрізу (groupBy).
-   * Напр. groupBy='utm_campaign' + filterGroupValue='spring_sale' → лишити
-   * тільки ліди цієї кампанії. Порожній рядок = всі значення.
-   * Фільтрація через getGroupKey, тому працює для всіх вимірів однаково.
+   * Доп. фильтр по КОНКРЕТНОМУ значению текущего разреза (groupBy).
+   * Напр. groupBy='utm_campaign' + filterGroupValue='spring_sale' → оставить
+   * только лиды этой кампании. Пустая строка = все значения.
+   * Фильтрация через getGroupKey, поэтому работает для всех измерений одинаково.
    */
   filterGroupValue?: string
-  /** Розбивка графіка по виміру. Default: 'none'. */
+  /** Разбивка графика по измерению. Default: 'none'. */
   breakdown?: BreakdownDimension
-  /** Метрика для breakdown-ліній. Default: 'total'. */
+  /** Метрика для breakdown-линий. Default: 'total'. */
   breakdownMetric?: MetricKeyForBreakdown
 }
 
-// ─── Внутрішні моделі (вхід для агрегатора) ─────────────────────────────────
+// ─── Внутренние модели (вход для агрегатора) ────────────────────────────────
 
 /**
- * Скорочена модель ліда — тільки поля, потрібні для агрегації.
- * Route передає сюди рядки з БД після select.
+ * Сокращённая модель лида — только поля, нужные для агрегации.
+ * Route передаёт сюда строки из БД после select.
  */
 export interface LeadForAggregation {
   id: string
@@ -111,41 +111,41 @@ export interface LeadForAggregation {
   assigned_to: string | null
   deal_amount: number | null
   deal_profit: number | null
-  /** conversion_type поточної стадії. Null якщо стадії немає. */
+  /** conversion_type текущей стадии. Null, если стадии нет. */
   status_conversion_type: 'target_lead' | 'non_target_lead' | 'deal' | 'deal_adjustment' | null
-  /** Назва стадії для групування по 'status'. */
+  /** Название стадии для группировки по 'status'. */
   status_name: string | null
-  /** ID стадії. */
+  /** ID стадии. */
   status_id: string | null
-  /** Колір стадії — для UI. */
+  /** Цвет стадии — для UI. */
   status_color: string | null
-  /** Реферальне посилання (партнер), за яким прийшла заявка; null — без посилання. */
+  /** Реферальная ссылка (партнёр), по которой пришла заявка; null — без ссылки. */
   referral_link_id: string | null
-  /** Назва партнера з embed referral_links (для міток розрізу/розбивки). */
+  /** Название партнёра из embed referral_links (для меток разреза/разбивки). */
   referral_link_name: string | null
-  /** Код з переходу, якщо посилання не знайдено/вимкнене на момент заявки. */
+  /** Код из перехода, если ссылка не найдена/выключена на момент заявки. */
   referral_code: string | null
   /**
-   * Значення обраного кастомного поля для цього ліда.
-   * Підставляється route-ом при group_by=custom_field або відповідних фільтрах.
+   * Значение выбранного кастомного поля для этого лида.
+   * Подставляется route-ом при group_by=custom_field или соответствующих фильтрах.
    */
   custom_field_value?: string | null
 }
 
-// ─── Вихідні типи (відповідь API) ────────────────────────────────────────────
+// ─── Выходные типы (ответ API) ───────────────────────────────────────────────
 
 /**
- * Одна рядок зведеної таблиці.
+ * Одна строка сводной таблицы.
  */
 export interface ReportRow {
-  /** Технічний ключ розрізу. */
+  /** Технический ключ разреза. */
   key: string
-  /** Відображувана назва в UI. */
+  /** Отображаемое название в UI. */
   label: string
-  /** Колір рядка (для стадій). Null для інших розрізів. */
+  /** Цвет строки (для стадий). Null для других разрезов. */
   color: string | null
 
-  /** Загальна кількість заявок. */
+  /** Общее количество заявок. */
   total: number
   /** conversion_type = 'target_lead'. */
   targetLeads: number
@@ -168,12 +168,12 @@ export interface ReportRow {
 }
 
 /**
- * Один бакет таймсерії (день / тиждень / місяць).
+ * Один бакет таймсерии (день / неделя / месяц).
  */
 export interface TimeseriesPoint {
-  /** Ключ бакету: 'YYYY-MM-DD' | 'YYYY-Www' | 'YYYY-MM' */
+  /** Ключ бакета: 'YYYY-MM-DD' | 'YYYY-Www' | 'YYYY-MM' */
   dateIso: string
-  /** Мітка для осі X: 'dd.MM' | 'Тиж. NN' | 'MM.YYYY' */
+  /** Метка для оси X: 'dd.MM' | 'Тиж. NN' | 'MM.YYYY' */
   label: string
   total: number
   targetLeads: number
@@ -185,12 +185,12 @@ export interface TimeseriesPoint {
 }
 
 /**
- * Рядок блоку «По відповідальних».
+ * Строка блока «По відповідальних».
  */
 export interface AssigneeRow {
-  /** user id або '__unassigned__' */
+  /** user id или '__unassigned__' */
   key: string
-  /** Ім'я/email | 'Без відповідального' */
+  /** Имя/email | 'Без відповідального' */
   label: string
   total: number
   targetLeads: number
@@ -202,27 +202,27 @@ export interface AssigneeRow {
 }
 
 /**
- * Одна серія розбивки (лінія) для timeseriesBreakdown.
+ * Одна серия разбивки (линия) для timeseriesBreakdown.
  */
 export interface BreakdownSeries {
-  /** Технічний ключ серії (значення виміру або '__other__'). */
+  /** Технический ключ серии (значение измерения или '__other__'). */
   key: string
-  /** Відображувана назва серії. */
+  /** Отображаемое название серии. */
   label: string
-  /** Колір лінії (призначається на сервері). */
+  /** Цвет линии (назначается на сервере). */
   color: string
 }
 
 /**
- * Таймсерія з розбивкою по одному виміру (для графіка).
- * Присутня тільки якщо запитаний breakdown != 'none'.
+ * Таймсерия с разбивкой по одному измерению (для графика).
+ * Присутствует, только если запрошен breakdown != 'none'.
  */
 export interface TimeseriesBreakdown {
-  /** Метрики, що відображаються на лініях (одна або декілька). */
+  /** Метрики, отображаемые на линиях (одна или несколько). */
   metrics: MetricKeyForBreakdown[]
-  /** Серії: топ-виміри × обрані метрики (+ «Інші» на кожну метрику). */
+  /** Серии: топ-измерения × выбранные метрики (+ «Інші» на каждую метрику). */
   series: BreakdownSeries[]
-  /** Точки часу з даними по кожній серії. */
+  /** Точки времени с данными по каждой серии. */
   points: {
     dateIso: string
     label: string
@@ -230,7 +230,7 @@ export interface TimeseriesBreakdown {
   }[]
 }
 
-/** Метрики доступні для breakdown-режиму графіка. */
+/** Метрики, доступные для breakdown-режима графика. */
 export type MetricKeyForBreakdown =
   | 'total'
   | 'targetLeads'
@@ -240,12 +240,12 @@ export type MetricKeyForBreakdown =
   | 'dealProfitSum'
 
 /**
- * Виміри для селектора «Розбити за».
- * utm-виміри, status, service, assigned_to працюють і для зведеної таблиці
- * (group_by), і для розбивки графіка (timeseriesBreakdown).
- * 'custom_field' — лише розріз зведеної таблиці (group_by); таймсерія-розбивка
- * по кастом-полю на бекенді не підтримується, тож для нього графік лишається
- * сукупним (фронт шле breakdown='none', а group_by='custom_field').
+ * Измерения для селектора «Розбити за».
+ * utm-измерения, status, service, assigned_to работают и для сводной таблицы
+ * (group_by), и для разбивки графика (timeseriesBreakdown).
+ * 'custom_field' — только разрез сводной таблицы (group_by); таймсерия-разбивка
+ * по кастом-полю на бэкенде не поддерживается, так что для него график остаётся
+ * совокупным (фронт шлёт breakdown='none', а group_by='custom_field').
  */
 export type BreakdownDimension =
   | 'none'
@@ -260,50 +260,50 @@ export type BreakdownDimension =
   | 'referral_link'
   | 'custom_field'
 
-/** Ключ групи «без реферального посилання» (розріз/розбивка referral_link). */
+/** Ключ группы «без реферальной ссылки» (разрез/разбивка referral_link). */
 export const NO_REFERRAL_KEY = '(без посилання)'
-/** Підпис групи «без реферального посилання» в UI/експорті. */
+/** Подпись группы «без реферальной ссылки» в UI/экспорте. */
 export const NO_REFERRAL_LABEL = 'Без посилання'
 
 /**
- * Повна відповідь GET /api/admin/analytics/report.
+ * Полный ответ GET /api/admin/analytics/report.
  */
 export interface ReportResponse {
-  /** Рядки зведеної таблиці (відсортовані за total DESC). */
+  /** Строки сводной таблицы (отсортированы по total DESC). */
   rows: ReportRow[]
-  /** Сумарний рядок «Разом» по всіх рядках. */
+  /** Суммарная строка «Разом» по всем строкам. */
   total: ReportRow
-  /** Таймсерія за вибраний період з урахуванням tsGranularity. */
+  /** Таймсерия за выбранный период с учётом tsGranularity. */
   timeseries: TimeseriesPoint[]
   /**
-   * Таймсерія з розбивкою по виміру.
-   * Присутня тільки якщо в запиті breakdown != 'none'.
+   * Таймсерия с разбивкой по измерению.
+   * Присутствует, только если в запросе breakdown != 'none'.
    */
   timeseriesBreakdown?: TimeseriesBreakdown
-  /** Розбивка по відповідальних. */
+  /** Разбивка по ответственным. */
   byAssignee: AssigneeRow[]
   /**
-   * Серверні флаги наявності типів стадій у БД.
-   * hasProfitStages: є хоч одна стадія з amount_is_profit=true.
-   * hasDealAdjustmentStages: є хоч одна стадія з conversion_type='deal_adjustment'.
+   * Серверные флаги наличия типов стадий в БД.
+   * hasProfitStages: есть хоть одна стадия с amount_is_profit=true.
+   * hasDealAdjustmentStages: есть хоть одна стадия с conversion_type='deal_adjustment'.
    */
   flags: {
     hasProfitStages: boolean
     hasDealAdjustmentStages: boolean
   }
-  /** Повторює вхідні params. */
+  /** Повторяет входные params. */
   params: ReportParams
-  /** Кількість лідів після фільтрів. */
+  /** Количество лидов после фильтров. */
   filteredCount: number
 }
 
-// ─── Утиліти таймзони ────────────────────────────────────────────────────────
+// ─── Утилиты таймзоны ────────────────────────────────────────────────────────
 
 const KYIV_TZ = 'Europe/Kyiv'
 
 /**
- * Форматує UTC ISO-рядок у локальний ключ для groupBy = 'day'.
- * Результат: 'YYYY-MM-DD' за таймзоною Europe/Kyiv.
+ * Форматирует UTC ISO-строку в локальный ключ для groupBy = 'day'.
+ * Результат: 'YYYY-MM-DD' по таймзоне Europe/Kyiv.
  */
 export function toKyivDateKey(isoUtc: string): string {
   const d = new Date(isoUtc)
@@ -317,7 +317,7 @@ export function toKyivDateKey(isoUtc: string): string {
 }
 
 /**
- * Форматує UTC ISO-рядок у ключ для groupBy = 'week' (ISO-тиждень).
+ * Форматирует UTC ISO-строку в ключ для groupBy = 'week' (ISO-неделя).
  * Результат: 'YYYY-Www', напр. '2025-W24'.
  */
 export function toKyivWeekKey(isoUtc: string): string {
@@ -334,7 +334,7 @@ export function toKyivWeekKey(isoUtc: string): string {
 }
 
 /**
- * Форматує UTC ISO-рядок у ключ для groupBy = 'month'.
+ * Форматирует UTC ISO-строку в ключ для groupBy = 'month'.
  * Результат: 'YYYY-MM', напр. '2025-06'.
  */
 export function toKyivMonthKey(isoUtc: string): string {
@@ -342,8 +342,8 @@ export function toKyivMonthKey(isoUtc: string): string {
 }
 
 /**
- * Повертає ключ для дати залежно від groupBy.
- * Для нетимчасових розрізів повертає null.
+ * Возвращает ключ для даты в зависимости от groupBy.
+ * Для невременных разрезов возвращает null.
  */
 export function getDateKey(
   isoUtc: string,
@@ -355,33 +355,33 @@ export function getDateKey(
   return null
 }
 
-// ─── Утиліти міток таймсерії ─────────────────────────────────────────────────
+// ─── Утилиты меток таймсерии ─────────────────────────────────────────────────
 
-/** Повертає мітку осі X для бакету day: 'dd.MM' */
+/** Возвращает метку оси X для бакета day: 'dd.MM' */
 function dayLabel(dateIso: string): string {
   const [, mm, dd] = dateIso.split('-')
   return `${dd}.${mm}`
 }
 
-/** Повертає мітку осі X для бакету week: 'Тиж. NN' */
+/** Возвращает метку оси X для бакета week: 'Тиж. NN' */
 function weekLabel(weekKey: string): string {
   // weekKey = 'YYYY-Www'
   const num = weekKey.split('-W')[1] ?? weekKey
   return `Тиж. ${num}`
 }
 
-/** Повертає мітку осі X для бакету month: 'MM.YYYY' */
+/** Возвращает метку оси X для бакета month: 'MM.YYYY' */
 function monthLabel(monthKey: string): string {
   const [yyyy, mm] = monthKey.split('-')
   return `${mm}.${yyyy}`
 }
 
-// ─── Ітератор бакетів таймсерії ─────────────────────────────────────────────
+// ─── Итератор бакетов таймсерии ─────────────────────────────────────────────
 
 /**
- * Генерує всі ключі бакетів від dateFrom до dateTo включно.
- * Повертає масив { dateIso, label } у хронологічному порядку.
- * Експортована для використання в analytics-report-server.ts.
+ * Генерирует все ключи бакетов от dateFrom до dateTo включительно.
+ * Возвращает массив { dateIso, label } в хронологическом порядке.
+ * Экспортирована для использования в analytics-report-server.ts.
  */
 export function generateBuckets(
   dateFrom: string,
@@ -391,7 +391,7 @@ export function generateBuckets(
   const result: Array<{ dateIso: string; label: string }> = []
   const seen = new Set<string>()
 
-  // Ітеруємо по днях і збираємо унікальні бакети
+  // Итерируем по дням и собираем уникальные бакеты
   const cursor = new Date(dateFrom + 'T00:00:00Z')
   const end    = new Date(dateTo   + 'T00:00:00Z')
 
@@ -404,7 +404,7 @@ export function generateBuckets(
       key = isoDay
       lbl = dayLabel(isoDay)
     } else if (granularity === 'week') {
-      // Потрібно рахувати ISO-тиждень як для UTC-дати, що відповідає цьому дню
+      // Нужно считать ISO-неделю как для UTC-даты, соответствующей этому дню
       key = toKyivWeekKey(cursor.toISOString())
       lbl = weekLabel(key)
     } else {
@@ -423,10 +423,10 @@ export function generateBuckets(
   return result
 }
 
-// ─── Чисті агрегаторні функції (без DB) ─────────────────────────────────────
+// ─── Чистые агрегирующие функции (без DB) ───────────────────────────────────
 
 /**
- * Витягує значення розрізу з ліда для заданого groupBy.
+ * Извлекает значение разреза из лида для заданного groupBy.
  */
 export function getGroupKey(lead: LeadForAggregation, groupBy: GroupBy): string {
   switch (groupBy) {
@@ -459,7 +459,7 @@ export function getGroupKey(lead: LeadForAggregation, groupBy: GroupBy): string 
   }
 }
 
-/** Внутрішня фабрика порожнього ReportRow. */
+/** Внутренняя фабрика пустого ReportRow. */
 function emptyReportRow(key: string, label: string, color: string | null = null): ReportRow {
   return {
     key,
@@ -478,7 +478,7 @@ function emptyReportRow(key: string, label: string, color: string | null = null)
   }
 }
 
-/** Розраховує відсоткові конверсії для рядка (мутує). */
+/** Рассчитывает процентные конверсии для строки (мутирует). */
 function calcConversions(row: ReportRow): void {
   row.conversionToTarget    = row.total > 0 ? (row.targetLeads    / row.total) * 100 : 0
   row.conversionToDeal      = row.total > 0 ? (row.deals          / row.total) * 100 : 0
@@ -486,13 +486,13 @@ function calcConversions(row: ReportRow): void {
 }
 
 /**
- * Агрегує масив лідів у зведену таблицю за заданим розрізом.
+ * Агрегирует массив лидов в сводную таблицу по заданному разрезу.
  *
- * @param leads    — Масив лідів після фільтрів
- * @param groupBy  — Розріз агрегації
- * @param labelMap — Словник key → label для нечислових розрізів.
- * @param colorMap — Словник key → color (тільки для 'status').
- * @returns        ReportRow[] відсортований DESC по total.
+ * @param leads    — Массив лидов после фильтров
+ * @param groupBy  — Разрез агрегации
+ * @param labelMap — Словарь key → label для нечисловых разрезов.
+ * @param colorMap — Словарь key → color (только для 'status').
+ * @returns        ReportRow[], отсортированный DESC по total.
  */
 export function aggregateLeads(
   leads: LeadForAggregation[],
@@ -532,7 +532,7 @@ export function aggregateLeads(
 }
 
 /**
- * Обчислює підсумковий рядок «Разом» із масиву рядків.
+ * Вычисляет итоговую строку «Разом» из массива строк.
  */
 export function computeTotalRow(rows: ReportRow[]): ReportRow {
   const total = emptyReportRow('__total__', 'Разом')
@@ -552,13 +552,13 @@ export function computeTotalRow(rows: ReportRow[]): ReportRow {
 }
 
 /**
- * Будує таймсерію за заданою гранулярністю у таймзоні Europe/Kyiv.
+ * Строит таймсерию с заданной гранулярностью в таймзоне Europe/Kyiv.
  *
- * Генерує ВСІ бакети діапазону (включно з пустими нулями).
+ * Генерирует ВСЕ бакеты диапазона (включая пустые нули).
  *
- * @param leads       — Масив лідів за вибраний період
- * @param dateFrom    — Початок у форматі 'YYYY-MM-DD' (Kyiv)
- * @param dateTo      — Кінець у форматі 'YYYY-MM-DD' (Kyiv)
+ * @param leads       — Массив лидов за выбранный период
+ * @param dateFrom    — Начало в формате 'YYYY-MM-DD' (Kyiv)
+ * @param dateTo      — Конец в формате 'YYYY-MM-DD' (Kyiv)
  * @param granularity — 'day' | 'week' | 'month' (default: 'day')
  */
 export function buildTimeseries(
@@ -567,7 +567,7 @@ export function buildTimeseries(
   dateTo: string,
   granularity: TsGranularity = 'day',
 ): TimeseriesPoint[] {
-  // Агрегуємо по бакетах
+  // Агрегируем по бакетам
   type Bucket = {
     total: number
     targetLeads: number
@@ -606,7 +606,7 @@ export function buildTimeseries(
     bucketMap.set(key, existing)
   }
 
-  // Генеруємо всі бакети діапазону (включаючи пусті)
+  // Генерируем все бакеты диапазона (включая пустые)
   const buckets = generateBuckets(dateFrom, dateTo, granularity)
 
   return buckets.map(({ dateIso, label }) => {
@@ -623,11 +623,11 @@ export function buildTimeseries(
 }
 
 /**
- * Агрегує ліди по відповідальних.
+ * Агрегирует лиды по ответственным.
  *
- * @param leads    — Масив лідів після фільтрів
- * @param labelMap — Словник userId → displayName/email
- * @returns        AssigneeRow[], відсортований по total DESC, __unassigned__ завжди останній
+ * @param leads    — Массив лидов после фильтров
+ * @param labelMap — Словарь userId → displayName/email
+ * @returns        AssigneeRow[], отсортированный по total DESC, __unassigned__ всегда последний
  */
 export function aggregateByAssignee(
   leads: LeadForAggregation[],
@@ -672,13 +672,13 @@ export function aggregateByAssignee(
     .filter((r) => r.key !== '__unassigned__')
     .sort((a, b) => b.total - a.total)
 
-  // __unassigned__ завжди останній, і тільки якщо є такі ліди
+  // __unassigned__ всегда последний, и только если есть такие лиды
   return unassigned ? [...assigned, unassigned] : assigned
 }
 
 /**
- * Застосовує додаткові фільтри до масиву лідів.
- * Виконується до агрегації; вхід не мутується.
+ * Применяет дополнительные фильтры к массиву лидов.
+ * Выполняется до агрегации; вход не мутируется.
  */
 export function filterLeads(
   leads: LeadForAggregation[],
@@ -698,31 +698,31 @@ export function filterLeads(
     if (params.filterUtmSource  && lead.utm_source   !== params.filterUtmSource)  return false
     if (params.filterService    && lead.service      !== params.filterService)     return false
 
-    // Кілька відповідальних має пріоритет; інакше — одиночний filterAssignedTo
+    // Несколько ответственных имеют приоритет; иначе — одиночный filterAssignedTo
     if (params.filterAssigneeIds && params.filterAssigneeIds.length > 0) {
       if (!lead.assigned_to || !params.filterAssigneeIds.includes(lead.assigned_to)) return false
     } else if (params.filterAssignedTo && lead.assigned_to !== params.filterAssignedTo) {
       return false
     }
 
-    // Фільтр по стадіях (multi)
+    // Фильтр по стадиям (multi)
     if (params.filterStatusIds && params.filterStatusIds.length > 0) {
       if (!lead.status_id || !params.filterStatusIds.includes(lead.status_id)) return false
     }
 
-    // Фільтр по gclid
+    // Фильтр по gclid
     if (params.filterGclid === 'with' && !lead.gclid)   return false
     if (params.filterGclid === 'without' && !!lead.gclid) return false
 
-    // Фільтр по реферальному посиланню: 'none' — лише без посилання, інакше — конкретне
+    // Фильтр по реферальной ссылке: 'none' — только без ссылки, иначе — конкретная
     if (params.filterReferralLinkId === 'none') {
       if (lead.referral_link_id) return false
     } else if (params.filterReferralLinkId && lead.referral_link_id !== params.filterReferralLinkId) {
       return false
     }
 
-    // Універсальний фільтр по значенню поточного розрізу.
-    // getGroupKey коректно витягує значення для будь-якого виміру
+    // Универсальный фильтр по значению текущего разреза.
+    // getGroupKey корректно извлекает значение для любого измерения
     // (utm_*, status→id, assigned_to→id, service, custom_field→value).
     if (params.filterGroupValue && params.groupBy) {
       if (getGroupKey(lead, params.groupBy) !== params.filterGroupValue) return false
@@ -733,16 +733,16 @@ export function filterLeads(
 }
 
 /**
- * Головний агрегатор — orchestrates filterLeads + aggregateLeads +
- * computeTotalRow + buildTimeseries + aggregateByAssignee в одну відповідь ReportResponse.
+ * Главный агрегатор — orchestrates filterLeads + aggregateLeads +
+ * computeTotalRow + buildTimeseries + aggregateByAssignee в один ответ ReportResponse.
  *
- * @param allLeads         — Рядки з БД за [dateFrom, dateTo]
- * @param params           — Параметри запиту
- * @param labelMap         — Словник ключ → мітка для нечислових розрізів (groupBy)
- * @param colorMap         — Словник ключ → колір (для стадій)
- * @param flags            — Серверні флаги (передає route після select по lead_statuses)
- * @param assigneeLabelMap — Окремий словник userId → displayName для блоку byAssignee.
- *                          Якщо не передано — використовується labelMap.
+ * @param allLeads         — Строки из БД за [dateFrom, dateTo]
+ * @param params           — Параметры запроса
+ * @param labelMap         — Словарь ключ → метка для нечисловых разрезов (groupBy)
+ * @param colorMap         — Словарь ключ → цвет (для стадий)
+ * @param flags            — Серверные флаги (передаёт route после select по lead_statuses)
+ * @param assigneeLabelMap — Отдельный словарь userId → displayName для блока byAssignee.
+ *                          Если не передан — используется labelMap.
  */
 export function buildReport(
   allLeads: LeadForAggregation[],
@@ -757,7 +757,7 @@ export function buildReport(
   const total      = computeTotalRow(rows)
   const granularity: TsGranularity = params.tsGranularity ?? 'day'
   const timeseries = buildTimeseries(filtered, params.dateFrom, params.dateTo, granularity)
-  // byAssignee завжди будується з окремим assigneeLabelMap або з labelMap
+  // byAssignee всегда строится с отдельным assigneeLabelMap или с labelMap
   const byAssignee = aggregateByAssignee(filtered, assigneeLabelMap ?? labelMap)
 
   return {

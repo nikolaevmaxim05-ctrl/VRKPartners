@@ -1,4 +1,4 @@
-// core/domain/analytics/export-csv — CSV-вивантаження (лідів і зведення). Чиста логіка.
+// core/domain/analytics/export-csv — CSV-выгрузка (лидов и сводки). Чистая логика.
 import {
   sanitizeCsvCell,
   wrapPhoneForCsv,
@@ -17,12 +17,12 @@ export function buildLeadsCsv(headers: string[], dataRows: CellValue[][]): strin
   const escapeWithFormula = (v: CellValue, colIndex: number): string => {
     if (v == null) return '""'
     if (v instanceof Date) return `"${formatKyivDateTime(v.toISOString())}"`
-    // Телефон визначаємо за заголовком колонки (headers вже розгорнуті 1:1)
+    // Телефон определяем по заголовку колонки (headers уже развёрнуты 1:1)
     if (headers[colIndex] === 'Телефон' && typeof v === 'string') {
-      // Формула без зовнішніх лапок — Excel зчитує як formula-рядок
+      // Формула без внешних кавычек — Excel считывает как formula-строку
       return wrapPhoneForCsv(v)
     }
-    // W4: захист від формул (не для телефону — він вже у формулі)
+    // W4: защита от формул (не для телефона — он уже в формуле)
     const sanitized = sanitizeCsvCell(String(v))
     return `"${sanitized.replace(/"/g, '""')}"`
   }

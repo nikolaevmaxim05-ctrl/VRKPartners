@@ -1,21 +1,21 @@
 /**
  * analytics-export.ts
  *
- * Чисті (без БД) хелпери для побудови вмісту вивантажень.
- * Тестуються через vitest без моків Supabase.
+ * Чистые (без БД) хелперы для построения содержимого выгрузок.
+ * Тестируются через vitest без моков Supabase.
  *
- * Публічний API:
- *   buildComparisonTable  — зведена таблиця «Порівняння» для кількох періодів
- *   buildPeriodRows       — рядки таблиці одного періоду (з/без разбивки дат)
- *   filterByDealAmount    — предикат фільтру діапазону суми угоди
- *   wasTargetPredicate    — предикат «був цільовим» (через history OR поточна стадія)
- *   sanitizeCsvCell       — захист від CSV-ін'єкцій формул (W4)
- *   sanitizeSheetName     — очищення імені листа XLSX (Excel-обмеження)
+ * Публичный API:
+ *   buildComparisonTable  — сводная таблица «Порівняння» для нескольких периодов
+ *   buildPeriodRows       — строки таблицы одного периода (с/без разбивки дат)
+ *   filterByDealAmount    — предикат фильтра диапазона суммы сделки
+ *   wasTargetPredicate    — предикат «был целевым» (через history OR текущая стадия)
+ *   sanitizeCsvCell       — защита от CSV-инъекций формул (W4)
+ *   sanitizeSheetName     — очистка имени листа XLSX (ограничения Excel)
  */
 
 import type { ReportResponse, ReportRow } from './report'
 
-// ─── Типи ────────────────────────────────────────────────────────────────────
+// ─── Типы ────────────────────────────────────────────────────────────────────
 
 export type SummaryColumn =
   | 'total'
@@ -28,7 +28,7 @@ export type SummaryColumn =
   | 'conversionToTarget'
   | 'conversionToDeal'
 
-/** Заголовки стовпців для summary-виводу (uk-UA). */
+/** Заголовки столбцов для summary-вывода (uk-UA). */
 export const SUMMARY_COLUMN_HEADERS: Record<SummaryColumn, string> = {
   total:                 'Заявки',
   nonTargetLeads:        'Нецільові ліди',
@@ -42,9 +42,9 @@ export const SUMMARY_COLUMN_HEADERS: Record<SummaryColumn, string> = {
 }
 
 /**
- * Канонічний порядок показників у файлі вивантаження і в конструкторі (рішення власника 2026-09-30):
- * як у зведеній таблиці екрана — «Конверсія у цільові» одразу після «Нецільові», перед «Угоди».
- * Порядок стовпців файлу НЕ залежить від того, в якій послідовності користувач ставив позначки.
+ * Канонический порядок показателей в файле выгрузки и в конструкторе (решение владельца 2026-09-30):
+ * как в сводной таблице экрана — «Конверсія у цільові» сразу после «Нецільові», перед «Угоди».
+ * Порядок столбцов файла НЕ зависит от того, в какой последовательности пользователь ставил отметки.
  */
 export const SUMMARY_COLUMN_ORDER: SummaryColumn[] = [
   'total',
@@ -58,7 +58,7 @@ export const SUMMARY_COLUMN_ORDER: SummaryColumn[] = [
   'conversionToDeal',
 ]
 
-/** Обрані показники в канонічному порядку (дублікати прибираються). */
+/** Выбранные показатели в каноническом порядке (дубликаты убираются). */
 export function orderSummaryColumns(columns: ReadonlyArray<SummaryColumn>): SummaryColumn[] {
   const chosen = new Set(columns)
   return SUMMARY_COLUMN_ORDER.filter((c) => chosen.has(c))
@@ -67,8 +67,8 @@ export function orderSummaryColumns(columns: ReadonlyArray<SummaryColumn>): Summ
 // ─── sanitizeCsvCell ─────────────────────────────────────────────────────────
 
 /**
- * Захист від CSV/XLSX-ін'єкцій формул (OWASP W4).
- * Якщо рядок починається з = + - @ \t \r — додаємо апостроф.
+ * Защита от CSV/XLSX-инъекций формул (OWASP W4).
+ * Если строка начинается с = + - @ \t \r — добавляем апостроф.
  */
 export function sanitizeCsvCell(value: string): string {
   if (/^[=+\-@\t\r]/.test(value)) {
@@ -78,8 +78,8 @@ export function sanitizeCsvCell(value: string): string {
 }
 
 /**
- * Обгортає телефон у формульний рядок для CSV щоб Excel не конвертував у число.
- * Наприклад: "+380501234567" → `="+380501234567"`
+ * Оборачивает телефон в формульную строку для CSV, чтобы Excel не конвертировал в число.
+ * Например: "+380501234567" → `="+380501234567"`
  */
 export function wrapPhoneForCsv(phone: string): string {
   const clean = phone.replace(/"/g, '""')
@@ -91,50 +91,50 @@ export function wrapPhoneForCsv(phone: string): string {
 const FORBIDDEN_SHEET_CHARS_RE = /[:/\\?*[\]]/g
 
 /**
- * Очищає ім'я листа Excel від заборонених символів і обрізає до 31 символу.
- * Excel не дозволяє: : \ / ? * [ ]
+ * Очищает имя листа Excel от запрещённых символов и обрезает до 31 символа.
+ * Excel не допускает: : \ / ? * [ ]
  */
 export function sanitizeSheetName(name: string): string {
   return name.replace(FORBIDDEN_SHEET_CHARS_RE, '-').substring(0, 31)
 }
 
 /**
- * Повертає унікальне ім'я листа відносно вже використаних імен.
+ * Возвращает уникальное имя листа относительно уже использованных имён.
  *
  * Алгоритм:
- *   1. Намагаємось використати base (вже sanitize-нутий, ≤31 символу).
- *   2. При коллізії додаємо суфікс « (2)», « (3)»... і обрізаємо base щоб
- *      фінальна рядок лишалась ≤31 символу.
+ *   1. Пытаемся использовать base (уже sanitize-нутый, ≤31 символа).
+ *   2. При коллизии добавляем суффикс « (2)», « (3)»... и обрезаем base, чтобы
+ *      финальная строка оставалась ≤31 символа.
  *
- * @param existing — Set вже зайнятих імен (case-sensitive, як в ExcelJS)
- * @param base     — бажане ім'я листа (має бути вже sanitize-нутим)
+ * @param existing — Set уже занятых имён (case-sensitive, как в ExcelJS)
+ * @param base     — желаемое имя листа (должно быть уже sanitize-нутым)
  */
 export function uniqueSheetName(existing: Set<string>, base: string): string {
   if (!existing.has(base)) return base
 
   for (let n = 2; n <= 1000; n++) {
     const suffix = ` (${n})`
-    // Обрізаємо base щоб base+suffix ≤31
+    // Обрезаем base, чтобы base+suffix ≤31
     const trimmedBase = base.substring(0, 31 - suffix.length)
     const candidate = trimmedBase + suffix
     if (!existing.has(candidate)) return candidate
   }
 
-  // Fallback: практично недосяжно
+  // Fallback: практически недостижимо
   return base.substring(0, 28) + '...'
 }
 
 // ─── filterByDealAmount ───────────────────────────────────────────────────────
 
 /**
- * Повертає true якщо лід проходить фільтр діапазону суми угоди.
+ * Возвращает true, если лид проходит фильтр диапазона суммы сделки.
  *
  * Семантика:
- *   - Якщо from і to не задані (null/undefined) — всі ліди проходять.
- *   - Якщо хоча б один з них заданий і deal_amount = null — лід виключається.
- *   - Порівняння включне: from ≤ deal_amount ≤ to.
- *   - from > to → некоректний стан (валідується в роуті до виклику), але
- *     тут поведінка як «нічого не проходить».
+ *   - Если from и to не заданы (null/undefined) — все лиды проходят.
+ *   - Если хотя бы один из них задан и deal_amount = null — лид исключается.
+ *   - Сравнение включительное: from ≤ deal_amount ≤ to.
+ *   - from > to → некорректное состояние (валидируется в роуте до вызова), но
+ *     здесь поведение как «ничего не проходит».
  */
 export function filterByDealAmount(
   dealAmount: number | null,
@@ -143,7 +143,7 @@ export function filterByDealAmount(
 ): boolean {
   const hasConstraint = from != null || to != null
   if (!hasConstraint) return true
-  // Якщо є обмеження але deal_amount = null — виключаємо
+  // Если есть ограничение, но deal_amount = null — исключаем
   if (dealAmount == null) return false
   if (from != null && dealAmount < from) return false
   if (to != null && dealAmount > to) return false
@@ -153,11 +153,11 @@ export function filterByDealAmount(
 // ─── wasTargetPredicate / wasNonTargetPredicate ───────────────────────────────
 
 /**
- * Чиста функція: «Був цільовим» для одного ліда.
+ * Чистая функция: «Був цільовим» для одного лида.
  *
- * Повертає true якщо:
- *   - в historyTypes є 'target_lead', АБО
- *   - поточна стадія ліда має conversion_type = 'target_lead'
+ * Возвращает true, если:
+ *   - в historyTypes есть 'target_lead', ИЛИ
+ *   - текущая стадия лида имеет conversion_type = 'target_lead'
  */
 export function wasTargetPredicate(
   historyTypes: Set<string>,
@@ -167,7 +167,7 @@ export function wasTargetPredicate(
 }
 
 /**
- * Чиста функція: «Був нецільовим» для одного ліда.
+ * Чистая функция: «Був нецільовим» для одного лида.
  */
 export function wasNonTargetPredicate(
   historyTypes: Set<string>,
@@ -185,12 +185,12 @@ export interface PeriodTableRow {
 }
 
 /**
- * Будує рядки таблиці одного звітного періоду.
+ * Строит строки таблицы одного отчётного периода.
  *
- * @param report              — готовий ReportResponse для цього діапазону дат
- * @param includeDateBreakdown — додавати розбивку по бакетах (timeseries)
- * @param columns             — обрані стовпці
- * @returns                   масив рядків (рядки даних + рядок «Разом»)
+ * @param report              — готовый ReportResponse для этого диапазона дат
+ * @param includeDateBreakdown — добавлять разбивку по бакетам (timeseries)
+ * @param columns             — выбранные столбцы
+ * @returns                   массив строк (строки данных + строка «Разом»)
  */
 export function buildPeriodRows(
   report: ReportResponse,
@@ -209,7 +209,7 @@ export function buildPeriodRows(
     }
   }
 
-  // Рядок «Разом»
+  // Строка «Разом»
   rows.push({
     label: 'Разом',
     values: extractReportRowValues(report.total, columns),
@@ -219,7 +219,7 @@ export function buildPeriodRows(
   return rows
 }
 
-// ─── Внутрішні хелпери ───────────────────────────────────────────────────────
+// ─── Внутренние хелперы ──────────────────────────────────────────────────────
 
 function extractReportRowValues(
   row: ReportRow,
@@ -270,7 +270,7 @@ function extractTimeseriesValues(
       case 'deals':                 result[col] = ts.deals;             break
       case 'dealAmountSum':         result[col] = ts.dealAmountSum;     break
       case 'dealProfitSum':         result[col] = ts.dealProfitSum;     break
-      // Конверсії в таймсерії не зберігаються — рахуємо on-the-fly
+      // Конверсии в таймсерии не хранятся — считаем on-the-fly
       case 'conversionToNonTarget':
         result[col] = ts.total > 0
           ? ((ts.nonTargetLeads ?? 0) / ts.total) * 100
@@ -290,28 +290,28 @@ function extractTimeseriesValues(
 // ─── buildComparisonTable ─────────────────────────────────────────────────────
 
 export interface ComparisonPeriod {
-  /** Заголовок стовпця (напр. «01.06.2026 – 30.06.2026»). */
+  /** Заголовок столбца (напр. «01.06.2026 – 30.06.2026»). */
   label: string
-  /** Підсумковий рядок «Разом» зі звіту за цей период. */
+  /** Итоговая строка «Разом» из отчёта за этот период. */
   report: ReportResponse
 }
 
 export interface ComparisonTable {
   /** Заголовки: '', period0, Δ %, period1, Δ %, …, base = periods[0] */
   headers: string[]
-  /** Рядки: перший стовпець — назва метрики, далі значення + дельта. */
+  /** Строки: первый столбец — название метрики, далее значения + дельта. */
   rows: Array<{ metricLabel: string; metric: SummaryColumn; cells: (number | string)[] }>
 }
 
 /**
- * Будує таблицю «Порівняння» для XLSX-листа або CSV-секції.
+ * Строит таблицу «Порівняння» для XLSX-листа или CSV-секции.
  *
- * Структура: перший елемент periods[] = основний период.
- * Кожен наступний periods[i] (i ≥ 1) — порівняльний:
- *   - стовпець «значення periodI»
- *   - стовпець «Δ % до основного»
+ * Структура: первый элемент periods[] = основной период.
+ * Каждый следующий periods[i] (i ≥ 1) — сравнительный:
+ *   - столбец «значение periodI»
+ *   - столбец «Δ % к основному»
  *
- * При P0 = 0 → дельта = '—' (рядок).
+ * При P0 = 0 → дельта = '—' (строка).
  */
 export function buildComparisonTable(
   periods: ComparisonPeriod[],
@@ -321,7 +321,7 @@ export function buildComparisonTable(
     return { headers: [], rows: [] }
   }
 
-  // Заголовки: пустий перший (назва метрики) + base-period + (compare + Δ)*
+  // Заголовки: пустой первый (название метрики) + base-period + (compare + Δ)*
   const headers: string[] = ['']
   headers.push(periods[0].label)
   for (let i = 1; i < periods.length; i++) {
@@ -352,8 +352,8 @@ export function buildComparisonTable(
 }
 
 /**
- * Розраховує дельту у % відносно базового значення.
- * При base = 0 повертає рядок '—'.
+ * Рассчитывает дельту в % относительно базового значения.
+ * При base = 0 возвращает строку '—'.
  */
 export function computeDeltaPct(base: number, compare: number): number | string {
   if (base === 0) return '—'

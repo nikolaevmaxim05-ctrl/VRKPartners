@@ -1,4 +1,4 @@
-// Валідація PATCH конфігу подій аналітики (validateEventsPatch).
+// Валидация PATCH конфига событий аналитики (validateEventsPatch).
 import { describe, it, expect } from 'vitest'
 import { validateEventsPatch } from '../events-config'
 import { ANALYTICS_REGISTRY, MAX_EVENT_NAMES_PER_KEY } from '../registry'
@@ -58,7 +58,7 @@ describe('validateEventsPatch', () => {
     const r = validateEventsPatch({ [KEY]: { enabled: true, eventNames: names } })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.message).toBe(`Максимум 5 подій на одну взаємодію (${LABEL})`)
-    // рівно 5 — ок
+    // ровно 5 — ок
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: names.slice(0, 5) } }).ok).toBe(true)
   })
 
@@ -68,7 +68,7 @@ describe('validateEventsPatch', () => {
       expect(r.ok).toBe(false)
       if (!r.ok) expect(r.message).toContain('Невірне імʼя події')
     }
-    // рівно 40 символів — ок
+    // ровно 40 символов — ок
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['a'.repeat(40)] } }).ok).toBe(true)
   })
 
@@ -84,7 +84,7 @@ describe('validateEventsPatch', () => {
       ok: true,
       patch: { [KEY]: { enabled: false, eventNames: ['legacy_name'], eventName: 'legacy_name' } },
     })
-    // невалідний легасі → помилка
+    // невалидный легаси → ошибка
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventName: 'Bad Name' } }).ok).toBe(false)
   })
 
@@ -107,9 +107,9 @@ describe('validateEventsPatch', () => {
     if (r.ok) expect(Object.keys(r.patch ?? {})).toHaveLength(ANALYTICS_REGISTRY.length)
   })
 
-  // AGENTS.md: «Имена form_start / form_submit запрещены» — коментар у registry.ts:39-41 каже
-  // «form_start/form_submit НЕ використовуємо — конфлікт з GA4 Enhanced Measurement»,
-  // з 2026-09-18 validateEventsPatch відхиляє їх (RESERVED_EVENT_NAMES у registry.ts).
+  // AGENTS.md: «Имена form_start / form_submit запрещены» — комментарий в registry.ts:39-41 гласит
+  // «form_start/form_submit НЕ используем — конфликт с GA4 Enhanced Measurement»,
+  // с 2026-09-18 validateEventsPatch отклоняет их (RESERVED_EVENT_NAMES в registry.ts).
   it('заборонені імена form_start / form_submit відхиляються (розділ 15, виправлено 2026-09-18)', () => {
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['form_start'] } }).ok).toBe(false)
     expect(validateEventsPatch({ [KEY]: { enabled: true, eventNames: ['cta_click', 'form_submit'] } }).ok).toBe(false)

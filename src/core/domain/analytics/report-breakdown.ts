@@ -1,6 +1,6 @@
-// core/domain/analytics/report-breakdown — чисті частини lib/analytics-report-server.ts:
-// конвертація Київ→UTC, маппінг рядків БД у LeadForAggregation, розбивка часового ряду.
-// Отримання даних з БД лишається в серверному модулі (Фаза 2 → use-case build-report).
+// core/domain/analytics/report-breakdown — чистые части lib/analytics-report-server.ts:
+// конвертация Киев→UTC, маппинг строк БД в LeadForAggregation, разбивка временного ряда.
+// Получение данных из БД остаётся в серверном модуле (Фаза 2 → use-case build-report).
 import { toKyivDateKey, toKyivWeekKey, toKyivMonthKey, generateBuckets, NO_REFERRAL_KEY, NO_REFERRAL_LABEL } from './report'
 import type {
   LeadForAggregation,
@@ -13,7 +13,7 @@ import type {
 
 export const CLIENT_TIME_ZONE = 'Europe/Kyiv'
 
-// ─── Мітки метрик для підписів серій у multi-metric breakdown ────────────────
+// ─── Метки метрик для подписей серий в multi-metric breakdown ────────────────
 
 export const BREAKDOWN_METRIC_LABELS: Record<MetricKeyForBreakdown, string> = {
   total:          'Заявки',
@@ -31,7 +31,7 @@ export function isValidBreakdownMetric(v: string): v is MetricKeyForBreakdown {
   return BREAKDOWN_METRIC_SET.has(v)
 }
 
-/** Максимум серій у розбивці (решта — «Інші»). */
+/** Максимум серий в разбивке (остальные — «Інші»). */
 export const MAX_BREAKDOWN_SERIES = 8
 export const OTHER_COLOR = '#94a3b8' // slate
 export const BREAKDOWN_COLORS = [
@@ -45,7 +45,7 @@ export const BREAKDOWN_COLORS = [
   '#84cc16', // lime
 ]
 
-// ─── Тип рядка з БД (загальний для обох роутів) ──────────────────────────────
+// ─── Тип строки из БД (общий для обоих роутов) ───────────────────────────────
 
 export type DbLeadRow = {
   id: string
@@ -69,17 +69,17 @@ export type DbLeadRow = {
   } | null
   referral_link_id: string | null
   referral_code: string | null
-  /** Embed referral_links!left(id, name); відсутній у старих фікстурах → трактується як null. */
+  /** Embed referral_links!left(id, name); отсутствует в старых фикстурах → трактуется как null. */
   referral_links?: { id: string; name: string } | null
 }
 
-/** Назва партнера з embed (PostgREST може віддати обʼєкт або масив з одним елементом). */
+/** Название партнёра из embed (PostgREST может отдать объект или массив с одним элементом). */
 export function referralNameOf(row: Pick<DbLeadRow, 'referral_links'>): string | null {
   const raw = Array.isArray(row.referral_links) ? row.referral_links[0] : row.referral_links
   return raw?.name ?? null
 }
 
-// ─── Конвертація Kyiv-дати у UTC ─────────────────────────────────────────────
+// ─── Конвертация Kyiv-даты в UTC ─────────────────────────────────────────────
 
 export function getKyivOffsetMs(utcDate: Date): number {
   const kyivStr = new Intl.DateTimeFormat('sv-SE', {
@@ -135,10 +135,10 @@ export function mapDbRowsToLeads(dbRows: DbLeadRow[]): LeadForAggregation[] {
   })
 }
 
-/** Словники key → підпис для вимірів, що потребують «олюднення» ключа (стадія, відповідальний, партнер). */
+/** Словари key → подпись для измерений, требующих «очеловечивания» ключа (стадия, ответственный, партнёр). */
 export type BreakdownLabelMaps = Partial<Record<BreakdownDimension, Record<string, string>>>
 
-// ─── Ключ/підпис виміру розбивки ─────────────────────────────────────────────
+// ─── Ключ/подпись измерения разбивки ─────────────────────────────────────────
 
 export function getBreakdownKey(
   lead: LeadForAggregation,
@@ -158,7 +158,7 @@ export function getBreakdownKey(
   }
 }
 
-/** Повертає відображувану назву ключа для виміру. */
+/** Возвращает отображаемое название ключа для измерения. */
 export function getBreakdownLabel(
   key: string,
   dimension: BreakdownDimension,
@@ -178,7 +178,7 @@ type Bucket = {
   dealProfitSum: number
 }
 
-/** Повертає числове значення метрики з агрегату. */
+/** Возвращает числовое значение метрики из агрегата. */
 export function getMetricValue(agg: Bucket, metric: MetricKeyForBreakdown): number {
   switch (metric) {
     case 'total':          return agg.total

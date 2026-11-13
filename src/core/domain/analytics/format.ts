@@ -1,4 +1,4 @@
-// core/domain/analytics/format — дати у часовому поясі клієнта для вивантажень.
+// core/domain/analytics/format — даты в часовом поясе клиента для выгрузок.
 export const CLIENT_TIME_ZONE = 'Europe/Kyiv'
 
 export function formatKyivDateTime(isoUtc: string): string {
@@ -23,7 +23,7 @@ export function formatKyivDate(isoUtc: string): string {
   }).format(d)
 }
 
-/** Підпис діапазону «dd.mm.yyyy – dd.mm.yyyy». */
+/** Подпись диапазона «dd.mm.yyyy – dd.mm.yyyy». */
 export function periodLabel(dateFrom: string, dateTo: string): string {
   return `${formatKyivDate(dateFrom + 'T12:00:00Z')} – ${formatKyivDate(dateTo + 'T12:00:00Z')}`
 }

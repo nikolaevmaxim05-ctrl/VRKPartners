@@ -1,18 +1,18 @@
 /**
  * analytics-export.test.ts
  *
- * Тести чистих хелперів analytics-export.ts (промпт 023).
- * Середовище: node (vitest), без БД і моків.
+ * Тесты чистых хелперов analytics-export.ts (промпт 023).
+ * Среда: node (vitest), без БД и моков.
  *
- * Покриття:
- *   buildComparisonTable — дельти, P0=0 → «—», порядок колонок
- *   buildPeriodRows      — з/без date breakdown
- *   filterByDealAmount   — границі включно, null виключається при заданому діапазоні,
- *                          тільки from, тільки to
- *   wasTargetPredicate / wasNonTargetPredicate — history OR поточна стадія
- *   sanitizeCsvCell      — захист від формул
- *   sanitizeSheetName    — обрізка і заборонені символи
- *   wrapPhoneForCsv      — телефон у формулі CSV
+ * Покрытие:
+ *   buildComparisonTable — дельты, P0=0 → «—», порядок колонок
+ *   buildPeriodRows      — с/без date breakdown
+ *   filterByDealAmount   — границы включительно, null исключается при заданном диапазоне,
+ *                          только from, только to
+ *   wasTargetPredicate / wasNonTargetPredicate — history OR текущая стадия
+ *   sanitizeCsvCell      — защита от формул
+ *   sanitizeSheetName    — обрезка и запрещённые символы
+ *   wrapPhoneForCsv      — телефон в формуле CSV
  */
 
 import { describe, it, expect } from 'vitest'
@@ -35,7 +35,7 @@ import { buildSummaryCsv } from '../export-csv'
 import type { SummaryColumn, ComparisonPeriod } from '../export'
 import type { ReportResponse } from '../report'
 
-// ─── Фабрика мінімального ReportResponse ──────────────────────────────────────
+// ─── Фабрика минимального ReportResponse ──────────────────────────────────────
 
 function makeReport(
   overrides: Partial<{
@@ -116,7 +116,7 @@ describe('buildComparisonTable — базові', () => {
     const p0 = makePeriod('Янв', makeReport({ total: 100 }))
     const p1 = makePeriod('Лют', makeReport({ total: 150 }))
     const t = buildComparisonTable([p0, p1], ['total'])
-    // headers: '' + P0 + P1 + Δ до P0
+    // headers: '' + P0 + P1 + Δ к P0
     expect(t.headers).toHaveLength(4)
     expect(t.headers[0]).toBe('')
     expect(t.headers[1]).toBe('Янв')
@@ -181,7 +181,7 @@ describe('buildComparisonTable — дельти', () => {
     expect(t.rows[0].cells[2]).toBe('—')
     expect(t.rows[0].cells[3]).toBe(80)
     expect(t.rows[0].cells[4]).toBe('—')
-    // дві compare-колонки → дві пари «значення + Δ» у headers
+    // две compare-колонки → две пары «значение + Δ» в headers
     expect(t.headers).toEqual(['', 'P0', 'P1', 'Δ % до P0', 'P2', 'Δ % до P0'])
   })
 
@@ -307,13 +307,13 @@ describe('filterByDealAmount', () => {
   })
 
   it('тільки from: deal_amount >= from', () => {
-    expect(filterByDealAmount(100, 100, null)).toBe(true)  // межа включно
+    expect(filterByDealAmount(100, 100, null)).toBe(true)  // граница включительно
     expect(filterByDealAmount(99, 100, null)).toBe(false)
     expect(filterByDealAmount(200, 100, null)).toBe(true)
   })
 
   it('тільки to: deal_amount <= to', () => {
-    expect(filterByDealAmount(100, null, 100)).toBe(true)  // межа включно
+    expect(filterByDealAmount(100, null, 100)).toBe(true)  // граница включительно
     expect(filterByDealAmount(101, null, 100)).toBe(false)
     expect(filterByDealAmount(0, null, 100)).toBe(true)
   })
@@ -496,7 +496,7 @@ describe('uniqueSheetName', () => {
   })
 
   it('довге ім\'я + суфікс ≤31 символу', () => {
-    // base рівно 31 символ
+    // base ровно 31 символ
     const base = 'A'.repeat(31)
     const existing = new Set<string>([base])
     const result = uniqueSheetName(existing, base)
@@ -528,7 +528,7 @@ describe('wrapPhoneForCsv', () => {
   })
 })
 
-// ─── Канонічний порядок показників (SUMMARY_COLUMN_ORDER) ─────────────────────
+// ─── Канонический порядок показателей (SUMMARY_COLUMN_ORDER) ──────────────────
 
 describe('SUMMARY_COLUMN_ORDER / orderSummaryColumns', () => {
   it('порядок як у таблиці екрана: «Конверсія у цільові» після «Нецільові», перед «Угоди»; усі показники покриті', () => {

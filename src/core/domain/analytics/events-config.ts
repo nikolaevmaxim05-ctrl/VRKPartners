@@ -1,5 +1,5 @@
-// core/domain/analytics/events-config — валідація PATCH конфігу подій аналітики.
-// Перенесено з /api/admin/analytics-events без зміни поведінки (тексти помилок ті самі).
+// core/domain/analytics/events-config — валидация PATCH конфига событий аналитики.
+// Перенесено из /api/admin/analytics-events без изменения поведения (тексты ошибок те же).
 import {
   ANALYTICS_REGISTRY,
   ANALYTICS_EVENT_KEYS,
@@ -15,7 +15,7 @@ export type EventsPatchResult =
   | { ok: true; patch: AnalyticsEventsConfig | null }
   | { ok: false; message: string }
 
-/** Валідує поле events тіла PATCH. undefined → patch=null (нічого не міняємо). */
+/** Валидирует поле events тела PATCH. undefined → patch=null (ничего не меняем). */
 export function validateEventsPatch(events: unknown): EventsPatchResult {
   if (events === undefined) return { ok: true, patch: null }
   if (events === null || typeof events !== 'object' || Array.isArray(events)) {
@@ -64,7 +64,7 @@ export function validateEventsPatch(events: unknown): EventsPatchResult {
       if (RESERVED_EVENT_NAMES.has(trimmed)) return { ok: false, message: reservedName(trimmed, key) }
       resolvedNames = [trimmed]
     } else {
-      // Ні eventNames, ні eventName — пустий масив допустимий (точка мовчить)
+      // Ни eventNames, ни eventName — пустой массив допустим (точка молчит)
       resolvedNames = []
     }
 

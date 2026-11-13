@@ -1,5 +1,5 @@
-// core/domain/analytics/export-leads — побудова таблиці вивантаження лідів (заголовки + рядки).
-// Чиста логіка з /api/admin/analytics/export (handleLeadsExport) без зміни поведінки.
+// core/domain/analytics/export-leads — построение таблицы выгрузки лидов (заголовки + строки).
+// Чистая логика из /api/admin/analytics/export (handleLeadsExport) без изменения поведения.
 import { referralNameOf, type DbLeadRow } from './report-breakdown'
 import type { LeadExportField } from './export-request'
 import { wasTargetPredicate, wasNonTargetPredicate } from './export'
@@ -32,7 +32,7 @@ export type ExportCommentRow = {
   type: string
 }
 
-/** Чи потрібна історія стадій для обраних полів (manager_history, was_*, dates). */
+/** Нужна ли история стадий для выбранных полей (manager_history, was_*, dates). */
 export function exportNeedsHistory(fields: LeadExportField[]): boolean {
   return (
     fields.includes('manager_history') ||
@@ -160,7 +160,7 @@ export function buildLeadExportTable(input: LeadExportTableInput): { headers: st
     for (const field of orderedFields) {
       switch (field) {
         case 'dates': {
-          // Перша — дата створення; друга — max created_at з history
+          // Первая — дата создания; вторая — max created_at из history
           cells.push(new Date(row.created_at))
           if (historyRows.length > 0) {
             const maxTs = historyRows.reduce(
@@ -177,7 +177,7 @@ export function buildLeadExportTable(input: LeadExportTableInput): { headers: st
           cells.push(row.utm_source)
           break
         case 'referral_link':
-          // Назва партнера; лише код — посилання не знайдено/вимкнене на момент заявки.
+          // Название партнёра; только код — ссылка не найдена/выключена на момент заявки.
           cells.push(referralNameOf(row) ?? (row.referral_code ? `${row.referral_code} (не знайдено або вимкнене)` : null))
           break
         case 'all_utm':
@@ -199,7 +199,7 @@ export function buildLeadExportTable(input: LeadExportTableInput): { headers: st
           for (const cf of customFieldDefs) cells.push(cfMap.get(cf.id) ?? null)
           break
         case 'manager_history': {
-          // «dd.MM.yyyy HH:mm — Від → До — email»
+          // «dd.MM.yyyy HH:mm — Откуда → Куда — email»
           const lines = historyRows.map((h) => {
             const dt = formatKyivDateTime(h.created_at)
             const from = h.from_status_id

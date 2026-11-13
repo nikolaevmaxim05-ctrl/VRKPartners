@@ -1,11 +1,11 @@
-// core/domain/analytics/report-request — параметри звіту: схема, дефолти, розбір query.
-// Перенесено з /api/admin/analytics/report та /dimension-values без зміни поведінки.
+// core/domain/analytics/report-request — параметры отчёта: схема, дефолты, разбор query.
+// Перенесено из /api/admin/analytics/report и /dimension-values без изменения поведения.
 import { z } from 'zod'
 import type { BreakdownDimension, MetricKeyForBreakdown } from './report'
 
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Мінімальний набір параметрів, спільний для звіту та вивантаження. */
+/** Минимальный набор параметров, общий для отчёта и выгрузки. */
 export interface ReportServerParams {
   date_from: string               // YYYY-MM-DD
   date_to: string                 // YYYY-MM-DD
@@ -15,23 +15,23 @@ export interface ReportServerParams {
   filter_utm_source: string
   filter_service: string
   filter_assigned_to: string
-  /** Кілька відповідальних (UUID через кому). Має пріоритет над filter_assigned_to. */
+  /** Несколько ответственных (UUID через запятую). Имеет приоритет над filter_assigned_to. */
   filter_assignee_ids?: string
-  filter_status_ids: string       // UUID через кому
+  filter_status_ids: string       // UUID через запятую
   filter_gclid: 'any' | 'with' | 'without'
-  /** Реферальне посилання: UUID, 'none' (без посилання) або порожньо (всі). */
+  /** Реферальная ссылка: UUID, 'none' (без ссылки) или пусто (все). */
   filter_referral_link_id?: string
-  /** Фільтр по конкретному значенню поточного розрізу (group_by). */
+  /** Фильтр по конкретному значению текущего разреза (group_by). */
   filter_group_value?: string
-  /** Розбивка графіка по виміру. */
+  /** Разбивка графика по измерению. */
   breakdown?: BreakdownDimension
-  /** Метрика для breakdown-ліній (легасі, одна). */
+  /** Метрика для breakdown-линий (легаси, одна). */
   breakdown_metric?: MetricKeyForBreakdown
-  /** Метрики для breakdown-ліній (список через кому). Має пріоритет. */
+  /** Метрики для breakdown-линий (список через запятую). Имеет приоритет. */
   breakdown_metrics?: string
 }
 
-/** Фільтр реферального посилання: '' (всі) | 'none' (без посилання) | UUID. */
+/** Фильтр реферальной ссылки: '' (все) | 'none' (без ссылки) | UUID. */
 export const referralLinkFilterSchema = z
   .string()
   .optional()
@@ -85,7 +85,7 @@ export function defaultDateTo(now: Date): string {
 
 export type ParsedQuery<T> = { ok: true; params: T } | { ok: false; message: string }
 
-/** Розбір query-параметрів звіту (зі значеннями за замовчуванням і перевіркою custom_field). */
+/** Разбор query-параметров отчёта (со значениями по умолчанию и проверкой custom_field). */
 export function parseReportQuery(
   get: (key: string) => string | null,
   now: Date,
@@ -124,7 +124,7 @@ export function parseReportQuery(
   return { ok: true, params }
 }
 
-// ── Значення виміру (контекстний фільтр «Значення») ──────────────────────────
+// ── Значения измерения (контекстный фильтр «Значення») ───────────────────────
 
 export const UTM_COLUMNS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const
 
@@ -138,7 +138,7 @@ export const dimensionParamsSchema = z.object({
 export const DIMENSION_MAX_SCAN = 10_000
 export const DIMENSION_MAX_VALUES = 500
 
-/** Унікальні непорожні рядки, відсортовані по-українськи, обрізані до DIMENSION_MAX_VALUES. */
+/** Уникальные непустые строки, отсортированные по-украински, обрезанные до DIMENSION_MAX_VALUES. */
 export function dedupeSorted(raw: unknown[]): string[] {
   const set = new Set<string>()
   for (const v of raw) {
@@ -150,7 +150,7 @@ export function dedupeSorted(raw: unknown[]): string[] {
   return [...set].sort((a, b) => a.localeCompare(b, 'uk')).slice(0, DIMENSION_MAX_VALUES)
 }
 
-/** Розбиває "a, b,,c" → ['a','b','c']. */
+/** Разбивает "a, b,,c" → ['a','b','c']. */
 export function splitIds(csv: string | undefined): string[] {
   return csv ? csv.split(',').map((s) => s.trim()).filter(Boolean) : []
 }
