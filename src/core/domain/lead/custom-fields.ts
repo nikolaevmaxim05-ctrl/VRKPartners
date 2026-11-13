@@ -1,5 +1,5 @@
-// core/domain/lead/custom-fields — правила кастомних полів ліда та їх значень (раздел 5).
-// Перенесено з /api/admin/custom-fields* та /leads/[id]/custom-fields без зміни поведінки.
+// core/domain/lead/custom-fields — правила кастомных полей лида и их значений (раздел 5).
+// Перенесено из /api/admin/custom-fields* и /leads/[id]/custom-fields без изменения поведения.
 
 export const CUSTOM_FIELD_TYPES = ['text', 'number', 'date', 'select', 'boolean'] as const
 export type CustomFieldTypeName = (typeof CUSTOM_FIELD_TYPES)[number]
@@ -73,10 +73,10 @@ export function planCustomFieldPatch(
 }
 
 /**
- * Нормалізація і валідація значення поля: '' → null; довжина ≤ 1000; number — скінченне;
- * date — YYYY-MM-DD і справжня дата; select — лише з опцій.
+ * Нормализация и валидация значения поля: '' → null; длина ≤ 1000; number — конечное;
+ * date — YYYY-MM-DD и настоящая дата; select — только из опций.
  */
-/** YYYY-MM-DD і справжня календарна дата (2026-02-30 → false; Date.parse «перекочує» такі дати). */
+/** YYYY-MM-DD и настоящая календарная дата (2026-02-30 → false; Date.parse «перекатывает» такие даты). */
 export function isCalendarDate(value: string): boolean {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!m) return false

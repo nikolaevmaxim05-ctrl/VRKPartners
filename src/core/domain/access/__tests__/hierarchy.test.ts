@@ -73,9 +73,9 @@ describe('lockout guards', () => {
   it('roleChangeCausesLockout: зняти manage_users з останньої ролі-носія не можна', () => {
     expect(roleChangeCausesLockout(assignments, 'admin', ['manage_leads'])).toBe(true)
     expect(roleChangeCausesLockout(assignments, 'admin', ['manage_users'])).toBe(false)
-    // роль без активних носіїв — можна
+    // роль без активных носителей — можно
     expect(roleChangeCausesLockout(assignments, 'mgr', ['manage_leads'])).toBe(false)
-    // є інший носій
+    // есть другой носитель
     const two = [...assignments, { user_id: 'u3', role_id: 'other', permissions: ['manage_users' as const] }]
     expect(roleChangeCausesLockout(two, 'admin', [])).toBe(false)
   })

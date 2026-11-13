@@ -1,4 +1,4 @@
-// Правила кастомних полів ліда та їх значень (custom-fields).
+// Правила кастомных полей лида и их значений (custom-fields).
 import { describe, it, expect } from 'vitest'
 import {
   planNewCustomField,
@@ -146,8 +146,8 @@ describe('validateCustomFieldValue', () => {
     }
   })
 
-  // Date.parse('2026-02-30') у V8 не дає NaN (дата «перекочується» на 2 березня),
-  // тож перевірка «справжня дата» з doc-коментаря не спрацьовує для неіснуючих днів місяця.
+  // Date.parse('2026-02-30') в V8 не даёт NaN (дата «перекатывается» на 2 марта),
+  // так что проверка «настоящая дата» из doc-комментария не срабатывает для несуществующих дней месяца.
   it('date: неіснуючий день місяця (2026-02-30, 2026-04-31) відхиляється; 2024-02-29 — так', () => {
     expect(validateCustomFieldValue({ type: 'date', options: null }, '2026-02-30').ok).toBe(false)
     expect(validateCustomFieldValue({ type: 'date', options: null }, '2026-04-31').ok).toBe(false)
@@ -162,7 +162,7 @@ describe('validateCustomFieldValue', () => {
     expect(validateCustomFieldValue(f, ' B ')).toEqual({ ok: true, value: 'B' })
     expect(validateCustomFieldValue(f, 'C')).toEqual({ ok: false, message: 'Значення не входить в список опцій' })
     expect(validateCustomFieldValue(f, 'a')).toEqual({ ok: false, message: 'Значення не входить в список опцій' })
-    // options не масив → жодне значення не проходить
+    // options не массив → ни одно значение не проходит
     expect(validateCustomFieldValue({ type: 'select', options: null }, 'A').ok).toBe(false)
   })
 

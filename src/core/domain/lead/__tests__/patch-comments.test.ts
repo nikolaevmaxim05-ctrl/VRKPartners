@@ -1,4 +1,4 @@
-// PATCH ліда (parseLeadPatch) і коментарі (validateNewComment, isCommentType).
+// PATCH лида (parseLeadPatch) и комментарии (validateNewComment, isCommentType).
 import { describe, it, expect } from 'vitest'
 import { parseLeadPatch, PATCHABLE_LEAD_KEYS } from '../patch'
 import { validateNewComment, isCommentType, COMMENT_TYPES } from '../comments'

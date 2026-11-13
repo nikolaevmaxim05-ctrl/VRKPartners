@@ -1,4 +1,4 @@
-// Валідація завантаження картинок, схеми SEO/юр.документів, мерж/дифф SEO та юр.документів.
+// Валидация загрузки картинок, схемы SEO/юр.документов, мерж/дифф SEO и юр.документов.
 import { describe, it, expect } from 'vitest'
 import {
   validateImageUpload,
@@ -64,7 +64,7 @@ describe('extractOwnObjectPath', () => {
   })
 })
 
-// ── Схеми ────────────────────────────────────────────────────────────────────
+// ── Схемы ────────────────────────────────────────────────────────────────────
 
 describe('seoOverridesSchema', () => {
   it('ліміти: title/ogTitle/orgName ≤ 200, description/ogDescription/ogImage/orgDescription ≤ 500', () => {
@@ -183,7 +183,7 @@ describe('mergeSeo / diffSeo', () => {
   })
 })
 
-// ── Юр.документи: мерж / дифф ────────────────────────────────────────────────
+// ── Юр.документы: мерж / дифф ────────────────────────────────────────────────
 
 const legalDefaults: LegalContent = {
   privacy: { title: 'Політика', updatedAt: '2026-01-01', sections: [{ heading: 'P1', paragraphs: ['a'] }] },
@@ -211,7 +211,7 @@ describe('diffLegalOverrides / mergeLegalContent', () => {
     expect(mergeLegalContent(legalDefaults, null)).toEqual(legalDefaults)
     expect(mergeLegalContent(legalDefaults, undefined)).toEqual(legalDefaults)
     expect(mergeLegalContent(legalDefaults, { privacy: { sections: [] } })).toEqual(legalDefaults)
-    // усі секції порожні → дефолт
+    // все секции пустые → дефолт
     expect(mergeLegalContent(legalDefaults, { offer: { sections: [{ heading: '', paragraphs: [] }] } })).toEqual(legalDefaults)
   })
 

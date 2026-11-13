@@ -1,8 +1,8 @@
-// core/domain/content/landing — правила URL для контенту лендингу (картинки next/image,
-// href кейсів — захист від javascript:, кнопка Telegram). Модель текстів — site-messages.ts,
-// мерж/дифф — messages.ts, ліміти — limits.ts (Фаза 3, розділ 9 стандарту).
+// core/domain/content/landing — правила URL для контента лендинга (картинки next/image,
+// href кейсов — защита от javascript:, кнопка Telegram). Модель текстов — site-messages.ts,
+// мерж/дифф — messages.ts, лимиты — limits.ts (Фаза 3, раздел 9 стандарта).
 
-/** Безпечний URL зображення: порожньо, локальний шлях `/...`, або https на дозволеному хості. */
+/** Безопасный URL изображения: пусто, локальный путь `/...` или https на разрешённом хосте. */
 export function isSafeImageUrl(url: string | null | undefined): boolean {
   if (!url) return true
   if (url.startsWith('/')) return !url.startsWith('//')
@@ -14,7 +14,7 @@ export function isSafeImageUrl(url: string | null | undefined): boolean {
   }
 }
 
-/** Безпечне посилання: порожньо або абсолютний http(s). Блокує javascript:/data: тощо. */
+/** Безопасная ссылка: пусто или абсолютный http(s). Блокирует javascript:/data: и т. д. */
 export function isSafeHref(url: string | null | undefined): boolean {
   if (!url) return true
   try {
@@ -25,7 +25,7 @@ export function isSafeHref(url: string | null | undefined): boolean {
   }
 }
 
-/** Кнопка «Або напишіть нам»: лише https://t.me/… або https://telegram.me/…; порожнє — валідне. */
+/** Кнопка «Або напишіть нам»: только https://t.me/… или https://telegram.me/…; пустое — валидно. */
 export function isTelegramUrl(url: string | null | undefined): boolean {
   if (!url) return true
   try {

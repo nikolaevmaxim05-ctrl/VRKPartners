@@ -1,8 +1,8 @@
-// core/domain/lead/patch — тіло PATCH ліда (стадія, відповідальний, суми).
+// core/domain/lead/patch — тело PATCH лида (стадия, ответственный, суммы).
 import { z } from 'zod'
 
-// C8: суми — скінченні невідʼємні числа (або null), id — рядки (або null).
-// Невідомі ключі Zod відкидає (захист від mass-assignment).
+// C8: суммы — конечные неотрицательные числа (или null), id — строки (или null).
+// Неизвестные ключи Zod отбрасывает (защита от mass-assignment).
 export const patchLeadSchema = z
   .object({
     status_id: z.string().min(1).nullable(),
@@ -15,8 +15,8 @@ export const patchLeadSchema = z
 export const PATCHABLE_LEAD_KEYS = ['status_id', 'assigned_to', 'deal_amount', 'deal_profit'] as const
 
 /**
- * Будує update лише з ключів, реально присутніх у сирому тілі (семантика «оновлюємо лише
- * передані»). null → помилка валідації; {} → «нічого оновлювати».
+ * Строит update только из ключей, реально присутствующих в сыром теле (семантика «обновляем только
+ * переданные»). null → ошибка валидации; {} → «нечего обновлять».
  */
 export function parseLeadPatch(raw: unknown):
   | { ok: true; update: Record<string, unknown>; bodyKeys: Set<string> }

@@ -1,4 +1,4 @@
-// Ліміти за типом поля (розділ 9) + санітизація/валідація збереження.
+// Лимиты по типу поля (раздел 9) + санитизация/валидация сохранения.
 import { describe, it, expect } from 'vitest'
 import { fieldType, fieldLimit, fieldKind, validateMessages, isAllowedHref, MAX_ARRAY_ITEMS } from '../limits'
 
@@ -92,7 +92,7 @@ describe('validateMessages', () => {
     })
     expect(r.ok).toBe(true)
     if (r.ok) {
-      // необовʼязковий icon не дозаповнюється з шаблону
+      // необязательный icon не дозаполняется из шаблона
       expect(r.value.usp.items[0]).toEqual({ title: 'x', text: 'y' })
       expect(r.value.services.items[0]).toEqual({ key: 'k', name: 'n', desc: 'd', previewWide: true, mockup: '/m.png' })
     }

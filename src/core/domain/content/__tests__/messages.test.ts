@@ -1,4 +1,4 @@
-// Правила мержу/диффу текстів (розділ 9 стандарту) + сумісність зі старим форматом правок.
+// Правила мержа/диффа текстов (раздел 9 стандарта) + совместимость со старым форматом правок.
 import { describe, it, expect } from 'vitest'
 import { mergeMessages, diffMessages, contentList, countChanges, pickEditable, EDITABLE_NAMESPACES } from '../messages'
 

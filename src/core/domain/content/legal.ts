@@ -1,23 +1,23 @@
-// core/domain/content/legal — юридичні документи (відхилення 3, AGENTS.md):
-// мерж секцій, дифф, санітизація, формат дати. Дефолти приходять параметром.
+// core/domain/content/legal — юридические документы (отклонение 3, AGENTS.md):
+// мерж секций, дифф, санитизация, формат даты. Дефолты приходят параметром.
 
 export const LEGAL_CONTENT_ID = 'legal'
 
 export type LegalSection = { heading: string; paragraphs: string[]; items?: string[] }
 export type LegalDocument = { title: string; updatedAt?: string; sections: LegalSection[] }
 
-/** Ключі документів у сховищі. */
+/** Ключи документов в хранилище. */
 export type LegalDocKey = 'privacy' | 'offer'
 
 export type LegalContent = Record<LegalDocKey, LegalDocument>
 
-/** Оверрайд: лише секції (заголовок документа й дефолтний updatedAt лишаються з коду). */
+/** Оверрайд: только секции (заголовок документа и дефолтный updatedAt остаются из кода). */
 export type LegalDocOverride = { sections: LegalSection[] }
 export type LegalOverrides = Partial<Record<LegalDocKey, LegalDocOverride>>
 
 export const LEGAL_DOC_KEYS: readonly LegalDocKey[] = ['privacy', 'offer']
 
-/** Санітизація однієї секції з довільного JSON — лише plain-текст. */
+/** Санитизация одной секции из произвольного JSON — только plain-текст. */
 export function cleanSection(raw: unknown): LegalSection | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
@@ -41,7 +41,7 @@ function mergeDoc(base: LegalDocument, ov?: LegalDocOverride): LegalDocument {
   return { ...base, sections }
 }
 
-/** Мерж дефолтів з оверрайдами. Порожні/невалідні оверрайди → лишаються дефолти. */
+/** Мерж дефолтов с оверрайдами. Пустые/невалидные оверрайды → остаются дефолты. */
 export function mergeLegalContent(
   defaults: LegalContent,
   overrides: LegalOverrides | null | undefined,
@@ -53,7 +53,7 @@ export function mergeLegalContent(
   }
 }
 
-/** Лишає лише документи, чиї секції ВІДРІЗНЯЮТЬСЯ від дефолтів. */
+/** Оставляет только документы, чьи секции ОТЛИЧАЮТСЯ от дефолтов. */
 export function diffLegalOverrides(incoming: LegalOverrides, defaults: LegalContent): LegalOverrides {
   const out: LegalOverrides = {}
   const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -66,7 +66,7 @@ export function diffLegalOverrides(incoming: LegalOverrides, defaults: LegalCont
   return out
 }
 
-/** Дата для показу під заголовком: збереження оверрайду або дефолтна дата документа. */
+/** Дата для показа под заголовком: сохранение оверрайда или дефолтная дата документа. */
 export function formatLegalUpdatedAt(updatedAtIso: string | null, fallback?: string): string | undefined {
   if (updatedAtIso) {
     const d = new Date(updatedAtIso)

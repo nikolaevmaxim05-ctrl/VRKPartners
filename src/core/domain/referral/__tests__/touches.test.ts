@@ -1,6 +1,6 @@
-// Касання партнерських посилань і first-touch-атрибуція: кодек cookie (v2, легасі, мусор),
-// addTouch (перший ts зберігається, стеля 8 — замінюється останнє, старші 400 днів відкидаються),
-// mergeTouches (мінімальний ts за кодом), pickReferralTouch (найраніше у вікні), налаштування вікна.
+// Касания партнёрских ссылок и first-touch-атрибуция: кодек cookie (v2, легаси, мусор),
+// addTouch (первый ts сохраняется, потолок 8 — заменяется последнее, старше 400 дней отбрасываются),
+// mergeTouches (минимальный ts по коду), pickReferralTouch (самое раннее в окне), настройка окна.
 import { describe, it, expect } from 'vitest'
 import {
   REF_MAX_TOUCHES, REF_COOKIE_MAX_DAYS, REF_ATTRIBUTION_DEFAULT_DAYS, REF_ATTRIBUTION_PRESETS,
@@ -10,7 +10,7 @@ import {
 } from '../touches'
 import { collectReferralTouches } from '../attribution'
 
-const NOW = 1_790_000_000 // unix-секунди
+const NOW = 1_790_000_000 // unix-секунды
 const DAY = 86_400
 const A = 'aaaa2345'
 const B = 'bbbb2345'

@@ -1,24 +1,24 @@
-// core/domain/referral/touches — касання партнерських посилань і first-touch-атрибуція
-// (відхилення 11, уточнення власника 2026-09-29: заявка належить партнеру, за посиланням якого
-// відвідувач перейшов ПЕРШИМ протягом вікна атрибуції; наступні переходи партнера не змінюють).
+// core/domain/referral/touches — касания партнёрских ссылок и first-touch-атрибуция
+// (отклонение 11, уточнение владельца 2026-09-29: заявка принадлежит партнёру, по ссылке которого
+// посетитель перешёл ПЕРВЫМ в пределах окна атрибуции; последующие переходы партнёра не меняют).
 //
-// Cookie lead_ref зберігає СПИСОК касань, а не один код: `v2_<code>.<ts>_<code>.<ts>…`, ts — unix-
-// секунди першого переходу за цим кодом. Роздільники `_` і `.` — cookie-безпечні символи, які
-// serialize/encodeURIComponent не чіпає (кома чи двокрапка кодувалися б у %2C/%3A). Легасі-значення
-// (голий код із прод-версії 2026-09-27) читається як одне касання «зараз».
-// Вікно атрибуції (site_settings.referral_attribution_days) middleware НЕ застосовує (без БД) —
-// лише приймач заявки, тому зміна налаштування діє одразу на всі майбутні заявки.
+// Cookie lead_ref хранит СПИСОК касаний, а не один код: `v2_<code>.<ts>_<code>.<ts>…`, ts — unix-
+// секунды первого перехода по этому коду. Разделители `_` и `.` — cookie-безопасные символы, которые
+// serialize/encodeURIComponent не трогает (запятая или двоеточие кодировались бы в %2C/%3A). Легаси-значение
+// (голый код из прод-версии 2026-09-27) читается как одно касание «сейчас».
+// Окно атрибуции (site_settings.referral_attribution_days) middleware НЕ применяет (без БД) —
+// только приёмник заявки, поэтому изменение настройки действует сразу на все будущие заявки.
 import { normalizeRefCode } from './code'
 
 export type ReferralTouch = { code: string; at: number }
 
-/** Версія формату cookie/localStorage. */
+/** Версия формата cookie/localStorage. */
 export const REF_COOKIE_VERSION = 'v2'
-/** Максимум касань у cookie (при переповненні замінюється ОСТАННЄ, ранні не чіпаються). */
+/** Максимум касаний в cookie (при переполнении заменяется ПОСЛЕДНЕЕ, ранние не трогаются). */
 export const REF_MAX_TOUCHES = 8
-/** Термін життя cookie — жорстка стеля Chrome (400 днів); вікно атрибуції не може бути більшим. */
+/** Срок жизни cookie — жёсткий потолок Chrome (400 дней); окно атрибуции не может быть больше. */
 export const REF_COOKIE_MAX_DAYS = 400
-/** Ключ site_settings і межі вікна атрибуції (днів). */
+/** Ключ site_settings и границы окна атрибуции (дней). */
 export const REF_ATTRIBUTION_SETTING_KEY = 'referral_attribution_days'
 export const REF_ATTRIBUTION_DEFAULT_DAYS = 90
 export const REF_ATTRIBUTION_PRESETS = [14, 30, 60, 90, 180, 365] as const
@@ -33,7 +33,7 @@ function isValidAt(at: unknown): at is number {
   return typeof at === 'number' && Number.isInteger(at) && at > 0
 }
 
-/** Один елемент з довільних даних (тіло форми, localStorage) → касання або null. */
+/** Один элемент из произвольных данных (тело формы, localStorage) → касание или null. */
 export function normalizeTouch(raw: unknown): ReferralTouch | null {
   if (!raw || typeof raw !== 'object') return null
   const { code, at } = raw as { code?: unknown; at?: unknown }
@@ -43,7 +43,7 @@ export function normalizeTouch(raw: unknown): ReferralTouch | null {
   return { code: norm, at: ts }
 }
 
-/** Масив із довільних даних → ≤ max валідних касань (дублікати за кодом — мінімальний ts). */
+/** Массив из произвольных данных → ≤ max валидных касаний (дубликаты по коду — минимальный ts). */
 export function normalizeTouches(raw: unknown, max = REF_MAX_TOUCHES): ReferralTouch[] {
   if (!Array.isArray(raw)) return []
   const touches: ReferralTouch[] = []
@@ -54,7 +54,7 @@ export function normalizeTouches(raw: unknown, max = REF_MAX_TOUCHES): ReferralT
   return mergeTouches(touches).slice(0, max)
 }
 
-/** Значення cookie → касання. Толерантно: мусор → [], легасі голий код → [{ code, at: now }]. */
+/** Значение cookie → касания. Толерантно: мусор → [], легаси голый код → [{ code, at: now }]. */
 export function decodeRefCookie(value: unknown, now: number): ReferralTouch[] {
   if (typeof value !== 'string' || !value) return []
   if (!value.startsWith(REF_COOKIE_VERSION + LIST_SEP)) {
@@ -71,13 +71,13 @@ export function decodeRefCookie(value: unknown, now: number): ReferralTouch[] {
   return mergeTouches(touches).slice(0, REF_MAX_TOUCHES)
 }
 
-/** Касання → значення cookie (порожній список → порожній рядок). */
+/** Касания → значение cookie (пустой список → пустая строка). */
 export function encodeRefCookie(touches: ReadonlyArray<ReferralTouch>): string {
   if (touches.length === 0) return ''
   return REF_COOKIE_VERSION + LIST_SEP + touches.map((t) => `${t.code}${PAIR_SEP}${t.at}`).join(LIST_SEP)
 }
 
-/** Обʼєднання списків: за кодом лишається МІНІМАЛЬНИЙ ts; порядок — за ts, стабільно. */
+/** Объединение списков: по коду остаётся МИНИМАЛЬНЫЙ ts; порядок — по ts, стабильно. */
 export function mergeTouches(...lists: ReadonlyArray<ReadonlyArray<ReferralTouch>>): ReferralTouch[] {
   const byCode = new Map<string, ReferralTouch>()
   for (const list of lists) {
@@ -90,8 +90,8 @@ export function mergeTouches(...lists: ReadonlyArray<ReadonlyArray<ReferralTouch
 }
 
 /**
- * Новий перехід: касання старші за maxAgeDays (і «з майбутнього») відкидаються; код уже є —
- * список не змінюється (перший ts зберігається); список повний — замінюється ОСТАННЄ касання.
+ * Новый переход: касания старше maxAgeDays (и «из будущего») отбрасываются; код уже есть —
+ * список не меняется (первый ts сохраняется); список полон — заменяется ПОСЛЕДНЕЕ касание.
  */
 export function addTouch(
   touches: ReadonlyArray<ReferralTouch>,
@@ -107,7 +107,7 @@ export function addTouch(
   return [...kept, { code, at: now }]
 }
 
-/** Найраніше касання у вікні (now − at ≤ windowDays·86400); «з майбутнього» ігноруються; інакше null. */
+/** Самое раннее касание в окне (now − at ≤ windowDays·86400); «из будущего» игнорируются; иначе null. */
 export function pickReferralTouch(
   touches: ReadonlyArray<ReferralTouch>,
   opts: { windowDays: number; now: number },
@@ -121,7 +121,7 @@ export function pickReferralTouch(
   return best
 }
 
-/** Значення налаштування → ціле у [MIN, MAX]; відсутнє/невалідне → дефолт 90. */
+/** Значение настройки → целое в [MIN, MAX]; отсутствующее/невалидное → дефолт 90. */
 export function parseAttributionDays(raw: unknown): number {
   const n = typeof raw === 'string' ? Number(raw.trim()) : raw
   if (typeof n !== 'number' || !Number.isInteger(n)) return REF_ATTRIBUTION_DEFAULT_DAYS
@@ -129,7 +129,7 @@ export function parseAttributionDays(raw: unknown): number {
   return n
 }
 
-/** Строга перевірка для форми/PATCH: ціле у [MIN, MAX] або повідомлення uk-UA. */
+/** Строгая проверка для формы/PATCH: целое в [MIN, MAX] или сообщение uk-UA. */
 export const REF_ATTRIBUTION_RANGE_MESSAGE = `Вікно атрибуції: ціле число від ${REF_ATTRIBUTION_MIN_DAYS} до ${REF_ATTRIBUTION_MAX_DAYS} днів`
 export function planAttributionDays(raw: unknown): { ok: true; days: number } | { ok: false; message: string } {
   const n = typeof raw === 'string' ? Number(raw.trim()) : raw

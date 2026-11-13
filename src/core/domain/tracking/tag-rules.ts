@@ -1,4 +1,4 @@
-// core/domain/tracking/tag-rules — валідація створення/редагування Google-тегів.
+// core/domain/tracking/tag-rules — валидация создания/редактирования Google-тегов.
 import { isValidTagType, isValidTagId, isValidConversionLabel, TAG_ID_FORMAT_HINTS, type TrackingTagType } from './tags'
 
 type Plan<T> = { ok: true; value: T } | { ok: false; message: string }
@@ -10,7 +10,7 @@ function normalizeLabel(raw: unknown): Plan<string | null> {
   return { ok: true, value: label }
 }
 
-/** Conversion label: лише для aw; порожнє → null; для ga4/gtm непорожнє → помилка (розділ 5). */
+/** Conversion label: только для aw; пустое → null; для ga4/gtm непустое → ошибка (раздел 5). */
 function normalizeConversionLabel(raw: unknown, type: TrackingTagType): Plan<string | null> {
   const trimmed = typeof raw === 'string' ? raw.trim() : ''
   if (!trimmed) return { ok: true, value: null }
@@ -62,7 +62,7 @@ export function planTagPatch(body: TagPatchBody, currentType: TrackingTagType): 
   }
   if (body.tag_id !== undefined) {
     const tagId = (body.tag_id ?? '').trim()
-    // tag_id валідується за поточним типом тегу — тип змінювати не можна
+    // tag_id валидируется по текущему типу тега — тип менять нельзя
     if (!isValidTagId(currentType, tagId)) {
       return { ok: false, message: `Невірний формат ID тегу. Очікується: ${TAG_ID_FORMAT_HINTS[currentType]}` }
     }

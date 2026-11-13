@@ -1,4 +1,4 @@
-// Реферальний код, атрибуція та правила посилання (відхилення 11).
+// Реферальный код, атрибуция и правила ссылки (отклонение 11).
 import { describe, it, expect } from 'vitest'
 import {
   REF_CODE_RE, REF_CODE_ALPHABET, REF_CODE_LENGTH, REF_COOKIE, REF_QUERY_KEY,

@@ -1,6 +1,6 @@
-// core/domain/lead/dedup — правила дедуплікації заявок (раздел 8).
-// Чиста частина: налаштування та текст system-коментаря про повтор.
-// Пошук дубля в БД і маркування — в інфраструктурі/use-case.
+// core/domain/lead/dedup — правила дедупликации заявок (раздел 8).
+// Чистая часть: настройки и текст system-комментария о повторе.
+// Поиск дубля в БД и маркировка — в инфраструктуре/use-case.
 import { describeReferral, type ReferralNote } from '../referral/link-rules'
 
 export type DedupSettings = {
@@ -15,7 +15,7 @@ export const DEFAULT_DEDUP_SETTINGS: DedupSettings = {
   ipWindowHours: 24,
 }
 
-/** Розбір значень site_settings (key → value) у налаштування дедупу. */
+/** Разбор значений site_settings (key → value) в настройки дедупа. */
 export function parseDedupSettings(map: Map<string, string | null>): DedupSettings {
   const hours = parseInt(map.get('dedup_ip_window_hours') ?? '24', 10)
   return {
@@ -36,7 +36,7 @@ export type RepeatPayload = {
   referral?: ReferralNote | null
 }
 
-/** Текст system-коментаря до оригінального ліда про повторне звернення. */
+/** Текст system-комментария к исходному лиду о повторном обращении. */
 export function buildRepeatComment(payload: RepeatPayload): string {
   const lines: string[] = ['[ПОВТОР] Нове повторне звернення']
   lines.push(`Причина дедупу: ${payload.reason === 'phone' ? 'телефон' : 'IP-адреса'}`)

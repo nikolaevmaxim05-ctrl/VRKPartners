@@ -3,7 +3,7 @@ import { isStaleUpdate } from '../optimistic-lock'
 
 describe('isStaleUpdate — optimistic-lock за моментом часу', () => {
   it('той самий момент у різних форматах (Z vs +00:00) — НЕ stale (регресія на баг «конфлікт із собою»)', () => {
-    // Сервер пише JS-ISO, supabase-js читає PostgREST-формат — той самий момент.
+    // Сервер пишет JS-ISO, supabase-js читает PostgREST-формат — тот же момент.
     expect(isStaleUpdate('2026-07-24T12:34:56.789+00:00', '2026-07-24T12:34:56.789Z')).toBe(false)
   })
 

@@ -1,4 +1,4 @@
-// core/domain/lead/message — текст заявки: коментар + мітка форми одним блоком; honeypot.
+// core/domain/lead/message — текст заявки: комментарий + метка формы одним блоком; honeypot.
 import type { LeadInput } from './schema'
 
 export function buildLeadMessage(lead: Pick<LeadInput, 'comment' | 'source'>): string | null {
@@ -11,7 +11,7 @@ export function buildLeadMessage(lead: Pick<LeadInput, 'comment' | 'source'>): s
   return lines.length > 0 ? lines.join('\n') : null
 }
 
-/** Чи заповнив бот honeypot-поле `company` (перевіряється ПІСЛЯ Zod, на розібраних даних). */
+/** Заполнил ли бот honeypot-поле `company` (проверяется ПОСЛЕ Zod, на разобранных данных). */
 export function isHoneypotFilled(lead: Pick<LeadInput, 'company'>): boolean {
   return typeof lead.company === 'string' && lead.company.length > 0
 }

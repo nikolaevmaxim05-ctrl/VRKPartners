@@ -1,17 +1,17 @@
-// core/domain/content/visibility — приховування блоків (розділ 9 «Скрытие блоков»).
+// core/domain/content/visibility — скрытие блоков (раздел 9 «Скрытие блоков»).
 //
-// Клієнт ховає будь-який блок сторінки, текст при цьому зберігається. Список прихованого —
-// масив `hidden` у розділі текстів сторінки (`home.hidden`). HIDEABLE_BLOCKS — єдиний
-// список і для перевірки при збереженні, і для редактора. Не ховаються шапка, футер і
-// спливаюча форма. Однотипні елементи списків (картки, кроки, кейси) тут не генеруються:
-// списки редагуються (додати/видалити), тож зайвий елемент клієнт видаляє з редактора.
+// Клиент скрывает любой блок страницы, текст при этом сохраняется. Список скрытого —
+// массив `hidden` в разделе текстов страницы (`home.hidden`). HIDEABLE_BLOCKS — единый
+// список и для проверки при сохранении, и для редактора. Не скрываются шапка, футер и
+// всплывающая форма. Однотипные элементы списков (карточки, шаги, кейсы) здесь не генерируются:
+// списки редактируются (добавить/удалить), так что лишний элемент клиент удаляет из редактора.
 
 export type HideableBlock = { id: string; label: string; parent?: string }
 
-/** Розділ текстів головної сторінки. */
+/** Раздел текстов главной страницы. */
 export const HOME_NS = 'home'
 
-/** Секції головної у порядку появи на сайті. id блоку = id DOM-якоря секції (крім hero → #top). */
+/** Секции главной в порядке появления на сайте. id блока = id DOM-якоря секции (кроме hero → #top). */
 export const HIDEABLE_BLOCKS: Record<string, HideableBlock[]> = {
   [HOME_NS]: [
     { id: 'hero', label: 'Перший екран' },
@@ -27,7 +27,7 @@ export const HIDEABLE_BLOCKS: Record<string, HideableBlock[]> = {
   ],
 }
 
-/** Пункти меню (шапка + футер) → блок, на який ведуть. Посилання на прихований блок не виводиться. */
+/** Пункты меню (шапка + футер) → блок, на который ведут. Ссылка на скрытый блок не выводится. */
 export const NAV_ITEMS: readonly { id: 'usp' | 'about' | 'services' | 'audit' | 'cases' | 'benefits' | 'process' | 'faq'; anchor: string }[] = [
   { id: 'usp', anchor: '#usp' },
   { id: 'about', anchor: '#about' },
@@ -43,7 +43,7 @@ function blocksOf(ns: string): HideableBlock[] {
   return HIDEABLE_BLOCKS[ns] ?? []
 }
 
-/** Прихований, якщо прихований сам АБО прихований батьківський блок. */
+/** Скрыт, если скрыт сам ИЛИ скрыт родительский блок. */
 export function isHidden(hidden: readonly string[], ns: string, id: string): boolean {
   if (hidden.includes(id)) return true
   const block = blocksOf(ns).find((b) => b.id === id)
@@ -53,11 +53,11 @@ export function isHidden(hidden: readonly string[], ns: string, id: string): boo
 export type PageVisibility = {
   hidden: string[]
   shown(id: string): boolean
-  /** Номери прихованих однотипних елементів: ('step', 4) → [2] для hidden = ['step_2']. */
+  /** Номера скрытых однотипных элементов: ('step', 4) → [2] для hidden = ['step_2']. */
   hiddenItems(prefix: string, count: number): number[]
 }
 
-/** Одна точка входу для сторінки: pageVisibility('home', messages.home.hidden). */
+/** Одна точка входа для страницы: pageVisibility('home', messages.home.hidden). */
 export function pageVisibility(ns: string, raw: unknown): PageVisibility {
   const known = new Set(blocksOf(ns).map((b) => b.id))
   const hidden = Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string' && known.has(v)) : []
@@ -72,7 +72,7 @@ export function pageVisibility(ns: string, raw: unknown): PageVisibility {
   }
 }
 
-/** При збереженні: невідомий id → помилка, дублі прибираються, порядок — як у списку. */
+/** При сохранении: неизвестный id → ошибка, дубли убираются, порядок — как в списке. */
 export function normalizeHidden(ns: string, raw: unknown): { ok: true; value: string[] } | { ok: false; message: string } {
   if (!Array.isArray(raw)) return { ok: false, message: 'hidden має бути масивом' }
   const known = blocksOf(ns).map((b) => b.id)

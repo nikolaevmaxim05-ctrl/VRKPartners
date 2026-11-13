@@ -1,9 +1,9 @@
-// core/domain/lead/schema — Zod-схема заявки (розділ 8). Ядро використовує zod
-// (дозволений виняток 3). Використовується і на клієнті (LeadForm), і на сервері (submit-lead).
+// core/domain/lead/schema — Zod-схема заявки (раздел 8). Ядро использует zod
+// (разрешённое исключение 3). Используется и на клиенте (LeadForm), и на сервере (submit-lead).
 //
-// Тексти помилок приходять параметром із текстів сайту (messages.form.*) — ядро не знає про
-// мову, а клієнт редагує їх з адмінки. Поля форми: імʼя + телефон (+ honeypot `company`);
-// email/service/comment — необовʼязкові (форма їх не показує, API приймає).
+// Тексты ошибок приходят параметром из текстов сайта (messages.form.*) — ядро не знает о
+// языке, а клиент редактирует их из админки. Поля формы: имя + телефон (+ honeypot `company`);
+// email/service/comment — необязательные (форма их не показывает, API принимает).
 import { z } from 'zod'
 import { normalizeRefCode } from '../referral/code'
 import { normalizeTouches } from '../referral/touches'
@@ -26,7 +26,7 @@ export function makeLeadSchema(t: LeadSchemaMessages) {
     .max(60, t.errorNameMax)
     .regex(/^[A-Za-zА-Яа-яЁёЇїІіЄєҐґ'’\s-]+$/u, t.errorNameLetters)
 
-  /** Телефон: приймаємо маску +380 (XX) XXX-XX-XX (12 цифр), нормалізуємо в E.164. */
+  /** Телефон: принимаем маску +380 (XX) XXX-XX-XX (12 цифр), нормализуем в E.164. */
   const phone = z
     .string()
     .trim()
@@ -34,7 +34,7 @@ export function makeLeadSchema(t: LeadSchemaMessages) {
     .refine((v) => v.replace(/\D/g, '').length === 12, t.errorPhoneIncomplete)
     .transform(normalizePhone)
 
-  /** Email — необовʼязковий (форма VRK його не показує, але API приймає). */
+  /** Email — необязательный (форма VRK его не показывает, но API принимает). */
   const email = z
     .string()
     .trim()
@@ -47,15 +47,15 @@ export function makeLeadSchema(t: LeadSchemaMessages) {
     name,
     phone,
     email,
-    // код послуги / мітка джерела (≤ 50, розділ 8)
+    // код услуги / метка источника (≤ 50, раздел 8)
     service: z.string().trim().max(50).optional().or(z.literal('')),
     comment: z.string().trim().max(500).optional().or(z.literal('')),
-    // тип форми / контекст блоку для аналітики (hero, audit, final, header…)
+    // тип формы / контекст блока для аналитики (hero, audit, final, header…)
     source: z.string().max(60).optional(),
-    // Honeypot `company`: приймаємо будь-який рядок — заповнене поле обробляє сценарій
-    // (фейковий успіх ПІСЛЯ Zod, розділ 8), а не 400.
+    // Honeypot `company`: принимаем любую строку — заполненное поле обрабатывает сценарий
+    // (фейковый успех ПОСЛЕ Zod, раздел 8), а не 400.
     company: z.string().max(200).optional(),
-    // UTM-мітки / click-id / referrer — з sessionStorage клієнта (необовʼязкові).
+    // UTM-метки / click-id / referrer — из sessionStorage клиента (необязательные).
     utm: z
       .object({
         utm_source: z.string().max(255).optional(),
@@ -69,14 +69,14 @@ export function makeLeadSchema(t: LeadSchemaMessages) {
         referrer: z.string().max(2048).optional(),
       })
       .optional(),
-    // URL сторінки, з якої надіслано заявку (window.location.href)
+    // URL страницы, с которой отправлена заявка (window.location.href)
     page: z.string().max(2048).optional(),
-    // Мова сторінки (leads.locale)
+    // Язык страницы (leads.locale)
     locale: z.string().max(10).optional(),
-    // Легасі-поле реферального коду (клієнти зі старим бандлом): невалідний → undefined, ніколи не 400.
+    // Легаси-поле реферального кода (клиенты со старым бандлом): невалидный → undefined, никогда не 400.
     ref: z.unknown().optional().transform((v) => normalizeRefCode(v) ?? undefined),
-    // Касання партнерських посилань (дзеркало localStorage): ≤ 8 валідних { code, at }, решта
-    // відкидається мовчки; поле ніколи не дає 400 (без нього Zod-strip загубив би тіло).
+    // Касания партнёрских ссылок (зеркало localStorage): ≤ 8 валидных { code, at }, остальные
+    // отбрасываются молча; поле никогда не даёт 400 (без него Zod-strip потерял бы тело).
     refTouches: z.unknown().optional().transform((v) => (v === undefined ? undefined : normalizeTouches(v))),
   })
 }

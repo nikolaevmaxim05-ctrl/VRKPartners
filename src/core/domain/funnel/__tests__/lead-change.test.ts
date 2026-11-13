@@ -1,4 +1,4 @@
-// Розділ 6: класифікація зміни ліда (enter / leave / amount / none) і корекції для leave/amount.
+// Раздел 6: классификация изменения лида (enter / leave / amount / none) и корректировки для leave/amount.
 import { describe, it, expect } from 'vitest'
 import { classifyLeadChange, decideLeave, decideAmountAdjustment } from '../transition'
 

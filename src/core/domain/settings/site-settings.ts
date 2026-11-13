@@ -1,8 +1,8 @@
-// core/domain/settings/site-settings — білий список ключів site_settings і їх нормалізація.
-// Перенесено з /api/admin/settings без зміни поведінки.
+// core/domain/settings/site-settings — белый список ключей site_settings и их нормализация.
+// Перенесено из /api/admin/settings без изменения поведения.
 
-// Білий список ключів — захист від запису довільних налаштувань через API.
-// telephony_secret зберігається в integrations (AES-256-GCM), тут не приймається.
+// Белый список ключей — защита от записи произвольных настроек через API.
+// telephony_secret хранится в integrations (AES-256-GCM), здесь не принимается.
 import { REF_ATTRIBUTION_SETTING_KEY, planAttributionDays } from '../referral/touches'
 
 export const ALLOWED_SETTING_KEYS = new Set<string>([
@@ -13,16 +13,16 @@ export const ALLOWED_SETTING_KEYS = new Set<string>([
   'google_ads_conversion_action',
   'deal_amount_type',
   'pipelines_enabled',
-  // Вікно first-touch-атрибуції реферальних заявок (днів, 1–400; touches.ts).
+  // Окно first-touch-атрибуции реферальных заявок (дней, 1–400; touches.ts).
   REF_ATTRIBUTION_SETTING_KEY,
 ])
 
-/** Ніколи не віддаємо секрети з GET settings. */
+/** Никогда не отдаём секреты из GET settings. */
 export const SECRET_SETTING_KEYS = new Set<string>(['telephony_secret'])
 
 export const ALLOWED_CURRENCIES = ['UAH', 'USD', 'EUR']
 
-/** Тип за замовчуванням за ключем — якщо клієнт не передав type. */
+/** Тип по умолчанию по ключу — если клиент не передал type. */
 export function inferSettingType(key: string): string {
   if (key === 'dedup_by_phone' || key === 'dedup_by_ip') return 'boolean'
   if (key === 'pipelines_enabled') return 'boolean'
@@ -32,7 +32,7 @@ export function inferSettingType(key: string): string {
 
 export type SettingItem = { key: string; value: string | number | boolean | null; type?: string }
 
-/** Валідує й нормалізує items (зберігаються як TEXT). */
+/** Валидирует и нормализует items (хранятся как TEXT). */
 export function normalizeSettingItems(items: unknown):
   | { ok: true; rows: Array<{ key: string; value: string; type: string }> }
   | { ok: false; message: string } {

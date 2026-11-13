@@ -1,7 +1,7 @@
-// core/domain/content/site-messages — форма текстів сайту (messages/uk.json).
-// Ключі існуючих блоків збережено 1:1 з колишнім config/site.ts (відхилення 6 AGENTS.md):
-// у клієнта є правки по hero / site / trust. Типи описані явно (а не виведені з JSON),
-// бо елементи масивів мають необовʼязкові поля (icon, href, image, approach…).
+// core/domain/content/site-messages — форма текстов сайта (messages/uk.json).
+// Ключи существующих блоков сохранены 1:1 с прежним config/site.ts (отклонение 6 AGENTS.md):
+// у клиента есть правки по hero / site / trust. Типы описаны явно (а не выведены из JSON),
+// потому что элементы массивов имеют необязательные поля (icon, href, image, approach…).
 
 export type FaqItem = { q: string; a: string }
 
@@ -20,7 +20,7 @@ export type AboutMessages = {
 }
 
 export type ServiceItem = {
-  /** Технічний ключ (іконка / режим превʼю); у редакторі не показується. */
+  /** Технический ключ (иконка / режим превью); в редакторе не показывается. */
   key: string
   name: string
   desc: string
@@ -36,7 +36,7 @@ export type ServicesMessages = {
   submitLabel: string
   showMore: string
   showLess: string
-  /** aria-label кнопки збільшення мініатюри (тач, лайтбокс). */
+  /** aria-label кнопки увеличения миниатюры (тач, лайтбокс). */
   zoomLabel: string
   popup: { title: string; note: string }
   items: ServiceItem[]
@@ -54,7 +54,7 @@ export type AuditMessages = {
 
 export type CaseMetric = { value: string; label: string }
 export type CaseItem = {
-  /** Технічний id (React-ключ панелі); у редакторі не показується. */
+  /** Технический id (React-ключ панели); в редакторе не показывается. */
   id: string
   client: string
   href?: string
@@ -197,10 +197,10 @@ export type ThanksMessages = { metaTitle: string; title: string; text: string; h
 export type NotFoundMessages = { title: string; text: string; home: string }
 export type LegalUiMessages = { backHome: string; updatedAt: string }
 
-/** Розділ текстів сторінки: список прихованих блоків (розділ 9 «Скрытие блоков»). */
+/** Раздел текстов страницы: список скрытых блоков (раздел 9 «Скрытие блоков»). */
 export type PageMessages = { hidden: string[] }
 
-/** SEO-розмітка головної (відхилення 2: редагується окремою вкладкою, рядок `seo`). */
+/** SEO-разметка главной (отклонение 2: редактируется отдельной вкладкой, строка `seo`). */
 export type PageMetaMessages = {
   title: string
   description: string
@@ -211,11 +211,11 @@ export type PageMetaMessages = {
   orgDescription: string
 }
 
-/** Блок «Що ви отримуєте?»: пункти «X замість Y» (title — що отримуєте, text — замість чого). */
+/** Блок «Що ви отримуєте?»: пункты «X вместо Y» (title — что получаете, text — вместо чего). */
 export type BenefitItem = { title: string; text: string }
 export type BenefitsMessages = {
   title: string
-  /** Підпис перед другою частиною пункту («замість»). */
+  /** Подпись перед второй частью пункта («замість»). */
   instead: string
   items: BenefitItem[]
 }

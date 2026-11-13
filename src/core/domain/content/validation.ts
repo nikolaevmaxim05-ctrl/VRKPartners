@@ -1,11 +1,11 @@
-// core/domain/content/validation — валідація збереження SEO та юр.документів і завантаження
-// картинок. Тексти сайту перевіряє limits.ts (validateMessages) за розділом 9.
+// core/domain/content/validation — валидация сохранения SEO и юр.документов и загрузки
+// картинок. Тексты сайта проверяет limits.ts (validateMessages) по разделу 9.
 import { z } from 'zod'
 
 type Plan<T> = { ok: true; value: T } | { ok: false; message: string }
 
-// Контакти (phone/email/telegram) у SEO не входять — вони в контенті лендингу.
-// z.object стриже невідомі ключі, тож старі оверрайди ігноруються.
+// Контакты (phone/email/telegram) в SEO не входят — они в контенте лендинга.
+// z.object стрижёт неизвестные ключи, так что старые оверрайды игнорируются.
 export const seoOverridesSchema = z.object({
   title: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
@@ -27,10 +27,10 @@ export const legalOverridesSchema = z.object({
   offer: legalDocSchema.optional(),
 })
 
-// ── Завантаження картинок ────────────────────────────────────────────────────
+// ── Загрузка картинок ────────────────────────────────────────────────────────
 
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024
-// SVG навмисно виключено (може містити скрипт; next/image не оптимізує віддалені SVG).
+// SVG намеренно исключён (может содержать скрипт; next/image не оптимизирует удалённые SVG).
 export const IMAGE_ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 
 const EXT_BY_TYPE: Record<string, string> = {
@@ -43,7 +43,7 @@ export function validateImageUpload(type: string, size: number): Plan<{ ext: str
   return { ok: true, value: { ext: EXT_BY_TYPE[type] ?? 'bin' } }
 }
 
-/** Тип зображення за магічними байтами (MIME з клієнта не довіряємо) або null. */
+/** Тип изображения по магическим байтам (MIME от клиента не доверяем) или null. */
 export function sniffImageType(bytes: Uint8Array): string | null {
   const b = bytes
   if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 && b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a) return 'image/png'
@@ -53,18 +53,18 @@ export function sniffImageType(bytes: Uint8Array): string | null {
   return null
 }
 
-/** Вміст файлу має відповідати заявленому типу. */
+/** Содержимое файла должно соответствовать заявленному типу. */
 export function validateImageBytes(type: string, bytes: Uint8Array): Plan<true> {
   if (sniffImageType(bytes) !== type) return { ok: false, message: 'Вміст файлу не відповідає типу зображення' }
   return { ok: true, value: true }
 }
 
-/** `<timestamp>-<6 символів>.<ext>` */
+/** `<timestamp>-<6 символов>.<ext>` */
 export function buildUploadPath(nowMs: number, random: string, ext: string): string {
   return `${nowMs}-${random}.${ext}`
 }
 
-/** Шлях обʼєкта НАШОГО bucket із публічного URL (для видалення попереднього файлу) або null. */
+/** Путь объекта НАШЕГО bucket из публичного URL (для удаления предыдущего файла) или null. */
 export function extractOwnObjectPath(previousUrl: string, marker: string): string | null {
   const idx = previousUrl.indexOf(marker)
   if (idx === -1) return null

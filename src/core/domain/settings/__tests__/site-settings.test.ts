@@ -1,4 +1,4 @@
-// Білий список ключів site_settings і нормалізація значень (normalizeSettingItems).
+// Белый список ключей site_settings и нормализация значений (normalizeSettingItems).
 import { describe, it, expect } from 'vitest'
 import {
   normalizeSettingItems,

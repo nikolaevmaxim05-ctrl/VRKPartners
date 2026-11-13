@@ -1,6 +1,6 @@
-// core/domain/funnel/stage-rules — правила конфігурації стадій воронки (раздел 6).
-// Винесено з /api/admin/lead-statuses (POST) і /api/admin/lead-statuses/[id] (PATCH)
-// без зміни поведінки: той самий порядок перевірок і ті самі тексти помилок.
+// core/domain/funnel/stage-rules — правила конфигурации стадий воронки (раздел 6).
+// Вынесено из /api/admin/lead-statuses (POST) и /api/admin/lead-statuses/[id] (PATCH)
+// без изменения поведения: тот же порядок проверок и те же тексты ошибок.
 import { validateConversionAction } from './conversion-action'
 
 export type ConversionType = 'target_lead' | 'non_target_lead' | 'deal' | 'deal_adjustment'
@@ -12,7 +12,7 @@ export const VALID_CONVERSION_TYPES: readonly ConversionType[] = [
   'deal_adjustment',
 ] as const
 
-/** Типи конверсій, для яких допустима сума (requires_amount). */
+/** Типы конверсий, для которых допустима сумма (requires_amount). */
 export const AMOUNT_CONVERSION_TYPES: readonly ConversionType[] = ['deal', 'deal_adjustment'] as const
 
 export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
@@ -68,20 +68,20 @@ export type StageCurrent = {
 export type StagePatchPlan =
   | {
       ok: true
-      /** Поля для update (без is_initial — див. initial). */
+      /** Поля для update (без is_initial — см. initial). */
       update: Record<string, unknown>
       /**
-       * Що робити з is_initial:
-       *  - 'set'   → скинути прапор у всіх інших і поставити тут;
-       *  - 'unset' → зняти, але спершу переконатися, що є інша initial-стадія
-       *              (caller рахує інші; якщо 0 і current.is_initial — помилка lastInitial);
-       *  - 'keep'  → не чіпати.
+       * Что делать с is_initial:
+       *  - 'set'   → сбросить флаг у всех остальных и поставить здесь;
+       *  - 'unset' → снять, но сначала убедиться, что есть другая initial-стадия
+       *              (caller считает остальные; если 0 и current.is_initial — ошибка lastInitial);
+       *  - 'keep'  → не трогать.
        */
       initial: 'set' | 'unset' | 'keep'
     }
   | { ok: false; error: string }
 
-/** Валідує PATCH-тіло стадії і будує update. Без I/O; порядок перевірок — як у роуті. */
+/** Валидирует PATCH-тело стадии и строит update. Без I/O; порядок проверок — как в роуте. */
 export function planStagePatch(body: StagePatchBody, current: StageCurrent): StagePatchPlan {
   const update: Record<string, unknown> = {}
 
@@ -141,7 +141,7 @@ export function planStagePatch(body: StagePatchBody, current: StageCurrent): Sta
     }
     update.conversion_type = body.conversion_type
     if (body.conversion_type !== null) {
-      // Інваріант: conversion_type != null ⇒ is_final = true
+      // Инвариант: conversion_type != null ⇒ is_final = true
       update.is_final = true
     } else if (body.is_final === undefined && current.conversion_type !== null) {
       update.is_final = false
@@ -173,7 +173,7 @@ export function planStagePatch(body: StagePatchBody, current: StageCurrent): Sta
     update.amount_is_profit = wants
   }
 
-  // conversion_action обов'язковий, якщо conversion_type != null
+  // conversion_action обязателен, если conversion_type != null
   if (effectiveConversionType !== null) {
     const effectiveAction =
       update.conversion_action !== undefined
@@ -220,7 +220,7 @@ export type StageCreatePlan =
     }
   | { ok: false; error: string }
 
-/** Валідує тіло створення стадії. Порядок перевірок — як у роуті POST. */
+/** Валидирует тело создания стадии. Порядок проверок — как в роуте POST. */
 export function planNewStage(body: StageCreateBody): StageCreatePlan {
   const name = (body.name ?? '').trim()
   const color = (body.color ?? '#6b7280').trim()

@@ -1,13 +1,13 @@
-// core/domain/funnel/adjustments — правила корекцій Google Ads (RETRACT / RESTATE).
-// Чиста частина lib/conversion-adjustments.ts (Фаза 1). Запис у БД і відправка в
-// Sheets — в інфраструктурі.
+// core/domain/funnel/adjustments — правила корректировок Google Ads (RETRACT / RESTATE).
+// Чистая часть lib/conversion-adjustments.ts (Фаза 1). Запись в БД и отправка в
+// Sheets — в инфраструктуре.
 
 export type AdjustmentType = 'retract' | 'restate'
 
 /**
- * C15: повторний RETRACT дозволяємо, лише якщо конверсію ПЕРЕекспортували ПІСЛЯ
- * попереднього retract (є що відкликати знову). Інакше — дубль, пропускаємо.
- * Обидва аргументи — ISO-рядки або null; exportedAt=null означає «не експортовано» (0).
+ * C15: повторный RETRACT разрешаем, только если конверсию ПЕРЕэкспортировали ПОСЛЕ
+ * предыдущего retract (есть что отзывать снова). Иначе — дубль, пропускаем.
+ * Оба аргумента — ISO-строки или null; exportedAt=null означает «не экспортировано» (0).
  */
 export function shouldSuppressRetract(
   lastRetractAt: string | null | undefined,
@@ -19,7 +19,7 @@ export function shouldSuppressRetract(
   return exported <= lastRetract
 }
 
-/** RETRACT іде без суми/валюти; RESTATE — з переданою сумою (currency резолвить caller). */
+/** RETRACT идёт без суммы/валюты; RESTATE — с переданной суммой (currency резолвит caller). */
 export function normalizeAdjustmentValue(
   type: AdjustmentType,
   value: number | null | undefined,

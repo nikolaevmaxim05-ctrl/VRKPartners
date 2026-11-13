@@ -1,6 +1,6 @@
-// core/domain/referral/link-rules — правила створення/редагування реферального посилання.
-// Код генерує сервер (рішення власника 5: лише випадковий, незмінний); з клієнта приймаються
-// назва партнера, нотатки, вмикач. Повідомлення — uk-UA (віддаються в 400).
+// core/domain/referral/link-rules — правила создания/редактирования реферальной ссылки.
+// Код генерирует сервер (решение владельца 5: только случайный, неизменный); от клиента принимаются
+// название партнёра, заметки, переключатель. Сообщения — uk-UA (отдаются в 400).
 
 export type ReferralLink = {
   id: string
@@ -13,10 +13,10 @@ export type ReferralLink = {
   updated_at: string
 }
 
-/** Довідник для фільтрів/бейджів (без нотаток і авторства). */
+/** Справочник для фильтров/бейджей (без заметок и авторства). */
 export type ReferralLinkRef = Pick<ReferralLink, 'id' | 'name' | 'code' | 'is_active'>
 
-/** Статистика по заявках (v1: лише заявки, без візитів — рішення власника 9). */
+/** Статистика по заявкам (v1: только заявки, без визитов — решение владельца 9). */
 export type ReferralLinkStats = {
   link_id: string
   total: number
@@ -24,10 +24,10 @@ export type ReferralLinkStats = {
   last_at: string | null
 }
 
-/** Що знаємо про реферал заявки для сповіщень і коментаря «[ПОВТОР]»; touchedAt — ISO першого переходу. */
+/** Что знаем о реферале заявки для уведомлений и комментария «[ПОВТОР]»; touchedAt — ISO первого перехода. */
 export type ReferralNote = { code: string; name: string | null; state: 'active' | 'inactive' | 'unknown'; touchedAt?: string | null }
 
-/** Дата першого переходу за Києвом (dd.mm.yyyy) або null. */
+/** Дата первого перехода по Киеву (dd.mm.yyyy) или null. */
 export function formatTouchedAt(iso: string | null | undefined): string | null {
   if (!iso) return null
   const d = new Date(iso)
@@ -35,7 +35,7 @@ export function formatTouchedAt(iso: string | null | undefined): string | null {
   return new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
 }
 
-/** Рядок для Telegram/KeyCRM/email/коментаря: «Партнер: <назва>» або код зі станом (+ дата першого переходу). */
+/** Строка для Telegram/KeyCRM/email/комментария: «Партнер: <назва>» или код с состоянием (+ дата первого перехода). */
 export function describeReferral(ref: ReferralNote): string {
   const when = formatTouchedAt(ref.touchedAt)
   const suffix = when ? ` · перший перехід ${when}` : ''
@@ -107,7 +107,7 @@ export function planReferralLinkPatch(body: ReferralLinkPatchBody): Plan<{ name?
   return { ok: true, value: out }
 }
 
-/** Заявки з посиланням: агрегація в памʼяті (select ≤ 10 000 рядків, як у звітах). */
+/** Заявки со ссылкой: агрегация в памяти (select ≤ 10 000 строк, как в отчётах). */
 export function aggregateLeadStats(
   rows: ReadonlyArray<{ referral_link_id: string; created_at: string }>,
   now: Date,

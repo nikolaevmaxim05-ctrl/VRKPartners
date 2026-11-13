@@ -1,12 +1,12 @@
-// core/domain/content/limits — валідація збереження текстів (розділ 9 «Валидация сохранения»).
+// core/domain/content/limits — валидация сохранения текстов (раздел 9 «Валидация сохранения»).
 //
-// Тип поля виводиться з ІМЕНІ ключа (таблиця нижче); ключі, де імʼя обманює про тип, —
-// явні винятки. Ліміт = max(ліміт типу, ceil(довжина дефолту × 1.2)) — дефолт довший за
-// ліміт не обрізається. Один модуль і для сервера, і для лічильника «N / ліміт» у редакторі.
+// Тип поля выводится из ИМЕНИ ключа (таблица ниже); ключи, где имя обманывает о типе, —
+// явные исключения. Лимит = max(лимит типа, ceil(длина дефолта × 1.2)) — дефолт длиннее
+// лимита не обрезается. Один модуль и для сервера, и для счётчика «N / ліміт» в редакторе.
 //
-// Імена ключів у проєкті camelCase (hero.title, services.items[].desc, faq[].q…) — тому
-// ознаки з таблиці стандарту (`_desc`, `_title`) перевіряються як суфікси/слова без
-// підкреслення (retitle → title). Порядок перевірок — як у стандарті.
+// Имена ключей в проекте camelCase (hero.title, services.items[].desc, faq[].q…) — поэтому
+// признаки из таблицы стандарта (`_desc`, `_title`) проверяются как суффиксы/слова без
+// подчёркивания (retitle → title). Порядок проверок — как в стандарте.
 import { isPlainObject, isEditableNamespace, type PlainObject } from './messages'
 import { isSafeImageUrl, isTelegramUrl } from './landing'
 import { normalizeHidden } from './visibility'
@@ -21,7 +21,7 @@ const TYPE_LIMITS: Record<Exclude<FieldType, 'other'>, number> = {
   label: 60,
 }
 
-/** Ознаки типу в імені ключа (перевіряються по порядку). */
+/** Признаки типа в имени ключа (проверяются по порядку). */
 const TYPE_RULES: [FieldType, RegExp][] = [
   ['number', /(^|[^a-z])(num|price|count)([^a-z]|$)/i],
   ['paragraph', /(desc|description|text|sub|subtitle|answer|note|side)$/i],
@@ -31,24 +31,24 @@ const TYPE_RULES: [FieldType, RegExp][] = [
 ]
 
 /**
- * Явні винятки — імʼя обманює про тип. Ключ — імʼя поля або повний шлях (`ns.key`).
- * Повний шлях має пріоритет над іменем.
+ * Явные исключения — имя обманывает о типе. Ключ — имя поля или полный путь (`ns.key`).
+ * Полный путь имеет приоритет над именем.
  */
 export const FIELD_TYPE_EXCEPTIONS: Record<string, FieldType> = {
-  q: 'title', // faq[].q — питання
-  a: 'paragraph', // faq[].a — відповідь
-  client: 'title', // назва клієнта в кейсі
+  q: 'title', // faq[].q — вопрос
+  a: 'paragraph', // faq[].a — ответ
+  client: 'title', // название клиента в кейсе
   niche: 'title',
   role: 'label',
   experience: 'label',
   skills: 'paragraph',
   task: 'paragraph',
-  highlight: 'label', // фрагмент value, що підсвічується
-  partnerLinkText: 'label', // текст посилання, не абзац
+  highlight: 'label', // фрагмент value, который подсвечивается
+  partnerLinkText: 'label', // текст ссылки, не абзац
   consentLinkText: 'label',
   telegramCtaText: 'badge', // текст кнопки
   consentPrefix: 'other', // «Натискаючи кнопку, ви погоджуєтесь з» — не бейдж
-  partnerBadge: 'other', // hero.partnerBadge — шлях до картинки, не бейдж
+  partnerBadge: 'other', // hero.partnerBadge — путь к картинке, не бейдж
   'trust.caseHint': 'paragraph',
   'hero.trust': 'paragraph',
   'site.description': 'paragraph',
@@ -58,7 +58,7 @@ export const FIELD_TYPE_EXCEPTIONS: Record<string, FieldType> = {
   'site.telegramHandle': 'label',
 }
 
-/** Тип поля за іменем ключа (та повним шляхом для винятків). */
+/** Тип поля по имени ключа (и полному пути для исключений). */
 export function fieldType(key: string, path?: string): FieldType {
   if (path && path in FIELD_TYPE_EXCEPTIONS) return FIELD_TYPE_EXCEPTIONS[path]
   if (key in FIELD_TYPE_EXCEPTIONS) return FIELD_TYPE_EXCEPTIONS[key]
@@ -66,7 +66,7 @@ export function fieldType(key: string, path?: string): FieldType {
   return 'other'
 }
 
-/** Ліміт довжини рядка: max(ліміт типу, ceil(довжина дефолту × 1.2)); «прочее» — 2×дефолт + 500. */
+/** Лимит длины строки: max(лимит типа, ceil(длина дефолта × 1.2)); «прочее» — 2×дефолт + 500. */
 export function fieldLimit(key: string, defaultValue: string | undefined, path?: string): number {
   const type = fieldType(key, path)
   const defLen = defaultValue?.length ?? 0
@@ -74,7 +74,7 @@ export function fieldLimit(key: string, defaultValue: string | undefined, path?:
   return Math.max(base, Math.ceil(defLen * 1.2))
 }
 
-/** Вид поля для віджета редактора та правил URL. */
+/** Вид поля для виджета редактора и правил URL. */
 export type FieldKind = 'image' | 'href' | 'icon' | 'text'
 
 export function fieldKind(key: string): FieldKind {
@@ -86,7 +86,7 @@ export function fieldKind(key: string): FieldKind {
 
 export const MAX_ARRAY_ITEMS = 50
 
-/** `*Href/*Url/*Link` — лише https:, http:, tel:, mailto: або відносний шлях. */
+/** `*Href/*Url/*Link` — только https:, http:, tel:, mailto: или относительный путь. */
 export function isAllowedHref(v: string): boolean {
   if (v === '') return true
   if (v.startsWith('/') && !v.startsWith('//')) return true
@@ -94,12 +94,12 @@ export function isAllowedHref(v: string): boolean {
   return /^(https?:|tel:|mailto:)/i.test(v)
 }
 
-/** `*image/*src` — лише відносний шлях або власне сховище (Supabase Storage). */
+/** `*image/*src` — только относительный путь или собственное хранилище (Supabase Storage). */
 export function isAllowedImage(v: string): boolean {
   return isSafeImageUrl(v)
 }
 
-/** Іконка картки: ключ пресета (літери/дефіс) або картинка за правилами `image`. */
+/** Иконка карточки: ключ пресета (буквы/дефис) или картинка по правилам `image`. */
 export function isAllowedIcon(v: string): boolean {
   if (v === '') return true
   if (/^[a-z0-9-]+$/i.test(v)) return true
@@ -109,20 +109,20 @@ export function isAllowedIcon(v: string): boolean {
 export type ValidationError = { path: string; message: string }
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: ValidationError }
 
-/** Технічні ключі елементів (React-ключ, ключ іконки) — рядки без обмежень довжини за типом. */
+/** Технические ключи элементов (React-ключ, ключ иконки) — строки без ограничений длины по типу. */
 export const TECHNICAL_KEYS: readonly string[] = ['key', 'id']
 
 const fail = (path: string, message: string): ValidationResult<never> => ({ ok: false, error: { path, message } })
 
 /**
- * Санітизує вхідні тексти за формою дефолтів і перевіряє ліміти/URL/масиви/приховані блоки.
- * Повертає очищене значення (чужі ключі відкинуто, типи узгоджено), придатне для diffMessages.
- *   • чужий верхньорівневий ключ → помилка (400);
- *   • обʼєкт: лише ключі дефолтів; тип не збігся → лишається дефолт;
- *   • масив: ≤ 50 елементів; елементи-обʼєкти санітизуються за шаблоном (обʼєднання ключів
- *     усіх дефолтних елементів; необовʼязкові ключі не дозаповнюються); масив рядків — лише рядки;
- *   • рядок: довжина ≤ ліміту типу; href/image/icon — за правилами URL; telegramCtaUrl — лише t.me;
- *   • `hidden` сторінки — лише відомі id, без дублів, у порядку списку.
+ * Санитизирует входящие тексты по форме дефолтов и проверяет лимиты/URL/массивы/скрытые блоки.
+ * Возвращает очищенное значение (чужие ключи отброшены, типы согласованы), пригодное для diffMessages.
+ *   • чужой верхнеуровневый ключ → ошибка (400);
+ *   • объект: только ключи дефолтов; тип не совпал → остаётся дефолт;
+ *   • массив: ≤ 50 элементов; элементы-объекты санитизируются по шаблону (объединение ключей
+ *     всех дефолтных элементов; необязательные ключи не дозаполняются); массив строк — только строки;
+ *   • строка: длина ≤ лимита типа; href/image/icon — по правилам URL; telegramCtaUrl — только t.me;
+ *   • `hidden` страницы — только известные id, без дублей, в порядке списка.
  */
 export function validateMessages<T extends PlainObject>(defaults: T, incoming: unknown): ValidationResult<T> {
   if (!isPlainObject(incoming)) return fail('', 'overrides is required')
@@ -141,8 +141,8 @@ export function validateMessages<T extends PlainObject>(defaults: T, incoming: u
 }
 
 /**
- * @param fillMissing обʼєкт фіксованої форми (розділ, вкладений блок) — відсутні ключі беруться з
- * дефолтів; елемент масиву — необовʼязкові ключі (icon, image, href…) лишаються відсутніми.
+ * @param fillMissing объект фиксированной формы (раздел, вложенный блок) — отсутствующие ключи берутся из
+ * дефолтов; элемент массива — необязательные ключи (icon, image, href…) остаются отсутствующими.
  */
 function sanitizeValue(
   def: unknown,
@@ -159,9 +159,9 @@ function sanitizeValue(
     for (const [k, d] of Object.entries(def)) {
       if (!(k in inc)) {
         if (fillMissing) out[k] = JSON.parse(JSON.stringify(d))
-        // Елемент масиву: необовʼязкові ключі лишаються відсутніми, але масиви, які є в КОЖНОГО
-        // дефолтного елемента (cases, metrics), обовʼязкові — дозаповнюємо порожнім (не з
-        // шаблону): компоненти ітерують їх, і рядок без них валив би рендер сторінки.
+        // Элемент массива: необязательные ключи остаются отсутствующими, но массивы, которые есть у КАЖДОГО
+        // дефолтного элемента (cases, metrics), обязательны — дозаполняем пустым (не из
+        // шаблона): компоненты итерируют их, и строка без них валила бы рендер страницы.
         else if (requiredArrays?.has(k) && Array.isArray(d)) out[k] = []
         continue
       }
@@ -178,8 +178,8 @@ function sanitizeValue(
       const norm = normalizeHidden(ns, inc)
       return norm.ok ? { ok: true, value: norm.value } : fail(path, norm.message)
     }
-    // Шаблон елемента — обʼєднання ключів усіх дефолтних елементів (необовʼязкові поля —
-    // icon, href, image, mockup… — є не в кожного); для лімітів беремо найдовший дефолт.
+    // Шаблон элемента — объединение ключей всех дефолтных элементов (необязательные поля —
+    // icon, href, image, mockup… — есть не у каждого); для лимитов берём самый длинный дефолт.
     const template = unionTemplate(def)
     const required = requiredArrayKeys(def)
     const out: unknown[] = []
@@ -192,7 +192,7 @@ function sanitizeValue(
         if (!res.ok) return res
         out.push(res.value)
       } else if (tpl === undefined) {
-        // Порожній дефолтний масив без шаблону — приймаємо лише рядки.
+        // Пустой дефолтный массив без шаблона — принимаем только строки.
         if (typeof item !== 'string') return fail(`${path}[${i}]`, 'Очікується рядок')
         const res = checkString(item, key, `${path}[${i}]`, undefined, ns)
         if (!res.ok) return res
@@ -217,7 +217,7 @@ function sanitizeValue(
   if (typeof def === 'number' || typeof def === 'boolean') {
     return { ok: true, value: typeof inc === typeof def ? inc : def }
   }
-  // Необовʼязкове поле, якого немає в шаблоні (undefined) — приймаємо рядки/булеві як є.
+  // Необязательное поле, которого нет в шаблоне (undefined) — принимаем строки/булевы как есть.
   if (typeof inc === 'string') {
     const res = checkString(inc, key, path, undefined, ns)
     return res.ok ? { ok: true, value: inc } : res
@@ -226,7 +226,7 @@ function sanitizeValue(
   return { ok: true, value: undefined }
 }
 
-/** Обʼєднання форм елементів масиву: усі ключі; для рядків — найдовше значення (ліміти щедріші). */
+/** Объединение форм элементов массива: все ключи; для строк — самое длинное значение (лимиты щедрее). */
 function unionTemplate(arr: unknown[]): unknown {
   const objects = arr.filter(isPlainObject)
   if (objects.length === 0) return arr[0]
@@ -242,7 +242,7 @@ function unionTemplate(arr: unknown[]): unknown {
   return tpl
 }
 
-/** Ключі-масиви, присутні в кожному дефолтному елементі-обʼєкті (обовʼязкові списки). */
+/** Ключи-массивы, присутствующие в каждом дефолтном элементе-объекте (обязательные списки). */
 function requiredArrayKeys(arr: unknown[]): ReadonlySet<string> {
   const objects = arr.filter(isPlainObject)
   const out = new Set<string>()
@@ -261,7 +261,7 @@ function longestString(arr: unknown[]): string | undefined {
 
 function checkString(v: string, key: string, path: string, def: string | undefined, ns: string): ValidationResult<true> {
   const kind = fieldKind(key)
-  // Обидва Telegram-посилання рендеряться в href (футер, фінальний банер, кнопка) — лише t.me.
+  // Обе Telegram-ссылки рендерятся в href (футер, финальный баннер, кнопка) — только t.me.
   if ((path === 'site.telegramCtaUrl' || path === 'site.telegram') && !isTelegramUrl(v)) {
     return fail(path, 'Посилання Telegram — лише https://t.me/… або https://telegram.me/…')
   }

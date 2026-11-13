@@ -1,14 +1,14 @@
-// core/domain/funnel/enhanced-conversions — нормалізація та хеш для Google Ads
-// Enhanced Conversions (розділ 15). Чистий модуль: без window/gtag.
-// Одні й ті самі функції на сайті (gtag('set','user_data')) і в офлайн-вигрузці (Google Sheets):
-// телефон — єдина normalizePhone (E.164), email — без крапок у gmail перед хешем.
+// core/domain/funnel/enhanced-conversions — нормализация и хеш для Google Ads
+// Enhanced Conversions (раздел 15). Чистый модуль: без window/gtag.
+// Одни и те же функции на сайте (gtag('set','user_data')) и в офлайн-выгрузке (Google Sheets):
+// телефон — единая normalizePhone (E.164), email — без точек в gmail перед хешем.
 import { normalizePhone } from '../lead/phone'
 import { emailForHash } from '../lead/email'
 
 export { normalizeEmail, emailForHash } from '../lead/email'
 export { normalizePhone } from '../lead/phone'
 
-/** Значення, які треба хешувати для user_data (порожні → пропускаються). */
+/** Значения, которые нужно хешировать для user_data (пустые → пропускаются). */
 export function hashableUserData(data: { email?: string | null; phone?: string | null }): {
   email?: string
   phone?: string
@@ -26,8 +26,8 @@ export function hashableUserData(data: { email?: string | null; phone?: string |
 }
 
 /**
- * SHA-256 hex lowercase через Web Crypto API (доступний у браузері та Node ≥ 19).
- * Ніколи не кидає: без subtle → ''.
+ * SHA-256 hex lowercase через Web Crypto API (доступен в браузере и Node ≥ 19).
+ * Никогда не бросает: без subtle → ''.
  */
 export async function sha256Hex(input: string): Promise<string> {
   try {

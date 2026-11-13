@@ -1,4 +1,4 @@
-// Unit-тести Zod-схеми заявки (тексти помилок — параметром із текстів сайту).
+// Unit-тесты Zod-схемы заявки (тексты ошибок — параметром из текстов сайта).
 import { describe, it, expect } from "vitest";
 import { makeLeadSchema, leadDefaults } from "../schema";
 
@@ -12,7 +12,7 @@ const T = {
 };
 const leadSchema = makeLeadSchema(T);
 
-// Валідні дані форми (телефон — у форматі маски лендінгу)
+// Валидные данные формы (телефон — в формате маски лендинга)
 const validLead = { name: "Іван Петренко", phone: "+380 (99) 123-45-67" };
 
 describe("makeLeadSchema", () => {

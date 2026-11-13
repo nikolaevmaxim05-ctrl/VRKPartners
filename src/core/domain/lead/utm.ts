@@ -1,5 +1,5 @@
-// core/domain/lead/utm — UTM / атрибуція переходів: чисті ключі, нормалізація, підписи.
-// Робота з sessionStorage (getStoredUtm) — у презентації (lib/utm.ts → features/landing).
+// core/domain/lead/utm — UTM / атрибуция переходов: чистые ключи, нормализация, подписи.
+// Работа с sessionStorage (getStoredUtm) — в презентации (lib/utm.ts → features/landing).
 
 export const UTM_KEYS = [
   'utm_source',
@@ -13,7 +13,7 @@ export const UTM_KEYS = [
   'referrer',
 ] as const
 
-// Ключі, наявність яких у URL тригерить запис у sessionStorage (referrer — не з URL).
+// Ключи, наличие которых в URL триггерит запись в sessionStorage (referrer — не из URL).
 export const UTM_URL_KEYS = [
   'utm_source',
   'utm_medium',
@@ -30,7 +30,7 @@ export type UtmData = Partial<Record<UtmKey, string>>
 
 export const UTM_STORAGE_KEY = 'lead_utm'
 
-// Безпечний парсинг збереженого об'єкта — лишаємо тільки відомі ключі з непорожніми рядками.
+// Безопасный парсинг сохранённого объекта — оставляем только известные ключи с непустыми строками.
 export function normalizeUtm(raw: unknown): UtmData {
   if (!raw || typeof raw !== 'object') return {}
   const src = raw as Record<string, unknown>
@@ -42,13 +42,13 @@ export function normalizeUtm(raw: unknown): UtmData {
   return out
 }
 
-// Чи є в об'єкті хоч одна змістовна мітка.
+// Есть ли в объекте хоть одна содержательная метка.
 export function hasUtm(utm: UtmData | undefined | null): utm is UtmData {
   if (!utm) return false
   return UTM_KEYS.some((key) => typeof utm[key] === 'string' && utm[key]!.length > 0)
 }
 
-// Людиночитані підписи ключів — для нотифікацій (Telegram / email / CRM).
+// Человекочитаемые подписи ключей — для уведомлений (Telegram / email / CRM).
 export const UTM_LABELS: Record<UtmKey, string> = {
   utm_source: 'Source',
   utm_medium: 'Medium',
@@ -61,7 +61,7 @@ export const UTM_LABELS: Record<UtmKey, string> = {
   referrer: 'Referrer',
 }
 
-// Впорядкований список наявних міток як пари [Label, value].
+// Упорядоченный список имеющихся меток как пары [Label, value].
 export function utmEntries(utm: UtmData | undefined | null): Array<[string, string]> {
   const out: Array<[string, string]> = []
   if (!utm) return out
@@ -72,7 +72,7 @@ export function utmEntries(utm: UtmData | undefined | null): Array<[string, stri
   return out
 }
 
-// Короткий підсумок для email-таблиці, напр.: "google → cpc → implant_kyiv (term: ..., content: ...)"
+// Краткая сводка для email-таблицы, напр.: "google → cpc → implant_kyiv (term: ..., content: ...)"
 export function formatUtmSummary(utm: UtmData | undefined | null): string {
   if (!utm) return ''
   const chain = [utm.utm_source, utm.utm_medium, utm.utm_campaign]

@@ -1,5 +1,5 @@
-// core/domain/funnel/google-ads-time — формат часу Google Ads з явним зміщенням
-// часового поясу клієнта: "2024-01-15 10:30:00+03:00" (Europe/Kyiv). Чиста функція.
+// core/domain/funnel/google-ads-time — формат времени Google Ads с явным смещением
+// часового пояса клиента: "2024-01-15 10:30:00+03:00" (Europe/Kyiv). Чистая функция.
 
 export const CLIENT_TIME_ZONE = 'Europe/Kyiv'
 

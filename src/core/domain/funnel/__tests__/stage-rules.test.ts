@@ -57,7 +57,7 @@ describe('planStagePatch', () => {
     expect(r1.ok && r1.update).toMatchObject({ conversion_type: 'deal', is_final: true })
     const r2 = planStagePatch({ conversion_type: null }, { ...base, conversion_type: 'deal', conversion_action: 'p' })
     expect(r2.ok && r2.update).toMatchObject({ conversion_type: null, is_final: false })
-    // явний is_final=false при конверсії ігнорується (інваріант)
+    // явный is_final=false при конверсии игнорируется (инвариант)
     const r3 = planStagePatch({ is_final: false }, { ...base, conversion_type: 'deal', conversion_action: 'p' })
     expect(r3.ok && r3.update).toMatchObject({ is_final: true })
   })

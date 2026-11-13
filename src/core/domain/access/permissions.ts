@@ -43,7 +43,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   manage_referrals: 'Реферальні посилання',
 }
 
-// Пояснення для кожного права (показуються підказками в редакторі ролей).
+// Пояснения для каждого права (показываются подсказками в редакторе ролей).
 export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   manage_leads: 'Зміна статусів, призначення відповідальних, коментарі до заявок.',
   manage_users: 'Запрошення, видалення та зміна ролей користувачів.',
@@ -65,26 +65,26 @@ export type UserRoleInfo = {
   permissions: Permission[]
   isActive: boolean
   displayName: string | null
-  // Ранг в ієрархії: менше = вище. admin завжди -1. Для гейтингу UI.
+  // Ранг в иерархии: меньше = выше. admin всегда -1. Для гейтинга UI.
   roleRank: number
 }
 
-/** Ранг ролі «admin» — завжди найвищий. */
+/** Ранг роли «admin» — всегда наивысший. */
 export const ADMIN_RANK = -1
 
-/** Ефективний ранг ролі: admin → -1, інакше hierarchy_order (1000, якщо не задано). */
+/** Эффективный ранг роли: admin → -1, иначе hierarchy_order (1000, если не задан). */
 export function effectiveRank(role: { name: string; hierarchy_order?: number | null }): number {
   if (role.name === 'admin') return ADMIN_RANK
   return Number(role.hierarchy_order ?? 1000)
 }
 
-/** Чи є у ролі хоча б одне з прав. Деактивований користувач — жодних прав. */
+/** Есть ли у роли хотя бы одно из прав. Деактивированный пользователь — никаких прав. */
 export function roleGrants(info: UserRoleInfo | null, anyOf: Permission[]): boolean {
   if (!info || !info.isActive) return false
   return anyOf.some((p) => info.permissions.includes(p))
 }
 
-/** Лишає тільки валідні ключі прав, прибирає дублі. */
+/** Оставляет только валидные ключи прав, убирает дубли. */
 export function sanitizePermissions(input: unknown): Permission[] {
   if (!Array.isArray(input)) return []
   const valid = new Set<string>(ALL_PERMISSIONS)
@@ -93,7 +93,7 @@ export function sanitizePermissions(input: unknown): Permission[] {
   )
 }
 
-/** Фільтрує довільний jsonb-масив прав до відомих значень (без дедупу — як у permissions.ts). */
+/** Фильтрует произвольный jsonb-массив прав до известных значений (без дедупа — как в permissions.ts). */
 export function filterKnownPermissions(raw: unknown): Permission[] {
   if (!Array.isArray(raw)) return []
   const valid = new Set<string>(ALL_PERMISSIONS)

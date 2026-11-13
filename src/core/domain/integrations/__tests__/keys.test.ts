@@ -1,4 +1,4 @@
-// Ключі інтеграцій і маскування значень для адмінки (keys).
+// Ключи интеграций и маскирование значений для админки (keys).
 import { describe, it, expect } from 'vitest'
 import { KNOWN_INTEGRATION_KEYS, PLAINTEXT_INTEGRATION_KEYS, LEAD_DELIVERY_KEYS, maskValue } from '../keys'
 

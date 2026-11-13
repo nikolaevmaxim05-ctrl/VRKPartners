@@ -1,9 +1,9 @@
-// core/domain/access/hierarchy — ієрархія ролей і захист від блокування (раздел 5).
-// Чисті правила, винесені з роутів /api/admin/roles/* та /api/admin/users/[id].
-// Менший ранг = вище. Роль керує лише ролями СТРОГО нижче за себе.
+// core/domain/access/hierarchy — иерархия ролей и защита от блокировки (раздел 5).
+// Чистые правила, вынесенные из роутов /api/admin/roles/* и /api/admin/users/[id].
+// Меньший ранг = выше. Роль управляет только ролями СТРОГО ниже себя.
 import { effectiveRank, type Permission } from './permissions'
 
-/** Актор може керувати ціллю, лише якщо ціль СТРОГО нижче (більший ранг). */
+/** Актор может управлять целью, только если цель СТРОГО ниже (больший ранг). */
 export function canActOnRank(actorRank: number, targetRank: number): boolean {
   return actorRank < targetRank
 }
@@ -15,9 +15,9 @@ export type ReorderPlan =
   | { ok: false; status: 400 | 403; error: string }
 
 /**
- * Перевіряє перестановку ролей (зверху вниз):
- *  - orderedIds — повна перестановка існуючих id, без пропусків і дублів (400);
- *  - ролі на рівні/вище за актора (locked) лишаються префіксом у тому ж порядку (403).
+ * Проверяет перестановку ролей (сверху вниз):
+ *  - orderedIds — полная перестановка существующих id, без пропусков и дублей (400);
+ *  - роли на уровне актора/выше (locked) остаются префиксом в том же порядке (403).
  */
 export function validateRoleReorder(
   orderedIds: string[],
@@ -50,12 +50,12 @@ export function validateRoleReorder(
   return { ok: true, lockedIds }
 }
 
-/** Активне призначення ролі: хто яку роль має + права цієї ролі. */
+/** Активное назначение роли: кто какую роль имеет + права этой роли. */
 export type ActiveAssignment = { user_id: string; role_id: string | null; permissions: Permission[] }
 
 /**
- * Lockout-guard для зміни прав ролі: true, якщо після зняття `manage_users` з ролі
- * `roleId` не лишиться жодного активного користувача з цим правом.
+ * Lockout-guard для изменения прав роли: true, если после снятия `manage_users` с роли
+ * `roleId` не останется ни одного активного пользователя с этим правом.
  */
 export function roleChangeCausesLockout(
   assignments: ActiveAssignment[],
@@ -73,9 +73,9 @@ export function roleChangeCausesLockout(
 }
 
 /**
- * Lockout-guard для зміни користувача: true, якщо після зміни (нова роль / деактивація)
- * у системі не лишиться жодного активного користувача з `manage_users`.
- * `targetWillHave` — чи матиме цільовий користувач право ПІСЛЯ зміни.
+ * Lockout-guard для изменения пользователя: true, если после изменения (новая роль / деактивация)
+ * в системе не останется ни одного активного пользователя с `manage_users`.
+ * `targetWillHave` — будет ли у целевого пользователя право ПОСЛЕ изменения.
  */
 export function userChangeCausesLockout(
   assignments: ActiveAssignment[],

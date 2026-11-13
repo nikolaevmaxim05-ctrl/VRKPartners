@@ -1,20 +1,20 @@
-// core/domain/referral/attribution — з яких джерел збираються касання партнерських посилань.
-// Джерела: cookie lead_ref (HttpOnly, список касань) ⊕ тіло заявки (refTouches — дзеркало
-// localStorage; легасі-поле ref — одне касання «зараз») ⊕ ?ref= в URL сторінки (касання «зараз»).
-// Списки обʼєднуються (за кодом — мінімальний ts), вибір касання — pickReferralTouch у приймачі.
+// core/domain/referral/attribution — из каких источников собираются касания партнёрских ссылок.
+// Источники: cookie lead_ref (HttpOnly, список касаний) ⊕ тело заявки (refTouches — зеркало
+// localStorage; легаси-поле ref — одно касание «сейчас») ⊕ ?ref= в URL страницы (касание «сейчас»).
+// Списки объединяются (по коду — минимальный ts), выбор касания — pickReferralTouch в приёмнике.
 import { normalizeRefCode, REF_QUERY_KEY } from './code'
 import { decodeRefCookie, mergeTouches, normalizeTouches, type ReferralTouch } from './touches'
 
 export type ReferralSources = {
   cookie?: string | null
-  /** refTouches із тіла (уже нормалізовані Zod або сирі — нормалізуються ще раз). */
+  /** refTouches из тела (уже нормализованные Zod или сырые — нормализуются ещё раз). */
   body?: unknown
-  /** Легасі-поле ref (клієнти зі старим бандлом). */
+  /** Легаси-поле ref (клиенты со старым бандлом). */
   legacyBody?: string | null
   pageUrl?: string | null
 }
 
-/** ?ref= з повного URL сторінки (невалідний URL → null). */
+/** ?ref= из полного URL страницы (невалидный URL → null). */
 export function refCodeFromPageUrl(pageUrl: string | null | undefined): string | null {
   if (!pageUrl) return null
   try {
@@ -24,7 +24,7 @@ export function refCodeFromPageUrl(pageUrl: string | null | undefined): string |
   }
 }
 
-/** Усі касання з трьох джерел, обʼєднані за кодом (мінімальний ts), відсортовані за часом. */
+/** Все касания из трёх источников, объединённые по коду (минимальный ts), отсортированные по времени. */
 export function collectReferralTouches(sources: ReferralSources, now: number): ReferralTouch[] {
   const fromCookie = decodeRefCookie(sources.cookie, now)
   const fromBody = normalizeTouches(sources.body)

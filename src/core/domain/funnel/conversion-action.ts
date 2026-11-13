@@ -1,11 +1,11 @@
-// Валідація Conversion Name (Google Ads) для стадій воронки.
-// Спільний хелпер: API-роути lead-statuses (server) + settings-panel (client).
+// Валидация Conversion Name (Google Ads) для стадий воронки.
+// Общий хелпер: API-роуты lead-statuses (server) + settings-panel (client).
 //
 // Правила:
-// - юнікод-літери, цифри, пробіл, `_`, `.`, `-`; довжина 1-100
-// - перший символ НЕ `=`, `+`, `-`, `@` і не пробіл — захист від
-//   formula/CSV-injection у Google Sheets і заглушок типу "-"
-// - значення з одних лише розділювачів (`-`, `.`, `_`, пробіли) відхиляється
+// - юникод-буквы, цифры, пробел, `_`, `.`, `-`; длина 1-100
+// - первый символ НЕ `=`, `+`, `-`, `@` и не пробел — защита от
+//   formula/CSV-injection в Google Sheets и заглушек типа "-"
+// - значение из одних только разделителей (`-`, `.`, `_`, пробелы) отклоняется
 
 export const CONVERSION_ACTION_RE =
   /^(?![=+\-@\s])(?=.*[\p{L}\p{N}])[\p{L}\p{N} _.-]{1,100}$/u
@@ -14,9 +14,9 @@ export const CONVERSION_ACTION_ERROR =
   'Conversion Name: лише літери/цифри/пробіл/_ . -, не може починатися з = + - @. Вкажіть реальне імʼя конверсії з Google Ads.'
 
 /**
- * Повертає текст помилки (uk-UA) або null, якщо значення валідне.
- * Порожнє після trim (і не-рядок) → null: таке значення нормалізується у null
- * вище по стеку, а обов'язковість при conversion_type != null перевіряється окремо.
+ * Возвращает текст ошибки (uk-UA) или null, если значение валидно.
+ * Пустое после trim (и не-строка) → null: такое значение нормализуется в null
+ * выше по стеку, а обязательность при conversion_type != null проверяется отдельно.
  */
 export function validateConversionAction(raw: unknown): string | null {
   if (typeof raw !== 'string' || raw.trim() === '') return null

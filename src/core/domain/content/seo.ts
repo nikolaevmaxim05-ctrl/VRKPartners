@@ -1,6 +1,6 @@
-// core/domain/content/seo — метадані (SEO) головної: мерж/дифф/наслідування.
-// Відхилення 2 (AGENTS.md): вкладка «Метадані» редагується з адмінки; хранилище —
-// рядок site_content id='seo'. Дефолти приходять параметром (ядро не знає config/site).
+// core/domain/content/seo — метаданные (SEO) главной: мерж/дифф/наследование.
+// Отклонение 2 (AGENTS.md): вкладка «Метадані» редактируется из админки; хранилище —
+// строка site_content id='seo'. Дефолты приходят параметром (ядро не знает config/site).
 
 export const SEO_CONTENT_ID = 'seo'
 
@@ -16,7 +16,7 @@ export type SeoMeta = {
 
 export type SeoOverrides = Partial<SeoMeta>
 
-/** Порядок/набір полів — єдине джерело правди (для diff/whitelist). */
+/** Порядок/набор полей — единый источник правды (для diff/whitelist). */
 export const SEO_KEYS: readonly (keyof SeoMeta)[] = [
   'title', 'description', 'ogTitle', 'ogDescription', 'ogImage',
   'orgName', 'orgDescription',
@@ -32,12 +32,12 @@ function cleanStrings(ov: SeoOverrides | null | undefined): Partial<SeoMeta> {
   return out
 }
 
-/** Мерж дефолтів з оверрайдами. Порожні/невалідні оверрайди → лишається дефолт. */
+/** Мерж дефолтов с оверрайдами. Пустые/невалидные оверрайды → остаётся дефолт. */
 export function mergeSeo(defaults: SeoMeta, overrides: SeoOverrides | null | undefined): SeoMeta {
   return { ...defaults, ...cleanStrings(overrides) }
 }
 
-/** OG-заголовок/опис із наслідуванням: порожньо → основні title/description. */
+/** OG-заголовок/описание с наследованием: пусто → основные title/description. */
 export function effectiveOg(m: SeoMeta): { title: string; description: string } {
   return {
     title: m.ogTitle.trim() || m.title,
@@ -45,7 +45,7 @@ export function effectiveOg(m: SeoMeta): { title: string; description: string } 
   }
 }
 
-/** Дані організації для JSON-LD з наслідуванням порожніх полів. */
+/** Данные организации для JSON-LD с наследованием пустых полей. */
 export function effectiveOrg(m: SeoMeta, siteName: string): { name: string; description: string } {
   return {
     name: m.orgName.trim() || siteName,
@@ -53,7 +53,7 @@ export function effectiveOrg(m: SeoMeta, siteName: string): { name: string; desc
   }
 }
 
-/** Diff від дефолтів: лише непорожні поля, що відрізняються. */
+/** Diff от дефолтов: только непустые поля, которые отличаются. */
 export function diffSeo(incoming: SeoOverrides, defaults: SeoMeta): SeoOverrides {
   const out: SeoOverrides = {}
   for (const k of SEO_KEYS) {

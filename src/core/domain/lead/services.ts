@@ -1,6 +1,6 @@
-// core/domain/lead/services — підпис послуги для UI/сповіщень.
-// Лендинг VRK пише у leads.service одразу україномовну назву, тож «переклад» тотожний;
-// порожнє значення → '—'.
+// core/domain/lead/services — подпись услуги для UI/уведомлений.
+// Лендинг VRK пишет в leads.service сразу украиноязычное название, так что «перевод» тождественный;
+// пустое значение → '—'.
 export function getServiceLabel(value: string | null | undefined): string {
   if (!value) return '—'
   return value

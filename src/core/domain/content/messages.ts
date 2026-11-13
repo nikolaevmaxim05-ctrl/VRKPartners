@@ -1,14 +1,14 @@
-// core/domain/content/messages — мерж і дифф текстів сайту (розділ 9 стандарту).
+// core/domain/content/messages — мерж и дифф текстов сайта (раздел 9 стандарта).
 //
-// Модель: дефолти — messages/<мова>.json; правки клієнта — site_content, лише змінені ключі.
-// Правила мержу:
-//   • обʼєкти зливаються рекурсивно;
-//   • рядок із правки перемагає завжди, навіть порожній («пусто = убрано»);
-//   • масив із правки замінює дефолтний цілком (коротший, довший або порожній);
-//   • число/булеве — якщо тип збігається;
-//   • ключі правки, яких немає в дефолтах, ігноруються; тип не збігся → дефолт.
-// Дифф при збереженні лишає лише відмінності: повернуте до дефолту значення зникає з БД,
-// тому правки дефолтів у файлі продовжують доїжджати до сайту.
+// Модель: дефолты — messages/<язык>.json; правки клиента — site_content, только изменённые ключи.
+// Правила мержа:
+//   • объекты сливаются рекурсивно;
+//   • строка из правки побеждает всегда, даже пустая («пусто = убрано»);
+//   • массив из правки заменяет дефолтный целиком (короче, длиннее или пустой);
+//   • число/булево — если тип совпадает;
+//   • ключи правки, которых нет в дефолтах, игнорируются; тип не совпал → дефолт.
+// Дифф при сохранении оставляет только отличия: возвращённое к дефолту значение исчезает из БД,
+// поэтому правки дефолтов в файле продолжают доезжать до сайта.
 
 export type PlainObject = Record<string, unknown>
 
@@ -20,7 +20,7 @@ function clone<T>(v: T): T {
   return v === undefined ? v : (JSON.parse(JSON.stringify(v)) as T)
 }
 
-/** Мерж дефолтів з правками (форма результату = форма дефолтів). */
+/** Мерж дефолтов с правками (форма результата = форма дефолтов). */
 export function mergeMessages<T>(defaults: T, overrides: unknown): T {
   if (isPlainObject(defaults)) {
     if (!isPlainObject(overrides)) return clone(defaults)
@@ -45,8 +45,8 @@ export function mergeMessages<T>(defaults: T, overrides: unknown): T {
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 /**
- * Дифф повних значень редактора проти дефолтів — лише те, що відрізняється.
- * Повертає undefined, якщо відмінностей немає (порожні обʼєкти не зберігаються).
+ * Дифф полных значений редактора против дефолтов — только то, что отличается.
+ * Возвращает undefined, если отличий нет (пустые объекты не сохраняются).
  */
 export function diffMessages(defaults: unknown, incoming: unknown): unknown {
   if (isPlainObject(defaults)) {
@@ -71,21 +71,21 @@ export function diffMessages(defaults: unknown, incoming: unknown): unknown {
   return undefined
 }
 
-/** Списки контенту: лишає лише непорожні рядки (у список може приїхати порожній пункт). */
+/** Списки контента: оставляет только непустые строки (в список может приехать пустой пункт). */
 export function contentList(raw: unknown): string[] {
   if (!Array.isArray(raw)) return []
   return raw.filter((v): v is string => typeof v === 'string' && v.trim() !== '')
 }
 
-/** Одиночний текст показуємо лише якщо він непорожній після trim. */
+/** Одиночный текст показываем только если он непустой после trim. */
 export function hasText(v: unknown): v is string {
   return typeof v === 'string' && v.trim() !== ''
 }
 
 /**
- * Кількість змінених «листків» (рядків/чисел/булевих) у current проти defaults.
- * Масиви порівнюються поелементно; зайві/відсутні елементи рахуються по одному.
- * Лічильник «N змінено» у редакторі (розділ 9).
+ * Количество изменённых «листьев» (строк/чисел/булевых) в current против defaults.
+ * Массивы сравниваются поэлементно; лишние/отсутствующие элементы считаются по одному.
+ * Счётчик «N змінено» в редакторе (раздел 9).
  */
 export function countChanges(defaults: unknown, current: unknown): number {
   if (isPlainObject(defaults)) {
@@ -111,8 +111,8 @@ export function countChanges(defaults: unknown, current: unknown): number {
 }
 
 /**
- * Простори текстів, які редагуються з адмінки. Не редагується лише SEO-розмітка
- * (`pageMeta`) — вона живе в окремому рядку `seo` (відхилення 2).
+ * Пространства текстов, которые редактируются из админки. Не редактируется только SEO-разметка
+ * (`pageMeta`) — она живёт в отдельной строке `seo` (отклонение 2).
  */
 export const EDITABLE_NAMESPACES = [
   'site', 'nav', 'header', 'hero', 'usp', 'about', 'services', 'audit', 'trust', 'benefits', 'workflow',
@@ -125,7 +125,7 @@ export function isEditableNamespace(ns: string): ns is EditableNamespace {
   return (EDITABLE_NAMESPACES as readonly string[]).includes(ns)
 }
 
-/** Лишає з обʼєкта лише редаговані простори (для редактора та відповіді API). */
+/** Оставляет из объекта только редактируемые пространства (для редактора и ответа API). */
 export function pickEditable<T extends PlainObject>(messages: T): Pick<T, EditableNamespace & keyof T> {
   const out: PlainObject = {}
   for (const ns of EDITABLE_NAMESPACES) if (ns in messages) out[ns] = messages[ns]
