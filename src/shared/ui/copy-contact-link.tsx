@@ -56,7 +56,7 @@ export const CopyContactLink = forwardRef<HTMLAnchorElement, Props>(
       // Существующие обработчики (напр. track(), stopPropagation) — в ОБЕИХ ветках.
       onClick?.(e)
 
-      if (!copy) return // телефон на таче: нативный tel:, без копирования/toast
+      if (!copy) return // телефон на тач-устройстве: нативный tel:, без копирования/toast
 
       const ok = await copyText(normalized)
       // Ошибку копирования не показываем как сбой — просто без toast.

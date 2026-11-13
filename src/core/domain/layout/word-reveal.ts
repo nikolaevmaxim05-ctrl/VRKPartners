@@ -30,7 +30,7 @@ export const WORD_REVEAL_DEFAULTS: WordRevealParams = {
   spread: 0.06,
 }
 
-/** Границы параметров (панель настройки, localStorage): за границами — обрезаем. */
+/** Границы параметров (панель настройки, localStorage): вне границ — обрезаем. */
 export const WORD_REVEAL_RANGES: Record<keyof WordRevealParams, [number, number]> = {
   readingLine: [0.3, 0.9],
   minOpacity: [0, 0.9],

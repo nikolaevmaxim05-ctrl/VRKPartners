@@ -64,7 +64,7 @@ function normalizePhone(phone: string | null | undefined): string {
   return phone ? corePhone(phone) : ''
 }
 
-// "YYYY-MM-DD HH:MM:SS" в киевском времени
+// "YYYY-MM-DD HH:MM:SS" по киевскому времени
 function readableKyivTime(iso: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Kyiv',

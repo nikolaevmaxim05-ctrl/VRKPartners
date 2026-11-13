@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { attachWordReveal, type WordRevealController } from "@/features/landing/lib/word-reveal";
 import { normalizeParams, type WordRevealParams } from "@core/domain/layout/word-reveal";
 
-/** Событие панели настройки (временная): новые параметры → пересчёт без перезагрузки. */
+/** Событие временной панели настройки: новые параметры → пересчёт без перезагрузки. */
 export const WORD_REVEAL_PARAMS_EVENT = "vrk:word-reveal-params";
 
 /**

@@ -908,7 +908,7 @@ export function AnalyticsReport() {
         if ((j as { code?: string }).code === 'TOO_MANY_ROWS') {
           setError('Забагато даних. Звузіть діапазон дат.')
         } else if (serverMsg.includes('custom_field_id')) {
-          // Техническую валидационную ошибку показываем человеческим языком.
+          // Техническую валидационную ошибку показываем понятным языком.
           setError('Оберіть додаткове поле у списку «Оберіть поле», щоб побудувати звіт.')
         } else {
           setError(serverMsg || `Помилка сервера (${res.status})`)

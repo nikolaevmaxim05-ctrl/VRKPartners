@@ -10,7 +10,7 @@ import { nbHyphen } from "@/shared/lib/nb-hyphen";
 // 2026-09-17): части пункта выезжают СЛЕВА по мере прокрутки — скраб по позиции, ступеньками
 // номер → жёлтая → серая (правило — core/domain/layout/slide-in, DOM — features/landing/lib/slide-in,
 // включает SlideIn в layout сайта по атрибутам data-slide-in / data-slide-part). Заголовок секции —
-// обычный .reveal. Без JS и в режиме «меньше движения» всё на месте. Секция имеет overflow-x: clip (не
+// обычный .reveal. Без JS и в режиме «меньше движения» всё на месте. У секции overflow-x: clip (не
 // hidden — не создаёт скролл-контейнер, якорь scroll-margin работает): сдвиг влево не даёт
 // горизонтального скролла. Тексты — messages/uk.json (benefits.*), редактируются из админки; пустой
 // пункт не выводится.

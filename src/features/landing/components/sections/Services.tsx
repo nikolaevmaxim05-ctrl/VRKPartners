@@ -83,7 +83,7 @@ function ServiceCard({
   const [preview, setPreview] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   // Лайтбокс (шаг 3b): только там, где нет hover-превью (тач / < sm). Определяем после монтирования —
-  // SSR рендерит миниатюру как div, на таче она становится кнопкой (без расхождений гидрации).
+  // SSR рендерит миниатюру как div, на тач-устройствах она становится кнопкой (без расхождений гидрации).
   const [zoomable, setZoomable] = React.useState(false);
   const [lightbox, setLightbox] = React.useState(false);
   const zoomBtnRef = React.useRef<HTMLButtonElement | null>(null);

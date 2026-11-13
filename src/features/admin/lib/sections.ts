@@ -29,7 +29,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { href: '/admin/audit-log', label: 'Журнал дій', description: 'Хто, коли і що змінив в адмінці.', icon: History, anyPermission: ['manage_users'] },
 ]
 
-/** Разделы, доступные при наборе прав. */
+/** Разделы, доступные при данном наборе прав. */
 export function visibleSections(permissions: readonly Permission[]): AdminSection[] {
   return ADMIN_SECTIONS.filter((s) => s.anyPermission.length === 0 || s.anyPermission.some((p) => permissions.includes(p)))
 }
