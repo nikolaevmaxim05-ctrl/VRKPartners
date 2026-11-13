@@ -1,4 +1,4 @@
-// use-cases/admin/manage-custom-fields — кастомні поля ліда (налаштування).
+// use-cases/admin/manage-custom-fields — кастомные поля лида (настройки).
 import { ok, fail, type Result } from '../../result'
 import { UNIQUE_VIOLATION, type Actor } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'

@@ -1,5 +1,5 @@
-// conversion-flow на фейкових портах: доставка корекцій (await send → exported лише при sent),
-// guard від дубля RETRACT, запис/оновлення конверсії.
+// conversion-flow на фейковых портах: доставка корректировок (await send → exported только при sent),
+// guard от дубля RETRACT, запись/обновление конверсии.
 import { describe, it, expect, vi } from 'vitest'
 import { makeConversionFlow } from '../conversion-flow'
 import type { AdjustmentRow, ConversionSheetExporter } from '../../../ports/conversions'

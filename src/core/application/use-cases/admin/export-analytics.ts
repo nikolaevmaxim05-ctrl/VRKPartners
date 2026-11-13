@@ -1,5 +1,5 @@
-// use-cases/admin/export-analytics — конструктор вивантаження (ліди / зведення, CSV / XLSX).
-// Перенесено з /api/admin/analytics/export без зміни вмісту файлів.
+// use-cases/admin/export-analytics — конструктор выгрузки (лиды / сводка, CSV / XLSX).
+// Перенесено из /api/admin/analytics/export без изменения содержимого файлов.
 import { ok, fail, type Result } from '../../result'
 import type { Actor } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -114,7 +114,7 @@ export function makeExportAnalytics(deps: {
     if (!main.ok) return main
     const mainReport = main.value
 
-    // Стовпці файлу — у канонічному порядку SUMMARY_COLUMN_ORDER, незалежно від порядку в запиті.
+    // Столбцы файла — в каноническом порядке SUMMARY_COLUMN_ORDER, независимо от порядка в запросе.
     const effectiveColumns: SummaryColumn[] = orderSummaryColumns(summaryColumns).filter(
       (col) => col !== 'dealProfitSum' || mainReport.flags.hasProfitStages,
     )

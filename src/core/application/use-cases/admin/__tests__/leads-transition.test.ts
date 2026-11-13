@@ -1,4 +1,4 @@
-// updateLead на фейкових портах — розділ 6: enter / leave / amount і корекції RETRACT / RESTATE.
+// updateLead на фейковых портах — раздел 6: enter / leave / amount и корректировки RETRACT / RESTATE.
 import { describe, it, expect, vi } from 'vitest'
 import { makeLeadUseCases } from '../leads'
 import { dbOk } from '../../../ports/common'

@@ -1,5 +1,5 @@
-// manage-referral-links на фейкових портах: генерація коду з однією повторною спробою, 409 за назвою/кодом,
-// незмінний код, заборона видалення із заявками (підрахунок і FK 23503), статистика, аудит.
+// manage-referral-links на фейковых портах: генерация кода с одной повторной попыткой, 409 по названию/коду,
+// неизменяемый код, запрет удаления с заявками (подсчёт и FK 23503), статистика, аудит.
 import { describe, it, expect, vi } from 'vitest'
 import { makeReferralLinkUseCases } from '../manage-referral-links'
 import { dbOk, dbFail } from '../../../ports/common'

@@ -1,12 +1,12 @@
-// core/application/ports/system — keepalive, GA4 dev-перевірка.
-// Rate limit форми — підрахунок по таблиці leads (LeadRepository.countByIpSince), окремого порту немає.
+// core/application/ports/system — keepalive, GA4 dev-проверка.
+// Rate limit формы — подсчёт по таблице leads (LeadRepository.countByIpSince), отдельного порта нет.
 import type { DbResult } from './common'
 
 export interface HealthCheck {
   ping(): Promise<DbResult<void>>
 }
 
-/** Запис журналу дій адмінів (таблиця audit_log). Значення — JSON без секретів. */
+/** Запись журнала действий админов (таблица audit_log). Значения — JSON без секретов. */
 export type AuditEntry = {
   user_id: string | null
   user_email: string | null
@@ -24,7 +24,7 @@ export interface AuditLogRepository {
   listPage(page: number, limit: number): Promise<DbResult<{ rows: AuditRow[]; total: number }>>
 }
 
-/** GA4: Measurement Protocol + Realtime Data API (dev-інструмент). */
+/** GA4: Measurement Protocol + Realtime Data API (dev-инструмент). */
 export interface Ga4Client {
   sendTestEvents(measurementId: string, apiSecret: string, eventNames: string[]): Promise<void>
   getAccessToken(serviceAccountJson: { client_email: string; private_key: string }): Promise<string>

@@ -1,4 +1,4 @@
-// use-cases/system/keepalive — пінг БД (cron раз на 5 днів), щоб безкоштовний проєкт не засинав.
+// use-cases/system/keepalive — пинг БД (cron раз в 5 дней), чтобы бесплатный проект не засыпал.
 import { ok, fail, type Result } from '../../result'
 import type { Clock } from '../../ports/common'
 import type { HealthCheck } from '../../ports/system'

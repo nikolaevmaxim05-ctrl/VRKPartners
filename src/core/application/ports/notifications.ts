@@ -1,8 +1,8 @@
-// core/application/ports/notifications — канали сповіщень про заявку (Telegram, KeyCRM, email).
+// core/application/ports/notifications — каналы уведомлений о заявке (Telegram, KeyCRM, email).
 import type { UtmData } from '../../domain/lead/utm'
 import type { ReferralNote } from '../../domain/referral/link-rules'
 
-/** Дані заявки для сповіщення (без PII-логування в адаптерах). */
+/** Данные заявки для уведомления (без PII-логирования в адаптерах). */
 export type LeadNotification = {
   name: string
   phone: string
@@ -10,9 +10,9 @@ export type LeadNotification = {
   service?: string
   comment?: string
   utm?: UtmData
-  /** URL сторінки заявки. */
+  /** URL страницы заявки. */
   source?: string
-  /** Реферальний код/партнер (відхилення 11): active — зараховано, inactive/unknown — лише код. */
+  /** Реферальный код/партнёр (отклонение 11): active — зачтено, inactive/unknown — только код. */
   referral?: ReferralNote
 }
 
@@ -24,7 +24,7 @@ export interface LeadNotifier {
 
 export type TestMessage = { ok: boolean; message: string }
 
-/** «Перевірити підключення» для ключів інтеграцій. */
+/** «Перевірити підключення» для ключей интеграций. */
 export interface IntegrationTester {
   telegram(botToken: string): Promise<TestMessage>
   keycrm(apiKey: string): Promise<TestMessage>

@@ -1,4 +1,4 @@
-// Довідники адмінки на фейкових портах: кастомні поля, Google-теги, site_settings, секрети інтеграцій.
+// Справочники админки на фейковых портах: кастомные поля, Google-теги, site_settings, секреты интеграций.
 import { describe, it, expect, vi } from 'vitest'
 import { makeCustomFieldUseCases } from '../manage-custom-fields'
 import { makeTrackingTagUseCases } from '../manage-tracking-tags'
@@ -13,7 +13,7 @@ const quiet = () => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 }
 
-// ── Кастомні поля ────────────────────────────────────────────────────────────
+// ── Кастомные поля ───────────────────────────────────────────────────────────
 
 function setupFields(over: Record<string, unknown> = {}) {
   const customFields = {
@@ -244,7 +244,7 @@ describe('makeSettingsUseCases', () => {
   })
 })
 
-// ── Секрети інтеграцій ───────────────────────────────────────────────────────
+// ── Секреты интеграций ───────────────────────────────────────────────────────
 
 function setupIntegrations(over: { secrets?: Record<string, unknown>; notificationEmail?: () => string | undefined } = {}) {
   const secrets = {
@@ -290,7 +290,7 @@ describe('makeIntegrationUseCases', () => {
     const call = audit.record.mock.calls[0] as unknown[]
     expect(call).toHaveLength(3)
     expect(call[3]).toBeUndefined()
-    // Секрет не потрапляє в жоден аргумент журналу.
+    // Секрет не попадает ни в один аргумент журнала.
     expect(JSON.stringify(call)).not.toContain('123:abc')
   })
 

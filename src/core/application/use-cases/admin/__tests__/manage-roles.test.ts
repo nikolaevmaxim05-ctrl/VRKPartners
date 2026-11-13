@@ -1,4 +1,4 @@
-// makeRoleUseCases на фейкових портах — розділ 5: ієрархія ролей, lockout-guard, порядок.
+// makeRoleUseCases на фейковых портах — раздел 5: иерархия ролей, lockout-guard, порядок.
 import { describe, it, expect, vi } from 'vitest'
 import { makeRoleUseCases } from '../manage-roles'
 import { dbOk, dbFail, UNIQUE_VIOLATION } from '../../../ports/common'
@@ -36,7 +36,7 @@ function setup(over: { roles?: Record<string, unknown>; users?: Record<string, u
     ...over.roles,
   }
   const users = {
-    // За замовчуванням актор — admin (ранг −1), його роль r-admin.
+    // По умолчанию актор — admin (ранг −1), его роль r-admin.
     getActorRank: vi.fn(async (userId: string) => (userId === admin.id ? -1 : 1)),
     getRoleInfo: vi.fn(async (userId: string) => ({ roleId: userId === admin.id ? 'r-admin' : 'r-mgr' })),
     getActiveAssignments: vi.fn(async () => [] as Array<{ user_id: string; role_id: string | null; permissions: string[] }>),
@@ -106,8 +106,8 @@ describe('updateRole', () => {
   })
 
   it('зміна прав ВЛАСНОЇ ролі → forbidden (захист спрацьовує, коли ранг ролі невідомий і перевірка рангу пройдена)', async () => {
-    // Спостереження: за консистентних рангів own-role guard недосяжний — перевірка рангу
-    // (actorRank < ownRank хибно) відсікає раніше. Гілка досяжна лише коли ranks не містить id.
+    // Наблюдение: при консистентных рангах own-role guard недостижим — проверка ранга
+    // (actorRank < ownRank ложно) отсекает раньше. Ветка достижима только когда ranks не содержит id.
     const { uc, roles, users } = setup({ roles: { getRanks: vi.fn(async () => new Map()) } })
     const r = await uc.updateRole('r-admin', { permissions: ['manage_leads'] }, admin)
     expect(r).toMatchObject({ ok: false, code: 'forbidden', message: 'Не можна змінювати права власної ролі' })

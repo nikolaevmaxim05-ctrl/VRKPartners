@@ -1,5 +1,5 @@
-// use-cases/admin/build-report — аналітичний звіт і значення виміру для фільтра.
-// Перенесено з lib/analytics-report-server.ts та роутів /analytics/{report,dimension-values}.
+// use-cases/admin/build-report — аналитический отчёт и значения измерения для фильтра.
+// Перенесено из lib/analytics-report-server.ts и роутов /analytics/{report,dimension-values}.
 import { ok, fail, type Result } from '../../result'
 import type { Clock } from '../../ports/common'
 import type { AnalyticsRepository, UtmColumn } from '../../ports/analytics'
@@ -40,7 +40,7 @@ export type ReportData = {
   labelMap: Record<string, string>
   colorMap: Record<string, string>
   assigneeLabelMap: Record<string, string>
-  /** id посилання → назва партнера (з embed referral_links). */
+  /** id ссылки → название партнёра (из embed referral_links). */
   referralLabelMap: Record<string, string>
   flags: ReportResponse['flags']
 }
@@ -140,7 +140,7 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
 
     const breakdown = params.breakdown
     if (breakdown && breakdown !== 'none') {
-      // Пріоритет: breakdown_metrics (список) → breakdown_metric (легасі) → ['total']
+      // Приоритет: breakdown_metrics (список) → breakdown_metric (легаси) → ['total']
       const fromList = (params.breakdown_metrics ?? '').split(',').map((s) => s.trim()).filter(isValidBreakdownMetric)
       const metrics: MetricKeyForBreakdown[] = fromList.length > 0
         ? [...new Set(fromList)]
@@ -184,14 +184,14 @@ export function makeReportUseCases(deps: { analytics: AnalyticsRepository; users
     return ok(report)
   }
 
-  /** GET /analytics/report — розбір query + звіт. */
+  /** GET /analytics/report — разбор query + отчёт. */
   async function getReport(get: (key: string) => string | null): Promise<Result<ReportResponse>> {
     const parsed = parseReportQuery(get, clock.now())
     if (!parsed.ok) return fail('invalid', parsed.message)
     return buildReport(parsed.params)
   }
 
-  /** GET /analytics/dimension-values — реальні значення обраного виміру. */
+  /** GET /analytics/dimension-values — реальные значения выбранного измерения. */
   async function getDimensionValues(get: (key: string) => string | null): Promise<Result<Array<{ value: string; label: string }>>> {
     const parsed = dimensionParamsSchema.safeParse({
       dimension: get('dimension') ?? undefined,

@@ -1,9 +1,9 @@
-// core/application/ports/access — сесія, ролі, користувачі.
+// core/application/ports/access — сессия, роли, пользователи.
 import type { DbResult } from './common'
 import type { Permission, UserRoleInfo } from '../../domain/access/permissions'
 import type { ActiveAssignment, RoleForOrder } from '../../domain/access/hierarchy'
 
-/** Поточна сесія адмінки (кука Supabase Auth). */
+/** Текущая сессия админки (cookie Supabase Auth). */
 export interface AuthSession {
   getUser(): Promise<{ id: string; email: string | null } | null>
 }
@@ -24,11 +24,11 @@ export interface RoleRepository {
   update(id: string, patch: Record<string, unknown>): Promise<DbResult<{ id: string; name: string; permissions: unknown; is_system: boolean }>>
   delete(id: string): Promise<DbResult<void>>
   countUsers(roleId: string): Promise<number>
-  /** roleId → ефективний ранг. */
+  /** roleId → эффективный ранг. */
   getRanks(): Promise<Map<string, number>>
   getPermissions(roleId: string): Promise<Permission[]>
   listForOrder(): Promise<DbResult<RoleForOrder[]>>
-  /** Проставляє hierarchy_order = індекс у списку. Перша помилка — у результаті. */
+  /** Проставляет hierarchy_order = индекс в списке. Первая ошибка — в результате. */
   setOrder(orderedIds: string[]): Promise<DbResult<void>>
 }
 
@@ -55,7 +55,7 @@ export type InvitedUser = {
 
 export interface UserRepository {
   getRoleInfo(userId: string): Promise<UserRoleInfo | null>
-  /** Ранг ролі користувача (Infinity — немає ролі). */
+  /** Ранг роли пользователя (Infinity — нет роли). */
   getActorRank(userId: string): Promise<number>
   getActiveAssignments(): Promise<ActiveAssignment[]>
   listAdminUsers(): Promise<DbResult<AdminUserView[]>>
@@ -64,15 +64,15 @@ export interface UserRepository {
   hasRoleRow(userId: string): Promise<boolean>
   updateRoleRow(userId: string, fields: Record<string, unknown>): Promise<DbResult<void>>
   insertRoleRow(userId: string, fields: Record<string, unknown>): Promise<DbResult<void>>
-  /** Upsert user_roles {role_id, is_active:true} одразу після запрошення. */
+  /** Upsert user_roles {role_id, is_active:true} сразу после приглашения. */
   assignRoleOnInvite(userId: string, roleId: string): Promise<DbResult<void>>
   invite(email: string, redirectTo: string): Promise<DbResult<InvitedUser | null>>
   deleteAuthUser(id: string): Promise<DbResult<void>>
-  /** Людський підпис користувача: імʼя з user_roles → email → id. */
+  /** Человекочитаемая подпись пользователя: имя из user_roles → email → id. */
   getDisplayLabel(userId: string): Promise<string>
   getEmailAndName(userId: string): Promise<{ email: string | null; name: string | null }>
-  /** Email/імена для кількох id (помилки лише логуються). */
+  /** Email/имена для нескольких id (ошибки только логируются). */
   getEmailsAndNames(ids: string[]): Promise<{ emailById: Map<string, string>; nameById: Map<string, string> }>
-  /** id → імʼя/email (через listUsers, як у звітах). */
+  /** id → имя/email (через listUsers, как в отчётах). */
   getAssigneeLabelMap(ids: string[]): Promise<Record<string, string>>
 }

@@ -1,6 +1,6 @@
-// use-cases/admin/leads — список, картка, зміна ліда (воронка), видалення, коментарі, кастомні поля.
-// Логіка PATCH перенесена з /api/admin/leads/[id] без зміни поведінки; правила — у домені
-// (core/domain/funnel/transition), сценарій лише виконує план.
+// use-cases/admin/leads — список, карточка, изменение лида (воронка), удаление, комментарии, кастомные поля.
+// Логика PATCH перенесена из /api/admin/leads/[id] без изменения поведения; правила — в домене
+// (core/domain/funnel/transition), сценарий только выполняет план.
 import { ok, fail, type Result } from '../../result'
 import type { Actor } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -67,7 +67,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       assignedTo: t('assigned_to'),
       dateFrom: t('date_from'),
       dateTo: t('date_to'),
-      // uuid посилання | 'none' — без посилання (відхилення 11)
+      // uuid ссылки | 'none' — без ссылки (отклонение 11)
       referralLinkId: t('referral_link_id'),
     })
     if (!res.ok) {
@@ -75,7 +75,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       return fail('failed', res.error)
     }
 
-    // Резолв email і display name відповідальних (user_roles джойниться окремо).
+    // Резолв email и display name ответственных (user_roles джойнится отдельно).
     const assignedIds = Array.from(new Set(res.data.rows.map((r) => r.assigned_to).filter((v): v is string => !!v)))
     const { emailById, nameById } = await users.getEmailsAndNames(assignedIds)
     const enriched = res.data.rows.map((r) => ({
@@ -86,10 +86,10 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     return ok({ data: enriched, ...pageMeta(res.data.total, page, limit) })
   }
 
-  // ── Картка ─────────────────────────────────────────────────────────────────
+  // ── Карточка ───────────────────────────────────────────────────────────────
   async function getLeadDetail(id: string): Promise<Result<Record<string, unknown>>> {
-    // Дві хвилі замість чотирьох послідовних: лід + кастомні поля паралельно, далі — те, що
-    // залежить від ліда (відповідальний, історія за телефоном), теж паралельно.
+    // Две волны вместо четырёх последовательных: лид + кастомные поля параллельно, затем — то, что
+    // зависит от лида (ответственный, история по телефону), тоже параллельно.
     const [res, fields, values] = await Promise.all([
       leads.getDetail(id),
       customFields.listForLead(),
@@ -125,7 +125,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     })
   }
 
-  // ── Зміна ліда ─────────────────────────────────────────────────────────────
+  // ── Изменение лида ─────────────────────────────────────────────────────────
   async function updateLead(id: string, raw: unknown, actor: Actor): Promise<Result<LeadRow>> {
     const patch = parseLeadPatch(raw)
     if (!patch.ok) return fail('invalid', patch.message)
@@ -154,13 +154,13 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
         ? statusInfoById.get(update.status_id as string)?.conversion_type ?? null
         : null
 
-      // Перехід «з угоди → без угоди» — обнуляємо суму/прибуток, крім переданих явно.
+      // Переход «из сделки → без сделки» — обнуляем сумму/прибыль, кроме переданных явно.
       const clearing = planDealClearing({ before, bodyKeys: patch.bodyKeys, oldConversionType, newConversionType })
       Object.assign(update, clearing.update)
       clearedDealOnTransition = clearing.cleared
     }
 
-    // C8: CAS по status_id — паралельна зміна стадії → 409.
+    // C8: CAS по status_id — параллельное изменение стадии → 409.
     const updatedRes = await leads.update(id, update, statusChanging ? { statusId: before.status_id } : undefined)
     if (!updatedRes.ok) {
       console.error('[admin/leads/[id]] update_failed', updatedRes.error)
@@ -171,7 +171,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       return fail('conflict', 'Статус ліда змінився паралельно. Оновіть сторінку й повторіть.')
     }
 
-    // ── System-коментарі ──
+    // ── System-комментарии ──
     const systemMessages: string[] = []
     if (statusChanging) {
       const oldName = before.status_id ? statusInfoById.get(before.status_id)?.name ?? 'без стадії' : 'без стадії'
@@ -193,7 +193,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     if ('deal_profit' in update && Number(before.deal_profit ?? 0) !== Number(update.deal_profit ?? 0)) {
       systemMessages.push(`Прибуток: ${before.deal_profit ?? '—'} → ${update.deal_profit ?? '—'}`)
     }
-    // System-коментарі та історія стадій незалежні й обидва best effort — пишемо паралельно.
+    // System-комментарии и история стадий независимы и оба best effort — пишем параллельно.
     const writeSystemComments = async () => {
       if (systemMessages.length === 0) return
       const ins = await comments.insertMany(
@@ -208,7 +208,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       if (!ins.ok) console.error('[admin/leads/[id]] system_comment_failed', ins.error)
     }
 
-    // ── Історія стадій (best effort) ──
+    // ── История стадий (best effort) ──
     const writeStatusHistory = async () => {
       if (!statusChanging) return
       const toType = update.status_id ? statusInfoById.get(update.status_id as string)?.conversion_type ?? null : null
@@ -228,8 +228,8 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     }
     await Promise.all([writeSystemComments(), writeStatusHistory()])
 
-    // ── Розділ 6: enter / leave / amount (стадія береться ПІСЛЯ зміни) ──
-    // Усі відправки await-яться до відповіді; помилки логуються і НЕ валять PATCH.
+    // ── Раздел 6: enter / leave / amount (стадия берётся ПОСЛЕ изменения) ──
+    // Все отправки await-ятся до ответа; ошибки логируются и НЕ валят PATCH.
     const newStatus = (updated as {
       status?: {
         is_final?: boolean
@@ -265,7 +265,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       if (adj) await conversionFlow.dispatchAdjustment(adj)
     }
 
-    // Офлайн-лист: рядок ОСТАННЬОГО стану конверсії (без дублів — лише при реальній зміні).
+    // Офлайн-лист: строка ПОСЛЕДНЕГО состояния конверсии (без дублей — только при реальном изменении).
     const sendConversionRow = async (action: string | null) => {
       try {
         const sent = await sheets.sendConversion({
@@ -301,31 +301,31 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
       console.log('[leads/PATCH] enter → recording conversion', {
         leadId: id, orderNo, newStatusId: update.status_id, oldConversionType, conversionType: statusConversionType, conversionValue, statusConversionAction,
       })
-      // Стан конверсії ДО апдейту — для RETRACT потрібні оригінальні action + export_status.
+      // Состояние конверсии ДО апдейта — для RETRACT нужны оригинальные action + export_status.
       const ocBefore = await conversionFlow.getConversionByLead(id)
       const outcome = await recordConversionSafe(statusConversionAction, statusConversionType)
       await runAdjustment(decideAdjustment({ oldConversionType, newConversionType: statusConversionType, outcome, ocBefore, conversionValue }))
-      // Відкликана (retracted) конверсія повертається в чергу: якщо відправка нижче не вдасться,
-      // її підбере масове вивантаження.
+      // Отозванная (retracted) конверсия возвращается в очередь: если отправка ниже не удастся,
+      // её подберёт массовая выгрузка.
       if (ocBefore?.export_status === 'retracted' && outcome.outcome !== 'error') {
         await conversionFlow.markConversionPendingByLead(id)
       }
       if (outcome.outcome === 'inserted' || outcome.outcome === 'updated') {
         await sendConversionRow(statusConversionAction)
       } else if (outcome.outcome === 'noop' && ocBefore && ocBefore.export_status !== 'exported') {
-        // Той самий стан, але конверсія не вивантажена (після RETRACT або Sheets був недоступний) —
-        // відправляємо заново, щоб Google знову її отримав.
+        // То же состояние, но конверсия не выгружена (после RETRACT или Sheets был недоступен) —
+        // отправляем заново, чтобы Google снова её получил.
         await sendConversionRow(statusConversionAction)
       }
     } else if (change === 'leave') {
-      // Пішли з конверсійної стадії: відкликаємо вивантажену конверсію (RETRACT).
+      // Ушли с конверсионной стадии: отзываем выгруженную конверсию (RETRACT).
       const ocBefore = await conversionFlow.getConversionByLead(id)
       const decision = decideLeave(ocBefore)
       console.log('[leads/PATCH] leave', { leadId: id, orderNo, retract: decision.kind === 'retract' })
       await runAdjustment(decision)
     } else if (change === 'amount' && newStatus) {
-      // Та сама конверсійна стадія, змінилась сума: оновити стан; вивантажена → RESTATE,
-      // ще pending → рядок конверсії піде з новою сумою.
+      // Та же конверсионная стадия, изменилась сумма: обновить состояние; выгруженная → RESTATE,
+      // ещё pending → строка конверсии уйдёт с новой суммой.
       const statusConversionAction = newStatus.conversion_action ?? null
       const statusConversionType = newStatus.conversion_type ?? null
       const ocBefore = await conversionFlow.getConversionByLead(id)
@@ -342,7 +342,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     return ok(updated)
   }
 
-  // ── Видалення ──────────────────────────────────────────────────────────────
+  // ── Удаление ───────────────────────────────────────────────────────────────
   async function deleteLead(id: string, actor?: Actor): Promise<Result<void>> {
     if (!(await leads.exists(id))) return fail('not_found', 'Лід не знайдено')
     const res = await leads.delete(id)
@@ -354,7 +354,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     return ok(undefined)
   }
 
-  // ── Коментарі ──────────────────────────────────────────────────────────────
+  // ── Комментарии ────────────────────────────────────────────────────────────
   async function listComments(leadId: string, typeFilter: string | null): Promise<Result<LeadCommentRow[]>> {
     const type = typeFilter && isCommentType(typeFilter) ? (typeFilter as LeadCommentType) : undefined
     const res = await comments.list(leadId, type)
@@ -377,7 +377,7 @@ export function makeLeadUseCases(deps: LeadUseCaseDeps) {
     return ok(res.data)
   }
 
-  // ── Кастомні поля ліда ─────────────────────────────────────────────────────
+  // ── Кастомные поля лида ────────────────────────────────────────────────────
   async function setCustomFieldValue(
     leadId: string,
     body: { field_id?: string; value?: string | null },

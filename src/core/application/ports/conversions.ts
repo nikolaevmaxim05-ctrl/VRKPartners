@@ -1,4 +1,4 @@
-// core/application/ports/conversions — офлайн-конверсії, корекції, вивантаження в Google Sheets.
+// core/application/ports/conversions — офлайн-конверсии, корректировки, выгрузка в Google Sheets.
 import type { DbResult } from './common'
 import type { AdjustmentType } from '../../domain/funnel/adjustments'
 
@@ -9,7 +9,7 @@ export type ConversionState = {
   conversion_type: string | null
 }
 
-/** pending — у черзі вивантаження; exported — у Google; retracted — відкликана (RETRACT), не в черзі. */
+/** pending — в очереди выгрузки; exported — в Google; retracted — отозвана (RETRACT), не в очереди. */
 export type ExportStatus = 'pending' | 'exported' | 'retracted'
 
 export type ExistingConversion = {
@@ -32,7 +32,7 @@ export type ConversionInsert = {
   conversion_type: string | null
 }
 
-/** Рядок конверсії з даними ліда — для повторної/масової відправки. */
+/** Строка конверсии с данными лида — для повторной/массовой отправки. */
 export type ConversionExportRow = {
   id: string
   export_status: ExportStatus
@@ -57,9 +57,9 @@ export interface ConversionRepository {
   insert(row: ConversionInsert): Promise<DbResult<void>>
   updateState(leadId: string, state: { conversion_action: string; conversion_type: string | null; conversion_value: number | null }): Promise<DbResult<void>>
   markExportedByLead(leadId: string, atIso: string): Promise<DbResult<void>>
-  /** Повернення в чергу (повторний enter після RETRACT): знову 'pending', exported_at = null. */
+  /** Возврат в очередь (повторный enter после RETRACT): снова 'pending', exported_at = null. */
   markPendingByLead(leadId: string): Promise<DbResult<void>>
-  /** Після RETRACT: 'retracted' — не в черзі масового вивантаження, доки лід не повернеться на конверсійну стадію. */
+  /** После RETRACT: 'retracted' — не в очереди массовой выгрузки, пока лид не вернётся на конверсионную стадию. */
   markRetractedByLead(leadId: string): Promise<DbResult<void>>
   getExportedAt(leadId: string): Promise<string | null>
   listPage(page: number, limit: number): Promise<DbResult<PageResult>>
@@ -93,7 +93,7 @@ export type AdjustmentInsert = {
 }
 
 export interface AdjustmentRepository {
-  /** adjustment_time останнього RETRACT для (лід, дія) або null. */
+  /** adjustment_time последнего RETRACT для (лид, действие) или null. */
   lastRetractTime(leadId: string, conversionAction: string): Promise<string | null>
   insert(row: AdjustmentInsert): Promise<DbResult<AdjustmentRow>>
   markExported(id: string, atIso: string): Promise<DbResult<void>>
@@ -111,9 +111,9 @@ export type ConversionSheetInput = {
   gclid: string | null
   gbraid: string | null
   wbraid: string | null
-  /** Готове значення конверсії (за логікою стадії). */
+  /** Готовое значение конверсии (по логике стадии). */
   conversionValue: number | null
-  /** Дія зі стадії; фолбек — site_settings.google_ads_conversion_action. */
+  /** Действие из стадии; фолбэк — site_settings.google_ads_conversion_action. */
   conversionAction?: string | null
 }
 
@@ -137,7 +137,7 @@ export type SheetsTestResult =
         | { status: 'error'; message: string }
     }
 
-/** Google Sheets: рядок конверсії / корекції. false — таблицю не налаштовано; помилка API — throw. */
+/** Google Sheets: строка конверсии / корректировки. false — таблица не настроена; ошибка API — throw. */
 export interface ConversionSheetExporter {
   sendConversion(input: ConversionSheetInput): Promise<boolean>
   sendAdjustment(input: AdjustmentSheetInput): Promise<boolean>

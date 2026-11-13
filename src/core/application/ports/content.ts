@@ -1,26 +1,26 @@
-// core/application/ports/content — рядки site_content (landing / seo / legal) і картинки.
+// core/application/ports/content — строки site_content (landing / seo / legal) и картинки.
 import type { DbResult } from './common'
 
 export interface ContentRepository {
-  /** data рядка. Будь-яка помилка/відсутність → {} (сайт падає на дефолти). */
+  /** data строки. Любая ошибка/отсутствие → {} (сайт откатывается на дефолты). */
   getData(id: string): Promise<unknown>
-  /** updated_at рядка для optimistic-lock. Помилка/відсутність → null. */
+  /** updated_at строки для optimistic-lock. Ошибка/отсутствие → null. */
   getUpdatedAt(id: string): Promise<string | null>
   save(id: string, data: unknown, updatedAtIso: string, userId: string): Promise<DbResult<void>>
 }
 
 export type UploadResult = { ok: true } | { ok: false; name: string; message: string }
 
-/** Сховище картинок контенту (bucket `content`). */
+/** Хранилище картинок контента (bucket `content`). */
 export interface ImageStorage {
   upload(path: string, bytes: Uint8Array, contentType: string): Promise<UploadResult>
   remove(path: string): Promise<void>
   publicUrl(path: string): string
-  /** Маркер у публічному URL, за яким розпізнаємо «наші» файли. */
+  /** Маркер в публичном URL, по которому распознаём «наши» файлы. */
   readonly publicPathMarker: string
 }
 
-/** Дефолти текстів (з файлів) — сценарії контенту їх не читають самі. */
+/** Дефолты текстов (из файлов) — сценарии контента сами их не читают. */
 export interface ContentDefaults<Landing, Seo, Legal> {
   landing(): Landing
   seo(): Seo

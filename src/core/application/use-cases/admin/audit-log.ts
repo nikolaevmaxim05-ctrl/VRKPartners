@@ -1,4 +1,4 @@
-// use-cases/admin/audit-log — екран «Журнал дій»: сторінка записів audit_log (найновіші зверху).
+// use-cases/admin/audit-log — экран «Журнал дій»: страница записей audit_log (новейшие сверху).
 import { ok, fail, type Result } from '../../result'
 import type { AuditLogRepository, AuditRow } from '../../ports/system'
 import { pageMeta } from '../../paging'

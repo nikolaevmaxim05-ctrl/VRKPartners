@@ -1,4 +1,4 @@
-// use-cases/admin/manage-roles — ролі та їх ієрархія (раздел 5).
+// use-cases/admin/manage-roles — роли и их иерархия (раздел 5).
 import { ok, fail, type Result } from '../../result'
 import { UNIQUE_VIOLATION, type Actor } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -23,7 +23,7 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
     const name = (body.name ?? '').trim().slice(0, 48)
     if (!name) return fail('invalid', 'Назва ролі обовʼязкова')
     const permissions = sanitizePermissions(body.permissions)
-    // Нова роль — у самий низ ієрархії.
+    // Новая роль — в самый низ иерархии.
     const nextOrder = (await roles.maxOrder()) + 1
     const res = await roles.insert({ name, permissions, is_system: false, hierarchy_order: nextOrder })
     if (!res.ok) {
@@ -45,13 +45,13 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
     const role = roleRes.data
     if (!role) return fail('not_found', 'Роль не знайдено')
 
-    // Ієрархія: редагувати можна лише роль СТРОГО нижче за власну
+    // Иерархия: редактировать можно только роль СТРОГО ниже собственной
     const [actorRank, ranks] = await Promise.all([users.getActorRank(actor.id), roles.getRanks()])
     if (!canActOnRank(actorRank, ranks.get(id) ?? Number.POSITIVE_INFINITY)) {
       return fail('forbidden', 'Не можна редагувати роль, що стоїть на одному рівні або вище за вашу')
     }
 
-    // Заборона змінювати права ВЛАСНОЇ ролі
+    // Запрет менять права СОБСТВЕННОЙ роли
     if (body.permissions !== undefined) {
       const info = await users.getRoleInfo(actor.id)
       if (info?.roleId === id) return fail('forbidden', 'Не можна змінювати права власної ролі')
@@ -59,7 +59,7 @@ export function makeRoleUseCases(deps: { roles: RoleRepository; users: UserRepos
 
     const update: Record<string, unknown> = {}
     if (body.permissions !== undefined) update.permissions = sanitizePermissions(body.permissions)
-    // Назву системних ролей не міняємо — на них зав'язана логіка/мітки.
+    // Название системных ролей не меняем — на них завязана логика/метки.
     if (body.name !== undefined && !role.is_system) {
       const name = body.name.trim().slice(0, 48)
       if (!name) return fail('invalid', 'Назва ролі обовʼязкова')

@@ -1,4 +1,4 @@
-// core/application/ports/analytics — вибірки для звітів і вивантажень, файли XLSX.
+// core/application/ports/analytics — выборки для отчётов и выгрузок, файлы XLSX.
 import type { DbResult } from './common'
 import type { DbLeadRow } from '../../domain/analytics/report-breakdown'
 import type {
@@ -19,7 +19,7 @@ export type ReportLeadQuery = {
   assignedTo: string
   gclid: 'any' | 'with' | 'without'
   statusIds: string[]
-  /** '' — всі, 'none' — без посилання, інакше UUID посилання. */
+  /** '' — все, 'none' — без ссылки, иначе UUID ссылки. */
   referralLinkId: string
   limit: number
 }
@@ -32,7 +32,7 @@ export type ExportLeadQuery = {
   assignedTo: string
   gclid: 'any' | 'with' | 'without'
   statusIds: string[]
-  /** '' — всі, 'none' — без посилання, інакше UUID посилання. */
+  /** '' — все, 'none' — без ссылки, иначе UUID ссылки. */
   referralLinkId: string
   limit: number
 }
@@ -53,7 +53,7 @@ export interface AnalyticsRepository {
   utmValues(col: UtmColumn, utcFrom: string, utcTo: string, limit: number): Promise<DbResult<unknown[]>>
 }
 
-/** Побудова XLSX (ExcelJS) — в інфраструктурі. */
+/** Построение XLSX (ExcelJS) — в инфраструктуре. */
 export interface SpreadsheetFileBuilder {
   leadsXlsx(headers: string[], rows: CellValue[][], fields: LeadExportField[]): Promise<ArrayBuffer>
   summaryXlsx(periods: ComparisonPeriod[], columns: SummaryColumn[], includeDateBreakdown: boolean): Promise<ArrayBuffer>

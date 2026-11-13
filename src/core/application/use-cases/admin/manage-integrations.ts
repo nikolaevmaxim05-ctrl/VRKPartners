@@ -1,4 +1,4 @@
-// use-cases/admin/manage-integrations — секрети інтеграцій (зашифровані), перевірка підключення.
+// use-cases/admin/manage-integrations — секреты интеграций (зашифрованные), проверка подключения.
 import { ok, fail, type Result } from '../../result'
 import type { Actor, Clock } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -20,7 +20,7 @@ export function makeIntegrationUseCases(deps: {
   tester: IntegrationTester
   sheets: ConversionSheetExporter
   clock: Clock
-  /** env NOTIFICATION_EMAIL (адресат тестового листа). */
+  /** env NOTIFICATION_EMAIL (адресат тестового письма). */
   notificationEmail: () => string | undefined
   audit?: AuditLog
 }) {
@@ -46,7 +46,7 @@ export function makeIntegrationUseCases(deps: {
     if (!body.value?.trim()) return fail('invalid', 'Value is required')
     const res = await secrets.set(key, body.value.trim(), actor.id, clock.now().toISOString())
     if (!res.ok) return fail('failed', res.error)
-    // У журнал — лише ключ, ніколи значення.
+    // В журнал — только ключ, никогда значение.
     await audit.record(actor, 'integration.set', `integrations/${key}`)
     return ok(undefined)
   }
@@ -59,7 +59,7 @@ export function makeIntegrationUseCases(deps: {
     return ok(undefined)
   }
 
-  /** Реальний запит до API інтеграції зі значенням із БД. Завжди відповідь 200 {ok, message}. */
+  /** Реальный запрос к API интеграции со значением из БД. Всегда ответ 200 {ok, message}. */
   async function testIntegration(key: string, actor: Actor): Promise<TestMessage> {
     const stored = await secrets.read(key)
     if (stored.status === 'missing') {
@@ -83,7 +83,7 @@ export function makeIntegrationUseCases(deps: {
       const to = (deps.notificationEmail() ?? actor.email ?? '').trim() || smtpUser
       return tester.smtp({ user: smtpUser, password: value, from, to })
     }
-    // Інші ключі — лише підтверджуємо збереження
+    // Другие ключи — только подтверждаем сохранение
     return { ok: true, message: 'Значення збережено в базі ✓' }
   }
 

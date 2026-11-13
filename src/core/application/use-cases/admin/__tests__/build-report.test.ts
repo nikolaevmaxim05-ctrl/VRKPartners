@@ -1,5 +1,5 @@
-// build-report на фейкових портах: реферальне посилання як розріз (group_by), розбивка графіка
-// (breakdown) і фільтр (filter_referral_link_id → запит репозиторію і домен), валідація параметра.
+// build-report на фейковых портах: реферальная ссылка как разрез (group_by), разбивка графика
+// (breakdown) и фильтр (filter_referral_link_id → запрос репозитория и домен), валидация параметра.
 import { describe, it, expect, vi } from 'vitest'
 import { makeReportUseCases } from '../build-report'
 import { dbOk } from '../../../ports/common'

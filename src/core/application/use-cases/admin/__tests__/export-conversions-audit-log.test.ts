@@ -1,5 +1,5 @@
-// makeConversionExportUseCases і makeAuditLogUseCases на фейкових портах: повторна та масова
-// відправка конверсій/корекцій у Google Sheets, сторінка журналу дій.
+// makeConversionExportUseCases и makeAuditLogUseCases на фейковых портах: повторная и массовая
+// отправка конверсий/корректировок в Google Sheets, страница журнала действий.
 import { describe, it, expect, vi } from 'vitest'
 import { makeConversionExportUseCases } from '../export-conversions'
 import { makeAuditLogUseCases } from '../audit-log'
@@ -244,7 +244,7 @@ describe('listConversions / listAdjustments', () => {
   })
 })
 
-// ── Журнал дій ───────────────────────────────────────────────────────────────
+// ── Журнал действий ──────────────────────────────────────────────────────────
 
 function setupAudit(over: Record<string, unknown> = {}) {
   const audit = {

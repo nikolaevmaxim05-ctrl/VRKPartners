@@ -1,5 +1,5 @@
-// use-cases/admin/export-conversions — списки офлайн-конверсій і корекцій, повторна та масова
-// відправка в Google Sheets.
+// use-cases/admin/export-conversions — списки офлайн-конверсий и корректировок, повторная и массовая
+// отправка в Google Sheets.
 import { ok, fail, type Result } from '../../result'
 import type {
   ConversionRepository,
@@ -57,7 +57,7 @@ export function makeConversionExportUseCases(deps: {
     const conv = res.data
     if (!conv?.lead) return fail('not_found', 'Конверсію або відповідного ліда не знайдено')
     if (conv.export_status === 'retracted') {
-      // Відкликану конверсію не відправляємо вручну — інакше RETRACT у Google буде перебито.
+      // Отозванную конверсию вручную не отправляем — иначе RETRACT в Google будет перебит.
       return fail('invalid', 'Конверсію відкликано (RETRACT). Повторна відправка — після повернення ліда на конверсійну стадію')
     }
     const lead = conv.lead
@@ -70,7 +70,7 @@ export function makeConversionExportUseCases(deps: {
         gclid: lead.gclid,
         gbraid: lead.gbraid,
         wbraid: lead.wbraid,
-        // C2: відправляємо ЗБЕРЕЖЕНЕ значення конверсії (фід = offline_conversions).
+        // C2: отправляем СОХРАНЁННОЕ значение конверсии (фид = offline_conversions).
         conversionValue: conv.conversion_value != null ? Number(conv.conversion_value) : null,
         conversionAction: lead.status?.conversion_action ?? null,
       })
@@ -107,7 +107,7 @@ export function makeConversionExportUseCases(deps: {
           await conversionFlow.markConversionExportedByLead(lead.id)
           sent++
         } else {
-          skipped++ // Sheets не налаштовано
+          skipped++ // Sheets не настроен
         }
       } catch (e) {
         console.error('[conversions/export-pending] send_failed', e instanceof Error ? e.message : e)
@@ -147,7 +147,7 @@ export function makeConversionExportUseCases(deps: {
           await conversionFlow.markAdjustmentExported(adj.id)
           sent++
         } else {
-          skipped++ // таблицю корекцій не налаштовано
+          skipped++ // таблица корректировок не настроена
         }
       } catch (e) {
         console.error('[conversion-adjustments/export-pending] send_failed', e instanceof Error ? e.message : e)

@@ -1,4 +1,4 @@
-// use-cases/admin/manage-users — користувачі адмінки: список, запрошення, зміна, видалення.
+// use-cases/admin/manage-users — пользователи админки: список, приглашение, изменение, удаление.
 import { ok, fail, type Result } from '../../result'
 import type { Actor } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -36,12 +36,12 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
     return res.ok ? ok(res.data) : fail('failed', res.error)
   }
 
-  /** redirectOrigin — origin сайту для посилання в листі (/admin/set-password). */
+  /** redirectOrigin — origin сайта для ссылки в письме (/admin/set-password). */
   async function inviteUser(body: { email?: string; role_id?: string }, actor: Actor, redirectOrigin: string): Promise<Result<InviteResult>> {
     const email = body.email?.trim()
     if (!email) return fail('invalid', 'Email обовʼязковий')
 
-    // Ієрархія: запрошувати з роллю можна лише СТРОГО нижче за власну
+    // Иерархия: приглашать с ролью можно только СТРОГО ниже собственной
     const roleId = body.role_id?.trim()
     if (roleId) {
       const [actorRank, ranks] = await Promise.all([users.getActorRank(actor.id), roles.getRanks()])
@@ -59,7 +59,7 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
       if (!r.ok) console.error('[admin/users] assign_role_on_invite_failed', r.error)
       else roleAssigned = true
     }
-    // Журнал — після призначення: фіксуємо факт, а не намір.
+    // Журнал — после назначения: фиксируем факт, а не намерение.
     await audit.record(actor, 'user.invite', `user_roles/${inv.data?.id ?? 'unknown'}`, { new: { email, role_id: roleAssigned ? roleId : null } })
 
     const invited = inv.data
@@ -83,8 +83,8 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
   }
 
   async function updateUser(id: string, body: PatchBody, actor: Actor): Promise<Result<void>> {
-    // Ієрархія: чужим користувачем керувати можна, лише якщо його роль СТРОГО нижче;
-    // призначати — лише роль строго нижче за власну.
+    // Иерархия: чужим пользователем управлять можно, только если его роль СТРОГО ниже;
+    // назначать — только роль строго ниже собственной.
     if (id !== actor.id) {
       const [actorRank, ranks] = await Promise.all([users.getActorRank(actor.id), roles.getRanks()])
       const targetRoleId = await users.getRoleId(id)
@@ -108,7 +108,7 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
       return fail('invalid', 'Нічого оновлювати')
     }
 
-    // Lockout-guard: не залишити систему без активного користувача з manage_users
+    // Lockout-guard: не оставить систему без активного пользователя с manage_users
     if (body.role_id !== undefined || body.is_active === false) {
       const assignments = await users.getActiveAssignments()
       let targetWillHave = assignments.some((a) => a.user_id === id && a.permissions.includes('manage_users'))
@@ -136,7 +136,7 @@ export function makeUserUseCases(deps: { users: UserRepository; roles: RoleRepos
         return fail('failed', res.error)
       }
     } else {
-      // INSERT можливий лише з роллю (role_id NOT NULL)
+      // INSERT возможен только с ролью (role_id NOT NULL)
       if (body.role_id === undefined) return fail('invalid', 'Спочатку призначте роль користувачу')
       const res = await users.insertRoleRow(id, fields)
       if (!res.ok) {

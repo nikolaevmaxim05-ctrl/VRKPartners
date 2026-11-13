@@ -1,11 +1,11 @@
-// use-cases/public/submit-lead — приймач заявок з лендингу. Порядок розділу 8 стандарту:
-//   1. Zod → 400;  2. honeypot → фейковий успіх;  3. rate limit по таблиці leads
-//   (3 заявки / 10 хв з одного IP; помилка підрахунку НЕ блокує) → 429;  (капчі немає —
-//   відхилення 4);  5. нормалізація (телефон E.164 у Zod, email trim+lowercase);
-//   6. дедуп за телефоном/IP → коментар до оригіналу, сповіщення «повтор», новий лід не
-//   створюється;  7. запис ліда в початкову стадію;  8. сповіщення Telegram / KeyCRM / email —
-//   Promise.allSettled, помилки запит не валять. Рішення власника (Фаза 4): при відказі БД
-//   сповіщення все одно надсилаються — 500 «DB error» лише якщо впали і БД, і всі канали.
+// use-cases/public/submit-lead — приёмник заявок с лендинга. Порядок раздела 8 стандарта:
+//   1. Zod → 400;  2. honeypot → фейковый успех;  3. rate limit по таблице leads
+//   (3 заявки / 10 мин с одного IP; ошибка подсчёта НЕ блокирует) → 429;  (капчи нет —
+//   отклонение 4);  5. нормализация (телефон E.164 в Zod, email trim+lowercase);
+//   6. дедуп по телефону/IP → комментарий к оригиналу, уведомление «повтор», новый лид не
+//   создаётся;  7. запись лида в начальную стадию;  8. уведомления Telegram / KeyCRM / email —
+//   Promise.allSettled, ошибки запрос не валят. Решение владельца (Фаза 4): при отказе БД
+//   уведомления всё равно отправляются — 500 «DB error» только если упали и БД, и все каналы.
 import { ok, fail, type Result } from '../../result'
 import type { Clock } from '../../ports/common'
 import type { LeadRepository, LeadStatusRepository, LeadCommentRepository, LeadInsert } from '../../ports/leads'
@@ -27,10 +27,10 @@ import { pickReferralTouch, parseAttributionDays, REF_ATTRIBUTION_SETTING_KEY, t
 import type { ReferralNote } from '../../../domain/referral/link-rules'
 import type { ReferralLinkRepository } from '../../ports/referrals'
 
-/** Rate limit форми: не більше 3 заявок з одного IP за 10 хвилин (розділ 8). */
+/** Rate limit формы: не больше 3 заявок с одного IP за 10 минут (раздел 8). */
 export const LEAD_RATE_LIMIT = { max: 3, windowMs: 10 * 60 * 1000 } as const
 
-/** Мова за замовчуванням для leads.locale (профіль A). */
+/** Язык по умолчанию для leads.locale (профиль A). */
 export const DEFAULT_LEAD_LOCALE = 'uk'
 
 export type SubmitLeadDeps = {
@@ -42,23 +42,23 @@ export type SubmitLeadDeps = {
   settings: SettingsRepository
   notifiers: { telegram: LeadNotifier; keycrm: LeadNotifier; email: LeadNotifier }
   clock: Clock
-  /** Байпас ліміту для тестів поза production (RATE_LIMIT_DISABLED=1). */
+  /** Байпас лимита для тестов вне production (RATE_LIMIT_DISABLED=1). */
   rateLimitBypass?: () => boolean
-  /** Реферальні посилання (відхилення 11); без репозиторію код лише зберігається у referral_code. */
+  /** Реферальные ссылки (отклонение 11); без репозитория код только сохраняется в referral_code. */
   referrals?: Pick<ReferralLinkRepository, 'findByCode'>
 }
 
-/** ip — з ланцюжка заголовків (розділ 8); 'unknown' = не визначено (ліміт і дедуп за IP пропускаються). */
+/** ip — из цепочки заголовков (раздел 8); 'unknown' = не определён (лимит и дедуп по IP пропускаются). */
 export type SubmitLeadContext = {
   ip: string
   userAgent: string | null
-  /** Значення cookie lead_ref (HttpOnly, список касань; ставить middleware) або null. */
+  /** Значение cookie lead_ref (HttpOnly, список касаний; ставит middleware) или null. */
   referralCookie?: string | null
 }
 
 export type SubmitLeadValue = { duplicate: boolean }
 
-/** Стадія за замовчуванням, якщо жодна не позначена is_initial. */
+/** Стадия по умолчанию, если ни одна не помечена is_initial. */
 const FALLBACK_INITIAL_STAGE_NAME = 'Новий клієнт'
 
 export function makeSubmitLead(deps: SubmitLeadDeps) {
@@ -89,7 +89,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     return null
   }
 
-  /** true = ліміт перевищено. Помилка підрахунку → false (заявку не блокуємо), лише лог. */
+  /** true = лимит превышен. Ошибка подсчёта → false (заявку не блокируем), только лог. */
   async function isRateLimited(ip: string): Promise<boolean> {
     if (deps.rateLimitBypass?.()) return false
     const since = new Date(clock.now().getTime() - LEAD_RATE_LIMIT.windowMs).toISOString()
@@ -106,7 +106,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     }
   }
 
-  /** Вікно атрибуції (днів) із site_settings; помилка/відсутність → дефолт 90, заявку не блокує. */
+  /** Окно атрибуции (дней) из site_settings; ошибка/отсутствие → дефолт 90, заявку не блокирует. */
   async function getAttributionDays(): Promise<number> {
     try {
       const res = await settings.getMany([REF_ATTRIBUTION_SETTING_KEY])
@@ -122,9 +122,9 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
   }
 
   /**
-   * Реферал (first-touch): касання cookie ⊕ тіло ⊕ ?ref сторінки → найраніше у вікні атрибуції;
-   * активне посилання зараховується (id), неактивне або невідоме — лише код (рішення власника 2);
-   * усі касання поза вікном → заявка органічна (рішення 2026-09-29). Помилка пошуку заявку не блокує.
+   * Реферал (first-touch): касания cookie ⊕ тело ⊕ ?ref страницы → самое раннее в окне атрибуции;
+   * активная ссылка зачитывается (id), неактивная или неизвестная — только код (решение владельца 2);
+   * все касания вне окна → заявка органическая (решение 2026-09-29). Ошибка поиска заявку не блокирует.
    */
   async function resolveReferral(touch: ReferralTouch | null): Promise<{ linkId: string | null; note: ReferralNote | undefined; touchedAt: string | null }> {
     if (!touch) return { linkId: null, note: undefined, touchedAt: null }
@@ -145,7 +145,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     return { linkId: null, note, touchedAt }
   }
 
-  /** Запис ліда; винятки адаптера → помилка (а не 500 без тіла). */
+  /** Запись лида; исключения адаптера → ошибка (а не 500 без тела). */
   async function insertLead(row: LeadInsert): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
       const saved = await leads.insert(row)
@@ -161,12 +161,12 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     if (!parsed.success) return fail('invalid', 'Invalid data')
     const lead = parsed.data
 
-    // 2. Honeypot: бот заповнив приховане поле `company` — фейковий успіх (бот не дізнається).
+    // 2. Honeypot: бот заполнил скрытое поле `company` — фейковый успех (бот не узнает).
     if (isHoneypotFilled(lead)) return ok({ duplicate: false })
 
     const ip = ctx.ip && ctx.ip !== 'unknown' ? ctx.ip : null
 
-    // 3. Rate limit по таблиці leads (рахуються лише збережені валідні заявки).
+    // 3. Rate limit по таблице leads (считаются только сохранённые валидные заявки).
     if (ip) {
       if (await isRateLimited(ip)) {
         const retryAfter = Math.ceil(LEAD_RATE_LIMIT.windowMs / 1000)
@@ -177,14 +177,14 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       console.warn('[lead] rate_limit_skipped: клієнтський IP не визначено із заголовків')
     }
 
-    // 4. Реферал — СТРОГО після honeypot і ліміту (боти не ходять у БД), до дедупу (для «[ПОВТОР]»):
-    //    касання з усіх джерел → найраніше у вікні атрибуції (first-touch) → пошук посилання.
+    // 4. Реферал — СТРОГО после honeypot и лимита (боты не ходят в БД), до дедупа (для «[ПОВТОР]»):
+    //    касания из всех источников → самое раннее в окне атрибуции (first-touch) → поиск ссылки.
     const nowSec = Math.floor(clock.now().getTime() / 1000)
     const touches = collectReferralTouches({ cookie: ctx.referralCookie, body: lead.refTouches, legacyBody: lead.ref, pageUrl: lead.page }, nowSec)
     const touch = touches.length > 0 ? pickReferralTouch(touches, { windowDays: await getAttributionDays(), now: nowSec }) : null
     const referral = await resolveReferral(touch)
 
-    // 5. Нормалізація: телефон уже E.164 (Zod transform), email — trim + lowercase.
+    // 5. Нормализация: телефон уже E.164 (Zod transform), email — trim + lowercase.
     const email = lead.email ? normalizeEmail(lead.email) : null
     const message = buildLeadMessage(lead)
     const leadData: LeadNotification = {
@@ -198,10 +198,10 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       referral: referral.note,
     }
 
-    // Ключі всіх каналів доставки — одним запитом у кеш.
+    // Ключи всех каналов доставки — одним запросом в кэш.
     await deps.integrationConfig.prefetch(LEAD_DELIVERY_KEYS)
 
-    // 6. Дедуп: оригінал маркується is_repeat + system-коментар, Telegram з [ПОВТОР].
+    // 6. Дедуп: оригинал маркируется is_repeat + system-комментарий, Telegram с [ПОВТОР].
     const dup = await findDuplicate(lead.phone, ip)
     if (dup) {
       const mark = await leads.markRepeat(dup.id)
@@ -232,7 +232,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       return ok({ duplicate: true })
     }
 
-    // 7. Запис ліда в початкову стадію — ДО сповіщень; помилка БД → 500.
+    // 7. Запись лида в начальную стадию — ДО уведомлений; ошибка БД → 500.
     const statusId = (await statuses.findInitialId()) ?? (await statuses.findIdByName(FALLBACK_INITIAL_STAGE_NAME))
     const row: LeadInsert = {
       name: lead.name,
@@ -250,7 +250,7 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
       ttclid: lead.utm?.ttclid ?? null,
       referrer: lead.utm?.referrer ?? null,
       source_url: lead.page ?? null,
-      // 'unknown' у БД не пишемо: колонка inet → NULL (відхилення 10).
+      // 'unknown' в БД не пишем: колонка inet → NULL (отклонение 10).
       ip_address: ip,
       user_agent: ctx.userAgent,
       status_id: statusId,
@@ -263,8 +263,8 @@ export function makeSubmitLead(deps: SubmitLeadDeps) {
     if (saved.ok) console.log('[lead] channel_ok channel=supabase')
     else console.error('[lead] supabase_failed', saved.error)
 
-    // 8. Сповіщення — усі канали паралельно, помилки лише в лог. Ідуть і при відказі БД
-    // (менеджер має побачити заявку), тому лід у Telegram може існувати без рядка в CRM.
+    // 8. Уведомления — все каналы параллельно, ошибки только в лог. Идут и при отказе БД
+    // (менеджер должен увидеть заявку), поэтому лид в Telegram может существовать без строки в CRM.
     const channelNames = ['telegram', 'keycrm', 'email'] as const
     const results = await Promise.allSettled([
       notifiers.telegram.send(leadData),

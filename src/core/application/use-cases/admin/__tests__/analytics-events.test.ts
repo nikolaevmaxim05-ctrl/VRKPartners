@@ -1,5 +1,5 @@
-// makeAnalyticsEventsUseCases на фейкових портах: конфіг подій аналітики (site_settings.analytics_events).
-// Реєстр і дефолтні імена не змінюються — тести лише читають їх.
+// makeAnalyticsEventsUseCases на фейковых портах: конфиг событий аналитики (site_settings.analytics_events).
+// Реестр и дефолтные имена не меняются — тесты только читают их.
 import { describe, it, expect, vi } from 'vitest'
 import { makeAnalyticsEventsUseCases } from '../analytics-events'
 import { dbOk, dbFail } from '../../../ports/common'
@@ -83,12 +83,12 @@ describe('patchEvents', () => {
     const [rows] = settings.upsertMany.mock.calls[0] as unknown as [Array<{ key: string; value: string; type: string; updated_at: string; updated_by: string }>]
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ key: ANALYTICS_EVENTS_SETTING_KEY, type: 'json', updated_at: NOW.toISOString(), updated_by: actor.id })
-    // Збережене (інший ключ) не втрачено, новий ключ додано.
+    // Сохранённое (другой ключ) не потеряно, новый ключ добавлен.
     expect(JSON.parse(rows[0].value)).toEqual({ ...stored, ...patch })
     expect(cache.invalidateSite).toHaveBeenCalledOnce()
     expect(audit.record).toHaveBeenCalledWith(actor, 'analytics_events.update', 'site_settings/analytics_events', { new: patch })
-    // Відповідь — повний мерж дефолтів зі збереженим (у фейку get віддає старе значення, тож
-    // видно лише збережене раніше; головне — форма відповіді).
+    // Ответ — полный мерж дефолтов с сохранённым (в фейке get отдаёт старое значение, так что
+    // видно только сохранённое ранее; главное — форма ответа).
     expect(r.ok && r.value.events[OTHER]).toEqual(stored[OTHER])
     expect(Object.keys(r.ok ? r.value.events : {})).toHaveLength(ANALYTICS_REGISTRY.length)
   })

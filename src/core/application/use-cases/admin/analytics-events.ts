@@ -1,5 +1,5 @@
-// use-cases/admin/analytics-events — конфіг подій аналітики (site_settings.analytics_events).
-// Реєстр і дефолтні імена подій НЕ змінюються (клієнтські GTM-тригери).
+// use-cases/admin/analytics-events — конфиг событий аналитики (site_settings.analytics_events).
+// Реестр и дефолтные имена событий НЕ меняются (клиентские GTM-триггеры).
 import { ok, fail, type Result } from '../../result'
 import type { Actor, CacheInvalidator, Clock } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -28,7 +28,7 @@ export function makeAnalyticsEventsUseCases(deps: { settings: SettingsRepository
     }
   }
 
-  /** Повний конфіг: дефолти + збережені перекриття. */
+  /** Полный конфиг: дефолты + сохранённые переопределения. */
   async function getMergedConfig(): Promise<AnalyticsEventsConfig> {
     try {
       return { ...getDefaultAnalyticsEvents(), ...(await readStored()) }
@@ -42,7 +42,7 @@ export function makeAnalyticsEventsUseCases(deps: { settings: SettingsRepository
     return { registry: ANALYTICS_REGISTRY, events: await getMergedConfig() }
   }
 
-  /** МЕРЖ присланих ключів зі збереженим конфігом (per-row save). */
+  /** МЕРЖ присланных ключей с сохранённым конфигом (per-row save). */
   async function patchEvents(body: { events?: unknown }, actor: Actor): Promise<Result<{ events: AnalyticsEventsConfig }>> {
     const v = validateEventsPatch(body.events)
     if (!v.ok) return fail('invalid', v.message)

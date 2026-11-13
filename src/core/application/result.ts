@@ -1,5 +1,5 @@
-// core/application/result — результат сценарію без HTTP.
-// Презентація (presentation/http.ts) відображає коди у статуси відповіді.
+// core/application/result — результат сценария без HTTP.
+// Презентация (presentation/http.ts) отображает коды в статусы ответа.
 
 export type AppErrorCode =
   | 'invalid'       // 400
@@ -17,7 +17,7 @@ export type Err = {
   ok: false
   code: AppErrorCode
   message: string
-  /** Додаткові поля тіла відповіді (напр. { code: 'TOO_MANY_ROWS' }, { retryAfter }). */
+  /** Дополнительные поля тела ответа (напр. { code: 'TOO_MANY_ROWS' }, { retryAfter }). */
   details?: Record<string, unknown>
 }
 export type Result<T> = Ok<T> | Err

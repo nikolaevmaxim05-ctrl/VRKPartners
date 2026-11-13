@@ -1,4 +1,4 @@
-// use-cases/admin/update-settings — site_settings (білий список ключів, без секретів).
+// use-cases/admin/update-settings — site_settings (белый список ключей, без секретов).
 import { ok, fail, type Result } from '../../result'
 import type { Actor, Clock } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -15,7 +15,7 @@ export function makeSettingsUseCases(deps: { settings: SettingsRepository; clock
       console.error('[admin/settings] query_failed', res.error)
       return fail('failed', res.error)
     }
-    // S6: секрети ніколи не повертаємо.
+    // S6: секреты никогда не возвращаем.
     return ok(res.data.filter((r) => !SECRET_SETTING_KEYS.has(r.key)))
   }
 

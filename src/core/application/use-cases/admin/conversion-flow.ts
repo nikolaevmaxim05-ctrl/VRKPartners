@@ -1,6 +1,6 @@
-// use-cases/admin/conversion-flow — запис офлайн-конверсії та корекцій (RETRACT/RESTATE)
-// і їх вивантаження в Google Sheets. Перенесено з lib/conversions.ts та lib/conversion-adjustments.ts
-// без зміни поведінки (логи ті самі).
+// use-cases/admin/conversion-flow — запись офлайн-конверсии и корректировок (RETRACT/RESTATE)
+// и их выгрузка в Google Sheets. Перенесено из lib/conversions.ts и lib/conversion-adjustments.ts
+// без изменения поведения (логи те же).
 import type { Clock } from '../../ports/common'
 import type { LeadRepository } from '../../ports/leads'
 import type { SettingsRepository } from '../../ports/settings'
@@ -37,8 +37,8 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
   }
 
   /**
-   * Записує рядок у offline_conversions або оновлює стан, якщо реально змінився.
-   * Офлайн-конверсія в БД = ОСТАННІЙ стан ліда (action/type/value); той самий стан → noop.
+   * Записывает строку в offline_conversions или обновляет состояние, если оно реально изменилось.
+   * Офлайн-конверсия в БД = ПОСЛЕДНЕЕ состояние лида (action/type/value); то же состояние → noop.
    */
   async function recordConversion(
     leadId: string,
@@ -78,8 +78,8 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
         type: { from: existing.conversion_type, to: typeNorm },
         value: { from: existing.conversion_value, to: value },
       })
-      // export_status/exported_at НЕ скидаємо у pending: зміну в Google несуть офлайн-рядок
-      // нового стану (шле caller) + корекція RETRACT/RESTATE в окремому фіді.
+      // export_status/exported_at НЕ сбрасываем в pending: изменение в Google несут офлайн-строка
+      // нового состояния (шлёт caller) + корректировка RETRACT/RESTATE в отдельном фиде.
       const upd = await conversions.updateState(leadId, {
         conversion_action: action,
         conversion_type: typeNorm,
@@ -108,7 +108,7 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
     const lead = leadRes.data
     console.log('[conversions] click_ids', { gclid: lead.gclid ?? null, gbraid: lead.gbraid ?? null, wbraid: lead.wbraid ?? null })
 
-    // Click ID опційний (міграція 021): один рядок на конверсійний лід.
+    // Click ID опциональный (миграция 021): одна строка на конверсионный лид.
     const [settingAction, currency] = await Promise.all([
       getSetting('google_ads_conversion_action', 'Lead'),
       getSetting('internal_currency', 'UAH'),
@@ -135,7 +135,7 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
     return { outcome: 'inserted' }
   }
 
-  /** Поточний рядок offline_conversions ліда (або null). */
+  /** Текущая строка offline_conversions лида (или null). */
   async function getConversionByLead(leadId: string): Promise<ExistingConversion | null> {
     const res = await conversions.getByLead(leadId)
     if (!res.ok) {
@@ -145,22 +145,22 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
     return res.data
   }
 
-  /** Повертає відкликану конверсію в чергу (повторний enter після RETRACT). */
+  /** Возвращает отозванную конверсию в очередь (повторный enter после RETRACT). */
   async function markConversionPendingByLead(leadId: string): Promise<void> {
     const res = await conversions.markPendingByLead(leadId)
     if (!res.ok) console.error('[conversions] mark_pending_failed', res.error)
   }
 
-  /** Помічає конверсію ліда як вивантажену (після успішної відправки в Sheets). */
+  /** Помечает конверсию лида как выгруженную (после успешной отправки в Sheets). */
   async function markConversionExportedByLead(leadId: string): Promise<void> {
     const res = await conversions.markExportedByLead(leadId, clock.now().toISOString())
     if (!res.ok) console.error('[conversions] mark_exported_failed', res.error)
   }
 
   /**
-   * Записує корекцію. RETRACT — без суми/валюти, з guard від дубля (C15: повторний RETRACT
-   * лише якщо конверсію переекспортували після попереднього). RESTATE — новий рядок на кожну
-   * зміну суми; валюта — internal_currency, якщо не передана.
+   * Записывает корректировку. RETRACT — без суммы/валюты, с guard от дубля (C15: повторный RETRACT
+   * только если конверсию переэкспортировали после предыдущего). RESTATE — новая строка на каждое
+   * изменение суммы; валюта — internal_currency, если не передана.
    */
   async function recordAdjustment(params: {
     leadId: string
@@ -204,10 +204,10 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
     }
     console.log('[adjustments] recorded', { id: res.data.id, type: params.type, orderNo: params.orderNo })
     if (params.type === 'retract') {
-      // Відкликана конверсія → 'retracted': НЕ в черзі масового вивантаження (інакше «Вивантажити
-      // всі pending» перебʼє RETRACT новою конверсією). Повторний перехід на конверсійну стадію
-      // поверне її в pending і відправить заново (рішення власника); наступний RETRACT дозволений
-      // лише після нового експорту.
+      // Отозванная конверсия → 'retracted': НЕ в очереди массовой выгрузки (иначе «Вивантажити
+      // всі pending» перебьёт RETRACT новой конверсией). Повторный переход на конверсионную стадию
+      // вернёт её в pending и отправит заново (решение владельца); следующий RETRACT разрешён
+      // только после нового экспорта.
       const reset = await conversions.markRetractedByLead(params.leadId)
       if (!reset.ok) console.error('[adjustments] mark_retracted_failed', reset.error)
     }
@@ -220,8 +220,8 @@ export function makeConversionFlow(deps: ConversionFlowDeps) {
   }
 
   /**
-   * Відправляє корекцію у Sheets і помічає exported. Обовʼязково await (на serverless промис
-   * «у фоні» не доживає). Помилка відправки НЕ кидається назовні.
+   * Отправляет корректировку в Sheets и помечает exported. Обязательно await (на serverless промис
+   * «в фоне» не доживает). Ошибка отправки НЕ выбрасывается наружу.
    */
   async function dispatchAdjustment(row: AdjustmentRow): Promise<void> {
     try {

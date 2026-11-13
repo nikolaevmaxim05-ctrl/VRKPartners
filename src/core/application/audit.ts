@@ -1,14 +1,14 @@
-// core/application/audit — журнал дій адмінів (audit_log, розділ 16 стандарту).
-// Сценарії викликають audit.record(...) ПІСЛЯ успішної мутації; помилка запису в журнал
-// ніколи не валить запит (лише лог). Секрети в журнал не потрапляють — сценарії передають
-// лише ключі/метадані, не значення.
+// core/application/audit — журнал действий админов (audit_log, раздел 16 стандарта).
+// Сценарии вызывают audit.record(...) ПОСЛЕ успешной мутации; ошибка записи в журнал
+// никогда не валит запрос (только лог). Секреты в журнал не попадают — сценарии передают
+// только ключи/метаданные, не значения.
 import type { Actor } from './ports/common'
 import type { AuditLogRepository } from './ports/system'
 
 export type AuditValues = { old?: unknown; new?: unknown }
 
 export interface AuditLog {
-  /** action — `<ресурс>.<дія>` (lead.update, stage.delete…); resource — `<таблиця>/<id>`. */
+  /** action — `<ресурс>.<действие>` (lead.update, stage.delete…); resource — `<таблица>/<id>`. */
   record(actor: Actor | null | undefined, action: string, resource: string, values?: AuditValues): Promise<void>
 }
 
@@ -33,5 +33,5 @@ export function makeAuditLog(repo: Pick<AuditLogRepository, 'insert'>): AuditLog
   }
 }
 
-/** Заглушка для тестів і випадків без журналу. */
+/** Заглушка для тестов и случаев без журнала. */
 export const noopAudit: AuditLog = { async record() {} }

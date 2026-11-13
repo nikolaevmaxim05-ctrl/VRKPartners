@@ -1,4 +1,4 @@
-// use-cases/admin/manage-tracking-tags — Google-теги (GA4 / GTM / Ads). Після змін — revalidate сайту.
+// use-cases/admin/manage-tracking-tags — Google-теги (GA4 / GTM / Ads). После изменений — revalidate сайта.
 import { ok, fail, type Result } from '../../result'
 import { UNIQUE_VIOLATION, type Actor, type CacheInvalidator } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -62,7 +62,7 @@ export function makeTrackingTagUseCases(deps: { tags: TrackingTagRepository; cac
     return ok(undefined)
   }
 
-  /** Увімкнені теги для сайту; ID ще раз перевіряються форматом (defense-in-depth). */
+  /** Включённые теги для сайта; ID ещё раз проверяются по формату (defense-in-depth). */
   async function listEnabledForSite(): Promise<Array<{ type: TrackingTagType; tag_id: string; conversion_label: string | null }>> {
     const res = await tags.listEnabled()
     if (!res.ok) {

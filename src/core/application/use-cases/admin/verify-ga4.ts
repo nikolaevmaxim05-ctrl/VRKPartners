@@ -1,5 +1,5 @@
-// use-cases/admin/verify-ga4 — dev-перевірка доставки подій у GA4 (Dev tools → крок 2).
-// Відхилення 8 (AGENTS.md). Відповідь завжди 200 JSON: { configured, points? , error? }.
+// use-cases/admin/verify-ga4 — dev-проверка доставки событий в GA4 (Dev tools → шаг 2).
+// Отклонение 8 (AGENTS.md). Ответ всегда 200 JSON: { configured, points? , error? }.
 import type { Ga4Client, Ga4Env } from '../../ports/system'
 import {
   ANALYTICS_REGISTRY,
@@ -31,7 +31,7 @@ export function makeVerifyGa4(deps: {
     }
     const missing = Object.entries(required).filter(([, v]) => !v || !String(v).trim()).map(([k]) => k)
 
-    // Жодної змінної — «не налаштовано» (UI покаже інструкцію).
+    // Ни одной переменной — «не настроено» (UI покажет инструкцию).
     if (missing.length === Object.keys(required).length) return { configured: false }
     if (missing.length > 0) {
       return {
@@ -63,7 +63,7 @@ export function makeVerifyGa4(deps: {
       const token = await deps.ga4.getAccessToken(sa)
       const seen = new Set<string>()
       const deadline = deps.now() + 45_000
-      await deps.sleep(3_000) // пауза, щоб MP-хіт встиг зареєструватись
+      await deps.sleep(3_000) // пауза, чтобы MP-хит успел зарегистрироваться
       while (deps.now() < deadline) {
         const names = await deps.ga4.fetchRealtimeEventNames(token, propertyId)
         names.forEach((n) => seen.add(n))

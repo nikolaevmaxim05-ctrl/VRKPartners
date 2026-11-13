@@ -1,5 +1,5 @@
-// submit-lead на фейкових портах — порядок розділу 8: Zod → honeypot → rate limit (по leads) →
-// нормалізація → дедуп → запис → сповіщення (allSettled).
+// submit-lead на фейковых портах — порядок раздела 8: Zod → honeypot → rate limit (по leads) →
+// нормализация → дедуп → запись → уведомления (allSettled).
 import { describe, it, expect, vi } from 'vitest'
 import { makeSubmitLead, LEAD_RATE_LIMIT } from '../submit-lead'
 import { dbOk, dbFail } from '../../../ports/common'

@@ -1,4 +1,4 @@
-// core/application/paging — розбір page/limit із query (як у роутах списків).
+// core/application/paging — разбор page/limit из query (как в роутах списков).
 export function parsePaging(
   get: (key: string) => string | null,
   defaultLimit: number,

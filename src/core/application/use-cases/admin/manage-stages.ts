@@ -1,4 +1,4 @@
-// use-cases/admin/manage-stages — стадії воронки: список, створення, зміна, видалення, порядок.
+// use-cases/admin/manage-stages — стадии воронки: список, создание, изменение, удаление, порядок.
 import { ok, fail, type Result } from '../../result'
 import { UNIQUE_VIOLATION, type Actor } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -12,7 +12,7 @@ import {
   type StageCreateBody,
 } from '../../../domain/funnel/stage-rules'
 
-/** id-заглушка для «скинути is_initial у всіх» при створенні. */
+/** id-заглушка для «сбросить is_initial у всех» при создании. */
 const NO_ID = '00000000-0000-0000-0000-000000000000'
 
 export function makeStageUseCases(deps: {
@@ -56,7 +56,7 @@ export function makeStageUseCases(deps: {
     if (!plan.ok) return fail('invalid', plan.error)
     const update = plan.update
 
-    // is_initial — radio-поведінка
+    // is_initial — radio-поведение
     if (plan.initial === 'set') {
       await statuses.clearInitialExcept(id)
       update.is_initial = true
@@ -106,8 +106,8 @@ export function makeStageUseCases(deps: {
         return fail('invalid', 'Невірні дані')
       }
     }
-    // UPDATE-и незалежні (кожен — свій рядок) → паралельно, а не по одному; частковий збій лишає
-    // валідний проміжний стан (позиції — звичайні числа без унікальності).
+    // UPDATE-ы независимы (каждый — своя строка) → параллельно, а не по одному; частичный сбой оставляет
+    // валидное промежуточное состояние (позиции — обычные числа без уникальности).
     const list = items as Array<{ id: string; position: number }>
     const results = await Promise.all(list.map((item) => statuses.setPosition(item.id, Math.floor(item.position))))
     const errors: string[] = []

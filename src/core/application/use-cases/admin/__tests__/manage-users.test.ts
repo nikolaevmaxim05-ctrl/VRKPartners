@@ -1,5 +1,5 @@
-// makeUserUseCases на фейкових портах — розділ 5: запрошення, зміна, видалення користувачів,
-// ієрархія рангів і lockout-guard.
+// makeUserUseCases на фейковых портах — раздел 5: приглашение, изменение, удаление пользователей,
+// иерархия рангов и lockout-guard.
 import { describe, it, expect, vi } from 'vitest'
 import { makeUserUseCases } from '../manage-users'
 import { dbOk, dbFail } from '../../../ports/common'
@@ -15,7 +15,7 @@ const RANKS = new Map<string, number>([
   ['r-view', 2],
 ])
 
-/** Хто яку роль має (для getRoleId / getActorRank). */
+/** У кого какая роль (для getRoleId / getActorRank). */
 const ROLE_OF: Record<string, string | null> = {
   'u-admin': 'r-admin',
   'u-mgr': 'r-mgr',
@@ -93,7 +93,7 @@ describe('inviteUser', () => {
     expect(audit.record).toHaveBeenCalledWith(manager, 'user.invite', 'user_roles/u-new', {
       new: { email: 'new@vrk.test', role_id: 'r-view' },
     })
-    // Журнал пишеться після призначення ролі: при збої призначення role_id у записі = null.
+    // Журнал пишется после назначения роли: при сбое назначения role_id в записи = null.
     const auditOrder = audit.record.mock.invocationCallOrder[0]
     const assignOrder = users.assignRoleOnInvite.mock.invocationCallOrder[0]
     expect(auditOrder).toBeGreaterThan(assignOrder)
@@ -173,7 +173,7 @@ describe('updateUser', () => {
   it('ціль з роллю на рівні або вище за власну → forbidden', async () => {
     const { uc, users } = setup()
     expect(await uc.updateUser('u-admin', { display_name: 'X' }, manager)).toMatchObject({ ok: false, code: 'forbidden', message: 'Не можна редагувати користувача з роллю на рівні або вище за вашу' })
-    // Інший менеджер (той самий ранг) — теж forbidden.
+    // Другой менеджер (тот же ранг) — тоже forbidden.
     expect(await uc.updateUser('u-mgr2', { display_name: 'X' }, manager)).toMatchObject({ ok: false, code: 'forbidden' })
     expect(users.updateRoleRow).not.toHaveBeenCalled()
   })
@@ -186,8 +186,8 @@ describe('updateUser', () => {
   })
 
   it('ціль без ролі: перевірка рангу цілі пропускається, але призначувана роль усе одно перевіряється', async () => {
-    // Спостереження: user_roles.role_id NOT NULL, тож «без ролі» = без рядка; тоді INSERT
-    // можливий лише з role_id, а role_id перевіряється рангом. Пробілу в захисті немає.
+    // Наблюдение: user_roles.role_id NOT NULL, так что «без роли» = без строки; тогда INSERT
+    // возможен только с role_id, а role_id проверяется рангом. Пробела в защите нет.
     const { uc, users } = setup()
     expect(await uc.updateUser('u-none', { role_id: 'r-mgr' }, manager)).toMatchObject({ ok: false, code: 'forbidden' })
     const r = await uc.updateUser('u-none', { role_id: 'r-view' }, manager)
@@ -204,7 +204,7 @@ describe('updateUser', () => {
         ]),
       },
     })
-    // Актор — admin без manage_users у списку активних (напр., деактивований у цей момент) — граничний випадок.
+    // Актор — admin без manage_users в списке активных (напр., деактивирован в этот момент) — граничный случай.
     const r = await uc.updateUser('u-mgr', { is_active: false }, admin)
     expect(r).toMatchObject({ ok: false, code: 'invalid', message: 'Це останній користувач з правом «Управління користувачами» — дію заблоковано' })
     expect(users.updateRoleRow).not.toHaveBeenCalled()

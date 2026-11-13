@@ -1,9 +1,9 @@
-// core/application/ports/leads — ліди, стадії, коментарі, історія, кастомні поля.
+// core/application/ports/leads — лиды, стадии, комментарии, история, кастомные поля.
 import type { DbResult } from './common'
 import type { StageCurrent, ConversionType } from '../../domain/funnel/stage-rules'
 import type { StatusForTransition } from '../../domain/funnel/transition'
 
-// ── Ліди ─────────────────────────────────────────────────────────────────────
+// ── Лиды ─────────────────────────────────────────────────────────────────────
 
 export type LeadInsert = {
   name: string
@@ -24,12 +24,12 @@ export type LeadInsert = {
   ip_address: string | null
   user_agent: string | null
   status_id: string | null
-  /** Мова сторінки заявки (leads.locale, міграція 029). */
+  /** Язык страницы заявки (leads.locale, миграция 029). */
   locale?: string | null
-  /** Реферальне посилання (міграція 035): id активного посилання; код — знімок на момент заявки. */
+  /** Реферальная ссылка (миграция 035): id активной ссылки; код — снимок на момент заявки. */
   referral_link_id?: string | null
   referral_code?: string | null
-  /** Перший перехід за зарахованим кодом (міграція 037, first-touch). */
+  /** Первый переход по зачтённому коду (миграция 037, first-touch). */
   referral_touched_at?: string | null
 }
 
@@ -45,7 +45,7 @@ export type LeadListFilters = {
   assignedTo: string
   dateFrom: string
   dateTo: string
-  /** uuid посилання | 'none' (без посилання) | '' (усі). */
+  /** uuid ссылки | 'none' (без ссылки) | '' (все). */
   referralLinkId?: string
 }
 
@@ -61,31 +61,31 @@ export type LeadState = {
 export interface LeadRepository {
   findFirstIdByPhone(phone: string): Promise<DbResult<string | null>>
   findFirstIdByIpSince(ip: string, sinceIso: string): Promise<DbResult<string | null>>
-  /** Кількість заявок з IP від sinceIso — rate limit форми (розділ 8). */
+  /** Количество заявок с IP начиная с sinceIso — rate limit формы (раздел 8). */
   countByIpSince(ip: string, sinceIso: string): Promise<DbResult<number>>
   markRepeat(id: string): Promise<DbResult<void>>
   insert(row: LeadInsert): Promise<DbResult<void>>
   list(filters: LeadListFilters): Promise<DbResult<{ rows: LeadRow[]; total: number }>>
-  /** Лід + статус + оригінал (для картки). */
+  /** Лид + статус + оригинал (для карточки). */
   getDetail(id: string): Promise<DbResult<LeadRow | null>>
-  /** Усі ліди з тим самим телефоном (історія повторів). */
+  /** Все лиды с тем же телефоном (история повторов). */
   listByPhone(phone: string): Promise<Array<{ id: string; created_at: string; status_id: string | null }>>
   getState(id: string): Promise<DbResult<LeadState | null>>
   /**
-   * UPDATE з поверненням рядка + статусу. Якщо cas задано — оновлює лише коли
-   * поточний status_id дорівнює cas.statusId (optimistic CAS). null = CAS-промах/нема рядка.
+   * UPDATE с возвратом строки + статуса. Если cas задан — обновляет только когда
+   * текущий status_id равен cas.statusId (optimistic CAS). null = CAS-промах/нет строки.
    */
   update(id: string, patch: Record<string, unknown>, cas?: { statusId: string | null }): Promise<DbResult<LeadRow | null>>
-  /** Видаляє лід (спершу offline_conversions ліда). */
+  /** Удаляет лид (сначала offline_conversions лида). */
   delete(id: string): Promise<DbResult<void>>
   exists(id: string): Promise<boolean>
   getClickIds(id: string): Promise<DbResult<{ gclid: string | null; gbraid: string | null; wbraid: string | null } | null>>
   countByStatus(statusId: string): Promise<number>
-  /** Заявки, зараховані посиланню (заборона видалення посилання). */
+  /** Заявки, зачтённые ссылке (запрет удаления ссылки). */
   countByReferralLink(linkId: string): Promise<number>
 }
 
-// ── Стадії ───────────────────────────────────────────────────────────────────
+// ── Стадии ───────────────────────────────────────────────────────────────────
 
 export type LeadStatusRow = {
   id: string
@@ -109,7 +109,7 @@ export interface LeadStatusRepository {
   getForDelete(id: string): Promise<{ id: string; name: string; is_initial: boolean } | null>
   findInitialId(): Promise<string | null>
   findIdByName(name: string): Promise<string | null>
-  /** Знімає is_initial з усіх стадій, крім exceptId. */
+  /** Снимает is_initial со всех стадий, кроме exceptId. */
   clearInitialExcept(exceptId: string): Promise<void>
   countInitialExcept(exceptId: string): Promise<number>
   maxPosition(): Promise<number>
@@ -119,7 +119,7 @@ export interface LeadStatusRepository {
   setPosition(id: string, position: number): Promise<DbResult<void>>
 }
 
-// ── Коментарі та історія ─────────────────────────────────────────────────────
+// ── Комментарии и история ────────────────────────────────────────────────────
 
 export type LeadCommentType = 'comment' | 'note' | 'system'
 
@@ -160,7 +160,7 @@ export interface LeadHistoryRepository {
   insert(row: StatusHistoryInsert): Promise<DbResult<void>>
 }
 
-// ── Кастомні поля ────────────────────────────────────────────────────────────
+// ── Кастомные поля ───────────────────────────────────────────────────────────
 
 export type CustomFieldType = 'text' | 'number' | 'date' | 'select' | 'boolean'
 
@@ -176,9 +176,9 @@ export type CustomFieldRow = {
 }
 
 export interface CustomFieldRepository {
-  /** Для списку налаштувань (з created_at). */
+  /** Для списка настроек (с created_at). */
   list(): Promise<DbResult<CustomFieldRow[]>>
-  /** Для картки ліда (без created_at). */
+  /** Для карточки лида (без created_at). */
   listForLead(): Promise<CustomFieldRow[]>
   get(id: string): Promise<Pick<CustomFieldRow, 'id' | 'type' | 'options' | 'required'> | null>
   maxPosition(): Promise<number>

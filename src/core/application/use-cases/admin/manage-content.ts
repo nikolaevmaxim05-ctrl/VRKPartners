@@ -1,6 +1,6 @@
-// use-cases/admin/manage-content — тексти сайту (messages + правки клієнта), метадані (SEO),
-// юр.документи, картинки. Зберігаємо лише дифф від дефолтів (розділ 9); optimistic-lock по
-// updated_at; після збереження — revalidate сайту.
+// use-cases/admin/manage-content — тексты сайта (messages + правки клиента), метаданные (SEO),
+// юр.документы, картинки. Сохраняем только дифф от дефолтов (раздел 9); optimistic-lock по
+// updated_at; после сохранения — revalidate сайта.
 import { ok, fail, type Result } from '../../result'
 import type { Actor, CacheInvalidator, Clock } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -28,7 +28,7 @@ import {
   extractOwnObjectPath,
 } from '../../../domain/content/validation'
 
-/** Рядок правок текстів для мови: `landing` = uk (відхилення 5); інші мови — `landing:<lang>`. */
+/** Строка правок текстов для языка: `landing` = uk (отклонение 5); другие языки — `landing:<lang>`. */
 export function landingContentId(locale: string): string {
   return locale === 'uk' ? 'landing' : `landing:${locale}`
 }
@@ -60,17 +60,17 @@ export function makeContentUseCases(deps: {
     return isStaleUpdate(await content.getUpdatedAt(id), baseUpdatedAt)
   }
 
-  // ── Тексти сайту ───────────────────────────────────────────────────────────
+  // ── Тексты сайта ───────────────────────────────────────────────────────────
   async function getMessageOverrides(locale = 'uk'): Promise<unknown> {
     return content.getData(landingContentId(locale))
   }
 
-  /** Повні тексти для рендеру: дефолти + правки. Помилка БД → чисті дефолти (сайт не падає). */
+  /** Полные тексты для рендера: дефолты + правки. Ошибка БД → чистые дефолты (сайт не падает). */
   async function getMessages(locale = 'uk'): Promise<SiteMessages> {
     return mergeMessages(defaults.messages(locale), await getMessageOverrides(locale))
   }
 
-  /** Для редактора: лише редаговані розділи (без pageMeta) + дефолти + версія рядка. */
+  /** Для редактора: только редактируемые разделы (без pageMeta) + дефолты + версия строки. */
   async function getMessagesForEditor(locale = 'uk') {
     const [overrides, updatedAt] = await Promise.all([getMessageOverrides(locale), content.getUpdatedAt(landingContentId(locale))])
     const base = defaults.messages(locale)
@@ -82,8 +82,8 @@ export function makeContentUseCases(deps: {
   }
 
   /**
-   * Збереження: редактор шле ПОВНІ значення редагованих розділів; чужий розділ → 400;
-   * ліміти/URL/масиви/приховані блоки → 400; дифф проти дефолтів → БД; revalidate.
+   * Сохранение: редактор шлёт ПОЛНЫЕ значения редактируемых разделов; чужой раздел → 400;
+   * лимиты/URL/массивы/скрытые блоки → 400; дифф против дефолтов → БД; revalidate.
    */
   async function saveMessages(body: SaveBody, actor: Actor, locale = 'uk'): Promise<Result<{ updatedAt: string }>> {
     const base = defaults.messages(locale)
@@ -98,12 +98,12 @@ export function makeContentUseCases(deps: {
     const res = await content.save(id, diff, nowIso, actor.id)
     if (!res.ok) return fail('failed', res.error)
     cache.invalidateSite()
-    // У журнал — лише перелік змінених розділів (сам дифф може бути великим).
+    // В журнал — только перечень изменённых разделов (сам дифф может быть большим).
     await audit.record(actor, 'content.save', `site_content/${id}`, { new: { sections: Object.keys(diff as object) } })
     return ok({ updatedAt: nowIso })
   }
 
-  // ── Метадані (SEO) — відхилення 2 ──────────────────────────────────────────
+  // ── Метаданные (SEO) — отклонение 2 ────────────────────────────────────────
   async function getSeoOverrides(): Promise<SeoOverrides> {
     return (await content.getData(SEO_CONTENT_ID)) as SeoOverrides
   }
@@ -132,7 +132,7 @@ export function makeContentUseCases(deps: {
     return ok({ updatedAt: nowIso })
   }
 
-  // ── Юридичні документи — відхилення 3 ──────────────────────────────────────
+  // ── Юридические документы — отклонение 3 ───────────────────────────────────
   async function getLegal() {
     const [overrides, updatedAt] = await Promise.all([
       content.getData(LEGAL_CONTENT_ID) as Promise<LegalOverrides>,
@@ -161,7 +161,7 @@ export function makeContentUseCases(deps: {
     file: { type: string; size: number; read: () => Promise<Uint8Array> },
     previousUrl: string | null,
   ): Promise<Result<{ url: string }>> {
-    // Тип і розмір — ДО читання тіла (велике тіло не буферизується); вміст — за магічними байтами.
+    // Тип и размер — ДО чтения тела (большое тело не буферизуется); содержимое — по магическим байтам.
     const v = validateImageUpload(file.type, file.size)
     if (!v.ok) return fail(file.size > IMAGE_MAX_BYTES ? 'too_large' : 'invalid', v.message)
     const bytes = await file.read()
@@ -172,7 +172,7 @@ export function makeContentUseCases(deps: {
     const up = await storage.upload(path, bytes, file.type)
     if (!up.ok) return fail('failed', 'Не вдалося завантажити файл')
 
-    // C14: видаляємо попередній файл НАШОГО bucket при заміні.
+    // C14: удаляем предыдущий файл НАШЕГО bucket при замене.
     if (previousUrl) {
       const oldPath = extractOwnObjectPath(previousUrl, storage.publicPathMarker)
       if (oldPath && oldPath !== path) await storage.remove(oldPath)

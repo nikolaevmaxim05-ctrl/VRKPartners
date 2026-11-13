@@ -1,4 +1,4 @@
-// core/application/ports/settings — site_settings, Google-теги, секрети інтеграцій, шифр.
+// core/application/ports/settings — site_settings, Google-теги, секреты интеграций, шифр.
 import type { DbResult } from './common'
 import type { TrackingTagType, TrackingTag } from '../../domain/tracking/tags'
 
@@ -8,7 +8,7 @@ export type SettingUpsert = { key: string; value: string; type: string; updated_
 
 export interface SettingsRepository {
   getMany(keys: string[]): Promise<DbResult<Map<string, string | null>>>
-  /** Значення ключа; помилка/відсутність → null. */
+  /** Значение ключа; ошибка/отсутствие → null. */
   get(key: string): Promise<string | null>
   listAll(): Promise<DbResult<SettingRow[]>>
   upsertMany(rows: SettingUpsert[]): Promise<DbResult<void>>
@@ -25,7 +25,7 @@ export interface TrackingTagRepository {
   delete(id: string): Promise<DbResult<void>>
 }
 
-/** AES-256-GCM. Формат шифртексту (три hex-рядки) НЕ змінювати. */
+/** AES-256-GCM. Формат шифртекста (три hex-строки) НЕ менять. */
 export interface Cipher {
   encrypt(plaintext: string): { encrypted_value: string; iv: string; auth_tag: string }
   decrypt(encryptedValue: string, iv: string, authTag: string): string
@@ -37,15 +37,15 @@ export type SecretRead =
   | { status: 'ok'; value: string }
 
 export interface IntegrationSecretsRepository {
-  /** Усі ключі з розшифрованим значенням (null — не вдалось розшифрувати). */
+  /** Все ключи с расшифрованным значением (null — не удалось расшифровать). */
   listDecrypted(): Promise<DbResult<Array<{ key: string; plain: string | null; updated_at: string | null }>>>
   set(key: string, plaintext: string, userId: string, updatedAtIso: string): Promise<DbResult<void>>
   delete(key: string): Promise<DbResult<void>>
-  /** Строго з БД (без env-фолбеку) — для перевірки підключення. */
+  /** Строго из БД (без env-фолбэка) — для проверки подключения. */
   read(key: string): Promise<SecretRead>
 }
 
-/** Читання налаштування інтеграції: спершу БД, потім env-фолбек (з коротким кешем). */
+/** Чтение настройки интеграции: сначала БД, затем env-фолбэк (с коротким кэшем). */
 export interface IntegrationConfig {
   get(key: string): Promise<string | null>
   prefetch(keys: string[]): Promise<void>

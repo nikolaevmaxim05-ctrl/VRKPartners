@@ -1,6 +1,6 @@
-// use-cases/admin/manage-referral-links — реферальні посилання партнерів (відхилення 11).
-// Код генерує сервер (випадковий, незмінний); колізія коду → одна повторна спроба; назва партнера
-// унікальна без урахування регістру; посилання із заявками не видаляється (лише вимикається).
+// use-cases/admin/manage-referral-links — реферальные ссылки партнёров (отклонение 11).
+// Код генерирует сервер (случайный, неизменяемый); коллизия кода → одна повторная попытка; название
+// партнёра уникально без учёта регистра; ссылка с заявками не удаляется (только выключается).
 import { ok, fail, type Result } from '../../result'
 import { UNIQUE_VIOLATION, type Actor, type Clock } from '../../ports/common'
 import { noopAudit, type AuditLog } from '../../audit'
@@ -22,10 +22,10 @@ import {
   type ReferralLinkPatchBody,
 } from '../../../domain/referral/link-rules'
 
-/** Код Postgres «foreign_key_violation» — лід посилається на посилання. */
+/** Код Postgres «foreign_key_violation» — лид ссылается на ссылку. */
 export const FOREIGN_KEY_VIOLATION = '23503'
 
-/** Вікно атрибуції для UI: поточне значення, дефолт, пресети, межі. */
+/** Окно атрибуции для UI: текущее значение, дефолт, пресеты, границы. */
 export type AttributionWindow = {
   days: number
   defaultDays: number
@@ -37,11 +37,11 @@ export type AttributionWindow = {
 export type ReferralLinkDeps = {
   links: ReferralLinkRepository
   leads: { countByReferralLink(linkId: string): Promise<number> }
-  /** Вікно атрибуції: читання ключа site_settings і запис через сценарій налаштувань (аудит settings.update). */
+  /** Окно атрибуции: чтение ключа site_settings и запись через сценарий настроек (аудит settings.update). */
   settings: { get(key: string): Promise<string | null> }
   updateSettings: (body: { items?: unknown }, actor: Actor) => Promise<Result<void>>
   clock: Clock
-  /** randomInt(maxExclusive) → [0, maxExclusive), криптографічно стійкий (node:crypto в контейнері). */
+  /** randomInt(maxExclusive) → [0, maxExclusive), криптографически стойкий (node:crypto в контейнере). */
   randomInt: (maxExclusive: number) => number
   audit?: AuditLog
 }
@@ -68,7 +68,7 @@ export function makeReferralLinkUseCases(deps: ReferralLinkDeps) {
     return ok(res.data)
   }
 
-  /** 23505: розрізняємо унікальність назви (lower(name)) і коду за іменем constraint у тексті помилки. */
+  /** 23505: различаем уникальность названия (lower(name)) и кода по имени constraint в тексте ошибки. */
   const isNameConflict = (message: string) => /name_lower/i.test(message)
 
   async function createLink(body: NewReferralLinkBody, actor?: Actor): Promise<Result<ReferralLink>> {
@@ -83,7 +83,7 @@ export function makeReferralLinkUseCases(deps: ReferralLinkDeps) {
       }
       if (res.code === UNIQUE_VIOLATION) {
         if (isNameConflict(res.error)) return fail('conflict', REF_ERRORS.nameTaken)
-        // Колізія випадкового коду — ще одна спроба з новим кодом.
+        // Коллизия случайного кода — ещё одна попытка с новым кодом.
         if (attempt === 0) continue
         return fail('conflict', REF_ERRORS.codeTaken)
       }
@@ -120,7 +120,7 @@ export function makeReferralLinkUseCases(deps: ReferralLinkDeps) {
     if (n > 0) return fail('conflict', REF_ERRORS.hasLeads(n))
     const res = await links.delete(id)
     if (!res.ok) {
-      // Гонка: заявка зʼявилась між підрахунком і видаленням — FK on delete restrict.
+      // Гонка: заявка появилась между подсчётом и удалением — FK on delete restrict.
       if (res.code === FOREIGN_KEY_VIOLATION) return fail('conflict', REF_ERRORS.hasLeads(await leads.countByReferralLink(id)))
       console.error('[admin/referral-links/[id]] delete_failed', res.error)
       return fail('failed', res.error)
@@ -146,12 +146,12 @@ export function makeReferralLinkUseCases(deps: ReferralLinkDeps) {
     max: REF_ATTRIBUTION_MAX_DAYS,
   })
 
-  /** Поточне вікно first-touch-атрибуції (відсутнє/невалідне → дефолт 90). */
+  /** Текущее окно first-touch-атрибуции (отсутствует/невалидно → дефолт 90). */
   async function getAttributionWindow(): Promise<Result<AttributionWindow>> {
     return ok(describeWindow(parseAttributionDays(await settings.get(REF_ATTRIBUTION_SETTING_KEY))))
   }
 
-  /** Нове вікно: ціле 1–400 → site_settings через сценарій налаштувань (аудит settings.update). */
+  /** Новое окно: целое 1–400 → site_settings через сценарий настроек (аудит settings.update). */
   async function setAttributionWindow(body: { days?: unknown }, actor: Actor): Promise<Result<AttributionWindow>> {
     const plan = planAttributionDays(body?.days)
     if (!plan.ok) return fail('invalid', plan.message)

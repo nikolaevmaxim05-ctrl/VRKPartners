@@ -1,5 +1,5 @@
-// makeStageUseCases на фейкових портах — розділ 6: стадії воронки (створення, зміна, видалення,
-// порядок, radio-поведінка is_initial).
+// makeStageUseCases на фейковых портах — раздел 6: стадии воронки (создание, изменение, удаление,
+// порядок, radio-поведение is_initial).
 import { describe, it, expect, vi } from 'vitest'
 import { makeStageUseCases } from '../manage-stages'
 import { dbOk, dbFail, UNIQUE_VIOLATION } from '../../../ports/common'
