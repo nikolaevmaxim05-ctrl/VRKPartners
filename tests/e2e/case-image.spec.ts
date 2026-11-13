@@ -62,9 +62,9 @@ test.beforeEach(async ({ context }, testInfo) => {
   await setContent(context, { trust: { caseGroups: GROUPS } }, `case-image-${testInfo.project.name}`)
 })
 
-test.describe('мобільний: автозбільшення скріншота кейсу', () => {
-  test('у центрі — на всю ширину, без горизонтального скролу; поза зоною — 1; після зміни кейсу — теж', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'ефект лише < 640px')
+test.describe('мобильный: автоувеличение скриншота кейса', () => {
+  test('в центре — на всю ширину, без горизонтального скролла; вне зоны — 1; после смены кейса — тоже', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'эффект только < 640px')
     await page.goto('/')
     await selectCase(page, first.niche, first.c.client)
 
@@ -94,8 +94,8 @@ test.describe('мобільний: автозбільшення скріншот
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })
 
-  test('тап по збільшеній картинці → лайтбокс з тим самим src; закриття хрестиком, Escape, фоном', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'touch-сценарій')
+  test('тап по увеличенной картинке → лайтбокс с тем же src; закрытие крестиком, Escape, фоном', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'touch-сценарий')
     await page.goto('/')
     await selectCase(page, first.niche, first.c.client)
     await placeImage(page, 0.5)
@@ -122,10 +122,10 @@ test.describe('мобільний: автозбільшення скріншот
     await expect(dialog).toHaveCount(0)
   })
 
-  test.describe('менше руху', () => {
+  test.describe('меньше движения', () => {
     test.use({ reducedMotion: 'reduce' })
-    test('масштаб завжди 1, лайтбокс працює', async ({ page }, testInfo) => {
-      test.skip(testInfo.project.name !== 'mobile', 'ефект лише < 640px')
+    test('масштаб всегда 1, лайтбокс работает', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile', 'эффект только < 640px')
       await page.goto('/')
       await selectCase(page, first.niche, first.c.client)
       await placeImage(page, 0.5)
@@ -140,8 +140,8 @@ test.describe('мобільний: автозбільшення скріншот
   })
 })
 
-test('десктоп: transform немає, клік по скріншоту відкриває лайтбокс', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'перевірка десктопу')
+test('десктоп: transform нет, клик по скриншоту открывает лайтбокс', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'проверка десктопа')
   await page.goto('/')
   await selectCase(page, first.niche, first.c.client)
   await placeImage(page, 0.5)

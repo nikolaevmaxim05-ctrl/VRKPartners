@@ -6,7 +6,7 @@ import { horizontalOverflow } from './helpers'
 const PAGES = ['/', '/thanks', '/polityka-konfidentsiynosti', '/publichna-oferta', '/zovsim-nevidoma-storinka']
 
 for (const path of PAGES) {
-  test(`${path}: один main, один h1, рівні заголовків без пропусків, без горизонтального скролу`, async ({ page }) => {
+  test(`${path}: один main, один h1, уровни заголовков без пропусков, без горизонтального скролла`, async ({ page }) => {
     const res = await page.goto(path)
     expect([200, 404]).toContain(res?.status() ?? 0)
     await expect(page.locator('main')).toHaveCount(1)
@@ -17,14 +17,14 @@ for (const path of PAGES) {
     )
     let prev = 0
     for (const lvl of levels) {
-      expect(lvl, `рівень ${lvl} після ${prev} (стрибок через рівень) на ${path}`).toBeLessThanOrEqual(prev + 1)
+      expect(lvl, `уровень ${lvl} после ${prev} (скачок через уровень) на ${path}`).toBeLessThanOrEqual(prev + 1)
       prev = lvl
     }
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })
 }
 
-test('/uk → без префікса (профіль A), /admin поза мовами відповідає', async ({ page }) => {
+test('/uk → без префикса (профиль A), /admin вне языков отвечает', async ({ page }) => {
   const r = await page.goto('/uk')
   expect(new URL(page.url()).pathname).toBe('/')
   expect(r?.ok()).toBeTruthy()

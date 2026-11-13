@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test'
 import { setContent } from './helpers'
 
-test('приховані hero, usp і faq: секцій немає в DOM, меню без пунктів, h1 рівно один', async ({ page, context }) => {
+test('скрыты hero, usp и faq: секций нет в DOM, меню без пунктов, h1 ровно один', async ({ page, context }) => {
   await setContent(context, { home: { hidden: ['hero', 'usp', 'faq'] } })
   await page.goto('/')
   await expect(page.locator('#top')).toHaveCount(0)
@@ -20,14 +20,14 @@ test('приховані hero, usp і faq: секцій немає в DOM, ме�
   await expect(page.locator('footer nav a[href="#faq"], footer nav a[href="/#faq"]')).toHaveCount(0)
 })
 
-test('приховані faq і finalCta разом: секція #contacts не виводиться', async ({ page, context }) => {
+test('скрыты faq и finalCta вместе: секция #contacts не выводится', async ({ page, context }) => {
   await setContent(context, { home: { hidden: ['faq', 'finalCta'] } })
   await page.goto('/')
   await expect(page.locator('#contacts')).toHaveCount(0)
   await expect(page.locator('#top')).toHaveCount(1)
 })
 
-test('прихований benefits («Що ви отримуєте?»): секції немає, пункт меню не виводиться, сусіди на місці', async ({ page, context }) => {
+test('скрыт benefits («Що ви отримуєте?»): секции нет, пункт меню не выводится, соседи на месте', async ({ page, context }) => {
   await setContent(context, { home: { hidden: ['benefits'] } })
   await page.goto('/')
   await expect(page.locator('#benefits')).toHaveCount(0)
@@ -37,7 +37,7 @@ test('прихований benefits («Що ви отримуєте?»): сек�
   await expect(page.locator('#process')).toHaveCount(1)
 })
 
-test('правка контенту (як з адмінки) доїжджає до сайту: заголовок і пункт меню', async ({ page, context }) => {
+test('правка контента (как из админки) доезжает до сайта: заголовок и пункт меню', async ({ page, context }) => {
   await setContent(context, { hero: { title: 'E2E заголовок з адмінки' }, nav: { services: 'E2E-послуги' } })
   await page.goto('/')
   await expect(page.locator('h1')).toHaveText('E2E заголовок з адмінки')

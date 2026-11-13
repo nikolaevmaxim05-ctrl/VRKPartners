@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/leads', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }))
 })
 
-test('/r/<code>: 302 на головну з ref і UTM, cookie HttpOnly, заявка несе cookie і ref у тілі; нова вкладка теж', async ({ page, context }) => {
+test('/r/<code>: 302 на главную с ref и UTM, cookie HttpOnly, заявка несёт cookie и ref в теле; новая вкладка тоже', async ({ page, context }) => {
   const res = await page.goto(`/r/${CODE}?utm_source=partner&utm_campaign=spring`)
   expect(res?.status()).toBe(200)
   const url = new URL(page.url())
@@ -29,7 +29,7 @@ test('/r/<code>: 302 на головну з ref і UTM, cookie HttpOnly, зая�
   expect(ref!.expires * 1000 - Date.now()).toBeGreaterThan(390 * 24 * 3600 * 1000)
   expect(await page.evaluate(() => document.cookie), 'HttpOnly — не видна скрипту').not.toContain('lead_ref')
   // Зеркало пишет useEffect после гидрации — ждём, а не читаем сразу после навигации.
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('lead_ref') ?? ''), { message: 'дзеркало в localStorage', timeout: 5000 }).toContain(CODE)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('lead_ref') ?? ''), { message: 'зеркало в localStorage', timeout: 5000 }).toContain(CODE)
 
   // Отправка формы: заголовок cookie и поле ref в теле.
   await page.locator('#top button').first().click()
@@ -61,7 +61,7 @@ test('/r/<code>: 302 на головну з ref і UTM, cookie HttpOnly, зая�
   expect(req2.headers()['cookie'] ?? '').toContain(`lead_ref=v2_${CODE}.`)
 })
 
-test('first-touch: /r/A, потім /r/B → cookie несе обидва касання в порядку A,B; повторний /r/A ts A не змінює; refTouches = [A,B]; невалідний ?ref не ставить cookie', async ({ page, context }) => {
+test('first-touch: /r/A, затем /r/B → cookie несёт оба касания в порядке A,B; повторный /r/A ts A не меняет; refTouches = [A,B]; невалидный ?ref не ставит cookie', async ({ page, context }) => {
   const readTouches = async () => {
     const c = (await context.cookies()).find((x) => x.name === 'lead_ref')
     return (c?.value ?? '').replace(/^v2_/, '').split('_').filter(Boolean).map((p) => ({ code: p.slice(0, p.lastIndexOf('.')), at: Number(p.slice(p.lastIndexOf('.') + 1)) }))
@@ -73,12 +73,12 @@ test('first-touch: /r/A, потім /r/B → cookie несе обидва кас
   await page.goto('/r/zzzz9999')
   const two = await readTouches()
   expect(two.map((t) => t.code)).toEqual([CODE, 'zzzz9999'])
-  expect(two[0].at, 'ts першого касання збережено').toBe(first[0].at)
+  expect(two[0].at, 'ts первого касания сохранён').toBe(first[0].at)
   await page.waitForTimeout(1100)
   await page.goto(`/r/${CODE}`)
   const again = await readTouches()
   expect(again.map((t) => t.code)).toEqual([CODE, 'zzzz9999'])
-  expect(again[0].at, 'повторний перехід за A не змінює ts').toBe(first[0].at)
+  expect(again[0].at, 'повторный переход по A не меняет ts').toBe(first[0].at)
   // Зеркало и тело формы — тот же список.
   await page.locator('#top button').first().click()
   const dialog = page.locator('[role="dialog"]')
@@ -96,7 +96,7 @@ test('first-touch: /r/A, потім /r/B → cookie несе обидва кас
   let ref: { value: string } | undefined
   await page.goto('/?ref=' + 'x'.repeat(200))
   ref = (await context.cookies()).find((c) => c.name === 'lead_ref')
-  expect(ref, 'задовгий код — без cookie').toBeUndefined()
+  expect(ref, 'слишком длинный код — без cookie').toBeUndefined()
   const bad = await page.goto('/r/Bad..code')
-  expect(bad?.status(), 'невалідний код у /r/ → 404 сайту').toBe(404)
+  expect(bad?.status(), 'невалидный код в /r/ → 404 сайта').toBe(404)
 })

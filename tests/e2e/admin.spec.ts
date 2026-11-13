@@ -6,13 +6,13 @@ import { probeLogin } from './admin-helpers'
 const EMAIL = process.env.E2E_ADMIN_EMAIL
 const PASSWORD = process.env.E2E_ADMIN_PASSWORD
 
-test.skip(!EMAIL || !PASSWORD, 'Задайте E2E_ADMIN_EMAIL і E2E_ADMIN_PASSWORD (і env Supabase для сервера)')
+test.skip(!EMAIL || !PASSWORD, 'Задайте E2E_ADMIN_EMAIL и E2E_ADMIN_PASSWORD (и env Supabase для сервера)')
 test.beforeEach(async () => {
   // Пользователя могли удалить из Auth — тогда тест пропускается, а не падает на форме входа.
-  test.skip(!(await probeLogin(EMAIL!, PASSWORD!)), `Тестового адміна ${EMAIL} немає в Supabase Auth або пароль не підходить`)
+  test.skip(!(await probeLogin(EMAIL!, PASSWORD!)), `Тестового админа ${EMAIL} нет в Supabase Auth или пароль не подходит`)
 })
 
-test('вхід в адмінку → головна з картками → розділ «Контент» відкривається', async ({ page }) => {
+test('вход в админку → главная с карточками → раздел «Контент» открывается', async ({ page }) => {
   await page.goto('/admin/login')
   await page.locator('input[type="email"]').fill(EMAIL!)
   await page.locator('input[type="password"]').fill(PASSWORD!)

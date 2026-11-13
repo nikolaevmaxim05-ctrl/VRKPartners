@@ -46,7 +46,7 @@ async function readHeader(page: import('@playwright/test').Page): Promise<Header
   })
 }
 
-test('поріг бургера детермінований на всіх ширинах: меню або вміщується без накладання, або бургер', async ({ page }) => {
+test('порог бургера детерминирован на всех ширинах: меню либо помещается без наложения, либо бургер', async ({ page }) => {
   await page.goto('/')
   await page.waitForTimeout(400)
   const states: HeaderState[] = []
@@ -55,10 +55,10 @@ test('поріг бургера детермінований на всіх ши�
     await page.waitForTimeout(250)
     const s = await readHeader(page)
     states.push(s)
-    expect(s.navVisible !== s.burgerVisible, `${width}px: рівно один режим (nav=${s.navVisible}, burger=${s.burgerVisible})`).toBe(true)
+    expect(s.navVisible !== s.burgerVisible, `${width}px: ровно один режим (nav=${s.navVisible}, burger=${s.burgerVisible})`).toBe(true)
     expect(s.navVisible, `${width}px: needed=${s.needed} available=${s.available}`).toBe(s.needed <= s.available)
-    expect(s.overlap, `${width}px: меню наїхало на правий блок`).toBe(false)
-    if (s.navVisible) expect(s.navFits, `${width}px: пункти меню обрізані`).toBe(true)
+    expect(s.overlap, `${width}px: меню наехало на правый блок`).toBe(false)
+    if (s.navVisible) expect(s.navFits, `${width}px: пункты меню обрезаны`).toBe(true)
   }
   // Возврат назад даёт то же состояние (нет зависимости от направления изменения ширины).
   for (const width of [...WIDTHS].reverse()) {
@@ -66,13 +66,13 @@ test('поріг бургера детермінований на всіх ши�
     await page.waitForTimeout(250)
     const s = await readHeader(page)
     const prev = states.find((p) => p.width === width)!
-    expect(s.navVisible, `${width}px: стан змінився при зворотному проході`).toBe(prev.navVisible)
+    expect(s.navVisible, `${width}px: состояние изменилось при обратном проходе`).toBe(prev.navVisible)
   }
-  expect(states.some((s) => s.navVisible), 'на широких екранах — повне меню').toBe(true)
-  expect(states.some((s) => s.burgerVisible), 'на вузьких — бургер').toBe(true)
+  expect(states.some((s) => s.navVisible), 'на широких экранах — полное меню').toBe(true)
+  expect(states.some((s) => s.burgerVisible), 'на узких — бургер').toBe(true)
 })
 
-test('метрики кейсу підганяються після перемикання кейсу (без resize)', async ({ page, context }, testInfo) => {
+test('метрики кейса подгоняются после переключения кейса (без resize)', async ({ page, context }, testInfo) => {
   const groups = JSON.parse(JSON.stringify(uk.trust.caseGroups)) as { cases: { metrics: { value: string }[] }[] }[]
   const target = groups[0].cases[1]
   target.metrics[0].value = '999 999 999 999'
@@ -92,7 +92,7 @@ test('метрики кейсу підганяються після переми
     })),
   )
   expect(metrics.map((m) => m.text)).toContain('Ж'.repeat(12))
-  for (const m of metrics) expect(m.overflow, `«${m.text}» вилізло за картку`).toBe(false)
+  for (const m of metrics) expect(m.overflow, `«${m.text}» вылезло за карточку`).toBe(false)
   // Ряд выровнен: всем метрикам — один размер.
   expect(new Set(metrics.map((m) => m.px)).size).toBe(1)
 })

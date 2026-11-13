@@ -31,7 +31,7 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('порядок подій при відправці: user_data → conversion → generate_lead; редирект на /thanks', async ({ page }) => {
+test('порядок событий при отправке: user_data → conversion → generate_lead; редирект на /thanks', async ({ page }) => {
   await page.route('**/api/leads', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }),
   )
@@ -50,7 +50,7 @@ test('порядок подій при відправці: user_data → convers
   const iUser = kinds.indexOf('set:user_data')
   const iConv = kinds.indexOf('event:conversion')
   const iLead = kinds.indexOf('event:generate_lead')
-  expect(iUser, `виклики: ${kinds.join(' → ')}`).toBeGreaterThanOrEqual(0)
+  expect(iUser, `вызовы: ${kinds.join(' → ')}`).toBeGreaterThanOrEqual(0)
   expect(iConv).toBeGreaterThan(iUser)
   expect(iLead).toBeGreaterThan(iConv)
   const conv = calls[iConv][2] as { send_to?: string }
@@ -60,7 +60,7 @@ test('порядок подій при відправці: user_data → convers
   expect(JSON.stringify(userData)).not.toContain('380')
 })
 
-test('клієнтська валідація: порожній телефон — помилка з текстів сайту, запит не йде', async ({ page }) => {
+test('клиентская валидация: пустой телефон — ошибка из текстов сайта, запрос не уходит', async ({ page }) => {
   let requests = 0
   await page.route('**/api/leads', (route) => {
     requests++

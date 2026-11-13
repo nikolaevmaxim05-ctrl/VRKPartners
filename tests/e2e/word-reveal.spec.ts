@@ -34,7 +34,7 @@ async function scrollGridToLine(page: Page, frac: number) {
   await page.waitForTimeout(400)
 }
 
-test('скраб: слова вище лінії яскраві, нижче — тьмяні; назад — знову тьмяні', async ({ page }) => {
+test('скраб: слова выше линии яркие, ниже — тусклые; назад — снова тусклые', async ({ page }) => {
   await page.goto('/')
   await page.waitForTimeout(300)
   const vh = page.viewportSize()!.height
@@ -80,7 +80,7 @@ test('скраб: слова вище лінії яскраві, нижче — 
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test('кінець сторінки: audit — останній блок → при максимальній прокрутці все у вікні яскраве', async ({ page, context }) => {
+test('конец страницы: audit — последний блок → при максимальной прокрутке всё в окне яркое', async ({ page, context }) => {
   // benefits (блок «Що ви отримуєте?», с 2026-09-17 между cases и process) тоже скрываем — audit должен быть последним.
   await setContent(context, { home: { hidden: ['cases', 'benefits', 'process', 'faq', 'finalCta'] } })
   await page.goto('/')
@@ -101,9 +101,9 @@ test('кінець сторінки: audit — останній блок → п�
   if (page.viewportSize()!.width >= 1024) expect(inView.length).toBeGreaterThan(5)
 })
 
-test.describe('менше руху', () => {
+test.describe('меньше движения', () => {
   test.use({ reducedMotion: 'reduce' })
-  test('усі слова яскраві, інлайн-стилів і класу html.js-word-reveal немає', async ({ page }) => {
+  test('все слова яркие, инлайн-стилей и класса html.js-word-reveal нет', async ({ page }) => {
     await page.goto('/')
     await scrollGridToLine(page, 0.5)
     const w = await words(page)
@@ -117,7 +117,7 @@ test.describe('менше руху', () => {
 
 test.describe('без JS', () => {
   test.use({ javaScriptEnabled: false })
-  test('усі слова яскраві, класу немає; текст назви/опису/пункту дорівнює вихідному', async ({ page }) => {
+  test('все слова яркие, класса нет; текст названия/описания/пункта равен исходному', async ({ page }) => {
     await page.goto('/')
     const w = await words(page)
     expect(w.length).toBeGreaterThan(60)

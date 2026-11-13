@@ -23,8 +23,8 @@ async function previewBox(page: Page): Promise<Box | null> {
 const ITEM_COUNT = uk.services.items.filter((s) => s.name.trim()).length
 
 test.describe('десктоп', () => {
-  test('3 картки + «Показати більше»; після розгортання — всі; клік по мініатюрі не відкриває лайтбокс', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'сітка — лише ≥ 640px')
+  test('3 карточки + «Показати більше»; после раскрытия — все; клик по миниатюре не открывает лайтбокс', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'сетка — только ≥ 640px')
     await page.goto('/')
     const visible = page.locator('#services article').filter({ visible: true })
     await expect(visible).toHaveCount(3)
@@ -41,8 +41,8 @@ test.describe('десктоп', () => {
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })
 
-  test('превью послуги зʼявляється на місці й не виходить за вікно (три колонки)', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'превью — лише на десктопі')
+  test('превью услуги появляется на месте и не выходит за окно (три колонки)', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'превью — только на десктопе')
     await page.goto('/')
     await page.evaluate(() => {
       document.documentElement.style.scrollBehavior = 'auto'
@@ -72,13 +72,13 @@ test.describe('десктоп', () => {
         }
         return null
       })
-      expect(first, `превью колонки ${i} не зʼявилося`).not.toBeNull()
+      expect(first, `превью колонки ${i} не появилось`).not.toBeNull()
 
       await page.waitForTimeout(400)
       const settled = await previewBox(page)
       expect(settled).not.toBeNull()
-      expect(Math.abs(settled!.cx - first!.cx), `колонка ${i}: зсув по X`).toBeLessThanOrEqual(2)
-      expect(Math.abs(settled!.cy - first!.cy), `колонка ${i}: зсув по Y`).toBeLessThanOrEqual(2)
+      expect(Math.abs(settled!.cx - first!.cx), `колонка ${i}: сдвиг по X`).toBeLessThanOrEqual(2)
+      expect(Math.abs(settled!.cy - first!.cy), `колонка ${i}: сдвиг по Y`).toBeLessThanOrEqual(2)
       const vw = page.viewportSize()!.width
       const vh = page.viewportSize()!.height
       expect(settled!.left).toBeGreaterThanOrEqual(-1)
@@ -143,8 +143,8 @@ async function stepSlides(page: Page, dir: number) {
 }
 
 function mobileTests() {
-  test('циклічна карусель: клони поза деревом доступності, старт на першій, цикл в обидва боки, точки за модулем, без горизонтального скролу', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'карусель — лише < 640px')
+  test('циклическая карусель: клоны вне дерева доступности, старт на первой, цикл в обе стороны, точки по модулю, без горизонтального скролла', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'карусель — только < 640px')
     await page.goto('/')
     await page.evaluate(() => {
       document.documentElement.style.scrollBehavior = 'auto'
@@ -238,8 +238,8 @@ function mobileTests() {
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })
 
-  test('тап по мініатюрі (реальна картка) → лайтбокс; закриття хрестиком, фоном, Escape; фокус на кнопку', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'лайтбокс — лише без hover-превью')
+  test('тап по миниатюре (реальная карточка) → лайтбокс; закрытие крестиком, фоном, Escape; фокус на кнопку', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'лайтбокс — только без hover-превью')
     await page.goto('/')
     const trigger = page.locator('#services article:not([data-clone]) [data-zoom-trigger]').first()
     await expect(trigger).toHaveCount(1)
@@ -272,11 +272,11 @@ function mobileTests() {
   })
 }
 
-test.describe('мобільний: циклічна карусель послуг і лайтбокс', () => {
+test.describe('мобильный: циклическая карусель услуг и лайтбокс', () => {
   mobileTests()
 })
 
-test.describe('мобільний, менше руху', () => {
+test.describe('мобильный, меньше движения', () => {
   test.use({ reducedMotion: 'reduce' })
   mobileTests()
 })

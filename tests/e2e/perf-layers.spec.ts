@@ -34,7 +34,7 @@ async function layerRows(page: Page, cdp: CDPSession): Promise<LayerRow[]> {
   await page.waitForTimeout(500)
   await cdp.send('LayerTree.disable')
   cdp.off('LayerTree.layerTreeDidChange', onChange)
-  expect(seen.layers, 'LayerTree має надіслати шари').not.toBeNull()
+  expect(seen.layers, 'LayerTree должен прислать слои').not.toBeNull()
 
   const rows: LayerRow[] = []
   for (const l of seen.layers ?? []) {
@@ -129,18 +129,18 @@ async function scrollTo(page: Page, frac: number) {
 }
 
 for (const [name, userAgent] of [
-  ['звичайний телефон', undefined],
+  ['обычный телефон', undefined],
   [
-    'вбудований браузер (Threads у Android WebView)',
+    'встроенный браузер (Threads в Android WebView)',
     'Mozilla/5.0 (Linux; Android 13; SM-A135F Build/TP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0 Mobile Safari/537.36 Barcelona 330.0.0.0 Android',
   ],
 ] as const) {
   test.describe(name, () => {
     if (userAgent) test.use({ userAgent })
 
-    test('390×844 @3: без blur > 40px, backdrop-filter і масок; шари з фільтром не більші за 1.5 вьюпорту; памʼять тайлів нижча за поріг', async ({ page, browserName }, testInfo) => {
-      test.skip(testInfo.project.name !== 'mobile', 'мобільний вьюпорт')
-      test.skip(browserName !== 'chromium', 'CDP — лише Chromium')
+    test('390×844 @3: без blur > 40px, backdrop-filter и масок; слои с фильтром не больше 1.5 вьюпорта; память тайлов ниже порога', async ({ page, browserName }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile', 'мобильный вьюпорт')
+      test.skip(browserName !== 'chromium', 'CDP — только Chromium')
       await page.goto('/')
       await page.waitForTimeout(800)
       const cdp = await page.context().newCDPSession(page)
@@ -160,7 +160,7 @@ for (const [name, userAgent] of [
         const rows = await layerRows(page, cdp)
         const heavyOversized = rows.filter((r) => r.heavy && (r.w > VIEW.width * 1.5 || r.h > VIEW.height * 1.5))
         expect(heavyOversized.map((r) => `${r.node} ${r.w}×${r.h}`), where).toEqual([])
-        expect(rows.filter((r) => r.heavy).length, `${where}: шарів із filter/mask/backdrop`).toBeLessThanOrEqual(2)
+        expect(rows.filter((r) => r.heavy).length, `${where}: слоёв с filter/mask/backdrop`).toBeLessThanOrEqual(2)
 
         const mem = await memoryMB(cdp)
         expect(mem.tile, `${where}: cc/tile_memory ${mem.tile} МБ`).toBeLessThan(MAX_TILE_MB)

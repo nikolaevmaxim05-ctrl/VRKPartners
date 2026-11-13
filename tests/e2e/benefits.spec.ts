@@ -54,7 +54,7 @@ test.beforeEach(async ({ context }) => {
   await setContent(context, { benefits: uk.benefits, nav: uk.nav, home: { hidden: [] } })
 })
 
-test('секція на місці, пункти й меню; порядок секцій cases → benefits → process', async ({ page }) => {
+test('секция на месте, пункты и меню; порядок секций cases → benefits → process', async ({ page }) => {
   await page.goto('/')
   const section = page.locator('#benefits')
   await expect(section).toHaveCount(1)
@@ -79,7 +79,7 @@ test('секція на місці, пункти й меню; порядок с�
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test('скраб: нижче лінії — зсунуті й прозорі; проміжний прогрес — сіра відстає; лінія пройшла — на місці; назад — знову зсунуті', async ({ page }) => {
+test('скраб: ниже линии — сдвинуты и прозрачны; промежуточный прогресс — серая отстаёт; линия прошла — на месте; назад — снова сдвинуты', async ({ page }) => {
   await page.goto('/')
   await ready(page)
   const d = await distance(page)
@@ -122,7 +122,7 @@ test('скраб: нижче лінії — зсунуті й прозорі; п
   }
 })
 
-test('кінець сторінки: benefits — останній блок → при максимальній прокрутці все на місці', async ({ page, context }) => {
+test('конец страницы: benefits — последний блок → при максимальной прокрутке всё на месте', async ({ page, context }) => {
   await setContent(context, { benefits: uk.benefits, home: { hidden: ['process', 'faq', 'finalCta'] } })
   await page.goto('/')
   await ready(page)
@@ -150,7 +150,7 @@ test('кінець сторінки: benefits — останній блок → 
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test('без горизонтального скролу в будь-якій фазі на всіх ширинах', async ({ page }, testInfo) => {
+test('без горизонтального скролла в любой фазе на всех ширинах', async ({ page }, testInfo) => {
   const widths = testInfo.project.name === 'mobile' ? [320, 360, 390, 430] : [1440]
   await page.goto('/')
   await ready(page)
@@ -165,7 +165,7 @@ test('без горизонтального скролу в будь-якій ф
   }
 })
 
-test('порожній пункт не виводиться; без пунктів — секції немає, меню без посилання', async ({ page, context }) => {
+test('пустой пункт не выводится; без пунктов — секции нет, меню без ссылки', async ({ page, context }) => {
   await setContent(context, { benefits: { ...uk.benefits, items: [uk.benefits.items[0], { title: '', text: 'x' }, uk.benefits.items[2]] } })
   await page.goto('/')
   await expect(page.locator('#benefits ol > li')).toHaveCount(2)
@@ -174,9 +174,9 @@ test('порожній пункт не виводиться; без пункті
   await expect(page.locator('#benefits')).toHaveCount(0)
 })
 
-test.describe('менше руху', () => {
+test.describe('меньше движения', () => {
   test.use({ reducedMotion: 'reduce' })
-  test('усе на місці одразу, інлайн-стилів і класу html.js-slide-in немає', async ({ page }) => {
+  test('всё на месте сразу, инлайн-стилей и класса html.js-slide-in нет', async ({ page }) => {
     await page.goto('/')
     await page.waitForTimeout(500)
     expect(await page.evaluate(() => document.documentElement.classList.contains('js-slide-in'))).toBe(false)
@@ -191,7 +191,7 @@ test.describe('менше руху', () => {
 
 test.describe('без JS', () => {
   test.use({ javaScriptEnabled: false })
-  test('усе видно, класу немає, текст пунктів на місці', async ({ page }) => {
+  test('всё видно, класса нет, текст пунктов на месте', async ({ page }) => {
     await page.goto('/')
     expect(await page.evaluate(() => document.documentElement.classList.contains('js-slide-in'))).toBe(false)
     for (const p of await parts(page, 0)) {

@@ -5,15 +5,15 @@ import { test, expect } from '@playwright/test'
 import { setContent, stressOverrides, horizontalOverflow, overflowingElements, type StressKind } from './helpers'
 
 for (const kind of ['word', 'stream'] as StressKind[]) {
-  test(`стрес «${kind}»: без переповнення, кнопки цілі, заголовки підігнані`, async ({ page, context }, testInfo) => {
+  test(`стресс «${kind}»: без переполнения, кнопки целы, заголовки подогнаны`, async ({ page, context }, testInfo) => {
     await setContent(context, stressOverrides(kind), `stress-${kind}-${testInfo.project.name}`)
     await page.goto('/')
     // Дать fit-text отработать после загрузки шрифтов.
     await page.waitForTimeout(600)
 
     const overflow = await overflowingElements(page)
-    expect(overflow, `елементи за краєм:\n${overflow.join('\n')}`).toEqual([])
-    expect(await horizontalOverflow(page), 'горизонтальний скрол сторінки').toBeLessThanOrEqual(0)
+    expect(overflow, `элементы за краем:\n${overflow.join('\n')}`).toEqual([])
+    expect(await horizontalOverflow(page), 'горизонтальный скролл страницы').toBeLessThanOrEqual(0)
 
     // Кнопки: текст не вылезает за кнопку, кнопка не шире родителя.
     const buttons = await page.evaluate(() =>
@@ -36,11 +36,11 @@ for (const kind of ['word', 'stream'] as StressKind[]) {
       })),
     )
     expect(fits.length).toBeGreaterThan(3)
-    for (const f of fits) expect(f.px, `розмір ${f.text}`).toBeGreaterThan(8)
+    for (const f of fits) expect(f.px, `размер ${f.text}`).toBeGreaterThan(8)
   })
 }
 
-test('слово з дефісом не рветься по дефісу (nbHyphen + .nb)', async ({ page, context }) => {
+test('слово с дефисом не рвётся по дефису (nbHyphen + .nb)', async ({ page, context }) => {
   await setContent(context, {
     hero: { title: 'Google Ads та performance-маркетинг для бізнесу, який хоче масштабувати продажі' },
     services: { title: 'Контекстно-медійна реклама та відео-формати' },
@@ -55,5 +55,5 @@ test('слово з дефісом не рветься по дефісу (nbHyph
     })),
   )
   expect(nb.map((n) => n.text)).toContain('performance-маркетинг')
-  for (const n of nb) if (!n.broken) expect(n.lines, `«${n.text}» розірвано`).toBe(1)
+  for (const n of nb) if (!n.broken) expect(n.lines, `«${n.text}» разорвано`).toBe(1)
 })

@@ -24,9 +24,9 @@ const PAGES: [string, RegExp][] = [
 const RU_ONLY = /[ыэъё]/i
 
 test.beforeEach(async ({}, testInfo) => {
-  test.skip(!hasAdminCreds(), 'Немає E2E_ADMIN_EMAIL/PASSWORD')
+  test.skip(!hasAdminCreds(), 'Нет E2E_ADMIN_EMAIL/PASSWORD')
   const probe = await probeLogin(ENV.email!, ENV.password!)
-  test.skip(!probe, `Тестового адміна ${ENV.email} немає в Supabase Auth`)
+  test.skip(!probe, `Тестового админа ${ENV.email} нет в Supabase Auth`)
   void testInfo
 })
 
@@ -38,7 +38,7 @@ async function login(page: Page) {
   await page.waitForURL(/\/admin(\/)?$/, { timeout: 30_000 })
 }
 
-test('вхід: невірний пароль → повідомлення без деталей; клавіатура: Tab → email → пароль → Enter', async ({ page }) => {
+test('вход: неверный пароль → сообщение без деталей; клавиатура: Tab → email → пароль → Enter', async ({ page }) => {
   await page.goto('/admin/login')
   await page.locator('input[type="email"]').fill(ENV.email!)
   await page.locator('input[type="password"]').fill('wrong-password-123')
@@ -57,7 +57,7 @@ test('вхід: невірний пароль → повідомлення бе�
   await page.waitForURL(/\/admin(\/)?$/)
 })
 
-test('усі сторінки: без помилок консолі та 4xx/5xx, h1 видимий, тексти uk-UA, скріншот', async ({ page }, testInfo) => {
+test('все страницы: без ошибок консоли и 4xx/5xx, h1 видимый, тексты uk-UA, скриншот', async ({ page }, testInfo) => {
   await login(page)
   const consoleErrors: string[] = []
   const badResponses: string[] = []
@@ -74,19 +74,19 @@ test('усі сторінки: без помилок консолі та 4xx/5xx
     await page.waitForLoadState('networkidle').catch(() => {})
     await page.waitForTimeout(400)
     if (path === '/admin/referral-links') {
-      await expect(page.locator('[data-referral-attribution]'), 'картка «Вікно атрибуції»').toContainText('Вікно атрибуції')
+      await expect(page.locator('[data-referral-attribution]'), 'карточка «Вікно атрибуції»').toContainText('Вікно атрибуції')
       await expect(page.locator('[data-referral-window-current]')).toContainText('Зараз:')
     }
     const text = await page.locator('main').innerText().catch(() => '')
-    expect(RU_ONLY.test(text), `${path}: російські літери у тексті`).toBe(false)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${path}: горизонтальний скрол`).toBeLessThanOrEqual(0)
+    expect(RU_ONLY.test(text), `${path}: русские буквы в тексте`).toBe(false)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${path}: горизонтальный скролл`).toBeLessThanOrEqual(0)
     await page.screenshot({ path: testInfo.outputPath(`${path.replace(/\//g, '_') || 'root'}.png`), fullPage: true })
   }
-  expect(consoleErrors, `помилки консолі:\n${consoleErrors.join('\n')}`).toEqual([])
-  expect(badResponses, `невдалі запити:\n${badResponses.join('\n')}`).toEqual([])
+  expect(consoleErrors, `ошибки консоли:\n${consoleErrors.join('\n')}`).toEqual([])
+  expect(badResponses, `неудачные запросы:\n${badResponses.join('\n')}`).toEqual([])
 })
 
-test('картка ліда: неіснуючий id → сторінка не падає (повідомлення або 404), без 500', async ({ page }) => {
+test('карточка лида: несуществующий id → страница не падает (сообщение или 404), без 500', async ({ page }) => {
   await login(page)
   const statuses: number[] = []
   page.on('response', (r) => statuses.push(r.status()))
@@ -95,12 +95,12 @@ test('картка ліда: неіснуючий id → сторінка не �
   expect(statuses.filter((s) => s >= 500)).toEqual([])
 })
 
-test('редактор контенту: кнопка збереження внизу праворуч, лічильник ліміту, довгий текст не ламає верстку (390)', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'mobile', 'мобільна перевірка')
+test('редактор контента: кнопка сохранения внизу справа, счётчик лимита, длинный текст не ломает вёрстку (390)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'мобильная проверка')
   await login(page)
   await page.goto('/admin/content')
   await expect(page.locator('h1')).toHaveText('Контент сайту')
-  await expect(page.getByRole('button', { name: /Зберегти зміни/ }), 'без змін кнопки немає').toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Зберегти зміни/ }), 'без изменений кнопки нет').toHaveCount(0)
   // Кнопка сохранения появляется только при наличии изменений: открываем блок, правим первое поле.
   await page.getByRole('button', { name: /Перший екран/ }).first().click()
   const input = page.locator('main input:not([type="number"]):not([type="hidden"]), main textarea').first()
@@ -110,16 +110,16 @@ test('редактор контенту: кнопка збереження вн�
   await expect(save).toBeVisible()
   const box = await save.boundingBox()
   const vw = page.viewportSize()!
-  expect(box!.x + box!.width, 'кнопка праворуч').toBeGreaterThan(vw.width * 0.5)
-  expect(box!.y + box!.height, 'кнопка внизу (закріплена)').toBeGreaterThan(vw.height * 0.6)
+  expect(box!.x + box!.width, 'кнопка справа').toBeGreaterThan(vw.width * 0.5)
+  expect(box!.y + box!.height, 'кнопка внизу (закреплена)').toBeGreaterThan(vw.height * 0.6)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   // Ничего не сохраняем: перезагрузка сбрасывает несохранённые изменения.
   await page.reload()
   await expect(page.getByRole('button', { name: /Зберегти зміни/ })).toHaveCount(0)
 })
 
-test('вихід: після logout сторінки адмінки знову вимагають вхід', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'на 390 сайдбар з кнопкою виходу схований у шторці')
+test('выход: после logout страницы админки снова требуют вход', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'на 390 сайдбар с кнопкой выхода спрятан в шторке')
   await login(page)
   const logout = page.getByTitle('Вийти')
   await logout.click()

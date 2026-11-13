@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 
 test.use({ reducedMotion: 'reduce' })
 
-test('reduced motion: контент видимий одразу, модалка відкривається й закривається', async ({ page }) => {
+test('reduced motion: контент виден сразу, модалка открывается и закрывается', async ({ page }) => {
   await page.goto('/')
   await page.waitForTimeout(300)
   // Стартовое состояние видимое; после прокрутки к элементу он становится видимым мгновенно (без движения).

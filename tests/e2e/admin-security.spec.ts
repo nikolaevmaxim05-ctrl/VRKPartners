@@ -12,20 +12,20 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 test.describe.configure({ mode: 'serial' })
 test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'API-перевірки — один раз (desktop)')
+  test.skip(testInfo.project.name !== 'desktop', 'API-проверки — один раз (desktop)')
 })
 
 const SECURITY_HEADERS = ['content-security-policy', 'x-frame-options', 'x-content-type-options', 'referrer-policy', 'permissions-policy']
 
 function expectSecurityHeaders(headers: Record<string, string>, where: string) {
-  for (const h of SECURITY_HEADERS) expect(headers[h], `${where}: немає ${h}`).toBeTruthy()
+  for (const h of SECURITY_HEADERS) expect(headers[h], `${where}: нет ${h}`).toBeTruthy()
   expect(headers['x-frame-options']).toBe('DENY')
   expect(headers['x-content-type-options']).toBe('nosniff')
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'")
   expect(headers['x-powered-by']).toBeUndefined()
 }
 
-test('сторінки адмінки без сесії → редирект на /admin/login; login і set-password відкриті', async ({ request }) => {
+test('страницы админки без сессии → редирект на /admin/login; login и set-password открыты', async ({ request }) => {
   for (const path of ['/admin', '/admin/leads', '/admin/content', '/admin/audit-log', '/admin/users', '/admin/leads/00000000-0000-0000-0000-000000000000']) {
     const r = await request.get(path, { maxRedirects: 0 })
     expect([302, 307, 308], `${path}: статус ${r.status()}`).toContain(r.status())
@@ -41,7 +41,7 @@ test('сторінки адмінки без сесії → редирект н�
   }
 })
 
-test('/api/admin/* без сесії → 401 JSON для всіх методів, зі security-заголовками', async ({ request }) => {
+test('/api/admin/* без сессии → 401 JSON для всех методов, с security-заголовками', async ({ request }) => {
   const cases: [string, 'get' | 'post' | 'put' | 'patch' | 'delete'][] = [
     ['/api/admin/leads', 'get'],
     ['/api/admin/leads/00000000-0000-0000-0000-000000000000', 'patch'],
@@ -61,14 +61,14 @@ test('/api/admin/* без сесії → 401 JSON для всіх методів
   }
 })
 
-test('/api/cron/keepalive без секрету, з чужим або з "Bearer undefined" (CRON_SECRET не задано) → 401', async ({ request }) => {
+test('/api/cron/keepalive без секрета, с чужим или с "Bearer undefined" (CRON_SECRET не задан) → 401', async ({ request }) => {
   const r1 = await request.get('/api/cron/keepalive')
   expect(r1.status()).toBe(401)
   expect(await r1.json()).toEqual({ error: 'Unauthorized' })
   const r2 = await request.get('/api/cron/keepalive', { headers: { authorization: 'Bearer wrong-secret' } })
   expect(r2.status()).toBe(401)
   const r3 = await request.get('/api/cron/keepalive', { headers: { authorization: 'Bearer undefined' } })
-  expect(r3.status(), 'без CRON_SECRET роут закритий, а не «Bearer undefined»').toBe(401)
+  expect(r3.status(), 'без CRON_SECRET роут закрыт, а не «Bearer undefined»').toBe(401)
 })
 
 async function countLeads(): Promise<number | null> {
@@ -83,7 +83,7 @@ async function postLead(request: APIRequestContext, path: string, body: unknown,
   return request.post(path, { data: body, headers: { 'content-type': 'application/json', ...headers } })
 }
 
-test('приймач заявок без запису: невалідний JSON/Zod → 400 "Invalid data"; honeypot → { ok: true } без ліда і без витрати ліміту; /api/lead — той самий обробник; GET → 405', async ({ request }) => {
+test('приёмник заявок без записи: невалидный JSON/Zod → 400 "Invalid data"; honeypot → { ok: true } без лида и без расхода лимита; /api/lead — тот же обработчик; GET → 405', async ({ request }) => {
   const before = await countLeads()
   const ip = { 'x-forwarded-for': '198.51.100.7' }
 
@@ -96,7 +96,7 @@ test('приймач заявок без запису: невалідний JSON
   expect(await zod.json()).toEqual({ error: 'Invalid data' })
 
   const digitsInName = await postLead(request, '/api/leads', { name: 'E2E 123', phone: '+380991234567' }, ip)
-  expect(digitsInName.status(), 'імʼя з цифрами не проходить Zod').toBe(400)
+  expect(digitsInName.status(), 'имя с цифрами не проходит Zod').toBe(400)
 
   // Honeypot: 5 запросов с одного IP подряд — все 200 (лимит 3/10 мин считает только сохранённые лиды).
   for (let i = 0; i < 5; i++) {
@@ -109,10 +109,10 @@ test('приймач заявок без запису: невалідний JSON
   expect(method.status()).toBe(405)
 
   const after = await countLeads()
-  if (before !== null) expect(after, 'honeypot не створює лідів').toBe(before)
+  if (before !== null) expect(after, 'honeypot не создаёт лидов').toBe(before)
 })
 
-test('реферальні переходи: /r/<code> → 302 на /?ref=…&utm (з security-заголовками і HttpOnly cookie-списком касань на 400 днів), /r/Bad..code → 404, задовгий ?ref → без Set-Cookie, /admin і /api без cookie; 9 кодів → ≤ 8 касань, легасі-cookie читається', async ({ request }) => {
+test('реферальные переходы: /r/<code> → 302 на /?ref=…&utm (с security-заголовками и HttpOnly cookie-списком касаний на 400 дней), /r/Bad..code → 404, слишком длинный ?ref → без Set-Cookie, /admin и /api без cookie; 9 кодов → ≤ 8 касаний, легаси-cookie читается', async ({ request }) => {
   const r = await request.get('/r/E2Eabc12?utm_source=p&utm_campaign=c', { maxRedirects: 0 })
   expect(r.status()).toBe(302)
   const loc = new URL(r.headers()['location'], 'http://127.0.0.1:3100')
@@ -126,7 +126,7 @@ test('реферальні переходи: /r/<code> → 302 на /?ref=…&ut
   expect(setCookie).toMatch(/HttpOnly/i)
   expect(setCookie).toMatch(/SameSite=Lax/i)
   expect(setCookie).toMatch(/Max-Age=34560000/)
-  expect(setCookie, 'http → без Secure (за протоколом запиту)').not.toMatch(/Secure/i)
+  expect(setCookie, 'http → без Secure (по протоколу запроса)').not.toMatch(/Secure/i)
 
   // Список касаний: существующая cookie дополняется, первый ts по коду сохраняется; свыше 8 — заменяется последнее.
   const now = Math.floor(Date.now() / 1000)
@@ -137,7 +137,7 @@ test('реферальні переходи: /r/<code> → 302 на /?ref=…&ut
   const full = await request.get('/r/code9xxx', { maxRedirects: 0, headers: { cookie: `lead_ref=${nine[8]}` } })
   const fullValue = decodeURIComponent((full.headers()['set-cookie'] ?? '').split(';')[0].replace('lead_ref=', ''))
   const parts = fullValue.replace(/^v2_/, '').split('_')
-  expect(parts, '≤ 8 касань, ранні збережені, останнє замінене').toHaveLength(8)
+  expect(parts, '≤ 8 касаний, ранние сохранены, последнее заменено').toHaveLength(8)
   expect(parts.slice(0, 7).map((p) => p.split('.')[0])).toEqual(['code0xxx', 'code1xxx', 'code2xxx', 'code3xxx', 'code4xxx', 'code5xxx', 'code6xxx'])
   expect(parts[7]).toMatch(/^code9xxx\./)
   // Легаси-cookie (голый код из прод-версии 2026-09-27) → касание «сейчас» + новый код.
@@ -153,12 +153,12 @@ test('реферальні переходи: /r/<code> → 302 на /?ref=…&ut
   // Контекст запросов держит cookie-jar: к новому касанию добавляются предыдущие из этого теста.
   expect(home.headers()['set-cookie'] ?? '').toMatch(/lead_ref=v2_(?:[a-z0-9]+\.\d+_)*abcd1234\.\d{9,10}/)
   const same = await request.get('/?ref=abcd1234', { maxRedirects: 0, headers: { cookie: `lead_ref=v2_abcd1234.${now - 5000}` } })
-  expect(same.headers()['set-cookie'] ?? '', 'повторний ?ref: cookie переставлена, ts не змінено').toContain(`lead_ref=v2_abcd1234.${now - 5000}`)
+  expect(same.headers()['set-cookie'] ?? '', 'повторный ?ref: cookie переставлена, ts не изменён').toContain(`lead_ref=v2_abcd1234.${now - 5000}`)
   const admin = await request.get('/admin/login?ref=abcd1234')
-  expect(admin.headers()['set-cookie'] ?? '', 'адмінка cookie не ставить').not.toContain('lead_ref')
+  expect(admin.headers()['set-cookie'] ?? '', 'админка cookie не ставит').not.toContain('lead_ref')
 })
 
-test('CORS/Origin: відповіді публічного API без Access-Control-Allow-Origin (чужий origin у браузері не прочитає відповідь; сам запит не блокується — зафіксовано)', async ({ request }) => {
+test('CORS/Origin: ответы публичного API без Access-Control-Allow-Origin (чужой origin в браузере не прочитает ответ; сам запрос не блокируется — зафиксировано)', async ({ request }) => {
   const r = await postLead(request, '/api/leads', { name: 'Тест Бот', phone: '+380990001099', company: 'bot' }, { origin: 'https://evil.example', 'x-forwarded-for': '198.51.100.8' })
   expect(r.status()).toBe(200)
   expect(r.headers()['access-control-allow-origin']).toBeUndefined()
@@ -166,14 +166,14 @@ test('CORS/Origin: відповіді публічного API без Access-Con
   expect(pre.headers()['access-control-allow-origin']).toBeUndefined()
 })
 
-test('RLS напряму через REST з anon-ключем: таблиці з PII/налаштуваннями порожні, запис у site_content закрита', async ({ request }) => {
-  test.skip(!SUPABASE_URL || !ANON_KEY, 'немає NEXT_PUBLIC_SUPABASE_URL / ANON_KEY')
+test('RLS напрямую через REST с anon-ключом: таблицы с PII/настройками пусты, запись в site_content закрыта', async ({ request }) => {
+  test.skip(!SUPABASE_URL || !ANON_KEY, 'нет NEXT_PUBLIC_SUPABASE_URL / ANON_KEY')
   const headers = { apikey: ANON_KEY!, authorization: `Bearer ${ANON_KEY!}` }
   // Таблицы, где точно есть строки (site_settings, admin_roles, lead_statuses, audit_log, integrations, site_content).
   for (const table of ['site_settings', 'admin_roles', 'lead_statuses', 'audit_log', 'integrations', 'leads', 'user_roles', 'tracking_tags', 'offline_conversions', 'referral_links']) {
     const r = await request.get(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=5`, { headers })
     expect(r.status(), `${table}: ${await r.text()}`).toBe(200)
-    expect(await r.json(), `${table}: anon бачить рядки`).toEqual([])
+    expect(await r.json(), `${table}: anon видит строки`).toEqual([])
   }
   // site_content: чтение anon — тоже закрыто (SELECT только активному админу); сайт читает service-клиентом.
   const sc = await request.get(`${SUPABASE_URL}/rest/v1/site_content?select=id&limit=5`, { headers })
@@ -184,10 +184,10 @@ test('RLS напряму через REST з anon-ключем: таблиці з
   expect([401, 403], `insert: ${ins.status()} ${await ins.text()}`).toContain(ins.status())
   const upd = await request.patch(`${SUPABASE_URL}/rest/v1/site_content?id=eq.landing`, { headers: { ...headers, 'content-type': 'application/json', prefer: 'return=representation' }, data: { updated_by: 'e2e' } })
   expect(upd.status()).toBeLessThan(500)
-  if (upd.status() < 300) expect(await upd.json(), 'update anon змінив рядок').toEqual([])
+  if (upd.status() < 300) expect(await upd.json(), 'update anon изменил строку').toEqual([])
   const del = await request.delete(`${SUPABASE_URL}/rest/v1/audit_log?id=neq.00000000-0000-0000-0000-000000000000`, { headers: { ...headers, prefer: 'return=representation' } })
   expect(del.status()).toBeLessThan(500)
-  if (del.status() < 300) expect(await del.json(), 'delete anon видалив рядки').toEqual([])
+  if (del.status() < 300) expect(await del.json(), 'delete anon удалил строки').toEqual([])
   if (SERVICE_KEY) {
     const db = createClient(SUPABASE_URL!, SERVICE_KEY, { auth: { persistSession: false } })
     const { data } = await db.from('site_content').select('id').eq('id', 'e2e-rls-probe')

@@ -31,13 +31,13 @@ async function centerCard(page: Page, index: number) {
   await page.waitForTimeout(700)
 }
 
-test.describe('активна картка USP', () => {
+test.describe('активная карточка USP', () => {
   test.beforeEach(async ({ context }) => {
     await setContent(context, { usp: { items: ITEMS } })
   })
 
-  test('мобільний: центральна — active зі scale > 1, сусіди — dimmed без blur (lite), приглушені; далі активною стає наступна', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile', 'ефект лише на ≤640px')
+  test('мобильный: центральная — active со scale > 1, соседи — dimmed без blur (lite), приглушены; дальше активной становится следующая', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'эффект только на ≤640px')
     await page.goto('/')
     await expect(page.locator('#usp article.usp-card')).toHaveCount(4)
 
@@ -64,8 +64,8 @@ test.describe('активна картка USP', () => {
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
   })
 
-  test('десктоп: жодного data-state, blur чи scale', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'перевірка десктопу')
+  test('десктоп: ни одного data-state, blur или scale', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'проверка десктопа')
     await page.goto('/')
     await centerCard(page, 1)
     const s = await cardStates(page)
@@ -77,10 +77,10 @@ test.describe('активна картка USP', () => {
     }
   })
 
-  test.describe('менше руху', () => {
+  test.describe('меньше движения', () => {
     test.use({ reducedMotion: 'reduce' })
-    test('мобільний: ні масштабу, ні розмиття, картки повністю видимі', async ({ page }, testInfo) => {
-      test.skip(testInfo.project.name !== 'mobile', 'ефект лише на ≤640px')
+    test('мобильный: ни масштаба, ни размытия, карточки полностью видны', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile', 'эффект только на ≤640px')
       await page.goto('/')
       await centerCard(page, 1)
       const s = await cardStates(page)
