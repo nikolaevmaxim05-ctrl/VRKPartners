@@ -1,13 +1,13 @@
-// middleware.ts — security headers + перевірка сесії адмінки + next-intl для сайту
+// middleware.ts — security headers + проверка сессии админки + next-intl для сайта
 // (Next 15: middleware, не proxy.ts).
-// Дві перевірки навмисно (раздел 5 стандарту): middleware — СЕСІЯ, роут/сторінка — ПРАВА.
-//   /api/admin/* без сесії → 401 JSON;
-//   /admin/* без сесії → редірект на /admin/login (крім /admin/login і /admin/set-password);
-//   залогінений на /admin/login → /admin.
-// Адмінка — завжди поза мовами: гілки /admin і /api/admin обробляються ДО next-intl і без
-// нього (розділ 10). Публічні /api/* і файли (robots.txt, sitemap.xml, картинки) — теж без
-// next-intl. Решта (сайт) → next-intl переписує запит у сегмент [locale] (адреси без /uk).
-// Node.js runtime (@supabase/ssr коректно працює з cookies).
+// Две проверки намеренно (раздел 5 стандарта): middleware — СЕССИЯ, роут/страница — ПРАВА.
+//   /api/admin/* без сессии → 401 JSON;
+//   /admin/* без сессии → редирект на /admin/login (кроме /admin/login и /admin/set-password);
+//   залогиненный на /admin/login → /admin.
+// Админка — всегда вне языков: ветки /admin и /api/admin обрабатываются ДО next-intl и без
+// него (раздел 10). Публичные /api/* и файлы (robots.txt, sitemap.xml, картинки) — тоже без
+// next-intl. Остальное (сайт) → next-intl переписывает запрос в сегмент [locale] (адреса без /uk).
+// Node.js runtime (@supabase/ssr корректно работает с cookies).
 import { NextResponse, type NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { getSessionUserId } from '@infra/supabase/session'
@@ -17,25 +17,25 @@ import { decodeRefCookie, encodeRefCookie, addTouch, REF_COOKIE_MAX_DAYS } from 
 
 const isDev = process.env.NODE_ENV !== 'production'
 
-// Хост Supabase — у connect-src (вхід в адмінку, realtime)
+// Хост Supabase — в connect-src (вход в админку, realtime)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const supabaseHost = supabaseUrl ? new URL(supabaseUrl).origin : ''
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  // Скрипти: GTM, GA4, Google Ads (+ view-through googleads.g.doubleclick.net), Plausible, Meta Pixel,
-  // TikTok Pixel; через GTM клієнта — Ringostat (підміна номера) і Microsoft Clarity (рішення власника
-  // 2026-09-11 за підсумками ревью: без них інструменти на проді блокувались CSP).
-  // У dev — 'unsafe-eval' для HMR Next.js
+  // Скрипты: GTM, GA4, Google Ads (+ view-through googleads.g.doubleclick.net), Plausible, Meta Pixel,
+  // TikTok Pixel; через GTM клиента — Ringostat (подмена номера) и Microsoft Clarity (решение владельца
+  // 2026-09-11 по итогам ревью: без них инструменты на проде блокировались CSP).
+  // В dev — 'unsafe-eval' для HMR Next.js
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://plausible.io https://connect.facebook.net https://analytics.tiktok.com https://*.ringostat.com https://*.clarity.ms`,
   // + Google Fonts (CSS)
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https: blob:",
-  // + Google Fonts (файли шрифтів)
+  // + Google Fonts (файлы шрифтов)
   "font-src 'self' data: https://fonts.gstatic.com",
   // GA4, Ads (+ ad.doubleclick.net), GTM preview, Plausible, Ringostat, Clarity, Telegram, KeyCRM, Supabase (https + wss)
   `connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com https://plausible.io https://*.ringostat.com https://*.clarity.ms https://api.telegram.org https://openapi.keycrm.app${supabaseHost ? ` ${supabaseHost} wss://${supabaseHost.replace(/^https?:\/\//, '')}` : ''}`,
-  // td.doubleclick.net — GA4/AW інжектять iframe для cross-domain linker
+  // td.doubleclick.net — GA4/AW инжектят iframe для cross-domain linker
   'frame-src https://td.doubleclick.net https://www.googletagmanager.com',
   "frame-ancestors 'none'",
   "form-action 'self'",
@@ -58,13 +58,13 @@ function applySecurityHeaders(response: NextResponse) {
 
 const PUBLIC_ADMIN_PAGES = ['/admin/login', '/admin/set-password']
 
-/** Методи без побічних ефектів — Origin не перевіряємо. */
+/** Методы без побочных эффектов — Origin не проверяем. */
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 /**
- * CSRF (розділ 16): мутація /api/admin/* з чужого Origin → 403. Браузер завжди шле Origin для
- * cross-site POST/PUT/PATCH/DELETE (у т.ч. multipart без preflight); запити без Origin (curl,
- * серверні) — не з браузера, їх захищає сесія. Порівнюємо хост Origin з хостом запиту.
+ * CSRF (раздел 16): мутация /api/admin/* с чужого Origin → 403. Браузер всегда шлёт Origin для
+ * cross-site POST/PUT/PATCH/DELETE (в т.ч. multipart без preflight); запросы без Origin (curl,
+ * серверные) — не из браузера, их защищает сессия. Сравниваем хост Origin с хостом запроса.
  */
 function isForeignOrigin(request: NextRequest): boolean {
   if (SAFE_METHODS.has(request.method)) return false
@@ -81,12 +81,12 @@ function isForeignOrigin(request: NextRequest): boolean {
 const intlMiddleware = createMiddleware(routing)
 
 /**
- * Реферальна cookie (відхилення 11, first-touch): HttpOnly, без PII, СПИСОК касань (touches.ts):
- * новий код додається з ts «зараз», повторний перехід за тим самим кодом ts не змінює, при
- * переповненні замінюється останнє касання. Cookie переставляється щоразу (продовжує строк життя на
- * 400 днів, ts касань не чіпає). Вікно атрибуції тут НЕ застосовується (middleware без БД) — лише в
- * приймачі заявки. `secure` за протоколом запиту (e2e ходять по http://127.0.0.1). Ставиться лише на
- * сторінках сайту (гілка 3) і лише для валідного коду.
+ * Реферальная cookie (отклонение 11, first-touch): HttpOnly, без PII, СПИСОК касаний (touches.ts):
+ * новый код добавляется с ts «сейчас», повторный переход по тому же коду ts не меняет, при
+ * переполнении заменяется последнее касание. Cookie переставляется каждый раз (продлевает срок жизни
+ * на 400 дней, ts касаний не трогает). Окно атрибуции здесь НЕ применяется (middleware без БД) — только
+ * в приёмнике заявки. `secure` по протоколу запроса (e2e ходят по http://127.0.0.1). Ставится только на
+ * страницах сайта (ветка 3) и только для валидного кода.
  */
 function setReferralCookie(response: NextResponse, code: string, request: NextRequest): void {
   const now = Math.floor(Date.now() / 1000)
@@ -100,8 +100,8 @@ function setReferralCookie(response: NextResponse, code: string, request: NextRe
   })
 }
 
-/** Файлові маршрути (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не сторінки сайту.
- * Перевірка ЗА РОЗШИРЕННЯМ (розділ 16): адреса на кшталт /foo.bar лишається сторінкою і йде в next-intl. */
+/** Файловые маршруты (robots.txt, sitemap.xml, manifest.webmanifest, картинки) — не страницы сайта.
+ * Проверка ПО РАСШИРЕНИЮ (раздел 16): адрес вида /foo.bar остаётся страницей и идёт в next-intl. */
 const STATIC_FILE_RE = /\.(?:ico|png|jpe?g|gif|webp|avif|svg|css|js|map|txt|xml|json|webmanifest|woff2?|ttf|otf|eot|mp4|webm|pdf)$/i
 const isFilePath = (pathname: string) => STATIC_FILE_RE.test(pathname)
 
@@ -110,7 +110,7 @@ export async function middleware(request: NextRequest) {
   const isAdminApi = pathname.startsWith('/api/admin')
   const isAdminPage = pathname.startsWith('/admin')
 
-  // ── Гілка 1: адмінка (сторінки й API) → перевірка сесії Supabase, без next-intl ──
+  // ── Ветка 1: админка (страницы и API) → проверка сессии Supabase, без next-intl ──
   if (isAdminApi || isAdminPage) {
     let response = NextResponse.next({ request })
     const userId = await getSessionUserId({
@@ -137,14 +137,14 @@ export async function middleware(request: NextRequest) {
     return applySecurityHeaders(response)
   }
 
-  // ── Гілка 2: публічні /api/* і файлові маршрути → лише security headers ──
+  // ── Ветка 2: публичные /api/* и файловые маршруты → только security headers ──
   if (pathname.startsWith('/api') || isFilePath(pathname)) {
     return applySecurityHeaders(NextResponse.next())
   }
 
-  // ── Гілка 3: сайт → next-intl (внутрішній rewrite у сегмент [locale]) + security headers ──
-  // /r/<code> — канонічне посилання партнера: 302 на головну з ?ref=<code> і рештою query (UTM
-  // партнера зберігаються); шлях фіксований — без open redirect. Невалідний код → штатний 404 сайту.
+  // ── Ветка 3: сайт → next-intl (внутренний rewrite в сегмент [locale]) + security headers ──
+  // /r/<code> — каноническая ссылка партнёра: 302 на главную с ?ref=<code> и остальными query (UTM
+  // партнёра сохраняются); путь фиксированный — без open redirect. Невалидный код → штатный 404 сайта.
   const refFromPath = refCodeFromPath(pathname)
   if (refFromPath) {
     const target = new URL('/', request.nextUrl.origin)

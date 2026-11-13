@@ -1,5 +1,5 @@
-// infrastructure/supabase/repositories/integrations — зашифровані секрети інтеграцій.
-// Таблиця integrations доступна лише service_role. Формат шифртексту НЕ змінювати.
+// infrastructure/supabase/repositories/integrations — зашифрованные секреты интеграций.
+// Таблица integrations доступна только service_role. Формат шифртекста НЕ менять.
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { Cipher, IntegrationSecretsRepository } from '@core/application/ports/settings'
@@ -56,7 +56,7 @@ export function makeIntegrationSecretsRepository(db: () => Db, cipher: Cipher): 
   }
 }
 
-/** Сире читання рядків для кешу IntegrationConfig (один .in()-запит). */
+/** Сырое чтение строк для кэша IntegrationConfig (один .in()-запрос). */
 export async function readEncryptedRows(
   db: () => Db,
   keys: string[],

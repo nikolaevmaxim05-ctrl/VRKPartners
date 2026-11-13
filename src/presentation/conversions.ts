@@ -1,4 +1,4 @@
-// presentation/conversions — HTTP-форма відповіді повторної відправки (як і раніше: {ok, message}).
+// presentation/conversions — HTTP-форма ответа повторной отправки (как и раньше: {ok, message}).
 import { NextResponse } from 'next/server'
 import type { ResendOutcome } from '@core/application/use-cases/admin/export-conversions'
 

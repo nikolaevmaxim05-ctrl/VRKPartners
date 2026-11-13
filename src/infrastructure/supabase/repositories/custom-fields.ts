@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/custom-fields — кастомні поля ліда та їх значення.
+// infrastructure/supabase/repositories/custom-fields — кастомные поля лида и их значения.
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { CustomFieldRepository, CustomFieldRow } from '@core/application/ports/leads'

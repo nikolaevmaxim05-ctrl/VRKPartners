@@ -1,7 +1,7 @@
-// infrastructure/export/excel — XLSX-вивантаження (ExcelJS): ліди та зведення з порівнянням.
-// Перенесено з /api/admin/analytics/export без зміни вигляду файлів.
-// ExcelJS (~1 МБ) вантажиться ЛИШЕ під час вивантаження XLSX — динамічний import, щоб пакет не
-// потрапляв у спільний серверний чанк усіх сторінок і роутів адмінки (холодний старт).
+// infrastructure/export/excel — XLSX-выгрузка (ExcelJS): лиды и сводка со сравнением.
+// Перенесено из /api/admin/analytics/export без изменения вида файлов.
+// ExcelJS (~1 МБ) загружается ТОЛЬКО во время выгрузки XLSX — динамический import, чтобы пакет не
+// попадал в общий серверный чанк всех страниц и роутов админки (холодный старт).
 const loadExcelJS = async () => (await import('exceljs')).default
 import type { SpreadsheetFileBuilder } from '@core/application/ports/analytics'
 import type { CellValue } from '@core/domain/analytics/export-leads'
@@ -17,7 +17,7 @@ import {
   type ComparisonPeriod,
 } from '@core/domain/analytics/export'
 
-/** Кількість колонок кастомних полів = усі заголовки мінус заголовки інших полів. */
+/** Число колонок кастомных полей = все заголовки минус заголовки других полей. */
 function customFieldDefCount(headers: string[], leadFields: LeadExportField[]): number {
   if (!leadFields.includes('custom_fields')) return 0
   let nonCfHeaders = 0
@@ -39,7 +39,7 @@ async function buildLeadsXlsx(headers: string[], dataRows: CellValue[][], leadFi
   const sheet = workbook.addWorksheet('Ліди')
   sheet.views = [{ state: 'frozen', ySplit: 1 }]
 
-  // Авто-ширина колонок за вмістом у межах [MIN_W, MAX_W].
+  // Авто-ширина колонок по содержимому в пределах [MIN_W, MAX_W].
   const MIN_W = 10
   const MAX_W = 60
   const widths = headers.map((h) => Math.max(MIN_W, Math.min(MAX_W, (h?.length ?? 0) + 2)))
@@ -59,7 +59,7 @@ async function buildLeadsXlsx(headers: string[], dataRows: CellValue[][], leadFi
   headerRow.font = { bold: true }
   headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } }
 
-  // Маска типів колонок — 1:1 з headers
+  // Маска типов колонок — 1:1 с headers
   const cfCount = customFieldDefCount(headers, leadFields)
   const colTypes: Array<'phone' | 'datetime' | 'number' | 'wraptext' | 'text'> = []
   for (const f of leadFields) {
@@ -98,7 +98,7 @@ async function buildLeadsXlsx(headers: string[], dataRows: CellValue[][], leadFi
     }
   }
 
-  // ── Підсумковий рядок ──
+  // ── Итоговая строка ────
   const colIndexOf = (target: LeadExportField): number => {
     let idx = 0
     for (const f of leadFields) {
@@ -135,13 +135,13 @@ async function buildLeadsXlsx(headers: string[], dataRows: CellValue[][], leadFi
   return workbook.xlsx.writeBuffer()
 }
 
-// Метрики, де зростання — це добре (адаптивне підсвічування дельт).
+// Метрики, где рост — это хорошо (адаптивная подсветка дельт).
 const HIGHER_IS_BETTER: Set<SummaryColumn> = new Set([
   'total', 'targetLeads', 'deals', 'dealAmountSum', 'dealProfitSum',
   'conversionToTarget', 'conversionToDeal',
 ])
 
-// 3-кольорова шкала: t ∈ [-1, 1]. -1 → червоний, 0 → жовтий, +1 → зелений.
+// 3-цветная шкала: t ∈ [-1, 1]. -1 → красный, 0 → жёлтый, +1 → зелёный.
 function scaleArgb(t: number): string {
   const clamped = Math.max(-1, Math.min(1, t))
   const YELLOW = [255, 235, 132]
@@ -154,7 +154,7 @@ function scaleArgb(t: number): string {
 
 function deltaFillArgb(deltaPct: number, metric: SummaryColumn): string {
   const goodness = HIGHER_IS_BETTER.has(metric) ? deltaPct : -deltaPct
-  const CAP = 50 // |зміна| ≥ 50% → повна насиченість
+  const CAP = 50 // |изменение| ≥ 50% → полная насыщенность
   return scaleArgb(goodness / CAP)
 }
 
@@ -209,7 +209,7 @@ async function buildSummaryXlsx(
 
     for (const row of comparison.rows) {
       const excelRow = compSheet.addRow([row.metricLabel, ...row.cells])
-      // Порядок: [label, P0, P1, Δ1, P2, Δ2, ...] — перша Δ-колонка має індекс 4 (1-based)
+      // Порядок: [label, P0, P1, Δ1, P2, Δ2, ...] — первая Δ-колонка имеет индекс 4 (1-based)
       let deltaColIdx = 4
       for (let i = 1; i < periods.length; i++) {
         const deltaCell = excelRow.getCell(deltaColIdx)

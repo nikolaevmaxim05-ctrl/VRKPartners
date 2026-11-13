@@ -1,8 +1,8 @@
-// infrastructure/integrations/integration-config — читання налаштувань інтеграцій:
-// СПЕРШУ БД (розшифроване), ПОТІМ env-фолбек. Короткий TTL-кеш (30 с) + prefetch одним запитом.
+// infrastructure/integrations/integration-config — чтение настроек интеграций:
+// СНАЧАЛА БД (расшифрованное), ПОТОМ env-фолбэк. Короткий TTL-кэш (30 с) + prefetch одним запросом.
 import type { Cipher, IntegrationConfig } from '@core/application/ports/settings'
 
-// Ключ → імʼя env-змінної. Значення читаємо в МОМЕНТ ВИКЛИКУ (process.env[envVar]).
+// Ключ → имя env-переменной. Значение читаем в МОМЕНТ ВЫЗОВА (process.env[envVar]).
 export const ENV_FALLBACK_VARS: Record<string, string> = {
   telegram_bot_token: 'TELEGRAM_BOT_TOKEN',
   telegram_chat_id:   'TELEGRAM_CHAT_ID',
@@ -55,7 +55,7 @@ export function makeIntegrationConfig(source: IntegrationRowSource, cipher: Ciph
           return value
         }
       } catch {
-        // БД недоступна або decrypt впав — фолбек на env
+        // БД недоступна или decrypt упал — фолбэк на env
       }
       const value = fromEnv(key)
       setCached(key, value)
@@ -81,7 +81,7 @@ export function makeIntegrationConfig(source: IntegrationRowSource, cipher: Ciph
           }
         }
       } catch {
-        // БД недоступна — кеш не наповнюємо, get() зробить env-фолбек індивідуально
+        // БД недоступна — кэш не наполняем, get() сделает env-фолбэк индивидуально
       }
     },
   }

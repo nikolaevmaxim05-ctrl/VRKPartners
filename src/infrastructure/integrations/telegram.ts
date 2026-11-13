@@ -1,4 +1,4 @@
-// infrastructure/integrations/telegram — сповіщення про заявку в Telegram (HTML parse_mode).
+// infrastructure/integrations/telegram — уведомление о заявке в Telegram (HTML parse_mode).
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier } from '@core/application/ports/notifications'
 import { hasUtm, utmEntries } from '@core/domain/lead/utm'

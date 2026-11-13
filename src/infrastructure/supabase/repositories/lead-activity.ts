@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/lead-activity — коментарі ліда та історія стадій.
+// infrastructure/supabase/repositories/lead-activity — комментарии лида и история стадий.
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type {

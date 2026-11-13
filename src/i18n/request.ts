@@ -1,10 +1,10 @@
-// i18n/request — конфіг next-intl на кожен запит: мова + ПОВНІ тексти сайту
-// (дефолти messages/<мова>.json ⊕ правки клієнта з site_content, розділ 9).
-// Помилка або недоступність БД → чисті дефолти (репозиторій повертає {} — сайт не падає).
+// i18n/request — конфиг next-intl на каждый запрос: язык + ПОЛНЫЕ тексты сайта
+// (дефолты messages/<язык>.json ⊕ правки клиента из site_content, раздел 9).
+// Ошибка или недоступность БД → чистые дефолты (репозиторий возвращает {} — сайт не падает).
 //
-// E2E_CONTENT_OVERRIDES=1 (лише тести, розділ 19): поверх усього мержиться JSON із cookie
-// `e2e_content` або з файлу `<tmp>/vrk-e2e/<name>.json` (cookie `e2e_content=file:<name>`,
-// імʼя — за білим регекспом). На проді змінну НЕ задавати.
+// E2E_CONTENT_OVERRIDES=1 (только тесты, раздел 19): поверх всего мержится JSON из cookie
+// `e2e_content` или из файла `<tmp>/vrk-e2e/<name>.json` (cookie `e2e_content=file:<name>`,
+// имя — по белому регекспу). На проде переменную НЕ задавать.
 import { getRequestConfig } from 'next-intl/server'
 import { hasLocale } from 'next-intl'
 import type { AbstractIntlMessages } from 'next-intl'
@@ -41,6 +41,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
   let messages = await getContentUseCases().getMessages(locale)
   const e2e = await e2eOverrides()
   if (e2e) messages = mergeMessages(messages, e2e)
-  // Тексти містять масиви та булеві (картки, кейси) — рендеряться через useMessages(), не ICU.
+  // Тексты содержат массивы и булевы значения (карточки, кейсы) — рендерятся через useMessages(), не ICU.
   return { locale, messages: messages as unknown as AbstractIntlMessages }
 })

@@ -115,7 +115,7 @@ export function makeUserRepository(db: () => Db): UserRepository {
         return {
           id: u.id,
           email: u.email ?? '',
-          // Порожнє імʼя не вважаємо іменем — щоб у селектах падало на email
+          // Пустое имя не считаем именем — чтобы в селектах падало на email
           name: role?.name?.trim() ? role.name : null,
           role: one(role?.role)?.name ?? null,
         }
@@ -195,7 +195,7 @@ export function makeUserRepository(db: () => Db): UserRepository {
       let nameById = new Map<string, string>()
       if (ids.length === 0) return { emailById, nameById }
       try {
-        // C13: резолвимо лише потрібні id (getUserById), а не listUsers({perPage:200}).
+        // C13: резолвим только нужные id (getUserById), а не listUsers({perPage:200}).
         const [userResults, { data: rolesData }] = await Promise.all([
           Promise.all(ids.map((uid) => db().auth.admin.getUserById(uid))),
           db().from('user_roles').select('user_id, name').in('user_id', ids),

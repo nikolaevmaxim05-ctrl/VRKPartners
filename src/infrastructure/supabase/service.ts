@@ -1,5 +1,5 @@
-// infrastructure/supabase/service — клієнт service_role (лише сервер; обходить RLS).
-// Використовується ТІЛЬКИ репозиторіями й адаптерами інфраструктури.
+// infrastructure/supabase/service — клиент service_role (только сервер; обходит RLS).
+// Используется ТОЛЬКО репозиториями и адаптерами инфраструктуры.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 export type Db = SupabaseClient
@@ -15,8 +15,8 @@ export function createServiceClient(): Db {
 let cached: Db | null = null
 
 /**
- * Лінивий спільний клієнт. Створюється при першому зверненні (не при імпорті) —
- * тож збірка без env не падає; якщо env немає, кидає помилку в момент запиту.
+ * Ленивый общий клиент. Создаётся при первом обращении (не при импорте) —
+ * так что сборка без env не падает; если env нет, бросает ошибку в момент запроса.
  */
 export function serviceClient(): Db {
   if (!cached) cached = createServiceClient()

@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/audit-log — таблиця audit_log (запис зі сценаріїв, сторінка для екрана «Журнал дій»).
+// infrastructure/supabase/repositories/audit-log — таблица audit_log (запись из сценариев, страница для экрана «Журнал дій»).
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { AuditLogRepository, AuditRow } from '@core/application/ports/system'

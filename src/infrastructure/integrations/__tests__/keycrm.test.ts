@@ -1,4 +1,4 @@
-// Unit-тести KeyCRM-адаптера. fetch мокається.
+// Unit-тесты KeyCRM-адаптера. fetch мокается.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { makeKeycrmNotifier } from '../keycrm'
 import { fakeConfig } from './fake-config'

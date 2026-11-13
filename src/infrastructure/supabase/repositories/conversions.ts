@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/conversions — offline_conversions і conversion_adjustments.
+// infrastructure/supabase/repositories/conversions — offline_conversions и conversion_adjustments.
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type {

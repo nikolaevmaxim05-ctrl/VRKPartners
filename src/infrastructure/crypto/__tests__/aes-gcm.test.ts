@@ -1,4 +1,4 @@
-// AES-256-GCM: формат шифртексту (три hex-рядки) і roundtrip. Формат НЕ змінювати — у БД лежать ключі.
+// AES-256-GCM: формат шифртекста (три hex-строки) и roundtrip. Формат НЕ менять — в БД лежат ключи.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { encrypt, decrypt } from '../aes-gcm'
 

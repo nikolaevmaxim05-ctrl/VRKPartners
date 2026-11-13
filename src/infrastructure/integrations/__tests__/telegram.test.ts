@@ -1,4 +1,4 @@
-// Unit-тести Telegram-адаптера. fetch мокається — реальних мережевих запитів немає.
+// Unit-тесты Telegram-адаптера. fetch мокается — реальных сетевых запросов нет.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { makeTelegramNotifier } from '../telegram'
 import { fakeConfig } from './fake-config'

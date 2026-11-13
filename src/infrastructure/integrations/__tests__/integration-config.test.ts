@@ -1,4 +1,4 @@
-// IntegrationConfig: спершу БД (розшифроване), потім env-фолбек; кеш; prefetch одним запитом.
+// IntegrationConfig: сначала БД (расшифрованное), потом env-фолбэк; кэш; prefetch одним запросом.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { makeIntegrationConfig } from '../integration-config'
 import type { Cipher } from '@core/application/ports/settings'

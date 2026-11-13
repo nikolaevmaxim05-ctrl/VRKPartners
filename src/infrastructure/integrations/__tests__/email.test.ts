@@ -1,4 +1,4 @@
-// Unit-тести email-адаптера (Gmail SMTP). nodemailer мокається — жодних реальних SMTP-зʼєднань.
+// Unit-тесты email-адаптера (Gmail SMTP). nodemailer мокается — никаких реальных SMTP-соединений.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockSendMail = vi.fn()

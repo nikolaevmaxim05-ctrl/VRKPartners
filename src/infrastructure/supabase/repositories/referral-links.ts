@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/referral-links — таблиця referral_links (міграція 035).
+// infrastructure/supabase/repositories/referral-links — таблица referral_links (миграция 035).
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { ReferralLinkRepository, ReferralLeadRows } from '@core/application/ports/referrals'
@@ -6,7 +6,7 @@ import type { ReferralLink, ReferralLinkRef } from '@core/domain/referral/link-r
 
 const LINK_SELECT = 'id, name, code, is_active, notes, created_by, created_at, updated_at'
 const REF_SELECT = 'id, name, code, is_active'
-/** Як у звітах: не більше 10 000 рядків у памʼять. */
+/** Как в отчётах: не больше 10 000 строк в память. */
 const LEAD_ROWS_LIMIT = 10_000
 
 export function makeReferralLinkRepository(db: () => Db): ReferralLinkRepository {

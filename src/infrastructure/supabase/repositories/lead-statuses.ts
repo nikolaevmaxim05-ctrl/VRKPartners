@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/lead-statuses — стадії воронки.
+// infrastructure/supabase/repositories/lead-statuses — стадии воронки.
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { LeadStatusRepository, LeadStatusRow } from '@core/application/ports/leads'

@@ -1,4 +1,4 @@
-// presentation/admin-page — авторизація сторінок адмінки (RSC).
+// presentation/admin-page — авторизация страниц админки (RSC).
 import { redirect } from 'next/navigation'
 import { getAuthSession, getUserRepository } from '@composition/container'
 import { roleGrants, type Permission, type UserRoleInfo } from '@core/domain/access/permissions'
@@ -7,7 +7,7 @@ import type { Actor } from '@core/application/ports/common'
 export type AdminAccess = {
   actor: Actor | null
   roleInfo: UserRoleInfo | null
-  /** У деактивованого користувача — порожньо. */
+  /** У деактивированного пользователя — пусто. */
   permissions: Permission[]
 }
 
@@ -22,7 +22,7 @@ export async function getAdminAccess(): Promise<AdminAccess> {
   }
 }
 
-/** Немає сесії → /admin/login; немає жодного з прав → /admin. */
+/** Нет сессии → /admin/login; нет ни одного из прав → /admin. */
 export async function requireSectionAccess(anyOf: Permission[]): Promise<AdminAccess & { actor: Actor }> {
   const access = await getAdminAccess()
   if (!access.actor) redirect('/admin/login')

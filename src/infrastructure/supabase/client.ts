@@ -1,6 +1,6 @@
-// infrastructure/supabase/client — браузерний клієнт (anon-ключ).
-// Дозволений виняток 2 (раздел 3): ЛИШЕ для клієнтських файлів — вхід, встановлення пароля,
-// вихід з адмінки, realtime-підписка таблиці leads. Перелік — у .dependency-cruiser.cjs.
+// infrastructure/supabase/client — браузерный клиент (anon-ключ).
+// Разрешённое исключение 2 (раздел 3): ТОЛЬКО для клиентских файлов — вход, установка пароля,
+// выход из админки, realtime-подписка таблицы leads. Перечень — в .dependency-cruiser.cjs.
 import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {

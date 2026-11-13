@@ -1,6 +1,6 @@
-// Контракт «роут адмінки → права» (раздел 5 стандарту: middleware — сесія, роут — права).
-// Таблиця нижче — з аудиту Фази 0. Будь-яка зміна прав роуту має бути свідомою: тест червоніє.
-// [] = достатньо бути активним користувачем з роллю (GET-довідники).
+// Контракт «роут админки → права» (раздел 5 стандарта: middleware — сессия, роут — права).
+// Таблица ниже — из аудита Фазы 0. Любое изменение прав роута должно быть осознанным: тест краснеет.
+// [] = достаточно быть активным пользователем с ролью (GET-справочники).
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -74,7 +74,7 @@ function routeFiles(dir: string): string[] {
   return out
 }
 
-/** Перший аргумент withAdmin(...) до коми на нульовій глибині. */
+/** Первый аргумент withAdmin(...) до запятой на нулевой глубине. */
 function firstArg(segment: string): string | null {
   const start = segment.indexOf('withAdmin(')
   if (start < 0) return null
@@ -89,7 +89,7 @@ function firstArg(segment: string): string | null {
   return arg.trim()
 }
 
-/** Розвʼязує текст аргументу у список прав: [], ['a','b'], [...X], X. */
+/** Разрешает текст аргумента в список прав: [], ['a','b'], [...X], X. */
 function resolvePerms(arg: string): string[] {
   const named = SETS as unknown as Record<string, string[]>
   if (/^[A-Z_]+$/.test(arg)) return [...(named[arg] ?? ['<unknown ' + arg + '>'])]

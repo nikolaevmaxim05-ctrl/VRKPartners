@@ -1,5 +1,5 @@
-// withAdmin (розділ 5): 401 без сесії, 403 без права або деактивованому (навіть для anyOf = []),
-// актор з IP із ланцюжка заголовків; respond/errorResponse — коди Result → HTTP.
+// withAdmin (раздел 5): 401 без сессии, 403 без права или деактивированному (даже для anyOf = []),
+// актор с IP из цепочки заголовков; respond/errorResponse — коды Result → HTTP.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const getUser = vi.fn()

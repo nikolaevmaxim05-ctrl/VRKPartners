@@ -1,4 +1,4 @@
-// infrastructure/integrations/email — лист адміністратору про заявку через Gmail SMTP (nodemailer).
+// infrastructure/integrations/email — письмо администратору о заявке через Gmail SMTP (nodemailer).
 // smtp_user / smtp_password (App Password) / smtp_from — БД→env; адресат — NOTIFICATION_EMAIL.
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier, LeadNotification } from '@core/application/ports/notifications'
@@ -7,7 +7,7 @@ import { describeReferral } from '@core/domain/referral/link-rules'
 import { getServiceLabel } from '@core/domain/lead/services'
 import { escapeHtml, kyivNow } from './format'
 
-/** SMTP-транспорт Gmail. nodemailer вантажиться лише під час відправки (динамічний import — не в спільному чанку). */
+/** SMTP-транспорт Gmail. nodemailer загружается только во время отправки (динамический import — не в общем чанке). */
 export async function createGmailTransport(user: string, pass: string) {
   const nodemailer = (await import('nodemailer')).default
   return nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user, pass } })
@@ -16,7 +16,7 @@ export async function createGmailTransport(user: string, pass: string) {
 export function makeEmailNotifier(deps: {
   config: IntegrationConfig
   siteName: string
-  /** Адресат (читається в момент виклику): NOTIFICATION_EMAIL → email сайту. */
+  /** Адресат (читается в момент вызова): NOTIFICATION_EMAIL → email сайта. */
   notificationEmail: () => string
 }): LeadNotifier {
   return {
@@ -47,7 +47,7 @@ export function makeEmailNotifier(deps: {
   }
 }
 
-/** HTML-шаблон листа адміністратору (uk-UA). */
+/** HTML-шаблон письма администратору (uk-UA). */
 export function buildAdminEmailHtml(data: LeadNotification, serviceLabel: string, siteName: string): string {
   const utmSummary = formatUtmSummary(data.utm)
   const rows = [

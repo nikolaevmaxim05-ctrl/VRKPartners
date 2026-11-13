@@ -1,6 +1,6 @@
-// Контракт публічних роутів і спецгардів (розділи 8 і 16 стандарту): приймач заявок без сесії,
-// /api/lead — чистий реекспорт /api/leads (рішення 19), cron лише з Bearer CRON_SECRET,
-// dev-роут GA4 віддає 404 ДО перевірки сесії, коли dev tools вимкнено.
+// Контракт публичных роутов и спецгардов (разделы 8 и 16 стандарта): приёмник заявок без сессии,
+// /api/lead — чистый реэкспорт /api/leads (решение 19), cron только с Bearer CRON_SECRET,
+// dev-роут GA4 отдаёт 404 ДО проверки сессии, когда dev tools выключены.
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'

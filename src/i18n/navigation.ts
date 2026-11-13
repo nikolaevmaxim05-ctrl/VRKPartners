@@ -1,4 +1,4 @@
-// i18n/navigation — Link/redirect/usePathname/useRouter з урахуванням routing (без /uk у адресах).
+// i18n/navigation — Link/redirect/usePathname/useRouter с учётом routing (без /uk в адресах).
 import { createNavigation } from 'next-intl/navigation'
 import { routing } from './routing'
 

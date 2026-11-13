@@ -1,6 +1,6 @@
-// infrastructure/integrations/google-sheets — офлайн-конверсії та корекції у Google Sheets.
-// Auth: service account JWT (RS256 на вбудованому crypto). Sheets API v4 values:append, RAW.
-// Конфігурація: IntegrationConfig (БД → env). Поведінка без змін.
+// infrastructure/integrations/google-sheets — офлайн-конверсии и корректировки в Google Sheets.
+// Auth: service account JWT (RS256 на встроенном crypto). Sheets API v4 values:append, RAW.
+// Конфигурация: IntegrationConfig (БД → env). Поведение без изменений.
 import { createHash, createSign } from 'crypto'
 import { normalizePhone as corePhone } from '@core/domain/lead/phone'
 import { normalizeEmail, emailForHash } from '@core/domain/lead/email'
@@ -52,19 +52,19 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
   return access_token
 }
 
-// ── Утиліти для хешів і телефону ─────────────────────────────────────────────
+// ── Утилиты для хешей и телефона ─────────────────────────────────────────────
 
 export function sha256hex(s: string): string {
   return createHash('sha256').update(s, 'utf8').digest('hex')
 }
 
-// Нормалізація — ЄДИНІ функції ядра (розділ 15): телефон E.164 з плюсом (плюс запобігає апострофу
-// в Sheets), email — trim+lowercase у колонці, без крапок gmail — лише перед хешем.
+// Нормализация — ЕДИНСТВЕННЫЕ функции ядра (раздел 15): телефон E.164 с плюсом (плюс предотвращает
+// апостроф в Sheets), email — trim+lowercase в колонке, без точек gmail — только перед хешем.
 function normalizePhone(phone: string | null | undefined): string {
   return phone ? corePhone(phone) : ''
 }
 
-// "YYYY-MM-DD HH:MM:SS" у київському часі
+// "YYYY-MM-DD HH:MM:SS" в киевском времени
 function readableKyivTime(iso: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Kyiv',
@@ -76,7 +76,7 @@ function readableKyivTime(iso: string): string {
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
 }
 
-// ── Побудова рядків ──────────────────────────────────────────────────────────
+// ── Построение строк ─────────────────────────────────────────────────────────
 
 export type ConversionRowParams = {
   conversionAction: string
@@ -88,10 +88,10 @@ export type ConversionRowParams = {
   wbraid: string | null
   conversionValue: number | null
   currency: string
-  orderNo: number  // Order ID = наскрізний leads.order_no
+  orderNo: number  // Order ID = сквозной leads.order_no
 }
 
-/** Числові колонки — JS number (Sheets RAW зберігає як INTEGER без апострофа). */
+/** Числовые колонки — JS number (Sheets RAW сохраняет как INTEGER без апострофа). */
 export function buildConversionRow(params: ConversionRowParams): (string | number)[] {
   const phone = normalizePhone(params.phone)
   const email = params.email ? normalizeEmail(params.email) : ''
@@ -100,7 +100,7 @@ export function buildConversionRow(params: ConversionRowParams): (string | numbe
     params.conversionAction,                  // Conversion Name
     email,                                    // email
     phone,                                    // phone_number
-    email ? sha256hex(emailForHash(email)) : '', // sha256_email_address (gmail без крапок)
+    email ? sha256hex(emailForHash(email)) : '', // sha256_email_address (gmail без точек)
     phone ? sha256hex(phone) : '',            // sha256_phone_number
     unixTs,                                   // conversion_event_time (number)
     readableKyivTime(params.conversionTime),  // event_time
@@ -151,7 +151,7 @@ async function fetchSheetTitle(
   }
 }
 
-/** Колонки як Plain text у першому аркуші (ідемпотентно, best-effort). */
+/** Колонки как Plain text на первом листе (идемпотентно, best-effort). */
 export async function ensureTextColumns(accessToken: string, spreadsheetId: string, colIndices: number[] = [2, 6]): Promise<boolean> {
   try {
     const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties`
@@ -201,7 +201,7 @@ async function appendRow(access: SheetsAccess, row: (string | number)[]): Promis
   if (!res.ok) throw new Error(`Sheets API error: ${await res.text()}`)
 }
 
-// ── Адаптер порту ────────────────────────────────────────────────────────────
+// ── Адаптер порта ────────────────────────────────────────────────────────────
 
 export function makeGoogleSheetsExporter(deps: {
   config: IntegrationConfig
@@ -209,7 +209,7 @@ export function makeGoogleSheetsExporter(deps: {
 }): ConversionSheetExporter {
   const { config } = deps
 
-  // kind: google_spreadsheet_id (конверсії) або google_adjustments_spreadsheet_id (корекції).
+  // kind: google_spreadsheet_id (конверсии) или google_adjustments_spreadsheet_id (корректировки).
   async function accessFor(spreadsheetKey: string): Promise<SheetsAccess | null> {
     const [saJson, spreadsheetId] = await Promise.all([
       config.get('google_sheets_service_account_json'),
@@ -230,7 +230,7 @@ export function makeGoogleSheetsExporter(deps: {
     return { serviceAccount, spreadsheetId, accessToken: await getAccessToken(serviceAccount) }
   }
 
-  // Колонку Adjustment Time форматуємо як TEXT один раз на інстанс.
+  // Колонку Adjustment Time форматируем как TEXT один раз на инстанс.
   const adjustmentsFormatted = new Set<string>()
 
   return {
@@ -244,7 +244,7 @@ export function makeGoogleSheetsExporter(deps: {
       if (!settings.ok) console.error('[google-sheets] settings_fetch_failed', settings.error)
       const get = (k: string, fallback: string) => (settings.ok ? settings.data.get(k)?.trim() : undefined) || fallback
 
-      // Пріоритет: параметр зі статусу → site_settings → 'Lead'
+      // Приоритет: параметр из статуса → site_settings → 'Lead'
       const conversionAction = lead.conversionAction?.trim() || get('google_ads_conversion_action', 'Lead')
       const currency = get('internal_currency', 'UAH')
       const conversionValue = lead.conversionValue
@@ -262,7 +262,7 @@ export function makeGoogleSheetsExporter(deps: {
         currency,
         orderNo: lead.order_no,
       })
-      // PII guard: не логуємо plaintext email/phone.
+      // PII guard: не логируем plaintext email/phone.
       console.log('[google-sheets] row built', { leadId: lead.lead_id, cols: row.length })
 
       const access = await accessFor('google_spreadsheet_id')
@@ -292,7 +292,7 @@ export function makeGoogleSheetsExporter(deps: {
     },
 
     async testConnection(): Promise<SheetsTestResult> {
-      // ── Основна таблиця офлайн-конверсій ──
+      // ── Основная таблица офлайн-конверсий ──
       const [saJson, spreadsheetId] = await Promise.all([
         config.get('google_sheets_service_account_json'),
         config.get('google_spreadsheet_id'),
@@ -317,10 +317,10 @@ export function makeGoogleSheetsExporter(deps: {
       }
       const main = await fetchSheetTitle(spreadsheetId, accessToken)
       if (!main.ok) return mainFail(main.message)
-      // Best-effort: phone_number (C) і event_time (G) як TEXT.
+      // Best-effort: phone_number (C) и event_time (G) как TEXT.
       const mainFormatted = await ensureTextColumns(accessToken, spreadsheetId, [2, 6])
 
-      // ── Таблиця корекцій (окрема, той самий service account) ──
+      // ── Таблица корректировок (отдельная, тот же service account) ──
       let adjustments: Extract<SheetsTestResult, { ok: true }>['adjustments']
       const adjustmentsId = await config.get('google_adjustments_spreadsheet_id')
       if (!adjustmentsId) {

@@ -1,6 +1,6 @@
-// composition/container — ЄДИНЕ місце, де порт зʼєднується з адаптером (раздел 3 стандарту).
-// Назовні — геттери сценаріїв і небагатьох залежностей для обвʼязки presentation.
-// Усе ліниве: env читається в момент першого звернення (збірка без env не падає).
+// composition/container — ЕДИНСТВЕННОЕ место, где порт соединяется с адаптером (раздел 3 стандарта).
+// Наружу — геттеры сценариев и немногих зависимостей для обвязки presentation.
+// Всё ленивое: env читается в момент первого обращения (сборка без env не падает).
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 
@@ -63,7 +63,7 @@ import { randomInt } from 'node:crypto'
 
 import { getDefaultMessages, getDefaultSeo, getDefaultLegalContent } from '@/shared/content/defaults'
 
-/** Ліниве одноразове створення. */
+/** Ленивое однократное создание. */
 function once<T>(factory: () => T): () => T {
   let value: T | undefined
   let made = false
@@ -76,13 +76,13 @@ function once<T>(factory: () => T): () => T {
   }
 }
 
-// ── Кеш сторінок (Next) ──────────────────────────────────────────────────────
+// ── Кэш страниц (Next) ───────────────────────────────────────────────────────
 const nextCache: CacheInvalidator = {
   invalidateSite: () => revalidatePath('/', 'layout'),
   invalidatePaths: (paths) => paths.forEach((p) => revalidatePath(p)),
 }
 
-// ── Репозиторії ──────────────────────────────────────────────────────────────
+// ── Репозитории ──────────────────────────────────────────────────────────────
 const leadRepo = once(() => makeLeadRepository(serviceClient))
 const statusRepo = once(() => makeLeadStatusRepository(serviceClient))
 const commentRepo = once(() => makeLeadCommentRepository(serviceClient))
@@ -95,12 +95,12 @@ const settingsRepo = once(() => makeSettingsRepository(serviceClient))
 const tagRepo = once(() => makeTrackingTagRepository(serviceClient))
 const referralRepo = once(() => makeReferralLinkRepository(serviceClient))
 const secretsRepo = once(() => makeIntegrationSecretsRepository(serviceClient, aesGcmCipher))
-// Журнал дій адмінів (audit_log) — один на всі сценарії.
+// Журнал действий админов (audit_log) — один на все сценарии.
 const auditRepo = once(() => makeAuditLogRepository(serviceClient))
 
 /**
- * Некритичний «хвіст» запиту виконується ПІСЛЯ відправки відповіді (after() з next/server; на Vercel —
- * waitUntil). Поза межами запиту (cron-скрипти, тести) after() кидає — тоді виконуємо одразу.
+ * Некритичный «хвост» запроса выполняется ПОСЛЕ отправки ответа (after() из next/server; на Vercel —
+ * waitUntil). Вне запроса (cron-скрипты, тесты) after() бросает исключение — тогда выполняем сразу.
  */
 function runAfterResponse(task: () => Promise<void>): void {
   try {
@@ -110,8 +110,8 @@ function runAfterResponse(task: () => Promise<void>): void {
   }
 }
 
-// Запис у журнал не тримає відповідь користувачу: вставка рядка йде після відповіді, помилка — лише
-// в лог (правило «помилка журналу не валить запит» збережено; рядок зʼявляється на ~100 мс пізніше).
+// Запись в журнал не задерживает ответ пользователю: вставка строки идёт после ответа, ошибка — только
+// в лог (правило «ошибка журнала не валит запрос» сохранено; строка появляется на ~100 мс позже).
 const auditLog = once(() =>
   makeAuditLog({
     insert(entry) {
@@ -131,14 +131,14 @@ const conversionRepo = once(() => makeConversionRepository(serviceClient))
 const adjustmentRepo = once(() => makeAdjustmentRepository(serviceClient))
 const analyticsRepo = once(() => makeAnalyticsRepository(serviceClient))
 
-// ── Інтеграції ───────────────────────────────────────────────────────────────
+// ── Интеграции ───────────────────────────────────────────────────────────────
 const integrationConfig = once(() =>
   makeIntegrationConfig(
     { one: (key) => readEncryptedRow(serviceClient, key), many: (keys) => readEncryptedRows(serviceClient, keys) },
     aesGcmCipher,
   ),
 )
-// Назва/контакти для сповіщень — з дефолтних текстів сайту (не хардкод).
+// Название/контакты для уведомлений — из дефолтных текстов сайта (не хардкод).
 const siteDefaults = once(() => getDefaultMessages().site)
 const sheets = once(() => makeGoogleSheetsExporter({ config: integrationConfig(), settings: settingsRepo() }))
 const notifiers = once(() => ({
@@ -162,16 +162,16 @@ const conversionFlow = once(() =>
   }),
 )
 
-// ── Геттери для presentation ─────────────────────────────────────────────────
+// ── Геттеры для presentation ─────────────────────────────────────────────────
 export const getAuthSession = () => cookieAuthSession
 export const getUserRepository = userRepo
 export const getIntegrationConfig = integrationConfig
 
-// ── Сценарії ─────────────────────────────────────────────────────────────────
+// ── Сценарии ─────────────────────────────────────────────────────────────────
 export const getSubmitLead = once(() =>
   makeSubmitLead({
     referrals: referralRepo(),
-    // Тексти помилок Zod на сервері — з дефолтів (клієнту віддається лише 400 Invalid data).
+    // Тексты ошибок Zod на сервере — из дефолтов (клиенту отдаётся только 400 Invalid data).
     schema: makeLeadSchema(getDefaultMessages().form),
     integrationConfig: integrationConfig(),
     leads: leadRepo(),
@@ -180,7 +180,7 @@ export const getSubmitLead = once(() =>
     settings: settingsRepo(),
     notifiers: notifiers(),
     clock: systemClock,
-    // Байпас ліміту для тестів на Preview/локально: ТІЛЬКИ поза production і за явним прапором.
+    // Байпас лимита для тестов на Preview/локально: ТОЛЬКО вне production и по явному флагу.
     rateLimitBypass: () => process.env.VERCEL_ENV !== 'production' && process.env.RATE_LIMIT_DISABLED === '1',
   }),
 )
@@ -293,7 +293,7 @@ export const getAuditLogUseCases = once(() => makeAuditLogUseCases({ audit: audi
 
 export const getKeepalive = once(() => makeKeepalive({ health: makeHealthCheck(serviceClient), clock: systemClock }))
 
-// ── Налаштування середовища для обвʼязки ─────────────────────────────────────
+// ── Настройки окружения для обвязки ──────────────────────────────────────────
 export const isDevToolsEnabled = () => process.env.NEXT_PUBLIC_DEV_TOOLS === '1'
 export const getCronSecret = () => process.env.CRON_SECRET
 export const getPublicSiteUrl = () => process.env.NEXT_PUBLIC_SITE_URL

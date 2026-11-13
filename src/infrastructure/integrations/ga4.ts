@@ -1,5 +1,5 @@
-// infrastructure/integrations/ga4 — dev-інструмент перевірки доставки подій у GA4
-// (відхилення 8, AGENTS.md): Measurement Protocol + Realtime Data API, auth — сервіс-акаунт (RS256).
+// infrastructure/integrations/ga4 — dev-инструмент проверки доставки событий в GA4
+// (отклонение 8, AGENTS.md): Measurement Protocol + Realtime Data API, auth — сервис-аккаунт (RS256).
 import crypto from 'node:crypto'
 import type { Ga4Client } from '@core/application/ports/system'
 

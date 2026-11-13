@@ -1,4 +1,4 @@
-// infrastructure/supabase/repositories/analytics — вибірки для звітів і вивантажень.
+// infrastructure/supabase/repositories/analytics — выборки для отчётов и выгрузок.
 import type { Db } from '../service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { AnalyticsRepository } from '@core/application/ports/analytics'
@@ -7,7 +7,7 @@ import type { ExportLeadRow, ExportHistoryRow, ExportCommentRow } from '@core/do
 
 const CHUNK_SIZE = 500
 
-// referral_links!left — назва партнера для розрізу/розбивки/експорту (селекти тримати синхронно).
+// referral_links!left — название партнёра для разреза/разбивки/экспорта (селекты держать синхронно).
 const REPORT_SELECT = `
   id, created_at, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
   gclid, service, assigned_to, deal_amount, deal_profit, status_id,
@@ -25,7 +25,7 @@ const EXPORT_SELECT = `
   referral_links!left(id, name)
 `
 
-/** Фільтр реферального посилання: 'none' → без посилання, UUID → конкретне, '' → без фільтра. */
+/** Фильтр реферальной ссылки: 'none' → без ссылки, UUID → конкретная, '' → без фильтра. */
 function applyReferralFilter<Q extends { is(col: string, v: null): Q; eq(col: string, v: string): Q }>(query: Q, referralLinkId: string): Q {
   if (referralLinkId === 'none') return query.is('referral_link_id', null)
   if (referralLinkId) return query.eq('referral_link_id', referralLinkId)

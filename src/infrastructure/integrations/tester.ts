@@ -41,7 +41,7 @@ export function makeIntegrationTester(deps: { siteName: string }): IntegrationTe
         return { ok: true, message: `Gmail SMTP: тестовий лист відправлено на ${to}` }
       } catch (err) {
         const raw = err instanceof Error ? err.message : 'помилка'
-        // Часта причина — звичайний пароль замість App Password
+        // Частая причина — обычный пароль вместо App Password
         const hint = /invalid login|username and password|BadCredentials/i.test(raw)
           ? ' (перевірте: потрібен App Password, а не звичайний пароль; і увімкнена 2-етапна автентифікація)'
           : ''

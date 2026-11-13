@@ -1,12 +1,12 @@
-// infrastructure/supabase/repositories/leads — таблиця leads.
+// infrastructure/supabase/repositories/leads — таблица leads.
 import type { Db } from '../service'
 import { dbOk, dbFail, type DbResult } from '@core/application/ports/common'
 import type { LeadRepository, LeadListFilters, LeadRow, LeadState } from '@core/application/ports/leads'
 
-// Білий список UTM-колонок для фільтра за значенням (захист від інʼєкції імені поля)
+// Белый список UTM-колонок для фильтра по значению (защита от инъекции имени поля)
 const UTM_FILTER_FIELDS = ['utm_campaign', 'utm_medium', 'utm_term', 'utm_content']
 
-/** Реферальне посилання ліда (міграція 035) — назва партнера для бейджів/фільтрів. */
+/** Реферальная ссылка лида (миграция 035) — название партнёра для бейджей/фильтров. */
 const REFERRAL_JOIN = 'referral_link:referral_links!left(id, name, code, is_active)'
 
 const STATUS_JOIN =
@@ -66,7 +66,7 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
         .range(offset, offset + f.limit - 1)
 
       if (f.search) {
-        // C17: кома/дужки ламають синтаксис PostgREST .or() → вирізаємо; % і _ — екрануємо.
+        // C17: запятая/скобки ломают синтаксис PostgREST .or() → вырезаем; % и _ — экранируем.
         const escaped = f.search.replace(/[,()]/g, ' ').replace(/[%_]/g, '\\$&')
         query = query.or(`name.ilike.%${escaped}%,phone.ilike.%${escaped}%`)
       }
@@ -139,7 +139,7 @@ export function makeLeadRepository(db: () => Db): LeadRepository {
     },
 
     async delete(id) {
-      // Спершу повʼязані offline_conversions (FK)
+      // Сначала связанные offline_conversions (FK)
       await db().from('offline_conversions').delete().eq('lead_id', id)
       const { error } = await db().from('leads').delete().eq('id', id)
       return error ? dbFail(error.message) : dbOk(undefined)

@@ -1,5 +1,5 @@
-// infrastructure/supabase/server — серверний клієнт сесії (anon-ключ + куки).
-// Дозволений виняток 1 (раздел 3): імпортує next/headers — йому потрібні куки.
+// infrastructure/supabase/server — серверный клиент сессии (anon-ключ + куки).
+// Разрешённое исключение 1 (раздел 3): импортирует next/headers — ему нужны куки.
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { AuthSession } from '@core/application/ports/access'
@@ -18,7 +18,7 @@ export async function createSessionClient() {
           try {
             cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
           } catch {
-            // Server Component — куки ставить middleware
+            // Server Component — куки ставит middleware
           }
         },
       },
@@ -27,9 +27,9 @@ export async function createSessionClient() {
 }
 
 /**
- * Поточний користувач із куки сесії. auth.getClaims() перевіряє підпис і строк дії JWT локально
- * (ES256 + JWKS у кеші інстансу) — без мережевого запиту до Supabase Auth; id та email беруться з
- * перевірених claims. Права й активність користувача перевіряються окремо читанням ролі з БД.
+ * Текущий пользователь из куки сессии. auth.getClaims() проверяет подпись и срок действия JWT локально
+ * (ES256 + JWKS в кэше инстанса) — без сетевого запроса к Supabase Auth; id и email берутся из
+ * проверенных claims. Права и активность пользователя проверяются отдельно чтением роли из БД.
  */
 export const cookieAuthSession: AuthSession = {
   async getUser() {

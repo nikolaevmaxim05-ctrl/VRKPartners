@@ -1,4 +1,4 @@
-// infrastructure/supabase/health — keepalive: легкий запит, щоб безкоштовний проєкт не засинав.
+// infrastructure/supabase/health — keepalive: лёгкий запрос, чтобы бесплатный проект не засыпал.
 import type { Db } from './service'
 import { dbOk, dbFail } from '@core/application/ports/common'
 import type { HealthCheck } from '@core/application/ports/system'

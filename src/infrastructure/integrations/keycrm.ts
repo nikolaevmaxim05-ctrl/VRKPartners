@@ -1,5 +1,5 @@
-// infrastructure/integrations/keycrm — створення ліда в KeyCRM (POST /v1/leads).
-// Нестандартний канал (відхилення 7, AGENTS.md). keycrm_api_key — БД→env; KEYCRM_PIPELINE_ID — env.
+// infrastructure/integrations/keycrm — создание лида в KeyCRM (POST /v1/leads).
+// Нестандартный канал (отклонение 7, AGENTS.md). keycrm_api_key — БД→env; KEYCRM_PIPELINE_ID — env.
 import type { IntegrationConfig } from '@core/application/ports/settings'
 import type { LeadNotifier } from '@core/application/ports/notifications'
 import { utmEntries, type UtmData } from '@core/domain/lead/utm'
@@ -10,7 +10,7 @@ const KEYCRM_API_URL = 'https://openapi.keycrm.app/v1'
 
 export function makeKeycrmNotifier(deps: {
   config: IntegrationConfig
-  /** Читається в момент виклику (за замовчуванням — env KEYCRM_PIPELINE_ID). */
+  /** Читается в момент вызова (по умолчанию — env KEYCRM_PIPELINE_ID). */
   pipelineId?: () => string | undefined
 }): LeadNotifier {
   const pipelineIdOf = deps.pipelineId ?? (() => process.env.KEYCRM_PIPELINE_ID)
@@ -62,7 +62,7 @@ export function makeKeycrmNotifier(deps: {
   }
 }
 
-/** note: коментар клієнта + розшифровка UTM; undefined — якщо нема ні того, ні іншого. */
+/** note: комментарий клиента + расшифровка UTM; undefined — если нет ни того, ни другого. */
 function buildKeyCRMNote(comment: string | undefined, utm: UtmData | undefined, referral?: ReferralNote): string | undefined {
   const parts: string[] = []
   if (comment) parts.push(comment)

@@ -1,4 +1,4 @@
-// infrastructure/supabase/storage — картинки контенту в bucket `content` (публічний, до 5 МБ, без SVG).
+// infrastructure/supabase/storage — картинки контента в bucket `content` (публичный, до 5 МБ, без SVG).
 import type { Db } from './service'
 import type { ImageStorage } from '@core/application/ports/content'
 
@@ -11,7 +11,7 @@ export function makeImageStorage(db: () => Db): ImageStorage {
     async upload(path, bytes, contentType) {
       const { error } = await db().storage.from(BUCKET).upload(path, bytes, { contentType, upsert: false })
       if (error) {
-        // Логуємо РЕАЛЬНУ причину (напр. «Bucket not found» після переїзду на новий проєкт).
+        // Логируем РЕАЛЬНУЮ причину (напр. «Bucket not found» после переезда на новый проект).
         console.error('[content-upload] upload_failed', { bucket: BUCKET, name: error.name, message: error.message })
         return { ok: false, name: error.name, message: error.message }
       }

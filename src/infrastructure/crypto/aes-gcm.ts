@@ -1,6 +1,6 @@
-// infrastructure/crypto/aes-gcm — AES-256-GCM для секретів інтеграцій (раздел 5 стандарту).
-// Ключ — env ADMIN_ENCRYPTION_KEY (64 hex = 32 байти); IV — 12 випадкових байт на запис;
-// у БД — три hex-рядки. ФОРМАТ ШИФРТЕКСТУ ПІСЛЯ ЗАПУСКУ НЕ ЗМІНЮВАТИ.
+// infrastructure/crypto/aes-gcm — AES-256-GCM для секретов интеграций (раздел 5 стандарта).
+// Ключ — env ADMIN_ENCRYPTION_KEY (64 hex = 32 байта); IV — 12 случайных байт на запись;
+// в БД — три hex-строки. ФОРМАТ ШИФРТЕКСТА ПОСЛЕ ЗАПУСКА НЕ МЕНЯТЬ.
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 import type { Cipher } from '@core/application/ports/settings'
 

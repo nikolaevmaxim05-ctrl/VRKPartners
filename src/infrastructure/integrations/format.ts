@@ -1,6 +1,6 @@
-// infrastructure/integrations/format — спільні дрібниці повідомлень (Telegram/email).
+// infrastructure/integrations/format — общие мелочи сообщений (Telegram/email).
 
-/** Екранування HTML-спецсимволів (Telegram HTML mode, email). */
+/** Экранирование HTML-спецсимволов (Telegram HTML mode, email). */
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -9,7 +9,7 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
 }
 
-/** Поточний час у Києві: "dd.mm.yyyy, hh:mm". */
+/** Текущее время в Киеве: "dd.mm.yyyy, hh:mm". */
 export function kyivNow(): string {
   return new Date().toLocaleString('uk-UA', {
     timeZone: 'Europe/Kyiv',
