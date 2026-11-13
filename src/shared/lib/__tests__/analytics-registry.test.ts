@@ -1,5 +1,5 @@
-// Тести реєстру подій аналітики (лендінг VRK).
-// Середовище node: window для track() стабиться через vi.stubGlobal.
+// Тесты реестра событий аналитики (лендинг VRK).
+// Среда node: window для track() стабится через vi.stubGlobal.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
@@ -300,7 +300,7 @@ describe("getDefaultAnalyticsEvents", () => {
   });
 });
 
-// ── track(): інтеграція резолвера з dataLayer / gtag / plausible ────────────
+// ── track(): интеграция резолвера с dataLayer / gtag / plausible ────────────
 
 type StubWindow = {
   dataLayer: Record<string, unknown>[];
@@ -393,7 +393,7 @@ describe("track()", () => {
   });
 
   it("gtag отсутствует (только GTM) → dataLayer и plausible работают", () => {
-    // @ts-expect-error — імітуємо сторінку без прямих gtag-тегів
+    // @ts-expect-error — имитируем страницу без прямых gtag-тегов
     delete win.gtag;
     track("contacts_telegram_click");
     // contacts_telegram_click по дефолту → 'telegram_click'

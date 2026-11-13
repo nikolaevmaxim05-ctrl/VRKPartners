@@ -1,9 +1,9 @@
 'use client'
 
-// Локалізований (uk-UA) вибір дати без нативного <input type="date">.
-// Нативний пікер бере мову з локалі браузера (часто рос.) і не адаптується під сайт,
-// тож малюємо власний календар на date-fns + Popover. Контракт значення — 'yyyy-MM-dd'
-// (як у нативного інпута), щоб не міняти решту коду.
+// Локализованный (uk-UA) выбор даты без нативного <input type="date">.
+// Нативный пикер берёт язык из локали браузера (часто рус.) и не адаптируется под сайт,
+// поэтому рисуем собственный календарь на date-fns + Popover. Контракт значения — 'yyyy-MM-dd'
+// (как у нативного инпута), чтобы не менять остальной код.
 
 import * as React from 'react'
 import {
@@ -30,14 +30,14 @@ function parseValue(value: string): Date | null {
 }
 
 type DatePickerProps = {
-  /** Значення у форматі 'yyyy-MM-dd' (порожній рядок = не задано). */
+  /** Значение в формате 'yyyy-MM-dd' (пустая строка = не задано). */
   value: string
   onChange: (value: string) => void
   ariaLabel?: string
   placeholder?: string
   className?: string
   invalid?: boolean
-  /** Показувати кнопку «Очистити». */
+  /** Показывать кнопку «Очистити». */
   clearable?: boolean
 }
 
@@ -54,14 +54,14 @@ export function DatePicker({
   const selected = parseValue(value)
   const [viewMonth, setViewMonth] = React.useState<Date>(() => selected ?? new Date())
 
-  // При відкритті показуємо місяць обраної дати (або поточний)
+  // При открытии показываем месяц выбранной даты (или текущий)
   React.useEffect(() => {
     if (open) setViewMonth(selected ?? new Date())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const monthStart = startOfMonth(viewMonth)
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 }) // тиждень з понеділка
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 }) // неделя с понедельника
   const days: Date[] = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
   const weekdays = Array.from({ length: 7 }, (_, i) =>
     format(addDays(gridStart, i), 'EEEEEE', { locale: uk }),
@@ -94,12 +94,12 @@ export function DatePicker({
       <PopoverContent
         className="w-auto p-3"
         align="start"
-        // Усередині модального діалогу body має pointer-events:none, а попап
-        // рендериться в портал на body → кліки по днях «провалюються». Повертаємо.
+        // Внутри модального диалога body имеет pointer-events:none, а попап
+        // рендерится в портал на body → клики по дням «проваливаются». Возвращаем.
         style={{ pointerEvents: 'auto' }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        {/* Шапка: місяць + рік (uk) + навігація */}
+        {/* Шапка: месяц + год (uk) + навигация */}
         <div className="flex items-center justify-between mb-2">
           <button
             type="button"
@@ -122,7 +122,7 @@ export function DatePicker({
           </button>
         </div>
 
-        {/* Сітка днів */}
+        {/* Сетка дней */}
         <div className="grid grid-cols-7 gap-0.5 text-center">
           {weekdays.map((w, i) => (
             <div key={i} className="text-[11px] text-muted-foreground py-1 capitalize">
@@ -152,7 +152,7 @@ export function DatePicker({
           })}
         </div>
 
-        {/* Підвал: Очистити / Сьогодні */}
+        {/* Подвал: «Очистити» / «Сьогодні» */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t">
           {clearable && value ? (
             <button

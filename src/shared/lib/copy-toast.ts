@@ -1,6 +1,6 @@
-// Мінімальний imperative-toast без зовнішніх залежностей.
-// Використовується і на лендингу (де тяжкі toast-ліби небажані), і в адмінці.
-// Один вузол у body, aria-live=polite, автоскриття ~2с. SSR-safe.
+// Минимальный imperative-toast без внешних зависимостей.
+// Используется и на лендинге (где тяжёлые toast-либы нежелательны), и в админке.
+// Один узел в body, aria-live=polite, автоскрытие ~2с. SSR-safe.
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null
 const removeTimer: ReturnType<typeof setTimeout> | null = null
@@ -43,7 +43,7 @@ function ensureRoot(): HTMLElement | null {
   return root
 }
 
-/** Показати короткий toast. Виклик безпечний на сервері (нічого не робить). */
+/** Показать короткий toast. Вызов безопасен на сервере (ничего не делает). */
 export function showCopyToast(message: string, duration = 2000): void {
   const root = ensureRoot()
   if (!root) return
@@ -52,10 +52,10 @@ export function showCopyToast(message: string, duration = 2000): void {
   if (removeTimer) clearTimeout(removeTimer)
 
   root.textContent = message
-  // Перезапуск анімації появи
+  // Перезапуск анимации появления
   root.style.opacity = '0'
   root.style.transform = 'translateX(-50%) translateY(8px)'
-  // Форсуємо reflow, щоб transition спрацював при швидких повторних кліках
+  // Форсируем reflow, чтобы transition сработал при быстрых повторных кликах
   void root.offsetWidth
   root.style.opacity = '1'
   root.style.transform = 'translateX(-50%) translateY(0)'

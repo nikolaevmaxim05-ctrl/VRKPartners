@@ -62,7 +62,7 @@ describe('isLiteDevice', () => {
   })
 })
 
-/** Виконує інлайн-скрипт у підробленому оточенні браузера і повертає, чи поставив він клас. */
+/** Выполняет инлайн-скрипт в поддельном окружении браузера и возвращает, поставил ли он класс. */
 function runScript(s: DeviceSignals): boolean {
   const classes = new Set<string>()
   const navigator = {

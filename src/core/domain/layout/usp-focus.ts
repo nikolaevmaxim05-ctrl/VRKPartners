@@ -1,33 +1,33 @@
-// core/domain/layout/usp-focus — правила «активної картки» секції USP на мобільному. Без DOM:
-// вимірювання робить компонент Usp (features/landing), тут — константи й вибір активної картки.
+// core/domain/layout/usp-focus — правила «активной карточки» секции USP на мобильном. Без DOM:
+// измерение делает компонент Usp (features/landing), здесь — константы и выбор активной карточки.
 //
-// На вузьких екранах (≤ USP_MOBILE_MAX_WIDTH) активна — картка, центр якої найближчий до центру
-// вьюпорту. Вона трохи збільшується (USP_ACTIVE_SCALE), решта — легке розмиття (USP_DIMMED_BLUR_PX)
-// і приглушення (USP_DIMMED_OPACITY). Гістерезис: активна змінюється лише коли інша картка стала
-// ближчою до центру помітно — на USP_HYSTERESIS_RATIO висоти вьюпорту, — щоб на межі двох карток не
-// було мерехтіння. Картка з центром поза вьюпортом кандидатом не є (секція за екраном → нейтрально).
+// На узких экранах (≤ USP_MOBILE_MAX_WIDTH) активная — карточка, центр которой ближе всего к центру
+// вьюпорта. Она немного увеличивается (USP_ACTIVE_SCALE), остальные — лёгкое размытие (USP_DIMMED_BLUR_PX)
+// и приглушение (USP_DIMMED_OPACITY). Гистерезис: активная меняется только когда другая карточка стала
+// ближе к центру заметно — на USP_HYSTERESIS_RATIO высоты вьюпорта, — чтобы на границе двух карточек не
+// было мерцания. Карточка с центром вне вьюпорта кандидатом не является (секция за экраном → нейтрально).
 
-/** Брейкпоінт «мобільний» для ефекту: max-width у px (Tailwind sm = 640). */
+/** Брейкпоинт «мобильный» для эффекта: max-width в px (Tailwind sm = 640). */
 export const USP_MOBILE_MAX_WIDTH = 640
-/** Масштаб активної картки. */
+/** Масштаб активной карточки. */
 export const USP_ACTIVE_SCALE = 1.04
-/** Радіус розмиття решти карток, px (не більше 2 — текст лишається читабельним). */
+/** Радиус размытия остальных карточек, px (не больше 2 — текст остаётся читаемым). */
 export const USP_DIMMED_BLUR_PX = 1.5
-/** Прозорість решти карток. */
+/** Прозрачность остальных карточек. */
 export const USP_DIMMED_OPACITY = 0.8
-/** Гістерезис зміни активної: частка висоти вьюпорту. */
+/** Гистерезис смены активной: доля высоты вьюпорта. */
 export const USP_HYSTERESIS_RATIO = 0.08
-/** Кандидат — картка, центр якої в межах вьюпорту: відстань до центру ≤ ця частка висоти. */
+/** Кандидат — карточка, центр которой в пределах вьюпорта: расстояние до центра ≤ эта доля высоты. */
 export const USP_CANDIDATE_RATIO = 0.5
 
 export type UspCardState = 'active' | 'dimmed' | undefined
 
 /**
- * Вибір активної картки з гістерезисом.
- * @param distances відстань центру кожної картки до центру вьюпорту, px (Infinity/NaN — картки немає)
- * @param current поточна активна (-1 — жодної)
- * @param viewportHeight висота вьюпорту, px
- * @returns індекс нової активної або -1
+ * Выбор активной карточки с гистерезисом.
+ * @param distances расстояние центра каждой карточки до центра вьюпорта, px (Infinity/NaN — карточки нет)
+ * @param current текущая активная (-1 — ни одной)
+ * @param viewportHeight высота вьюпорта, px
+ * @returns индекс новой активной или -1
  */
 export function pickActive(
   distances: number[],
@@ -50,11 +50,11 @@ export function pickActive(
   const cur = current >= 0 && current < distances.length ? distances[current] : Infinity
   const currentIsCandidate = Number.isFinite(cur) && cur <= maxDist
   if (!currentIsCandidate) return best
-  // Поточна лишається, поки інша не стала ближчою щонайменше на гістерезис.
+  // Текущая остаётся, пока другая не стала ближе хотя бы на гистерезис.
   return bestDist + viewportHeight * ratio < cur ? best : current
 }
 
-/** Стан картки для data-state: без активної або при одній картці — нейтрально (без атрибута). */
+/** Состояние карточки для data-state: без активной или при одной карточке — нейтрально (без атрибута). */
 export function cardState(index: number, active: number, count: number): UspCardState {
   if (active < 0 || count < 2) return undefined
   return index === active ? 'active' : 'dimmed'

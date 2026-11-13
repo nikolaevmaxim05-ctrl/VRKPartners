@@ -1,8 +1,8 @@
-// Контракт розкладки редактора (розділ 9, «Тесты, которые держат раскладку»):
-//   • кожен редагований ключ показано рівно один раз (дубль — лише в блоці з `shared`);
-//   • множини вкладок CONTENT_PAGES і ключів PAGE_BLOCKS збігаються;
-//   • id блоків збігаються з HIDEABLE_BLOCKS в обидва боки (сторінки з `ns`);
-//   • дефолти messages/uk.json проходять власну валідацію (ліміти, URL, hidden).
+// Контракт раскладки редактора (раздел 9, «Тесты, которые держат раскладку»):
+//   • каждый редактируемый ключ показан ровно один раз (дубль — только в блоке с `shared`);
+//   • множества вкладок CONTENT_PAGES и ключей PAGE_BLOCKS совпадают;
+//   • id блоков совпадают с HIDEABLE_BLOCKS в обе стороны (страницы с `ns`);
+//   • дефолты messages/uk.json проходят собственную валидацию (лимиты, URL, hidden).
 import { describe, it, expect } from 'vitest'
 import { CONTENT_PAGES, PAGE_BLOCKS, KEY_LABELS, keyLabel } from '@core/domain/content/layout'
 import { HIDEABLE_BLOCKS } from '@core/domain/content/visibility'
@@ -12,7 +12,7 @@ import { getDefaultMessages } from '../defaults'
 
 const defaults = getDefaultMessages()
 
-/** Редаговані ключі: `ns.key` для обʼєктів, `ns` для розділів-масивів; `hidden` — тумблери. */
+/** Редактируемые ключи: `ns.key` для объектов, `ns` для разделов-массивов; `hidden` — тумблеры. */
 function editableKeys(): string[] {
   const out: string[] = []
   for (const ns of EDITABLE_NAMESPACES) {

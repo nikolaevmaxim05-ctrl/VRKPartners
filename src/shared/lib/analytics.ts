@@ -1,13 +1,13 @@
-// analytics.ts — єдина точка відправки аналітичних подій
-// dataLayer (GTM) + прямий gtag('event') (GA4/AW-теги) + Plausible.
+// analytics.ts — единая точка отправки аналитических событий
+// dataLayer (GTM) + прямой gtag('event') (GA4/AW-теги) + Plausible.
 // SSR-safe.
 //
-// Промпт 016: ім'я події та enabled/disabled резолвляються через
-// window.__analyticsEvents (інлайниться сервером у (marketing)/layout.tsx).
-// Немає конфігу → поведінка повністю поточна (м'яка деградація).
+// Промпт 016: имя события и enabled/disabled резолвятся через
+// window.__analyticsEvents (инлайнится сервером в (marketing)/layout.tsx).
+// Нет конфига → поведение полностью текущее (мягкая деградация).
 //
-// Промпт 018: кожна точка може мати МАСИВ eventNames — для кожного
-// імені відправляється окремий push у dataLayer, gtag і Plausible.
+// Промпт 018: каждая точка может иметь МАССИВ eventNames — для каждого
+// имени отправляется отдельный push в dataLayer, gtag и Plausible.
 
 import {
   resolveAnalyticsEvent,
@@ -22,19 +22,19 @@ declare global {
       eventName: string,
       options?: { props?: Record<string, unknown> }
     ) => void;
-    /** gtag.js — визначається inline-скриптами тегів з (marketing)/layout.tsx */
+    /** gtag.js — определяется inline-скриптами тегов из (marketing)/layout.tsx */
     gtag?: (...args: unknown[]) => void;
-    /** Конфіг подій з адмінки — інлайниться сервером, може бути відсутнім */
+    /** Конфиг событий из админки — инлайнится сервером, может отсутствовать */
     __analyticsEvents?: AnalyticsEventsConfig;
-    /** send_to Ads-тегів з conversion label (AW-XXX/LABEL) — інлайниться сервером */
+    /** send_to Ads-тегов с conversion label (AW-XXX/LABEL) — инлайнится сервером */
     __awConversions?: string[];
   }
 }
 
-// --- Конверсія Google Ads при відправці форми (розділ 15) ---
-// gtag('event','conversion',{send_to}) для кожного Ads-тега з conversion label.
-// Лише gtag: у dataLayer і Plausible НЕ дублюється. Викликати ПІСЛЯ gtag('set','user_data')
-// і ДО track('form_submit_success').
+// --- Конверсия Google Ads при отправке формы (раздел 15) ---
+// gtag('event','conversion',{send_to}) для каждого Ads-тега с conversion label.
+// Только gtag: в dataLayer и Plausible НЕ дублируется. Вызывать ПОСЛЕ gtag('set','user_data')
+// и ДО track('form_submit_success').
 export function fireAdsConversions(): void {
   if (typeof window === "undefined") return;
   if (typeof window.gtag !== "function") return;
@@ -43,7 +43,7 @@ export function fireAdsConversions(): void {
     try {
       window.gtag("event", "conversion", { send_to: sendTo });
     } catch {
-      // Аналітика ніколи не повинна ламати UI
+      // Аналитика никогда не должна ломать UI
     }
   }
 }
@@ -68,21 +68,21 @@ export function trackPlausible(
   window.plausible(name, props ? { props } : undefined);
 }
 
-// --- Прямий виклик gtag('event', ...) для GA4/AW-тегів, підключених напряму ---
-// window.gtag існує лише якщо layout відрендерив хоча б один тег.
+// --- Прямой вызов gtag('event', ...) для GA4/AW-тегов, подключённых напрямую ---
+// window.gtag существует только если layout отрендерил хотя бы один тег.
 function trackGtag(name: string, params?: Record<string, unknown>): void {
   if (typeof window === "undefined") return;
   if (typeof window.gtag !== "function") return;
   try {
     window.gtag("event", name, params ?? {});
   } catch {
-    // Аналітика ніколи не повинна ламати UI
+    // Аналитика никогда не должна ломать UI
   }
 }
 
-// --- Універсальна функція — резолвить маппінг і пушить у всі канали ---
-// key — канонічний ключ з src/lib/analytics-registry.ts
-// Промпт 018: один track() → декілька подій (для кожного eventName в масиві)
+// --- Универсальная функция — резолвит маппинг и пушит во все каналы ---
+// key — канонический ключ из src/lib/analytics-registry.ts
+// Промпт 018: один track() → несколько событий (для каждого eventName в массиве)
 export function track(key: string, params?: Record<string, unknown>): void {
   if (typeof window === "undefined") return;
 
@@ -92,8 +92,8 @@ export function track(key: string, params?: Record<string, unknown>): void {
       window.__analyticsEvents
     );
 
-    if (!enabled) return; // вимкнено в адмінці — no-op
-    if (eventNames.length === 0) return; // пустий список — no-op
+    if (!enabled) return; // выключено в админке — no-op
+    if (eventNames.length === 0) return; // пустой список — no-op
 
     for (const eventName of eventNames) {
       trackEvent(eventName, params);
@@ -101,16 +101,16 @@ export function track(key: string, params?: Record<string, unknown>): void {
       trackPlausible(eventName, params);
     }
   } catch {
-    // Аналітика ніколи не повинна ламати UI
+    // Аналитика никогда не должна ломать UI
   }
 }
 
-// --- Декларативна привязка події до елемента ---
-// Повертає props для DOM-елемента: вішає onClick(track) і мітить елемент
-// атрибутом data-analytics-event (точка опори для E2E-тестів і dev-інспектора).
-// key типізований AnalyticsKey → опечатка/видалена точка падають на компіляції.
+// --- Декларативная привязка события к элементу ---
+// Возвращает props для DOM-элемента: вешает onClick(track) и помечает элемент
+// атрибутом data-analytics-event (точка опоры для E2E-тестов и dev-инспектора).
+// key типизирован AnalyticsKey → опечатка/удалённая точка падают на компиляции.
 //
-// Використання:
+// Использование:
 //   <Link {...trackProps('header_cta_click', { location: 'header' })}>...</Link>
 export function trackProps(
   key: AnalyticsKey,

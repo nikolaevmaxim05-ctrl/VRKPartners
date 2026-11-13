@@ -3,10 +3,10 @@
 import { useCallback } from 'react'
 
 /**
- * Копіювання тексту в буфер обміну.
- * Основне — navigator.clipboard (secure context); fallback — прихований textarea +
- * document.execCommand('copy') для http/не-secure. Повертає true, якщо скопійовано.
- * Ніколи не кидає — помилку копіювання показувати користувачу не треба.
+ * Копирование текста в буфер обмена.
+ * Основное — navigator.clipboard (secure context); fallback — скрытый textarea +
+ * document.execCommand('copy') для http/не-secure. Возвращает true, если скопировано.
+ * Никогда не бросает — ошибку копирования показывать пользователю не нужно.
  */
 export async function copyText(text: string): Promise<boolean> {
   if (
@@ -19,7 +19,7 @@ export async function copyText(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text)
       return true
     } catch {
-      // впадемо у fallback нижче
+      // упадём в fallback ниже
     }
   }
 

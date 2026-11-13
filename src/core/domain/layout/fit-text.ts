@@ -1,7 +1,7 @@
-// core/domain/layout/fit-text — арифметика підгонки заголовків (розділ 12, п. 1). Без DOM:
-// вимірювання робить features/landing/lib/fit-text.ts, тут — лише правила.
+// core/domain/layout/fit-text — арифметика подгонки заголовков (раздел 12, п. 1). Без DOM:
+// измерение делает features/landing/lib/fit-text.ts, здесь — только правила.
 
-/** Нижня межа: 60 % базового розміру (floor). */
+/** Нижняя граница: 60 % базового размера (floor). */
 export const MIN_RATIO = 0.6
 
 export type WidthFit =
@@ -10,23 +10,23 @@ export type WidthFit =
   | { kind: 'break'; size: number }
 
 /**
- * Прохід по ширині: якщо найширший нерозривний відрізок (widest) ширший за доступне місце,
- * size = floor(base × available / widest), але не менше floor(base × 0.6). Якщо і мінімум не
- * допомагає — 'break' (клас .fit-break: overflow-wrap: anywhere). Вміщується → 'keep'
- * (inline-розмір не записуємо, лишається адаптивний clamp з CSS).
+ * Проход по ширине: если самый широкий неразрывный отрезок (widest) шире доступного места,
+ * size = floor(base × available / widest), но не меньше floor(base × 0.6). Если и минимум не
+ * помогает — 'break' (класс .fit-break: overflow-wrap: anywhere). Помещается → 'keep'
+ * (inline-размер не записываем, остаётся адаптивный clamp из CSS).
  */
 export function fitWidth(base: number, available: number, widest: number): WidthFit {
   if (!(base > 0) || !(available > 0) || !(widest > 0) || widest <= available) return { kind: 'keep' }
   const min = Math.floor(base * MIN_RATIO)
   const size = Math.max(min, Math.floor((base * available) / widest))
-  // Пропорційна оцінка: чи вміститься найширший відрізок при цьому розмірі.
+  // Пропорциональная оценка: поместится ли самый широкий отрезок при этом размере.
   const fits = (widest * size) / base <= available
   return fits ? { kind: 'shrink', size } : { kind: 'break', size: min }
 }
 
 /**
- * Ряд цифр статистики вирівнюється як ряд: якщо розміри розійшлися більше ніж на 0.5px —
- * усім ставиться найменший. Повертає null, якщо вирівнювати нема чого.
+ * Ряд цифр статистики выравнивается как ряд: если размеры разошлись больше чем на 0.5px —
+ * всем ставится наименьший. Возвращает null, если выравнивать нечего.
  */
 export function equalizeRow(sizes: number[]): number | null {
   const valid = sizes.filter((s) => Number.isFinite(s) && s > 0)
@@ -37,12 +37,12 @@ export function equalizeRow(sizes: number[]): number | null {
 }
 
 /**
- * Прохід по висоті (перший екран): найбільший розмір у [floor(base×0.6), base], при якому
- * ряд кнопок ще вище нижнього краю (з запасом 2px). `fits(size)` міряє DOM; бінарний пошук.
+ * Проход по высоте (первый экран): наибольший размер в [floor(base×0.6), base], при котором
+ * ряд кнопок ещё выше нижнего края (с запасом 2px). `fits(size)` меряет DOM; бинарный поиск.
  */
 export function fitHeight(base: number, fits: (size: number) => boolean): number | null {
   const min = Math.floor(base * MIN_RATIO)
-  if (fits(base)) return null // вміщується на базовому — inline-розмір не пишемо
+  if (fits(base)) return null // помещается на базовом — inline-размер не пишем
   let lo = min
   let hi = base
   if (!fits(lo)) return lo

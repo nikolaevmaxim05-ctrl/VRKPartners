@@ -15,7 +15,7 @@ const VH = 844
 const P = SLIDE_IN_DEFAULTS
 const LINE = P.enterLine * VH
 const BAND = P.band * VH
-const MAX = 10_000 // далеко від кінця сторінки
+const MAX = 10_000 // далеко от конца страницы
 
 describe('slideDistance', () => {
   it('мобільна відстань нижче порога, десктопна — від порога', () => {
@@ -59,7 +59,7 @@ describe('itemProgress', () => {
   })
   it('кінець сторінки: при максимальній прокрутці на місці все, що у вікні', () => {
     const max = 6000
-    // Пункт у самому низу вьюпорту при максимальній прокрутці.
+    // Пункт в самом низу вьюпорта при максимальной прокрутке.
     expect(itemProgress(max + VH - 1, max, VH, max)).toBeCloseTo(1, 1)
   })
   it('сміття → 1 (нічого не ховаємо)', () => {
@@ -105,8 +105,8 @@ describe('partState', () => {
     const mid = partState(0.5, 80)
     expect(mid.opacity).toBeCloseTo(0.5)
     expect(mid.x).toBeCloseTo(-40)
-    expect(partState(0.25, 80).opacity).toBeLessThan(0.25) // повільний старт
-    expect(partState(0.75, 80).opacity).toBeGreaterThan(0.75) // повільний фініш
+    expect(partState(0.25, 80).opacity).toBeLessThan(0.25) // медленный старт
+    expect(partState(0.75, 80).opacity).toBeGreaterThan(0.75) // медленный финиш
   })
 })
 
@@ -114,7 +114,7 @@ describe('smoothTransitionMs', () => {
   it('D = τ · 10 · ln 2 (easeOutExpo ↔ експонента зі сталою часу τ)', () => {
     expect(smoothTransitionMs(220)).toBe(Math.round(220 * 10 * Math.LN2))
     expect(smoothTransitionMs(SLIDE_IN_DEFAULTS.smoothMs)).toBeGreaterThan(1000)
-    // За час τ easeOutExpo проходить ті самі 1 − 1/e шляху, що й експонента.
+    // За время τ easeOutExpo проходит те же 1 − 1/e пути, что и экспонента.
     const D = smoothTransitionMs(220)
     expect(1 - Math.pow(2, (-10 * 220) / D)).toBeCloseTo(1 - 1 / Math.E, 2)
   })

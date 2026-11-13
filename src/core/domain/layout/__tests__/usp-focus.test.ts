@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { pickActive, cardState, USP_ACTIVE_SCALE, USP_DIMMED_BLUR_PX, USP_HYSTERESIS_RATIO } from '../usp-focus'
 
-const VH = 800 // гістерезис 64px, кандидат — до 400px від центру
+const VH = 800 // гистерезис 64px, кандидат — до 400px от центра
 
 describe('константи ефекту', () => {
   it('масштаб трохи більше 1, розмиття ≤ 2px, гістерезис — помітна частка екрана', () => {
@@ -22,9 +22,9 @@ describe('pickActive', () => {
     expect(pickActive([], -1, VH)).toBe(-1)
   })
   it('гістерезис: сусідка трохи ближча — активна не змінюється', () => {
-    // поточна 0 на 100px, сусідка на 60px: різниця 40 < 64
+    // текущая 0 на 100px, соседка на 60px: разница 40 < 64
     expect(pickActive([100, 60], 0, VH)).toBe(0)
-    // сусідка на 30px: різниця 70 ≥ 64 → перемикання
+    // соседка на 30px: разница 70 ≥ 64 → переключение
     expect(pickActive([100, 30], 0, VH)).toBe(1)
   })
   it('на межі: рівно гістерезис — ще не перемикається', () => {

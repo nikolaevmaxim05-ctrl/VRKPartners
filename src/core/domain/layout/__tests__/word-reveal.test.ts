@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { WORD_REVEAL_DEFAULTS, normalizeParams, readingLineY, wordOpacity, splitWords } from '../word-reveal'
 
-// Усі числа — від дефолтних параметрів, щоб тести не залежали від конкретних значень констант.
+// Все числа — от дефолтных параметров, чтобы тесты не зависели от конкретных значений констант.
 const VH = 1000
-const MAX = 5000 // довга сторінка: кінець далеко
+const MAX = 5000 // длинная страница: конец далеко
 const P = WORD_REVEAL_DEFAULTS
-const LINE = P.readingLine * VH // базова лінія читання, px від верху
-const BAND = P.band * VH // смуга розгорання, px
-const SPREAD = P.spread * VH // зсув правого краю рядка, px
-const TAIL = VH - LINE // останні пікселі прокрутки, на яких лінія опускається
+const LINE = P.readingLine * VH // базовая линия чтения, px от верха
+const BAND = P.band * VH // полоса разгорания, px
+const SPREAD = P.spread * VH // сдвиг правого края строки, px
+const TAIL = VH - LINE // последние пиксели прокрутки, на которых линия опускается
 
 describe('splitWords', () => {
   it('пробіли — окремі частини; конкатенація дорівнює оригіналу', () => {
@@ -92,14 +92,14 @@ describe('wordOpacity (скраб по позиції)', () => {
     const left = wordOpacity(top, 0, 0, VH, MAX)
     const right = wordOpacity(top, 1, 0, VH, MAX)
     expect(right).toBeLessThan(left)
-    // зсув = spread × vh: праве слово на top ≡ ліве на top + SPREAD
+    // сдвиг = spread × vh: правое слово на top ≡ левое на top + SPREAD
     expect(right).toBeCloseTo(wordOpacity(top + SPREAD, 0, 0, VH, MAX))
   })
   it('кінець сторінки: при максимальній прокрутці яскраве все у вікні', () => {
     const maxScroll = 3000
-    const wordTop = maxScroll + VH - 20 // останній рядок біля низу вікна
+    const wordTop = maxScroll + VH - 20 // последняя строка у низа окна
     expect(wordOpacity(wordTop, 1, maxScroll, VH, maxScroll)).toBe(1)
-    // а до кінця (за межами хвоста) — ще невидиме
+    // а до конца (за пределами хвоста) — ещё невидимое
     expect(wordOpacity(wordTop, 1, maxScroll - TAIL - BAND - SPREAD - 50, VH, maxScroll)).toBe(0)
   })
   it('сміття → 1 (безпечно: текст видно)', () => {
@@ -117,7 +117,7 @@ describe('normalizeParams', () => {
       minOpacity: 0.9,
       readingLine: 0.5,
     })
-    // Нуль (повна невидимість) проходить, відʼємне — обрізається до 0.
+    // Ноль (полная невидимость) проходит, отрицательное — обрезается до 0.
     expect(normalizeParams({ minOpacity: 0 }).minOpacity).toBe(0)
     expect(normalizeParams({ minOpacity: -1 }).minOpacity).toBe(0)
   })

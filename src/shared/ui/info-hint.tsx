@@ -1,9 +1,9 @@
 "use client"
 
-// InfoHint — кругла іконка «i» з підказкою (промпт: пояснення точок аналітики).
-// Відкривається І при наведенні, І при кліку/тапі — працює на десктопі та тачі.
-// Контент рендериться у Portal (через Radix Popover) → не обрізається
-// контейнером таблиці з overflow-x-auto.
+// InfoHint — круглая иконка «i» с подсказкой (промпт: пояснения точек аналитики).
+// Открывается И при наведении, И при клике/тапе — работает на десктопе и таче.
+// Контент рендерится в Portal (через Radix Popover) → не обрезается
+// контейнером таблицы с overflow-x-auto.
 
 import * as React from "react"
 import { Info } from "lucide-react"
@@ -11,18 +11,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover"
 import { cn } from "@/shared/lib/utils"
 
 type InfoHintProps = {
-  /** Текст підказки — що саме запускає подію */
+  /** Текст подсказки — что именно запускает событие */
   text: string
-  /** aria-label для кнопки (доступність) */
+  /** aria-label для кнопки (доступность) */
   label?: string
-  /** Додаткові класи для кнопки-іконки */
+  /** Дополнительные классы для кнопки-иконки */
   className?: string
 }
 
 export function InfoHint({ text, label, className }: InfoHintProps) {
   const [open, setOpen] = React.useState(false)
-  // Таймер відкладеного закриття — щоб встигнути перевести курсор
-  // з іконки на саму підказку, не закривши її.
+  // Таймер отложенного закрытия — чтобы успеть перевести курсор
+  // с иконки на саму подсказку, не закрыв её.
   const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const cancelClose = () => {
@@ -64,7 +64,7 @@ export function InfoHint({ text, label, className }: InfoHintProps) {
         className="w-72 text-xs leading-relaxed whitespace-normal"
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
-        // Не забирати фокус при відкритті по hover — інакше «стрибає» сторінка
+        // Не забирать фокус при открытии по hover — иначе «прыгает» страница
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {text}

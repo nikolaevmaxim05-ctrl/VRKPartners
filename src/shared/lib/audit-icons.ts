@@ -1,6 +1,6 @@
-// Реєстр іконок для карток блоку «Аудит».
-// Спільний для лендингу (Audit.tsx) і редактора контенту (content-audit-editor.tsx),
-// щоб набір і ключі були однакові. У контенті зберігається лише рядок-ключ.
+// Реестр иконок для карточек блока «Аудит».
+// Общий для лендинга (Audit.tsx) и редактора контента (content-audit-editor.tsx),
+// чтобы набор и ключи были одинаковыми. В контенте хранится только строка-ключ.
 import {
   FileSearch,
   Gauge,
@@ -50,16 +50,16 @@ export const AUDIT_ICONS: Record<string, LucideIcon> = {
 
 export const AUDIT_ICON_KEYS = Object.keys(AUDIT_ICONS)
 
-// Дефолтні іконки за позицією картки (фолбек, якщо icon не задано).
+// Дефолтные иконки по позиции карточки (фолбэк, если icon не задан).
 export const DEFAULT_AUDIT_ICON_ORDER = ['file-search', 'gauge', 'route', 'calculator'] as const
 export const DEFAULT_USP_ICON_ORDER = ['database', 'target', 'handshake', 'rocket', 'trending-up'] as const
 
-/** Значення icon — це завантажене зображення (шлях/URL), а не ключ пресета. */
+/** Значение icon — это загруженное изображение (путь/URL), а не ключ пресета. */
 export function isImageIcon(icon: string | undefined): boolean {
   return !!icon && (icon.startsWith('/') || icon.startsWith('http'))
 }
 
-/** Іконка за ключем → за позицією (з переданого порядку) → перша з реєстру. */
+/** Иконка по ключу → по позиции (из переданного порядка) → первая из реестра. */
 export function resolveIcon(
   icon: string | undefined,
   index: number,
@@ -71,7 +71,7 @@ export function resolveIcon(
   return FileSearch
 }
 
-/** Іконка картки «Аудит» (фолбек за позицією). */
+/** Иконка карточки «Аудит» (фолбэк по позиции). */
 export function resolveAuditIcon(icon: string | undefined, index: number): LucideIcon {
   return resolveIcon(icon, index, DEFAULT_AUDIT_ICON_ORDER)
 }

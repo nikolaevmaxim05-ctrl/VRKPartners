@@ -1,7 +1,7 @@
-// SplitWords — текст → слова у <span data-word>, пробіли лишаються текстовими вузлами (перенос рядків
-// працює як у звичайному тексті). Ставиться в розмітці (SSR): без JS і до гідрації всі слова яскраві
-// (opacity не задано), textContent елемента дорівнює вихідному рядку. Розгоранням керує
-// features/landing/lib/word-reveal.ts усередині контейнера [data-word-reveal].
+// SplitWords — текст → слова в <span data-word>, пробелы остаются текстовыми узлами (перенос строк
+// работает как в обычном тексте). Ставится в разметке (SSR): без JS и до гидрации все слова яркие
+// (opacity не задан), textContent элемента равен исходной строке. Разгоранием управляет
+// features/landing/lib/word-reveal.ts внутри контейнера [data-word-reveal].
 import type { ReactNode } from 'react'
 import { splitWords } from '@core/domain/layout/word-reveal'
 

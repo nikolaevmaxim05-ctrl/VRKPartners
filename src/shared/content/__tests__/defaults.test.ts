@@ -1,4 +1,4 @@
-// Регрес: валідація URL (C10/S7), дефолти з messages/uk.json, мерж/дифф на реальних дефолтах.
+// Регресс: валидация URL (C10/S7), дефолты из messages/uk.json, мерж/дифф на реальных дефолтах.
 import { describe, it, expect } from 'vitest'
 import { mergeMessages, diffMessages, pickEditable } from '@core/domain/content/messages'
 import { getDefaultMessages, getDefaultSeo, isSafeImageUrl, isSafeHref } from '../defaults'

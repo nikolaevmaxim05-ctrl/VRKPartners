@@ -1,7 +1,7 @@
-// nbHyphen — слово з дефісом → <span class="nb">…</span> (розділ 12, п. 9).
-// Ставиться в розмітці (SSR) у всіх підгоняних заголовках — заголовок першого екрана є
-// LCP-елементом, обгортку не можна додавати після завантаження. Без дефіса повертає той самий
-// рядок (без зайвих вузлів). CSS: .nb { white-space: nowrap }; .fit-break .nb { white-space: normal }.
+// nbHyphen — слово с дефисом → <span class="nb">…</span> (раздел 12, п. 9).
+// Ставится в разметке (SSR) во всех подгоняемых заголовках — заголовок первого экрана является
+// LCP-элементом, обёртку нельзя добавлять после загрузки. Без дефиса возвращает ту же
+// строку (без лишних узлов). CSS: .nb { white-space: nowrap }; .fit-break .nb { white-space: normal }.
 import type { ReactNode } from 'react'
 import { splitHyphenated } from '@core/domain/layout/hyphen'
 
