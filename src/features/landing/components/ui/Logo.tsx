@@ -1,8 +1,8 @@
 import { cn } from "@/shared/lib/utils";
 
 /**
- * Текстовий логотип VRK Partners за логобуком:
- * жовта абревіатура «VRK» + білий «partners» на темному фоні.
+ * Текстовый логотип VRK Partners по логобуку:
+ * жёлтая аббревиатура «VRK» + белый «partners» на тёмном фоне.
  */
 export function Logo({ className }: { className?: string }) {
   return (

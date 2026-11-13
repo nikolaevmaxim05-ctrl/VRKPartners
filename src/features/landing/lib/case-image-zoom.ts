@@ -1,18 +1,18 @@
-// Автозбільшення скріншота кейсу на мобільному — DOM-частина (крок 5 мобільних анімацій).
-// Правило й константи — @core/domain/layout/case-image-zoom.
+// Автоувеличение скриншота кейса на мобильном — DOM-часть (шаг 5 мобильных анимаций).
+// Правило и константы — @core/domain/layout/case-image-zoom.
 //
-// Обгортка [data-case-zoom] (навколо картинки в картці кейсів): геометрія (верх у документі, висота,
-// ширина) кешується й переміряється на resize / ResizeObserver / завантаження картинки / refresh
-// (зміна кейсу); у scroll (passive → rAF) — лише арифметика по кешу і запис transform: scale().
-// Запас по вертикалі (CSS-змінна --case-zoom-reserve → margin-block обгортки) резервує місце під
-// збільшену картинку, щоб вона не наїжджала на метрики зверху і «Підходи» знизу; пишеться лише при
-// перемірі. data-zoomed="1" при масштабі > 1 — для z-index/тіні/will-change у CSS.
-// Лише при (max-width: 639.98px); за порогом і в режимі «менше руху» — transform знято.
+// Обёртка [data-case-zoom] (вокруг картинки в карточке кейсов): геометрия (верх в документе, высота,
+// ширина) кэшируется и перемеряется на resize / ResizeObserver / загрузку картинки / refresh
+// (смена кейса); в scroll (passive → rAF) — только арифметика по кэшу и запись transform: scale().
+// Запас по вертикали (CSS-переменная --case-zoom-reserve → margin-block обёртки) резервирует место под
+// увеличенную картинку, чтобы она не наезжала на метрики сверху и «Підходи» снизу; пишется только при
+// перемере. data-zoomed="1" при масштабе > 1 — для z-index/тени/will-change в CSS.
+// Только при (max-width: 639.98px); за порогом и в режиме «меньше движения» — transform снят.
 import { CASE_ZOOM_MAX_WIDTH, targetScale, verticalReserve, zoomScale } from '@core/domain/layout/case-image-zoom'
 
 export type CaseImageZoomController = { refresh(): void; destroy(): void }
 
-/** Верх елемента в документі за ланцюжком offsetParent (без впливу transform). */
+/** Верх элемента в документе по цепочке offsetParent (без влияния transform). */
 function offsetTopInPage(el: HTMLElement): number {
   let top = 0
   let cur: HTMLElement | null = el
@@ -63,9 +63,9 @@ export function attachCaseImageZoom(wrapper: HTMLElement): CaseImageZoomControll
   const measure = () => {
     measureRaf = 0
     if (!active) return
-    // Геометрія — через offset* (layout-значення, не залежать від поточного transform: rect
-    // масштабованої обгортки збрехав би про висоту й top). Запас під збільшення — до вимірювання
-    // позиції (змінює margin, отже й top).
+    // Геометрия — через offset* (layout-значения, не зависят от текущего transform: rect
+    // масштабированной обёртки соврал бы о высоте и top). Запас под увеличение — до измерения
+    // позиции (меняет margin, следовательно и top).
     const w0 = wrapper.offsetWidth
     const h0 = wrapper.offsetHeight
     const s = targetScale(window.innerWidth, w0)
@@ -93,12 +93,12 @@ export function attachCaseImageZoom(wrapper: HTMLElement): CaseImageZoomControll
     if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(scheduleMeasure)
       ro.observe(wrapper)
-      // Контент вище секції досчитується після гідрації (шрифти, картинки) і зсуває обгортку, не
-      // змінюючи її розміру — стежимо й за висотою сторінки.
+      // Контент выше секции досчитывается после гидрации (шрифты, картинки) и сдвигает обёртку, не
+      // меняя её размера — следим и за высотой страницы.
       ro.observe(document.body)
     }
     if (typeof IntersectionObserver !== 'undefined') {
-      // Підхід до вьюпорту — переміряти ще раз (кеш top міг застаріти без зміни розмірів).
+      // Подход к вьюпорту — перемерить ещё раз (кэш top мог устареть без изменения размеров).
       io = new IntersectionObserver((list) => list.some((e) => e.isIntersecting) && scheduleMeasure(), { rootMargin: '100% 0px' })
       io.observe(wrapper)
     }

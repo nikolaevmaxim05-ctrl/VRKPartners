@@ -1,8 +1,8 @@
-// Enhanced Conversions на сайті: gtag('set','user_data', { sha256_email_address, sha256_phone_number })
-// ДО події-конверсії (розділ 15). Нормалізація/хеш — у @core/domain/funnel/enhanced-conversions.
+// Enhanced Conversions на сайте: gtag('set','user_data', { sha256_email_address, sha256_phone_number })
+// ДО события-конверсии (раздел 15). Нормализация/хеш — в @core/domain/funnel/enhanced-conversions.
 //
-// Інваріанти безпеки: ніколи не кидає, нічого не логує, не пише у storage; сирі email/телефон
-// у dataLayer/gtag('event') НІКОЛИ не потрапляють — лише sha256-хеші через gtag('set','user_data').
+// Инварианты безопасности: никогда не бросает, ничего не логирует, не пишет в storage; сырые email/телефон
+// в dataLayer/gtag('event') НИКОГДА не попадают — только sha256-хеши через gtag('set','user_data').
 
 import { hashableUserData, sha256Hex } from '@core/domain/funnel/enhanced-conversions'
 
@@ -33,6 +33,6 @@ export async function setEnhancedConversionUserData(data: {
 
     window.gtag('set', 'user_data', userData)
   } catch {
-    // Аналітика ніколи не повинна ламати UI
+    // Аналитика никогда не должна ломать UI
   }
 }

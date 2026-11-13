@@ -1,10 +1,10 @@
 "use client";
 
-// ТИМЧАСОВА панель підбору параметрів розгорання слів (крок 4). Показується лише за адресою
-// /?tune-words=1 (або з прапорцем у localStorage), відвідувачі її не бачать; значення живуть у
-// localStorage браузера й застосовуються наживо через подію WORD_REVEAL_PARAMS_EVENT. Після
-// підбору власник повідомляє значення, вони зашиваються в WORD_REVEAL_DEFAULTS, а цей файл
-// видаляється разом із підключенням у layout.
+// ВРЕМЕННАЯ панель подбора параметров разгорания слов (шаг 4). Показывается только по адресу
+// /?tune-words=1 (или с флагом в localStorage), посетители её не видят; значения живут в
+// localStorage браузера и применяются на лету через событие WORD_REVEAL_PARAMS_EVENT. После
+// подбора владелец сообщает значения, они зашиваются в WORD_REVEAL_DEFAULTS, а этот файл
+// удаляется вместе с подключением в layout.
 import { useEffect, useState } from "react";
 import {
   WORD_REVEAL_DEFAULTS,
@@ -68,7 +68,7 @@ export function WordRevealTuner() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
-      /* приватний режим */
+      /* приватный режим */
     }
     window.dispatchEvent(new CustomEvent(WORD_REVEAL_PARAMS_EVENT, { detail: next }));
   };
@@ -78,7 +78,7 @@ export function WordRevealTuner() {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
-      /* приватний режим */
+      /* приватный режим */
     }
     window.dispatchEvent(new CustomEvent(WORD_REVEAL_PARAMS_EVENT, { detail: WORD_REVEAL_DEFAULTS }));
   };

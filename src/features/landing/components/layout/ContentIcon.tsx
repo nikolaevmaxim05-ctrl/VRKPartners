@@ -2,8 +2,8 @@ import { resolveIcon, isImageIcon } from "@/shared/lib/audit-icons";
 import { cn } from "@/shared/lib/utils";
 
 /**
- * Іконка картки: або пресет-іконка (lucide за ключем), або завантажене
- * користувачем зображення (шлях/URL). Розмір задається через className.
+ * Иконка карточки: либо пресет-иконка (lucide по ключу), либо загруженное
+ * пользователем изображение (путь/URL). Размер задаётся через className.
  */
 export function ContentIcon({
   icon,

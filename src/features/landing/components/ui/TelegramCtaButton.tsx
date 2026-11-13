@@ -1,16 +1,16 @@
 "use client";
 
-// Кнопка «Або напишіть нам» — прямий чат менеджера в Telegram, поруч із CTA.
-// Стиль «telegram»: блакитний акцент (рамка+текст+іконка), не конкурує з жовтим
-// primary. URL і текст — з текстів сайту (messages.site + правки адмінки), не хардкод.
-// Клієнтський лише заради track().
+// Кнопка «Або напишіть нам» — прямой чат менеджера в Telegram, рядом с CTA.
+// Стиль «telegram»: голубой акцент (рамка+текст+иконка), не конкурирует с жёлтым
+// primary. URL и текст — из текстов сайта (messages.site + правки админки), не хардкод.
+// Клиентский только ради track().
 
 import { buttonVariants } from "@/features/landing/components/ui/Button";
 import { useSiteMessages } from "@/features/landing/lib/messages";
 import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/utils";
 
-/** Інлайн-логотип Telegram (без зовнішніх залежностей/іконок-паків). */
+/** Инлайн-логотип Telegram (без внешних зависимостей/паков иконок). */
 function TelegramGlyph({ className }: { className?: string }) {
   return (
     <svg
@@ -33,20 +33,20 @@ export function TelegramCtaButton({
   className,
   onClick,
 }: {
-  /** Секція/місце кнопки — параметр події telegram_cta_click. */
+  /** Секция/место кнопки — параметр события telegram_cta_click. */
   placement: string;
   size?: Size;
-  /** Тільки іконка (для тісної шапки на десктопі). */
+  /** Только иконка (для тесной шапки на десктопе). */
   iconOnly?: boolean;
   className?: string;
-  /** Додатковий обробник (напр. закрити мобільне меню). Перехід не скасовується. */
+  /** Дополнительный обработчик (напр. закрыть мобильное меню). Переход не отменяется. */
   onClick?: () => void;
 }) {
   const { site } = useSiteMessages();
   const url = site.telegramCtaUrl;
   const text = site.telegramCtaText;
 
-  // Немає URL або тексту (адмін очистив) — кнопку не показуємо.
+  // Нет URL или текста (админ очистил) — кнопку не показываем.
   if (!url || text.trim() === "") return null;
 
   return (

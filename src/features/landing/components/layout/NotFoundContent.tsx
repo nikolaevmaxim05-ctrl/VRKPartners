@@ -1,5 +1,5 @@
-// Вміст сторінки 404 (server component). Тексти — messages.notFound; використовується і під
-// layout сайту ([locale]/not-found.tsx — рішення 13), і в кореневому not-found (поза мовами).
+// Содержимое страницы 404 (server component). Тексты — messages.notFound; используется и под
+// layout сайта ([locale]/not-found.tsx — решение 13), и в корневом not-found (вне языков).
 import { Link } from '@/i18n/navigation'
 import { Button } from '@/features/landing/components/ui/Button'
 import type { NotFoundMessages } from '@core/domain/content/site-messages'

@@ -20,12 +20,12 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   const { openLead } = useLeadModal();
   const { trust, services } = useSiteMessages();
 
-  // Рівень 1 — ніша, Рівень 2 — кейс усередині ніші.
+  // Уровень 1 — ниша, Уровень 2 — кейс внутри ниши.
   const [nicheIdx, setNicheIdx] = React.useState(0);
   const [caseIdx, setCaseIdx] = React.useState(0);
   const panelRef = React.useRef<HTMLDivElement>(null);
 
-  // Панель кейсу пересоздається (key) — нові [data-fit] метрики треба підігнати без resize.
+  // Панель кейса пересоздаётся (key) — новые [data-fit] метрики нужно подогнать без resize.
   React.useEffect(() => {
     const el = panelRef.current;
     if (!el) return;
@@ -33,10 +33,10 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
     return () => cancelAnimationFrame(raf);
   }, [nicheIdx, caseIdx]);
 
-  // Крок 5 мобільних анімацій: скріншот кейсу збільшується до ширини екрана при наближенні до центру
-  // (< sm; DOM — features/landing/lib/case-image-zoom). Блок кейсу перемонтовується (key), тому
-  // ефект підключається заново на кожну зміну ніші/кейсу. Тап по картинці — лайтбокс (усі пристрої:
-  // hover-превью в кейсів немає), кнопка-тригер зʼявляється після монтування (SSR — div).
+  // Шаг 5 мобильных анимаций: скриншот кейса увеличивается до ширины экрана при приближении к центру
+  // (< sm; DOM — features/landing/lib/case-image-zoom). Блок кейса перемонтируется (key), поэтому
+  // эффект подключается заново на каждую смену ниши/кейса. Тап по картинке — лайтбокс (все устройства:
+  // hover-превью у кейсов нет), кнопка-триггер появляется после монтирования (SSR — div).
   const zoomRef = React.useRef<HTMLDivElement>(null);
   const zoomBtnRef = React.useRef<HTMLButtonElement>(null);
   const [zoomable, setZoomable] = React.useState(false);
@@ -50,7 +50,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
   }, [nicheIdx, caseIdx]);
   const closeLightbox = React.useCallback(() => setLightbox(false), []);
 
-  // Порожні ніші/кейси (без назви) не виводяться; кейси мають опційні task/approach/image.
+  // Пустые ниши/кейсы (без названия) не выводятся; у кейсов есть опциональные task/approach/image.
   const caseGroups = trust.caseGroups
     .filter((g) => hasText(g.niche))
     .map((g) => ({ ...g, cases: (g.cases ?? []).filter((c) => hasText(c.client)) }))
@@ -64,7 +64,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
 
   const selectNiche = (i: number) => {
     setNicheIdx(i);
-    setCaseIdx(0); // скидаємо вибір кейсу при зміні ніші
+    setCaseIdx(0); // сбрасываем выбор кейса при смене ниши
     track("case_niche_click", { niche: caseGroups[i]?.niche });
   };
 
@@ -88,13 +88,13 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
 
   const hasCases = !!group && !!current;
 
-  // < sm: overflow-x: clip на секції (не hidden — не створює скрол-контейнер, якір scroll-margin
-  // працює) — страховка від горизонтального скролу при збільшеному скріншоті кейсу.
+  // < sm: overflow-x: clip на секции (не hidden — не создаёт скролл-контейнер, якорь scroll-margin
+  // работает) — страховка от горизонтального скролла при увеличенном скриншоте кейса.
   return (
     <section id="cases" className="section max-sm:overflow-x-clip">
       <div className="container-x">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-          {/* Ліва колонка: довіра */}
+          {/* Левая колонка: доверие */}
           <div className="reveal min-w-0">
             <Title data-fit className="h2">{nbHyphen(trust.title)}</Title>
 
@@ -114,7 +114,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
               </div>
             )}
 
-            {/* хайлайти-цифри: рядки на мобільному, колонки на десктопі */}
+            {/* хайлайты-цифры: строки на мобильном, колонки на десктопе */}
             <div data-items={highlights.length} className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {highlights.map((h, i) => (
                 <div
@@ -127,17 +127,17 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
               ))}
             </div>
 
-            {/* Блок «Ніші» (підпис + чипи) прибрано за рішенням власника 2026-09-13; перемикач ніш
-                у картці кейсів праворуч лишається. Кнопки стоять на тому ж відступі (mt-8) від цифр. */}
+            {/* Блок «Ніші» (подпись + чипы) убран по решению владельца 2026-09-13; переключатель ниш
+                в карточке кейсов справа остаётся. Кнопки стоят на том же отступе (mt-8) от цифр. */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               {hasText(trust.ctaSecondary) && <Button onClick={handleConsult}>{trust.ctaSecondary}</Button>}
               <TelegramCtaButton placement="trust" size="md" />
             </div>
           </div>
 
-          {/* Права колонка: кейси — ніша → кейс → контент (без кейсів — не виводиться).
-              Жовта обводка зі свіченням кольору бренду по периметру (токен shadow-glowSoft) — рішення
-              власника 2026-09-14; сіра рамка на аврора-фоні читалася як білясте свічення. */}
+          {/* Правая колонка: кейсы — ниша → кейс → контент (без кейсов — не выводится).
+              Жёлтая обводка со свечением цвета бренда по периметру (токен shadow-glowSoft) — решение
+              владельца 2026-09-14; серая рамка на аврора-фоне читалась как беловатое свечение. */}
           {hasCases && (
           <div className="reveal min-w-0 rounded-2xl border border-brand/40 bg-bg-card p-5 shadow-glowSoft sm:p-7">
             <div className="flex items-center gap-2">
@@ -146,7 +146,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
             </div>
             {hasText(trust.caseHint) && <p className="mt-1 text-sm text-white/50">{trust.caseHint}</p>}
 
-            {/* Крок 1 — вибір ніші */}
+            {/* Шаг 1 — выбор ниши */}
             <div className="mt-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">
                 {trust.nicheStep}
@@ -185,7 +185,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
               </div>
             </div>
 
-            {/* Крок 2 — вибір кейсу всередині ніші */}
+            {/* Шаг 2 — выбор кейса внутри ниши */}
             <div className="mt-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">
                 {trust.caseStep}
@@ -220,7 +220,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
               </div>
             </div>
 
-            {/* Крок 3 — контент кейсу */}
+            {/* Шаг 3 — контент кейса */}
             <div
               key={`${nicheIdx}-${caseIdx}`}
               ref={panelRef}
@@ -272,11 +272,11 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
                 ))}
               </div>
 
-              {/* скрін результатів */}
+              {/* скрин результатов */}
               {cur.image && (
                 <>
-                  {/* Обгортка [data-case-zoom] масштабується на мобільному (transform, запас по вертикалі
-                      через --case-zoom-reserve); усередині — кнопка-тригер лайтбокса (після гідрації). */}
+                  {/* Обёртка [data-case-zoom] масштабируется на мобильном (transform, запас по вертикали
+                      через --case-zoom-reserve); внутри — кнопка-триггер лайтбокса (после гидрации). */}
                   <div ref={zoomRef} data-case-zoom className="case-zoom relative mt-5">
                     {(() => {
                       const inner = (
@@ -327,7 +327,7 @@ export function Trust({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {})
                 </>
               )}
 
-              {/* підходи */}
+              {/* подходы */}
               {contentList(cur.approach).length > 0 && (
               <div className="mt-6">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/40">

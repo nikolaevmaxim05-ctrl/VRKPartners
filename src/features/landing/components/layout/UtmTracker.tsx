@@ -9,17 +9,17 @@ import {
 } from "@/features/landing/lib/utm";
 import { captureRefFromUrl } from "@/features/landing/lib/referral";
 
-// Невидимий компонент: на маунті зчитує UTM-мітки з URL і складає їх у sessionStorage.
-// Логіка last-touch: нові мітки з URL перезаписують збережені (тільки ті ключі, що є в URL).
-// referrer фіксується один раз — на першому візиті в сесії.
+// Невидимый компонент: на маунте считывает UTM-метки из URL и складывает их в sessionStorage.
+// Логика last-touch: новые метки из URL перезаписывают сохранённые (только те ключи, что есть в URL).
+// referrer фиксируется один раз — на первом визите в сессии.
 export function UtmTracker() {
   useEffect(() => {
-    // Реферальний код із ?ref= — дзеркало HttpOnly-cookie (відхилення 11).
+    // Реферальный код из ?ref= — зеркало HttpOnly-cookie (отклонение 11).
     captureRefFromUrl();
     try {
       const params = new URLSearchParams(window.location.search);
 
-      // 1. Збираємо UTM-мітки з URL
+      // 1. Собираем UTM-метки из URL
       const fromUrl: UtmData = {};
       for (const key of UTM_URL_KEYS) {
         const value = params.get(key);
@@ -29,12 +29,12 @@ export function UtmTracker() {
       }
       const hasUrlMarks = Object.keys(fromUrl).length > 0;
 
-      // 2. Читаємо те, що вже збережено
+      // 2. Читаем то, что уже сохранено
       const storedRaw = window.sessionStorage.getItem(UTM_STORAGE_KEY);
       const stored: UtmData = storedRaw ? normalizeUtm(safeJsonParse(storedRaw)) : {};
       const isFirstVisit = !storedRaw;
 
-      // 3. Перший візит у сесії — фіксуємо зовнішній referrer
+      // 3. Первый визит в сессии — фиксируем внешний referrer
       if (isFirstVisit) {
         const ref = document.referrer;
         if (ref && !ref.startsWith(window.location.origin)) {
@@ -42,9 +42,9 @@ export function UtmTracker() {
         }
       }
 
-      // 4. Якщо в URL немає нових міток:
-      //    - перший візит із зовнішнім referrer → зберігаємо лише його
-      //    - інакше нічого не чіпаємо (збережене лишається)
+      // 4. Если в URL нет новых меток:
+      //    - первый визит с внешним referrer → сохраняем только его
+      //    - иначе ничего не трогаем (сохранённое остаётся)
       if (!hasUrlMarks) {
         if (isFirstVisit && stored.referrer) {
           window.sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(stored));
@@ -52,11 +52,11 @@ export function UtmTracker() {
         return;
       }
 
-      // 5. Є нові мітки — мерджимо (нові перезаписують старі) і зберігаємо
+      // 5. Есть новые метки — мержим (новые перезаписывают старые) и сохраняем
       const merged: UtmData = { ...stored, ...fromUrl };
       window.sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(merged));
     } catch {
-      // sessionStorage недоступний (приватний режим / вимкнено) — просто ігноруємо
+      // sessionStorage недоступен (приватный режим / выключен) — просто игнорируем
     }
   }, []);
 

@@ -16,14 +16,14 @@ export function Footer() {
   const vis = useHomeVisibility();
   const pathname = usePathname();
   const year = new Date().getFullYear();
-  // Посилання на прихований блок не виводиться ніде (розділ 9).
+  // Ссылка на скрытый блок не выводится нигде (раздел 9).
   const nav = NAV_ITEMS.filter((item) => vis.shown(item.id) && navLabels[item.id].trim() !== "");
   const approach = contentList(footer.approach);
   return (
     <footer className="border-t border-bg-line bg-bg-soft/50">
       <div className="container-x py-12 lg:py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
-          {/* Про нас */}
+          {/* О нас */}
           <div className="max-w-sm">
             <Logo className="text-xl" />
             {hasText(footer.description) && (
@@ -48,7 +48,7 @@ export function Footer() {
             )}
           </div>
 
-          {/* Навігація */}
+          {/* Навигация */}
           {nav.length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-white/35">
@@ -68,7 +68,7 @@ export function Footer() {
             </div>
           )}
 
-          {/* Контакти */}
+          {/* Контакты */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-white/35">
               {footer.contactsTitle}

@@ -15,7 +15,7 @@ import { useSiteMessages } from "@/features/landing/lib/messages";
 import { Button } from "@/features/landing/components/ui/Button";
 import { Field, Input } from "@/features/landing/components/ui/Field";
 
-/** Маска телефону: +380 (XX) XXX-XX-XX. Лишає тільки цифри й форматує. */
+/** Маска телефона: +380 (XX) XXX-XX-XX. Оставляет только цифры и форматирует. */
 function formatUaPhone(input: string): string {
   let d = input.replace(/\D/g, "");
   if (d.startsWith("380")) d = d.slice(3);
@@ -31,7 +31,7 @@ function formatUaPhone(input: string): string {
   return out;
 }
 
-/** Маска імені: лише літери, пробіл, дефіс і апостроф (без цифр і символів). */
+/** Маска имени: только буквы, пробел, дефис и апостроф (без цифр и символов). */
 function cleanName(input: string): string {
   return input.replace(/[^A-Za-zА-Яа-яЁёЇїІіЄєҐґ'’\s-]/g, "");
 }
@@ -39,14 +39,14 @@ function cleanName(input: string): string {
 interface LeadFormProps {
   source: string;
   submitLabel?: string;
-  /** Якщо true — показати інлайн-успіх замість переходу на /thanks. */
+  /** Если true — показать инлайн-успех вместо перехода на /thanks. */
   inlineSuccess?: boolean;
-  /** Викликається після успішної відправки (напр. щоб закрити модалку). */
+  /** Вызывается после успешной отправки (напр. чтобы закрыть модалку). */
   onSuccess?: () => void;
 }
 
-// Форма заявки: імʼя + телефон (+ honeypot `company`). Тексти й помилки — messages.form.
-// Відправка на /api/leads; порядок аналітики (розділ 15): form_submit_attempt → fetch →
+// Форма заявки: имя + телефон (+ honeypot `company`). Тексты и ошибки — messages.form.
+// Отправка на /api/leads; порядок аналитики (раздел 15): form_submit_attempt → fetch →
 // gtag('set','user_data') → form_submit_success (generate_lead).
 export function LeadForm({
   source,
@@ -76,11 +76,11 @@ export function LeadForm({
   const onSubmit = async (data: LeadInput) => {
     setServerError(null);
     track("form_submit_attempt", { source });
-    // Атрибуція: UTM-мітки із sessionStorage + URL поточної сторінки
+    // Атрибуция: UTM-метки из sessionStorage + URL текущей страницы
     const utm = getStoredUtm();
     const page = typeof window !== "undefined" ? window.location.href : undefined;
-    // Касання партнерських посилань (дзеркало localStorage): сервер обʼєднує cookie ⊕ це поле ⊕ ?ref
-    // сторінки і зараховує найраніше касання у вікні атрибуції (невалідні ігноруються, ніколи не 400).
+    // Касания партнёрских ссылок (зеркало localStorage): сервер объединяет cookie ⊕ это поле ⊕ ?ref
+    // страницы и зачитывает самое раннее касание в окне атрибуции (невалидные игнорируются, никогда не 400).
     const refTouches = getStoredRefTouches();
     try {
       const res = await fetch("/api/leads", {
@@ -89,21 +89,21 @@ export function LeadForm({
         body: JSON.stringify({ ...data, utm, page, locale, refTouches }),
       });
       if (!res.ok) {
-        // Розрізняємо типи помилок сервера, щоб не втрачати ліди мовчазним «щось пішло не так».
+        // Различаем типы ошибок сервера, чтобы не терять лиды молчаливым «что-то пошло не так».
         track("form_submit_error", { source });
         if (res.status === 429) {
-          // Чесний перебір ліміту.
+          // Честное превышение лимита.
           setServerError(t.errorRateLimited);
         } else if (res.status === 503) {
-          // Технічна недоступність — НЕ «забагато спроб».
+          // Техническая недоступность — НЕ «слишком много попыток».
           setServerError(t.errorUnavailable);
         } else {
           setServerError(t.errorFailed);
         }
         return;
       }
-      // Розділ 15, жорсткий порядок: 1) gtag('set','user_data') з хешами (Enhanced Conversions);
-      // 2) gtag('event','conversion',{send_to}) для Ads-тегів з label; 3) generate_lead.
+      // Раздел 15, жёсткий порядок: 1) gtag('set','user_data') с хешами (Enhanced Conversions);
+      // 2) gtag('event','conversion',{send_to}) для Ads-тегов с label; 3) generate_lead.
       await setEnhancedConversionUserData({
         email: data.email || undefined,
         phone: data.phone,
@@ -113,11 +113,11 @@ export function LeadForm({
       if (inlineSuccess) {
         setDone(true);
       } else {
-        onSuccess?.(); // закрити модалку (з анімацією) перед переходом
+        onSuccess?.(); // закрыть модалку (с анимацией) перед переходом
         router.push("/thanks");
       }
     } catch {
-      // Мережна помилка (fetch кинув) — окреме повідомлення.
+      // Сетевая ошибка (fetch бросил) — отдельное сообщение.
       track("form_submit_error", { source });
       setServerError(t.errorNetwork);
     }
@@ -168,7 +168,7 @@ export function LeadForm({
         />
       </Field>
 
-      {/* Honeypot — приховане поле для ботів */}
+      {/* Honeypot — скрытое поле для ботов */}
       <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
         <label htmlFor={`${source}-company`}>{t.honeypotLabel}</label>
         <input

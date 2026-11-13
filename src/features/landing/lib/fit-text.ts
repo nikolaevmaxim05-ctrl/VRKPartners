@@ -1,16 +1,16 @@
-// Підгонка заголовків до ширини та висоти (розділ 12, п. 1) — DOM-частина.
-// Елементи: [data-fit] (h1, заголовки секцій, заголовок фінального банера, великі цифри статистики);
-// ряд цифр: [data-fit-row="<імʼя>"] — після підгонки всім ставиться найменший розмір.
-// Правила (арифметика) — у @core/domain/layout/fit-text; тут лише вимірювання.
+// Подгонка заголовков по ширине и высоте (раздел 12, п. 1) — DOM-часть.
+// Элементы: [data-fit] (h1, заголовки секций, заголовок финального баннера, большие цифры статистики);
+// ряд цифр: [data-fit-row="<имя>"] — после подгонки всем ставится наименьший размер.
+// Правила (арифметика) — в @core/domain/layout/fit-text; здесь только измерение.
 import { fitWidth, fitHeight, equalizeRow } from '@core/domain/layout/fit-text'
 
-/** Початковий inline font-size кожного елемента — запамʼятовуємо ОДИН раз (не затираємо). */
+/** Исходный inline font-size каждого элемента — запоминаем ОДИН раз (не затираем). */
 const originalInline = new WeakMap<HTMLElement, string>()
 const baseSize = new WeakMap<HTMLElement, number>()
 
 function rememberBase(el: HTMLElement): number {
   if (!originalInline.has(el)) originalInline.set(el, el.style.fontSize)
-  // Повертаємо початковий розмір (з CSS/clamp) і міряємо від нього.
+  // Возвращаем исходный размер (из CSS/clamp) и меряем от него.
   el.style.fontSize = originalInline.get(el) ?? ''
   el.classList.remove('fit-break')
   const base = parseFloat(getComputedStyle(el).fontSize)
@@ -19,16 +19,16 @@ function rememberBase(el: HTMLElement): number {
 }
 
 /**
- * Ширина найдовшого нерозривного відрізка: Range по текстових вузлах; слова діляться лише
- * пробілами; сусідні inline-вузли в одному блоці склеюються (між блоками перенос можливий завжди).
- * Вимірюємо ширину кожного слова окремим Range і беремо max (слово може включати кілька
- * inline-вузлів — напр. частину до і після <span class="nb">).
+ * Ширина самого длинного неразрывного отрезка: Range по текстовым узлам; слова делятся только
+ * пробелами; соседние inline-узлы в одном блоке склеиваются (между блоками перенос возможен всегда).
+ * Измеряем ширину каждого слова отдельным Range и берём max (слово может включать несколько
+ * inline-узлов — напр. часть до и после <span class="nb">).
  */
 function widestSegment(el: HTMLElement): number {
   const doc = el.ownerDocument
   const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT)
-  // Збираємо послідовність (вузол, індекс) символів без пробілів — сегмент рветься на пробілі
-  // або на межі блокового елемента.
+  // Собираем последовательность (узел, индекс) символов без пробелов — сегмент рвётся на пробеле
+  // или на границе блочного элемента.
   type Pos = { node: Text; offset: number }
   let segStart: Pos | null = null
   let segEnd: Pos | null = null
@@ -74,7 +74,7 @@ function blockAncestor(node: Node, root: HTMLElement): Node {
   return root
 }
 
-/** Прохід по ширині для одного елемента. Повертає застосований розмір (або базовий). */
+/** Проход по ширине для одного элемента. Возвращает применённый размер (или базовый). */
 export function fitElementWidth(el: HTMLElement): number {
   const base = rememberBase(el)
   const parent = el.parentElement
@@ -89,9 +89,9 @@ export function fitElementWidth(el: HTMLElement): number {
 }
 
 /**
- * Прохід по висоті першого екрана: кнопки ([data-fit-buttons]) мають бути вище нижнього краю
- * вікна (запас 2px). Позиції — через offsetTop/offsetHeight (анімація появи зсуває блок
- * translateY, getBoundingClientRect бреше на величину зсуву).
+ * Проход по высоте первого экрана: кнопки ([data-fit-buttons]) должны быть выше нижнего края
+ * окна (запас 2px). Позиции — через offsetTop/offsetHeight (анимация появления сдвигает блок
+ * translateY, getBoundingClientRect врёт на величину сдвига).
  */
 export function fitHeroHeight(title: HTMLElement, buttons: HTMLElement): void {
   const base = baseSize.get(title) ?? parseFloat(getComputedStyle(title).fontSize)
@@ -117,7 +117,7 @@ function offsetTopInPage(el: HTMLElement): number {
   return top
 }
 
-/** Повний прохід по документу: ширина для всіх [data-fit], ряди [data-fit-row], висота hero. */
+/** Полный проход по документу: ширина для всех [data-fit], ряды [data-fit-row], высота hero. */
 export function fitAll(root: ParentNode = document): void {
   const els = Array.from(root.querySelectorAll<HTMLElement>('[data-fit]'))
   const rows = new Map<string, { el: HTMLElement; size: number }[]>()

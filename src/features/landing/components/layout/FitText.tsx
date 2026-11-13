@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { fitAll } from "@/features/landing/lib/fit-text";
 
 /**
- * Запускає підгонку заголовків (розділ 12, п. 1) після монтування, після завантаження шрифтів
- * і при зміні розміру вікна. Живе в layout сайту; переганяє при зміні маршруту.
- * Стартовий стан — видимий: без JS заголовки лишаються з CSS-розміром (clamp).
+ * Запускает подгонку заголовков (раздел 12, п. 1) после монтирования, после загрузки шрифтов
+ * и при изменении размера окна. Живёт в layout сайта; перегоняет при смене маршрута.
+ * Стартовое состояние — видимое: без JS заголовки остаются с CSS-размером (clamp).
  */
 export function FitText() {
   const pathname = usePathname();
@@ -19,7 +19,7 @@ export function FitText() {
       raf = requestAnimationFrame(() => fitAll(document));
     };
     run();
-    // Шрифт може довантажитись пізніше — ширина слів зміниться.
+    // Шрифт может догрузиться позже — ширина слов изменится.
     if (typeof document !== "undefined" && "fonts" in document) {
       document.fonts.ready.then(run).catch(() => {});
     }

@@ -6,11 +6,11 @@ import { cn } from "@/shared/lib/utils";
 import type { Partner } from "@core/domain/content/site-messages";
 
 /**
- * Безкінечний слайдер логотипів партнерів (messages.hero.partners — редагується з адмінки).
- * Логотипи клікабельні й ведуть на сайти компаній (нова вкладка); без href — просто картинка.
- * Стрічка дублюється двічі та зсувається на -50% — безшовний цикл. Дубль позначений data-clone і
- * aria-hidden: читачі екрана не чують логотипи двічі, а в режимі lite (globals.css, html.lite) дубль
- * прихований, анімації немає — статичний ряд із горизонтальною прокруткою пальцем, без маски країв.
+ * Бесконечный слайдер логотипов партнёров (messages.hero.partners — редактируется из админки).
+ * Логотипы кликабельны и ведут на сайты компаний (новая вкладка); без href — просто картинка.
+ * Лента дублируется дважды и сдвигается на -50% — бесшовный цикл. Дубль помечен data-clone и
+ * aria-hidden: скринридеры не слышат логотипы дважды, а в режиме lite (globals.css, html.lite) дубль
+ * скрыт, анимации нет — статичный ряд с горизонтальной прокруткой пальцем, без маски краёв.
  */
 export function PartnersMarquee({ partners, className }: { partners: Partner[]; className?: string }) {
   const loop = [...partners, ...partners];
@@ -21,8 +21,8 @@ export function PartnersMarquee({ partners, className }: { partners: Partner[]; 
     <div
       className={cn(
         "partners-marquee relative w-full min-w-0 max-w-full overflow-hidden",
-        // Плавне згасання логотипів до прозорого на краях (маска), а не темна
-        // накладка — щоб не було «обрізаного чорного» на анімованому фоні.
+        // Плавное затухание логотипов до прозрачного на краях (маска), а не тёмная
+        // накладка — чтобы не было «обрезанного чёрного» на анимированном фоне.
         "[mask-image:linear-gradient(to_right,transparent,black_2.5rem,black_calc(100%_-_2.5rem),transparent)]",
         "[-webkit-mask-image:linear-gradient(to_right,transparent,black_2.5rem,black_calc(100%_-_2.5rem),transparent)]",
         className

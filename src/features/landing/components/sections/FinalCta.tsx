@@ -16,7 +16,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = React.useState(false);
   return (
     <div className="relative">
-      {/* м'яке свічення ПОЗАДУ питання — плавно з'являється при відкритті */}
+      {/* мягкое свечение ПОЗАДИ вопроса — плавно появляется при открытии */}
       <div
         aria-hidden="true"
         className={cn(
@@ -28,7 +28,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         <button
           type="button"
           onClick={() => {
-            // трекаємо лише розкриття (не згортання)
+            // трекаем только раскрытие (не сворачивание)
             if (!open) track("faq_open", { question: q });
             setOpen((v) => !v);
           }}
@@ -57,9 +57,9 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-// Одна секція сайту (#contacts) з двома приховуваними блоками: `finalCta` (заголовок, контакти,
-// нижній CTA) і `faq` (питання). Приховане не потрапляє в DOM; секцію без обох блоків не
-// рендерить page.tsx.
+// Одна секция сайта (#contacts) с двумя скрываемыми блоками: `finalCta` (заголовок, контакты,
+// нижний CTA) и `faq` (вопросы). Скрытое не попадает в DOM; секцию без обоих блоков не
+// рендерит page.tsx.
 export function FinalCta({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { finalCta, faq, site } = useSiteMessages();
@@ -89,7 +89,7 @@ export function FinalCta({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
           </div>
         )}
 
-        {/* FAQ — у дві колонки на десктопі */}
+        {/* FAQ — в две колонки на десктопе */}
         {showFaq && (
           <div
             id="faq"
@@ -106,7 +106,7 @@ export function FinalCta({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
 
         {showCta && (
           <>
-            {/* Контакти */}
+            {/* Контакты */}
             <div data-items={[site.telegram, site.email, site.phone].filter(hasText).length} className="reveal mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {hasText(site.telegram) && (
                 <a
@@ -155,7 +155,7 @@ export function FinalCta({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
               )}
             </div>
 
-            {/* Нижній CTA */}
+            {/* Нижний CTA */}
             {hasText(finalCta.primaryCta) && (
               <div className="reveal mx-auto mt-12 max-w-3xl rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 text-center shadow-card sm:p-8">
                 <h3 data-fit className="text-2xl font-bold text-white">{nbHyphen(finalCta.primaryCta)}</h3>

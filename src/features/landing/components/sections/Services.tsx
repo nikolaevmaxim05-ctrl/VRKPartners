@@ -41,25 +41,25 @@ const icons: Record<string, LucideIcon> = {
 };
 
 const SERVICES_PREVIEW = 3;
-// Час, який курсор має затриматись на картці, перш ніж зʼявиться збільшене превью.
+// Время, которое курсор должен задержаться на карточке, прежде чем появится увеличенное превью.
 const PREVIEW_HOVER_DELAY_MS = 500;
-// Велике hover-превью — лише там, де є справжнє наведення і сітка (≥ sm). На тачі тап викликає
-// mouseenter, а в каруселі (overflow-x: auto) absolute-превью обрізалося б або розширювало трек.
+// Большое hover-превью — только там, где есть настоящее наведение и сетка (≥ sm). На таче тап вызывает
+// mouseenter, а в карусели (overflow-x: auto) absolute-превью обрезалось бы или расширяло трек.
 const PREVIEW_MEDIA = "(hover: hover) and (min-width: 640px)";
-// Брейкпоінт «мобільна карусель» (< sm): збігається з переходом сітки на 2 колонки.
+// Брейкпоинт «мобильная карусель» (< sm): совпадает с переходом сетки на 2 колонки.
 const TRACK_MEDIA = "(max-width: 639.98px)";
 
-/** Прокрутка, за якої картка стоїть по центру треку (обмежена діапазоном прокрутки). */
+/** Прокрутка, при которой карточка стоит по центру трека (ограничена диапазоном прокрутки). */
 function centerOffset(track: HTMLElement, card: HTMLElement): number {
   const target = card.offsetLeft + card.offsetWidth / 2 - track.clientWidth / 2;
   return Math.max(0, Math.min(target, track.scrollWidth - track.clientWidth));
 }
 
-// Клони-буфери каруселі (< sm): K останніх карток перед першою і K перших після останньої, щоб сусіди
-// були видні з обох боків і цикл не мав «упору». Після зупинки на клоні трек телепортується на
-// відповідну реальну картку (features: див. useEffect у Services).
+// Клоны-буферы карусели (< sm): K последних карточек перед первой и K первых после последней, чтобы соседи
+// были видны с обеих сторон и цикл не имел «упора». После остановки на клоне трек телепортируется на
+// соответствующую реальную карточку (features: см. useEffect в Services).
 const LOOP_CLONES = 2;
-/** Пауза після останнього scroll, коли немає події scrollend (iOS Safari), мс. */
+/** Пауза после последнего scroll, когда нет события scrollend (iOS Safari), мс. */
 const SCROLL_SETTLE_MS = 120;
 
 function ServiceCard({
@@ -74,16 +74,16 @@ function ServiceCard({
   i: number;
   collapsed: boolean;
   zoomLabel: string;
-  /** Клон-буфер каруселі: поза деревом доступності й табуляцією, без reveal-анімації; лайтбокс працює. */
+  /** Клон-буфер карусели: вне дерева доступности и табуляции, без reveal-анимации; лайтбокс работает. */
   clone?: boolean;
-  /** Клон зліва (order: -1 — у DOM після реальних карток, візуально перед ними) чи справа. */
+  /** Клон слева (order: -1 — в DOM после реальных карточек, визуально перед ними) или справа. */
   side?: "left" | "right";
 }) {
-  // Показ великого превью керуємо станом: вмикаємо через таймер, вимикаємо одразу.
+  // Показом большого превью управляем состоянием: включаем через таймер, выключаем сразу.
   const [preview, setPreview] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Лайтбокс (крок 3b): лише там, де немає hover-превью (тач / < sm). Визначаємо після монтування —
-  // SSR рендерить мініатюру як div, на тачі вона стає кнопкою (без розбіжностей гідрації).
+  // Лайтбокс (шаг 3b): только там, где нет hover-превью (тач / < sm). Определяем после монтирования —
+  // SSR рендерит миниатюру как div, на таче она становится кнопкой (без расхождений гидрации).
   const [zoomable, setZoomable] = React.useState(false);
   const [lightbox, setLightbox] = React.useState(false);
   const zoomBtnRef = React.useRef<HTMLButtonElement | null>(null);
@@ -114,11 +114,11 @@ function ServiceCard({
   React.useEffect(() => clearTimer, []);
 
   const Icon = icons[s.key] ?? Sparkles;
-  // Мініатюри, які показуємо повністю (вписуємо), а не обрізаємо
+  // Миниатюры, которые показываем полностью (вписываем), а не обрезаем
   const containKeys = new Set(["demandgen", "maps", "app", "search", "display", "remarketing", "shopping", "youtube"]);
   const contain = containKeys.has(s.key);
   const previewSrc = s.mockupFull ?? s.mockup;
-  // Колонка на десктопі (3 в ряд) — щоб превью крайніх карток не вилазило за екран
+  // Колонка на десктопе (3 в ряд) — чтобы превью крайних карточек не вылезало за экран
   const col = i % 3;
   const previewPos =
     col === 0
@@ -137,21 +137,21 @@ function ServiceCard({
       aria-hidden={clone ? "true" : undefined}
       className={cn(
         "relative flex min-w-0 flex-col rounded-2xl border border-bg-line bg-bg-card transition-colors",
-        // Клон зліва: у DOM — після всіх, візуально — перед першою (order), щоб nth-child затримки
-        // появи реальних карток не зсувалися.
+        // Клон слева: в DOM — после всех, визуально — перед первой (order), чтобы nth-child задержки
+        // появления реальных карточек не сдвигались.
         clone && side === "left" && "order-first",
-        // < sm: слайд каруселі — 82 % ширини екрана, ПО ЦЕНТРУ (snap-center), сусіди симетрично
-        // «визирають» з обох боків (зауваження власника: картка стояла зліва, а не по центру).
+        // < sm: слайд карусели — 82 % ширины экрана, ПО ЦЕНТРУ (snap-center), соседи симметрично
+        // «выглядывают» с обеих сторон (замечание владельца: карточка стояла слева, а не по центру).
         "max-sm:w-[82vw] max-sm:shrink-0 max-sm:snap-center",
-        // ≥ sm: згорнуті картки (після перших трьох) приховані; при розгортанні — коротка поява.
+        // ≥ sm: свёрнутые карточки (после первых трёх) скрыты; при разворачивании — короткое появление.
         collapsed ? "sm:hidden" : i >= SERVICES_PREVIEW && "sm:animate-in sm:fade-in sm:slide-in-from-top-2 sm:duration-500",
         preview && "z-30 border-brand/40"
       )}
     >
       {s.mockup ? (
         <>
-          {/* Мініатюра. На тачі (без hover-превью) — кнопка: тап відкриває лайтбокс із великим
-              скріншотом; на десктопі з hover — звичайний блок (клік нічого не відкриває). */}
+          {/* Миниатюра. На таче (без hover-превью) — кнопка: тап открывает лайтбокс с большим
+              скриншотом; на десктопе с hover — обычный блок (клик ничего не открывает). */}
           {(() => {
             const thumb = (
               <>
@@ -183,7 +183,7 @@ function ServiceCard({
                 type="button"
                 data-zoom-trigger
                 aria-label={`${zoomLabel}: ${s.name}`}
-                // Клон: поза табуляцією (aria-hidden на картці), але тап відкриває той самий лайтбокс.
+                // Клон: вне табуляции (aria-hidden на карточке), но тап открывает тот же лайтбокс.
                 tabIndex={clone ? -1 : undefined}
                 onClick={() => setLightbox(true)}
                 className={cn(cls, "btn-focus text-left")}
@@ -203,10 +203,10 @@ function ServiceCard({
               returnFocusTo={zoomBtnRef.current}
             />
           )}
-          {/* Велике читабельне превью — зʼявляється після затримки наведення. Рендериться ЛИШЕ під час
-              наведення: прихований absolute-шар ширший за картку розсував сторінку (скан переповнення).
-              Позиція (translate) і анімація появи (animate-in — кейфрейм enter пише transform) — на РІЗНИХ
-              елементах: на одному кейфрейм перебивав -translate-x/y-1/2, і превью «приїжджало» збоку. */}
+          {/* Большое читаемое превью — появляется после задержки наведения. Рендерится ТОЛЬКО во время
+              наведения: скрытый absolute-слой шире карточки раздвигал страницу (скан переполнения).
+              Позиция (translate) и анимация появления (animate-in — кейфрейм enter пишет transform) — на РАЗНЫХ
+              элементах: на одном кейфрейм перебивал -translate-x/y-1/2, и превью «приезжало» сбоку. */}
           {preview && (
           <div
             className={cn(
@@ -253,26 +253,26 @@ function ServiceCard({
 export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { openLead } = useLeadModal();
   const { services } = useSiteMessages();
-  // Порожня картка (без назви) не виводиться.
+  // Пустая карточка (без названия) не выводится.
   const items = services.items.filter((s) => hasText(s.name));
-  // ≥ sm: перші 3 картки + «Показати більше»; < sm: усі картки в одному горизонтальному треку
-  // (крок 3 мобільних анімацій — горизонтальна карусель повернута рішенням власника 2026-09-14) —
-  // showAll там не використовується, кнопки немає в DOM.
+  // ≥ sm: первые 3 карточки + «Показати більше»; < sm: все карточки в одном горизонтальном треке
+  // (шаг 3 мобильных анимаций — горизонтальная карусель возвращена решением владельца 2026-09-14) —
+  // showAll там не используется, кнопки нет в DOM.
   const [showAll, setShowAll] = React.useState(false);
   const hiddenCount = Math.max(0, items.length - SERVICES_PREVIEW);
 
-  // Карусель (< sm), циклічна (рішення власника 2026-09-15): клони-буфери по краях (loop = true після
-  // гідрації, лише при TRACK_MEDIA; SSR і десктоп — без клонів), активна точка — слайд, центр якого
-  // найближчий до центру треку, індекс за модулем N; після зупинки прокрутки на клоні (scrollend або
-  // пауза SCROLL_SETTLE_MS) — миттєвий телепорт на відповідну реальну картку (однакова ширина слайдів
-  // і gap → кадр не змінюється). У scroll: passive → rAF → арифметика + setState лише при зміні.
+  // Карусель (< sm), цикличная (решение владельца 2026-09-15): клоны-буферы по краям (loop = true после
+  // гидрации, только при TRACK_MEDIA; SSR и десктоп — без клонов), активная точка — слайд, центр которого
+  // ближе всего к центру трека, индекс по модулю N; после остановки прокрутки на клоне (scrollend или
+  // пауза SCROLL_SETTLE_MS) — мгновенный телепорт на соответствующую реальную карточку (одинаковая ширина
+  // слайдов и gap → кадр не меняется). В scroll: passive → rAF → арифметика + setState только при изменении.
   const trackRef = React.useRef<HTMLDivElement | null>(null);
   const [activeSlide, setActiveSlide] = React.useState(0);
   const [loop, setLoop] = React.useState(false);
   const n = items.length;
   const k = n > LOOP_CLONES ? LOOP_CLONES : 0;
 
-  // Чи вмикати цикл: за брейкпоінтом, після монтування (до першого кадру — useLayoutEffect).
+  // Включать ли цикл: по брейкпоинту, после монтирования (до первого кадра — useLayoutEffect).
   React.useLayoutEffect(() => {
     const mq = window.matchMedia(TRACK_MEDIA);
     const sync = () => setLoop(mq.matches && k > 0);
@@ -281,7 +281,7 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
     return () => mq.removeEventListener?.("change", sync);
   }, [k]);
 
-  // Старт: коли клони змонтовано — миттєво стати на першу РЕАЛЬНУ картку (до paint, без стрибка).
+  // Старт: когда клоны смонтированы — мгновенно встать на первую РЕАЛЬНУЮ карточку (до paint, без скачка).
   React.useLayoutEffect(() => {
     const track = trackRef.current;
     if (!track) return;
@@ -301,7 +301,7 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
     let teleporting = false;
 
-    /** Найближчий до центру треку слайд (реальний або клон). */
+    /** Ближайший к центру трека слайд (реальный или клон). */
     const nearest = () => {
       const center = track.scrollLeft + track.clientWidth / 2;
       let best: HTMLElement | null = null;
@@ -321,11 +321,11 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
       if (!mq.matches) return;
       const el = nearest();
       if (!el) return;
-      const idx = Number(el.dataset.slide) || 0; // у клона data-slide = індекс реальної картки
+      const idx = Number(el.dataset.slide) || 0; // у клона data-slide = индекс реальной карточки
       setActiveSlide((a) => (a === idx ? a : idx));
     };
 
-    // Телепорт із клона на реальну картку тієї ж послуги (той самий кадр).
+    // Телепорт с клона на реальную карточку той же услуги (тот же кадр).
     const settle = () => {
       settleTimer = null;
       if (!mq.matches || teleporting) return;
@@ -363,7 +363,7 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
     };
   }, [n, loop]);
 
-  /** Прокрутка до слайда idx — до найближчого екземпляра (реального чи клона): з останньої на першу — один крок. */
+  /** Прокрутка к слайду idx — к ближайшему экземпляру (реальному или клону): с последней на первую — один шаг. */
   const scrollToSlide = (idx: number) => {
     const track = trackRef.current;
     if (!track) return;
@@ -401,14 +401,14 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
           {hasText(services.text) && <p className="mt-4 text-lg text-white/60">{services.text}</p>}
         </div>
 
-        {/* Один список карток. < sm: горизонтальний трек зі snap на всю ширину екрана (винос на
-            бокові відступи .container-x; внутрішні відступи по 9vw — щоб перша/остання картка стояли
-            по центру, як і решта), скролбар прихований;
-            трек сам обрізає вміст — сторінка не отримує горизонтального скролу; краї розчиняються
-            горизонтальною маскою (.services-track, як стрічка партнерів). ≥ sm: сітка 2/3 колонки,
-            картки після перших трьох приховані до «Показати більше». */}
-        {/* Обгортка несе focus-ring треку (.services-wrap: маска обрізає box-shadow самого треку, тому
-            кільце — тут). Маска країв постійна з обох боків (цикл — «країв» немає). */}
+        {/* Один список карточек. < sm: горизонтальный трек со snap на всю ширину экрана (вынос на
+            боковые отступы .container-x; внутренние отступы по 9vw — чтобы первая/последняя карточка стояли
+            по центру, как и остальные), скроллбар скрыт;
+            трек сам обрезает содержимое — страница не получает горизонтального скролла; края растворяются
+            горизонтальной маской (.services-track, как лента партнёров). ≥ sm: сетка 2/3 колонки,
+            карточки после первых трёх скрыты до «Показати більше». */}
+        {/* Обёртка несёт focus-ring трека (.services-wrap: маска обрезает box-shadow самого трека, поэтому
+            кольцо — здесь). Маска краёв постоянная с обеих сторон (цикл — «краёв» нет). */}
         <div className="services-wrap relative mt-12 rounded-2xl max-sm:-mx-5">
           <div
             ref={trackRef}
@@ -420,7 +420,7 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             data-loop={loop ? "1" : undefined}
             className={cn(
               "reveal-stagger gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3",
-              // pb-5 — запас під translateY(20px) появи дітей (.reveal-stagger > *), щоб трек їх не обрізав.
+              // pb-5 — запас под translateY(20px) появления детей (.reveal-stagger > *), чтобы трек их не обрезал.
               "max-sm:flex max-sm:gap-4 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:px-[9vw] max-sm:pb-5",
               "max-sm:snap-x max-sm:snap-mandatory max-sm:overscroll-x-contain",
               "services-track no-scrollbar outline-none"
@@ -429,8 +429,8 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
             {items.map((s, i) => (
               <ServiceCard key={i} s={s} i={i} collapsed={i >= SERVICES_PREVIEW && !showAll} zoomLabel={services.zoomLabel} />
             ))}
-            {/* Клони-буфери (лише loop): K перших — після останньої; K останніх — у DOM теж після, але
-                візуально перед першою (order-first), щоб nth-child затримки появи реальних не зсувалися. */}
+            {/* Клоны-буферы (только loop): K первых — после последней; K последних — в DOM тоже после, но
+                визуально перед первой (order-first), чтобы nth-child задержки появления реальных не сдвигались. */}
             {loop &&
               items.slice(0, k).map((s, i) => (
                 <ServiceCard key={`clone-r-${i}`} s={s} i={i} collapsed={false} zoomLabel={services.zoomLabel} clone side="right" />
@@ -442,8 +442,8 @@ export function Services({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = 
           </div>
         </div>
 
-        {/* Точки каруселі (< sm): по одній на картку, активна — найближча до лівого краю. Декоративні
-            (aria-hidden, не в табі): трек прокручується свайпом і клавіатурою. */}
+        {/* Точки карусели (< sm): по одной на карточку, активная — ближайшая к левому краю. Декоративные
+            (aria-hidden, не в табе): трек прокручивается свайпом и клавиатурой. */}
         {items.length > 1 && (
           <div aria-hidden="true" data-carousel-dots className="mt-1 flex justify-center gap-2 sm:hidden">
             {items.map((_, i) => (

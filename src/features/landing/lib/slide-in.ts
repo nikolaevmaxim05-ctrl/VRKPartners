@@ -1,20 +1,20 @@
-// Виїзд пунктів зліва по мірі прокрутки — DOM-частина (блок «Що ви отримуєте?», 2026-09-17).
-// Правило й константи — @core/domain/layout/slide-in.
+// Выезд пунктов слева по мере прокрутки — DOM-часть (блок «Що ви отримуєте?», 2026-09-17).
+// Правило и константы — @core/domain/layout/slide-in.
 //
-// Пункт [data-slide-in] (li) з частинами [data-slide-part="0|1|2"] (номер, жовта фраза, сіра
-// частина). Верх кожного пункту в документі міряється ОДИН раз і кешується (offsetTop по ланцюжку
-// offsetParent — transform частин на нього не впливає); перемір — resize, document.fonts.ready,
-// ResizeObserver батька пунктів (ol) і body (контент вище досчитується після гідрації і зсуває блок,
-// не змінюючи його розміру), зміна маршруту (refresh). У scroll (passive → rAF) — лише арифметика по
-// кешу і запис ЦІЛЬОВОГО transform/opacity на частинах, коли значення змінилося помітно; показаний стан
-// наздоганяє ціль з інерцією — CSS-перехід easeOutExpo тривалістю smoothTransitionMs(smoothMs) на
-// композиторі (колесо миші крутить сторінку сходинками по ~100 px, без інерції частини «стрибали» б;
-// покадровий запис із JS давав той самий рух, але на слабких пристроях — кадри > 20 мс). Перша
-// установка і вхід/вихід із гейта — без переходу. Поки батько пунктів
-// далеко від вьюпорту (IntersectionObserver-гейт із запасом 50 % vh), кадр пропускається; на
-// вході/виході з гейта стан дораховується один раз (швидка прокрутка «наскрізь» не лишає застарілих
-// значень) і вмикається/знімається will-change: transform. «Менше руху» — ефект вимкнено: інлайн-стилі
-// й клас html.js-slide-in знято, слухачі не вішаються; на зміну налаштування реагуємо через
+// Пункт [data-slide-in] (li) с частями [data-slide-part="0|1|2"] (номер, жёлтая фраза, серая
+// часть). Верх каждого пункта в документе меряется ОДИН раз и кэшируется (offsetTop по цепочке
+// offsetParent — transform частей на него не влияет); перемер — resize, document.fonts.ready,
+// ResizeObserver родителя пунктов (ol) и body (контент выше досчитывается после гидрации и сдвигает блок,
+// не меняя его размера), смена маршрута (refresh). В scroll (passive → rAF) — только арифметика по
+// кэшу и запись ЦЕЛЕВОГО transform/opacity на частях, когда значение изменилось заметно; показанное состояние
+// догоняет цель с инерцией — CSS-переход easeOutExpo длительностью smoothTransitionMs(smoothMs) на
+// композиторе (колесо мыши крутит страницу ступеньками по ~100 px, без инерции части «прыгали» бы;
+// покадровая запись из JS давала то же движение, но на слабых устройствах — кадры > 20 мс). Первая
+// установка и вход/выход из гейта — без перехода. Пока родитель пунктов
+// далеко от вьюпорта (IntersectionObserver-гейт с запасом 50 % vh), кадр пропускается; на
+// входе/выходе из гейта состояние досчитывается один раз (быстрая прокрутка «насквозь» не оставляет устаревших
+// значений) и включается/снимается will-change: transform. «Меньше движения» — эффект выключен: инлайн-стили
+// и класс html.js-slide-in сняты, слушатели не вешаются; на смену настройки реагируем через
 // matchMedia change.
 import {
   SLIDE_IN_DEFAULTS,
@@ -30,24 +30,24 @@ type Part = { el: HTMLElement; index: number; lastX: number; lastO: number; anim
 type Item = { el: HTMLElement; gate: HTMLElement; top: number; parts: Part[] }
 
 export type SlideInController = {
-  /** Перезібрати пункти (зміна маршруту/контенту), переміряти й перерахувати. */
+  /** Пересобрать пункты (смена маршрута/контента), перемерить и пересчитать. */
   refresh(): void
-  /** Замінити параметри й перерахувати (підбір значень на превʼю). */
+  /** Заменить параметры и пересчитать (подбор значений на превью). */
   setParams(p: SlideInParams): void
   destroy(): void
 }
 
 const REDUCED = '(prefers-reduced-motion: reduce)'
-/** Клас на <html>: частини приховані й зсунуті CSS до першого розрахунку (ставить інлайн-скрипт layout). */
+/** Класс на <html>: части скрыты и сдвинуты CSS до первого расчёта (ставит инлайн-скрипт layout). */
 const HTML_CLASS = 'js-slide-in'
-/** Запас гейта: батько пунктів вважається «поруч» за 50 % висоти вікна від краю. */
+/** Запас гейта: родитель пунктов считается «рядом» за 50 % высоты окна от края. */
 const GATE_MARGIN = '50% 0px 50% 0px'
 const EPS_X = 0.5
 const EPS_O = 0.01
-/** Крива easeOutExpo (наближення 1 − 2^(−10t)) — відповідає експоненційній інерції. */
+/** Кривая easeOutExpo (приближение 1 − 2^(−10t)) — соответствует экспоненциальной инерции. */
 const EASE_OUT_EXPO = 'cubic-bezier(0.16, 1, 0.3, 1)'
 
-/** Верх елемента в документі за ланцюжком offsetParent (без впливу transform нащадків). */
+/** Верх элемента в документе по цепочке offsetParent (без влияния transform потомков). */
 function offsetTopInPage(el: HTMLElement): number {
   let top = 0
   let cur: HTMLElement | null = el
@@ -71,13 +71,13 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
   let measureRaf = 0
   let active = false
 
-  // Перехід частин: easeOutExpo з тривалістю smoothTransitionMs(smoothMs) — інерція на композиторі.
+  // Переход частей: easeOutExpo с длительностью smoothTransitionMs(smoothMs) — инерция на композиторе.
   const transitionCss = () => {
     const d = smoothTransitionMs(params.smoothMs)
     return d > 0 ? `transform ${d}ms ${EASE_OUT_EXPO}, opacity ${d}ms ${EASE_OUT_EXPO}` : 'none'
   }
 
-  /** snap — поставити одразу, без переходу (завантаження, гейт); інакше значення доганяє ціль переходом. */
+  /** snap — поставить сразу, без перехода (загрузка, гейт); иначе значение догоняет цель переходом. */
   const write = (part: Part, x: number, opacity: number, snap: boolean) => {
     const xr = Math.round(x * 10) / 10
     const o = opacity >= 0.995 ? 1 : Math.round(opacity * 1000) / 1000
@@ -90,9 +90,9 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
       part.animated = animated
       part.el.style.transition = animated ? transitionCss() : 'none'
     }
-    // Явні значення (не порожній рядок): до гідрації клас html.js-slide-in тримає частини прихованими.
-    // У спокої — none (текст не тримає зайвий композитний шар); перехід матриця → none інтерполюється
-    // як до одиничної матриці.
+    // Явные значения (не пустая строка): до гидрации класс html.js-slide-in держит части скрытыми.
+    // В покое — none (текст не держит лишний композитный слой); переход матрица → none интерполируется
+    // как к единичной матрице.
     part.el.style.transform = xr === 0 ? 'none' : `translate3d(${xr}px, 0, 0)`
     part.el.style.opacity = String(o)
   }
@@ -152,8 +152,8 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
         p.lastO = NaN
       }
     }
-    // Без snap: перша установка й так миттєва (last ще NaN), а перемір посеред руху (resize, зміна
-    // висоти сторінки) не смикає частини — вони доганяють нову ціль переходом.
+    // Без snap: первая установка и так мгновенная (last ещё NaN), а перемер посреди движения (resize, смена
+    // высоты страницы) не дёргает части — они догоняют новую цель переходом.
     compute(true, false)
   }
   const scheduleMeasure = () => {
@@ -187,7 +187,7 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
   const enable = () => {
     if (active) return
     active = true
-    // Клас «до гідрації» (інлайн-скрипт у layout) — тримаємо, поки ефект активний.
+    // Класс «до гидрации» (инлайн-скрипт в layout) — держим, пока эффект активен.
     document.documentElement.classList.add(HTML_CLASS)
     collect()
     near.clear()
@@ -202,7 +202,7 @@ export function attachSlideIn(root: ParentNode = document, initial: SlideInParam
             else near.delete(g)
             setWillChange(g, en.isIntersecting)
           }
-          // Вхід/вихід із гейта — один повний прохід: стан пунктів поза гейтом теж має бути актуальним.
+          // Вход/выход из гейта — один полный проход: состояние пунктов вне гейта тоже должно быть актуальным.
           scheduleAll()
         },
         { rootMargin: GATE_MARGIN },

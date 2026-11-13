@@ -26,24 +26,24 @@ export function Dialog({
 }: DialogProps) {
   const { form } = useSiteMessages();
   const panelRef = React.useRef<HTMLDivElement>(null);
-  // mounted — чи рендеримо в DOM; visible — стан для CSS-переходу (плавна поява/зникнення)
+  // mounted — рендерим ли в DOM; visible — состояние для CSS-перехода (плавное появление/исчезновение)
   const [mounted, setMounted] = React.useState(open);
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setMounted(true);
-      // увімкнути видимий стан на наступному кадрі, щоб запустився transition
+      // включить видимое состояние на следующем кадре, чтобы запустился transition
       const raf = requestAnimationFrame(() => setVisible(true));
       return () => cancelAnimationFrame(raf);
     }
-    // закриття: програти анімацію виходу, потім демонтувати
+    // закрытие: проиграть анимацию выхода, потом демонтировать
     setVisible(false);
     const t = setTimeout(() => setMounted(false), EXIT_MS);
     return () => clearTimeout(t);
   }, [open]);
 
-  // Escape + блокування скролу body
+  // Escape + блокировка скролла body
   React.useEffect(() => {
     if (!mounted) return;
     const onKey = (e: KeyboardEvent) => {
@@ -70,7 +70,7 @@ export function Dialog({
     >
       <div
         className={cn(
-          // site-dialog-backdrop — хук для режиму lite (globals.css): без backdrop-filter, темніша підкладка.
+          // site-dialog-backdrop — хук для режима lite (globals.css): без backdrop-filter, более тёмная подложка.
           "site-dialog-backdrop absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-200",
           visible ? "opacity-100" : "opacity-0"
         )}

@@ -1,5 +1,5 @@
-// Enhanced Conversions на сайті: gtag('set','user_data') з sha256-хешами нормалізованих значень.
-// Середовище node: Web Crypto доступний через globalThis.crypto.
+// Enhanced Conversions на сайте: gtag('set','user_data') с sha256-хешами нормализованных значений.
+// Среда node: Web Crypto доступен через globalThis.crypto.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { setEnhancedConversionUserData } from "@/features/landing/lib/enhanced-conversions";
 import { sha256Hex } from "@core/domain/funnel/enhanced-conversions";

@@ -16,7 +16,7 @@ import {
   pickActive,
 } from "@core/domain/layout/usp-focus";
 
-// Значення ефекту з ядра — у CSS-змінні контейнера; правила — globals.css (.usp-card[data-state]).
+// Значения эффекта из ядра — в CSS-переменные контейнера; правила — globals.css (.usp-card[data-state]).
 const EFFECT_VARS = {
   "--usp-scale": String(USP_ACTIVE_SCALE),
   "--usp-blur": `${USP_DIMMED_BLUR_PX}px`,
@@ -25,11 +25,11 @@ const EFFECT_VARS = {
 
 export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
   const { usp: uspRaw } = useSiteMessages();
-  // Порожній пункт (без заголовка) не виводиться; ключі React — за індексом (тексти повторюються).
+  // Пустой пункт (без заголовка) не выводится; ключи React — по индексу (тексты повторяются).
   const usp = { ...uspRaw, items: uspRaw.items.filter((it) => hasText(it.title)) };
   const cardsRef = React.useRef<Array<HTMLDivElement | null>>([]);
-  // Активна картка на мобільному — та, що найближча до центру екрана під час скролу (з гістерезисом,
-  // правила — core/domain/layout/usp-focus). На десктопі підсвітка керується :hover, тож active = -1.
+  // Активная карточка на мобильном — та, что ближе всего к центру экрана во время скролла (с гистерезисом,
+  // правила — core/domain/layout/usp-focus). На десктопе подсветка управляется :hover, так что active = -1.
   const [active, setActive] = React.useState(-1);
   const activeRef = React.useRef(-1);
 
@@ -105,7 +105,7 @@ export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
                 }}
                 className="group relative w-full sm:w-[calc(50%_-_0.5rem)] lg:w-[calc(33.333%_-_0.667rem)]"
               >
-                {/* м'яке свічення ПОЗАДУ картки — плавно через opacity */}
+                {/* мягкое свечение ПОЗАДИ карточки — плавно через opacity */}
                 <div
                   aria-hidden="true"
                   className={cn(
@@ -114,8 +114,8 @@ export function Usp({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {}) {
                   )}
                 />
 
-                {/* Ефект на мобільному (масштаб активної, розмиття решти) — на <article>, не на обгортці:
-                    обгортка вже несе transform/transition появи (.reveal-stagger > *). */}
+                {/* Эффект на мобильном (масштаб активной, размытие остальных) — на <article>, не на обёртке:
+                    обёртка уже несёт transform/transition появления (.reveal-stagger > *). */}
                 <article
                   data-state={cardState(i, active, usp.items.length)}
                   className="usp-card relative overflow-hidden rounded-2xl border border-bg-line bg-bg-card p-6 transition-transform duration-500 ease-out group-hover:-translate-y-1"

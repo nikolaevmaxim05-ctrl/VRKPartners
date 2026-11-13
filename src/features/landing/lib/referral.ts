@@ -1,16 +1,16 @@
-// features/landing/lib/referral — клієнтське дзеркало касань партнерських посилань (відхилення 11).
-// Основна атрибуція — HttpOnly-cookie lead_ref зі списком касань, яку веде middleware. Дзеркало в
-// localStorage — фолбек, якщо cookie не дійшла (блокувальники, Safari без cookie): той самий список
-// касань (перший ts за кодом зберігається, ті самі ліміти), йде у тіло заявки полем `refTouches`.
-// Сервер обʼєднує cookie ⊕ тіло ⊕ ?ref сторінки і бере найраніше касання у вікні атрибуції.
-// Дзеркало другорядне: Safari ITP обмежує script-writable storage 7 днями, серверна cookie — ні.
+// features/landing/lib/referral — клиентское зеркало касаний партнёрских ссылок (отклонение 11).
+// Основная атрибуция — HttpOnly-cookie lead_ref со списком касаний, которую ведёт middleware. Зеркало в
+// localStorage — фолбэк, если cookie не дошла (блокировщики, Safari без cookie): тот же список
+// касаний (первый ts по коду сохраняется, те же лимиты), идёт в тело заявки полем `refTouches`.
+// Сервер объединяет cookie ⊕ тело ⊕ ?ref страницы и берёт самое раннее касание в окне атрибуции.
+// Зеркало второстепенно: Safari ITP ограничивает script-writable storage 7 днями, серверная cookie — нет.
 import { normalizeRefCode, REF_QUERY_KEY } from '@core/domain/referral/code'
 import { addTouch, normalizeTouches, type ReferralTouch } from '@core/domain/referral/touches'
 
 export const REF_STORAGE_KEY = 'lead_ref'
 
 type Stored = { touches: ReferralTouch[] }
-/** Легасі-формат (прод 2026-09-27): один код із ts у мілісекундах. */
+/** Легаси-формат (прод 2026-09-27): один код с ts в миллисекундах. */
 type LegacyStored = { code?: unknown; at?: unknown }
 
 function nowSec(): number {
@@ -31,7 +31,7 @@ function readStored(): ReferralTouch[] {
   }
 }
 
-/** Зчитує ?ref= з поточного URL і додає касання (перший ts за кодом зберігається). SSR-safe. */
+/** Считывает ?ref= из текущего URL и добавляет касание (первый ts по коду сохраняется). SSR-safe. */
 export function captureRefFromUrl(): void {
   if (typeof window === 'undefined') return
   try {
@@ -40,14 +40,14 @@ export function captureRefFromUrl(): void {
     const value: Stored = { touches: addTouch(readStored(), code, nowSec()) }
     window.localStorage.setItem(REF_STORAGE_KEY, JSON.stringify(value))
   } catch {
-    // localStorage недоступний — cookie від middleware лишається основним каналом
+    // localStorage недоступен — cookie от middleware остаётся основным каналом
   }
 }
 
-/** Збережені касання (не старші за стелю cookie) для тіла заявки; порожній масив, якщо нічого. */
+/** Сохранённые касания (не старше потолка cookie) для тела заявки; пустой массив, если ничего. */
 export function getStoredRefTouches(): ReferralTouch[] {
   if (typeof window === 'undefined') return []
   const now = nowSec()
-  // addTouch без нового коду не буває — фільтруємо тим самим правилом «не старші за 400 днів».
+  // addTouch без нового кода не бывает — фильтруем тем же правилом «не старше 400 дней».
   return readStored().filter((t) => t.at <= now && now - t.at <= 400 * 24 * 3600)
 }

@@ -4,14 +4,14 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 
 /**
- * Плавна поява елементів при скролі.
- * Спостерігає за елементами з класами .reveal / .reveal-stagger і додає
- * .is-visible, коли вони потрапляють у в'юпорт. Анімація вмикається лише за
- * наявності JS (клас .js-reveal на <html>), тож без JS контент видимий одразу.
+ * Плавное появление элементов при скролле.
+ * Наблюдает за элементами с классами .reveal / .reveal-stagger и добавляет
+ * .is-visible, когда они попадают во вьюпорт. Анимация включается только при
+ * наличии JS (класс .js-reveal на <html>), так что без JS контент видим сразу.
  *
- * Пересканування на зміну маршруту: компонент живе в layout і не демонтується
- * при клієнтській навігації, тож без залежності від pathname нові елементи
- * сторінки лишались би прихованими (порожня сторінка після переходу).
+ * Пересканирование при смене маршрута: компонент живёт в layout и не демонтируется
+ * при клиентской навигации, так что без зависимости от pathname новые элементы
+ * страницы оставались бы скрытыми (пустая страница после перехода).
  */
 export function RevealObserver() {
   const pathname = usePathname();
@@ -24,7 +24,7 @@ export function RevealObserver() {
       document.querySelectorAll<HTMLElement>(".reveal, .reveal-stagger")
     );
 
-    // Якщо IntersectionObserver недоступний — показуємо все одразу.
+    // Если IntersectionObserver недоступен — показываем всё сразу.
     if (typeof IntersectionObserver === "undefined") {
       els.forEach((el) => el.classList.add("is-visible"));
       return;
@@ -44,7 +44,7 @@ export function RevealObserver() {
 
     els.forEach((el) => observer.observe(el));
 
-    // Підстраховка: елементи, що вже у в'юпорті на момент завантаження.
+    // Подстраховка: элементы, которые уже во вьюпорте на момент загрузки.
     requestAnimationFrame(() => {
       els.forEach((el) => {
         const r = el.getBoundingClientRect();

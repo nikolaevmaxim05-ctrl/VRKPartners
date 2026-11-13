@@ -14,9 +14,9 @@ import { track } from "@/shared/lib/analytics";
 import { NAV_ITEMS } from "@core/domain/content/visibility";
 import { cn } from "@/shared/lib/utils";
 
-/** Запас між пунктами меню і правим блоком (px), щоб поріг спрацьовував із невеликим люфтом. */
+/** Запас между пунктами меню и правым блоком (px), чтобы порог срабатывал с небольшим люфтом. */
 const NAV_SLACK = 24;
-/** Проміжки бару (gap-4) між логотипом, меню і правим блоком. */
+/** Промежутки бара (gap-4) между логотипом, меню и правым блоком. */
 const BAR_GAPS = 16 * 2;
 
 const PHONE_CLS =
@@ -38,15 +38,15 @@ export function Header() {
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [active, setActive] = React.useState("");
-  // Поріг «меню в бургер» — за сумою ширин пунктів (розділ 12, п. 7), а не за шириною екрана:
-  // назви пунктів редагує клієнт. До першого виміру — за CSS-брейкпоінтом md.
+  // Порог «меню в бургер» — по сумме ширин пунктов (раздел 12, п. 7), а не по ширине экрана:
+  // названия пунктов редактирует клиент. До первого измерения — по CSS-брейкпоинту md.
   const [compact, setCompact] = React.useState<boolean | null>(null);
   const barRef = React.useRef<HTMLDivElement>(null);
   const logoRef = React.useRef<HTMLAnchorElement>(null);
   const measureRef = React.useRef<HTMLDivElement>(null);
   const actionsMeasureRef = React.useRef<HTMLDivElement>(null);
 
-  // Посилання на прихований блок не виводиться ніде (розділ 9).
+  // Ссылка на скрытый блок не выводится нигде (раздел 9).
   const nav = NAV_ITEMS.filter((item) => vis.shown(item.id) && navLabels[item.id].trim() !== "").map(
     (item) => ({ href: item.anchor, label: navLabels[item.id] })
   );
@@ -60,9 +60,9 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Вимір: логотип + сума ширин пунктів + правий блок (телефон, кнопки) > ширини бару → бургер.
-  // Пункти і правий блок міряються НЕВИДИМИМИ КОПІЯМИ (завжди в потоці): справжні блоки в
-  // компактному стані display:none і дали б 0 — поріг «дриґався» б туди-сюди.
+  // Измерение: логотип + сумма ширин пунктов + правый блок (телефон, кнопки) > ширины бара → бургер.
+  // Пункты и правый блок меряются НЕВИДИМЫМИ КОПИЯМИ (всегда в потоке): настоящие блоки в
+  // компактном состоянии display:none и дали бы 0 — порог «дёргался» бы туда-сюда.
   React.useEffect(() => {
     const measure = () => {
       const bar = barRef.current;
@@ -71,7 +71,7 @@ export function Header() {
       if (!bar || !items || !actions) return;
       const logoW = logoRef.current?.offsetWidth ?? 0;
       const needed = logoW + items.offsetWidth + actions.offsetWidth + BAR_GAPS + NAV_SLACK;
-      // clientWidth бару включає його внутрішні відступи (container-x) — порівнюємо з контентною шириною.
+      // clientWidth бара включает его внутренние отступы (container-x) — сравниваем с контентной шириной.
       const cs = getComputedStyle(bar);
       const available = bar.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       setCompact(needed > available);
@@ -87,7 +87,7 @@ export function Header() {
     };
   }, [navKey, site.phone, header.consultShort]);
 
-  // Scrollspy: активна — остання секція, чий верх перетнув лінію ~35% висоти вікна.
+  // Scrollspy: активная — последняя секция, чей верх пересёк линию ~35% высоты окна.
   React.useEffect(() => {
     const ids = navIds.split(",").filter(Boolean);
     const compute = () => {
@@ -118,7 +118,7 @@ export function Header() {
     });
   };
 
-  // compact === null → поведінка за брейкпоінтом md (до першого виміру / без JS).
+  // compact === null → поведение по брейкпоинту md (до первого измерения / без JS).
   const desktopCls = compact === null ? "hidden md:flex" : compact ? "hidden" : "flex";
   const burgerCls = compact === null ? "md:hidden" : compact ? "" : "hidden";
 
@@ -126,7 +126,7 @@ export function Header() {
     <header
       data-scrolled={scrolled || undefined}
       className={cn(
-        // site-header / data-scrolled — хуки для режиму lite (globals.css): без backdrop-filter, фон 95 %.
+        // site-header / data-scrolled — хуки для режима lite (globals.css): без backdrop-filter, фон 95 %.
         "site-header fixed inset-x-0 top-0 z-50 transition-all",
         scrolled
           ? "border-b border-bg-line bg-bg/80 backdrop-blur-md"
@@ -143,8 +143,8 @@ export function Header() {
           <Logo />
         </a>
 
-        {/* Невидимі копії пунктів і правого блоку для виміру ширин (той самий шрифт/розмір/проміжки).
-            Зовнішній блок 0×0 з overflow-hidden — не впливає на розкладку; inert — поза фокусом і a11y. */}
+        {/* Невидимые копии пунктов и правого блока для измерения ширин (тот же шрифт/размер/промежутки).
+            Внешний блок 0×0 с overflow-hidden — не влияет на раскладку; inert — вне фокуса и a11y. */}
         <div aria-hidden="true" inert className="pointer-events-none absolute left-0 top-0 -z-10 h-0 w-0 overflow-hidden opacity-0">
           <div className="flex w-max items-center">
             <div ref={measureRef} className="flex items-center gap-7 whitespace-nowrap text-sm font-medium">

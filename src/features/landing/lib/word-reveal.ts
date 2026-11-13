@@ -1,30 +1,30 @@
-// Розгорання слів по мірі прокрутки — DOM-частина (крок 4 мобільних анімацій). Правило й
-// константи — @core/domain/layout/word-reveal; розмітка — shared/lib/split-words.tsx.
+// Разгорание слов по мере прокрутки — DOM-часть (шаг 4 мобильных анимаций). Правило и
+// константы — @core/domain/layout/word-reveal; разметка — shared/lib/split-words.tsx.
 //
-// Контейнер [data-word-reveal] (напр. сітка карток Audit): усі його [data-word] отримують opacity за
-// позицією відносно лінії читання. Позиції слів (верх у документі, частка left у рядку) міряються
-// ОДИН раз і кешуються; перемір — resize, document.fonts.ready, ResizeObserver контейнера, зміна
-// маршруту (refresh). У scroll (passive → rAF) — лише арифметика по кешу і запис style.opacity,
-// коли значення змінилося помітно (≥ 0.02). Поки контейнер далеко від вьюпорту
-// (IntersectionObserver-гейт з запасом), кадр пропускається. Галочка пункту ([data-word-check] у
-// тому ж li) отримує opacity першого слова. «Менше руху» — ефект вимкнено: інлайн-стилі знято,
-// слухачі не вішаються; на зміну налаштування реагуємо через matchMedia change.
+// Контейнер [data-word-reveal] (напр. сетка карточек Audit): все его [data-word] получают opacity по
+// позиции относительно линии чтения. Позиции слов (верх в документе, доля left в строке) меряются
+// ОДИН раз и кэшируются; перемер — resize, document.fonts.ready, ResizeObserver контейнера, смена
+// маршрута (refresh). В scroll (passive → rAF) — только арифметика по кэшу и запись style.opacity,
+// когда значение изменилось заметно (≥ 0.02). Пока контейнер далеко от вьюпорта
+// (IntersectionObserver-гейт с запасом), кадр пропускается. Галочка пункта ([data-word-check] в
+// том же li) получает opacity первого слова. «Меньше движения» — эффект выключен: инлайн-стили сняты,
+// слушатели не вешаются; на смену настройки реагируем через matchMedia change.
 import { WORD_REVEAL_DEFAULTS, wordOpacity, type WordRevealParams } from '@core/domain/layout/word-reveal'
 
 type Entry = { el: HTMLElement; check: HTMLElement | null; top: number; leftRatio: number; last: number }
 
 export type WordRevealController = {
-  /** Переміряти всі контейнери (зміна маршруту/контенту) і перерахувати. */
+  /** Перемерить все контейнеры (смена маршрута/контента) и пересчитать. */
   refresh(): void
-  /** Замінити параметри (панель налаштування) і перерахувати. */
+  /** Заменить параметры (панель настройки) и пересчитать. */
   setParams(p: WordRevealParams): void
   destroy(): void
 }
 
 const REDUCED = '(prefers-reduced-motion: reduce)'
-/** Клас на <html>: слова в контейнерах приховані CSS до першого розрахунку (ставить інлайн-скрипт layout). */
+/** Класс на <html>: слова в контейнерах скрыты CSS до первого расчёта (ставит инлайн-скрипт layout). */
 const HTML_CLASS = 'js-word-reveal'
-/** Запас гейта: контейнер вважається «поруч» за 50 % висоти вікна від краю. */
+/** Запас гейта: контейнер считается «рядом» за 50 % высоты окна от края. */
 const GATE_MARGIN = '50% 0px 50% 0px'
 const EPS = 0.02
 
@@ -43,7 +43,7 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
   const write = (e: Entry, value: number) => {
     if (Math.abs(value - e.last) < EPS && !(value === 1 && e.last !== 1)) return
     e.last = value
-    // Явна «1» (не порожній рядок): до гідрації клас html.js-word-reveal тримає слова на opacity 0.
+    // Явная «1» (не пустая строка): до гидрации класс html.js-word-reveal держит слова на opacity 0.
     const v = value >= 1 ? '1' : String(Math.round(value * 1000) / 1000)
     e.el.style.opacity = v
     if (e.check) e.check.style.opacity = v
@@ -85,7 +85,7 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
         const lr = line ? line.getBoundingClientRect() : r
         const span = Math.max(1, lr.width - r.width)
         const leftRatio = Math.min(1, Math.max(0, (r.left - lr.left) / span))
-        // Галочка — першому слову пункту (li з [data-word-check]).
+        // Галочка — первому слову пункта (li с [data-word-check]).
         const li = el.closest('li')
         let check: HTMLElement | null = null
         if (li && !lis.has(li)) {
@@ -96,7 +96,7 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
       })
     }
     entries = next
-    // Кешовані last можуть не збігатися з інлайн-стилем після перевимірювання — форс-перерахунок.
+    // Кэшированные last могут не совпадать с инлайн-стилем после перемера — принудительный пересчёт.
     for (const e of entries) e.last = NaN
     apply()
   }
@@ -108,8 +108,8 @@ export function attachWordReveal(root: ParentNode = document, initial: WordRevea
   const enable = () => {
     if (active) return
     active = true
-    // Клас «до гідрації» (інлайн-скрипт у layout) — тримаємо, поки ефект активний; нові слова після
-    // клієнтської навігації теж стартують прихованими до першого розрахунку.
+    // Класс «до гидрации» (инлайн-скрипт в layout) — держим, пока эффект активен; новые слова после
+    // клиентской навигации тоже стартуют скрытыми до первого расчёта.
     document.documentElement.classList.add(HTML_CLASS)
     containers = Array.from(root.querySelectorAll<HTMLElement>('[data-word-reveal]'))
     near.clear()

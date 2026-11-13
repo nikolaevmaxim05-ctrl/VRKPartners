@@ -9,7 +9,7 @@ import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
 type Labels = { experienceLabel: string; roleLabel: string; skillsLabel: string };
 
-/** Картка учасника з 3D-нахилом услід за курсором. */
+/** Карточка участника с 3D-наклоном вслед за курсором. */
 function MemberCard({ m, labels }: { m: AboutMember; labels: Labels }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = React.useState({ rx: 0, ry: 0, active: false });
@@ -20,7 +20,7 @@ function MemberCard({ m, labels }: { m: AboutMember; labels: Labels }) {
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5; // -0.5..0.5
     const py = (e.clientY - r.top) / r.height - 0.5;
-    const MAX = 3.5; // максимальний кут нахилу, градуси
+    const MAX = 3.5; // максимальный угол наклона, градусы
     setTilt({ rx: -py * 2 * MAX, ry: px * 2 * MAX, active: true });
   };
   const handleLeave = () => setTilt({ rx: 0, ry: 0, active: false });

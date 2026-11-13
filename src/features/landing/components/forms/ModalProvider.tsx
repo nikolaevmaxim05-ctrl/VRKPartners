@@ -27,7 +27,7 @@ export function useLeadModal() {
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = React.useState<LeadModalConfig | null>(null);
-  // Останній конфіг лишається під час анімації закриття, щоб контент не зникав різко.
+  // Последний конфиг остаётся во время анимации закрытия, чтобы контент не исчезал резко.
   const [shown, setShown] = React.useState<LeadModalConfig | null>(null);
 
   const openLead = React.useCallback((c: LeadModalConfig) => {

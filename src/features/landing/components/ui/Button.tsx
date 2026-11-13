@@ -2,8 +2,8 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/shared/lib/utils";
 
-// Кнопки переносять текст (розділ 12, п. 6): без whitespace-nowrap, ширина не більша за
-// батька, висота — мінімальна (довгий підпис клієнта росте у два рядки, а не вилазить).
+// Кнопки переносят текст (раздел 12, п. 6): без whitespace-nowrap, ширина не больше
+// родителя, высота — минимальная (длинная подпись клиента растёт в две строки, а не вылезает).
 const buttonVariants = cva(
   "btn-focus inline-flex max-w-full items-center justify-center gap-2 rounded-xl text-center text-sm font-semibold leading-snug transition-all disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
   {
@@ -16,8 +16,8 @@ const buttonVariants = cva(
         ghost: "text-white/80 hover:bg-white/5 hover:text-white",
         outline:
           "border border-brand/70 text-brand hover:bg-brand hover:text-brand-ink",
-        // Telegram-канал звʼязку: блакитний акцент, не конкурує з жовтим primary.
-        // Контраст #2AABEE на темному фоні проходить WCAG AA (≥4.5:1).
+        // Telegram-канал связи: голубой акцент, не конкурирует с жёлтым primary.
+        // Контраст #2AABEE на тёмном фоне проходит WCAG AA (≥4.5:1).
         telegram:
           "border border-[#229ED9]/50 bg-transparent text-[#2AABEE] hover:border-[#229ED9] hover:bg-[#2AABEE]/[0.12] hover:text-[#2AABEE]",
       },

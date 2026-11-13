@@ -10,7 +10,7 @@ import { useSiteMessages } from "@/features/landing/lib/messages";
 import { hasText } from "@core/domain/content/messages";
 import { nbHyphen } from "@/shared/lib/nb-hyphen";
 
-// Десктоп: понад стільки кроків — гортаємо сторінками зі стрілками (інакше тісно).
+// Десктоп: больше стольких шагов — листаем страницами со стрелками (иначе тесно).
 const DESKTOP_PAGINATE_THRESHOLD = 10;
 const DESKTOP_PAGE_SIZE = 8;
 
@@ -18,7 +18,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
   const { openLead } = useLeadModal();
   const { workflow } = useSiteMessages();
 
-  // Номер кроку — за позицією серед видимих (порожній крок не виводиться), не з даних.
+  // Номер шага — по позиции среди видимых (пустой шаг не выводится), не из данных.
   const steps = workflow.steps.filter((s) => hasText(s.title)).map((s, i) => ({ n: i + 1, title: s.title }));
   const terms = workflow.bonus.terms.filter((t) => hasText(t.label));
   const paginated = steps.length > DESKTOP_PAGINATE_THRESHOLD;
@@ -26,7 +26,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
   const [page, setPage] = React.useState(0);
   const safePage = Math.min(page, pageCount - 1);
 
-  // Один крок таймлайну (переюзаємо у простому та в гортабельному вигляді).
+  // Один шаг таймлайна (переиспользуем в простом и в листаемом виде).
   const renderStep = (step: { n: number; title: string }) => (
     <li key={step.n} className="relative flex flex-col items-center px-2 text-center">
       <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-ink ring-4 ring-bg-soft">
@@ -53,7 +53,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
           <Title data-fit className="h2">{nbHyphen(workflow.title)}</Title>
         </div>
 
-        {/* Мобільний: компактний вертикальний таймлайн */}
+        {/* Мобильный: компактный вертикальный таймлайн */}
         <ol data-items={steps.length} className="reveal-stagger relative ml-3 mt-8 space-y-4 border-l-2 border-bg-line lg:hidden">
           {steps.map((step) => (
             <li key={step.n} className="relative flex min-h-[1.75rem] items-center pl-6">
@@ -65,7 +65,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
           ))}
         </ol>
 
-        {/* Десктоп: горизонтальний таймлайн; при великій к-сті кроків — гортання стрілками */}
+        {/* Десктоп: горизонтальный таймлайн; при большом кол-ве шагов — листание стрелками */}
         <div className="mt-14 hidden lg:block">
           {!paginated ? (
             <ol
@@ -91,7 +91,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
                 <ChevronLeft className="h-5 w-5" />
               </button>
 
-              {/* Вьюпорт із плавним горизонтальним слайдом між сторінками */}
+              {/* Вьюпорт с плавным горизонтальным слайдом между страницами */}
               <div className="relative flex-1 overflow-hidden">
                 <div
                   className="flex transition-transform duration-700 ease-in-out"
@@ -108,8 +108,8 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
                         className="relative grid w-full shrink-0"
                         style={{ gridTemplateColumns: `repeat(${pcols}, minmax(0, 1fr))` }}
                       >
-                        {/* На неостанній сторінці лінія тягнеться до краю (натяк, що є продовження),
-                            і навпаки — щоб під час слайду лінія лишалась суцільною між сторінками. */}
+                        {/* На непоследней странице линия тянется до края (намёк, что есть продолжение),
+                            и наоборот — чтобы во время слайда линия оставалась сплошной между страницами. */}
                         <div
                           className="absolute top-5 h-0.5 bg-bg-line"
                           style={{
@@ -138,7 +138,7 @@ export function Process({ titleAs: Title = "h2" }: { titleAs?: "h1" | "h2" } = {
           )}
         </div>
 
-        {/* Підблок: бонус від Google */}
+        {/* Подблок: бонус от Google */}
         <div className="reveal mt-12 overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-bg-card to-bg-card p-6 sm:p-8">
           <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>

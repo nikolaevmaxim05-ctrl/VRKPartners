@@ -1,11 +1,11 @@
 "use client";
 
-// Повноекранний лайтбокс зображення (крок 3b мобільних анімацій): відкривається тапом по мініатюрі
-// послуги там, де немає hover-превью (тач / < sm). Механіка модалки — як у Dialog (Escape, блокування
-// прокрутки body, фокус на хрестик і повернення на кнопку-тригер, fade 200 мс).
-// Власний масштаб без бібліотек (рішення власника; нативний щипок масштабував би всю сторінку):
-// щипок двома пальцями 1×–MAX_SCALE, подвійний тап 1× ↔ DOUBLE_TAP_SCALE, перетягування одним
-// пальцем при збільшенні; усе через transform картинки (без layout), pointer events.
+// Полноэкранный лайтбокс изображения (шаг 3b мобильных анимаций): открывается тапом по миниатюре
+// услуги там, где нет hover-превью (тач / < sm). Механика модалки — как в Dialog (Escape, блокировка
+// прокрутки body, фокус на крестик и возврат на кнопку-триггер, fade 200 мс).
+// Собственный масштаб без библиотек (решение владельца; нативный щипок масштабировал бы всю страницу):
+// щипок двумя пальцами 1×–MAX_SCALE, двойной тап 1× ↔ DOUBLE_TAP_SCALE, перетаскивание одним
+// пальцем при увеличении; всё через transform картинки (без layout), pointer events.
 import * as React from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -25,7 +25,7 @@ interface ImageLightboxProps {
   onClose: () => void;
   src: string;
   alt: string;
-  /** Елемент, якому повернути фокус після закриття (кнопка-тригер). */
+  /** Элемент, которому вернуть фокус после закрытия (кнопка-триггер). */
   returnFocusTo?: HTMLElement | null;
 }
 
@@ -36,7 +36,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
   const [mounted, setMounted] = React.useState(open);
   const [visible, setVisible] = React.useState(false);
 
-  // Стан масштабу — у ref (запис transform напряму, без ре-рендерів на кожен рух пальця).
+  // Состояние масштаба — в ref (запись transform напрямую, без ре-рендеров на каждое движение пальца).
   const state = React.useRef({ scale: 1, tx: 0, ty: 0 });
   const pointers = React.useRef(new Map<number, Pt>());
   const gesture = React.useRef<{ dist: number; scale: number; mid: Pt; tx: number; ty: number } | null>(null);
@@ -55,7 +55,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
     applyTransform();
   }, [applyTransform]);
 
-  /** Зсув обмежується так, щоб картинка не відʼїжджала за межі екрана далі за свій край. */
+  /** Сдвиг ограничивается так, чтобы картинка не уезжала за пределы экрана дальше своего края. */
   const clampPan = (scale: number, tx: number, ty: number): Pt => {
     const el = imgRef.current;
     if (!el) return { x: tx, y: ty };
@@ -76,7 +76,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
     return () => clearTimeout(t);
   }, [open, resetZoom]);
 
-  // Escape, блокування прокрутки сторінки, фокус на хрестик; повернення фокуса на тригер.
+  // Escape, блокировка прокрутки страницы, фокус на крестик; возврат фокуса на триггер.
   React.useEffect(() => {
     if (!mounted) return;
     const onKey = (e: KeyboardEvent) => {
@@ -94,18 +94,18 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
     };
   }, [mounted, onClose, returnFocusTo]);
 
-  // Рендеримо в body (портал): у DOM лайтбокс лежить усередині вікна послуг, а маска вікна (< sm) створює
-  // stacking context — без порталу fixed-шар опинявся б під шапкою та обрізався маскою.
+  // Рендерим в body (портал): в DOM лайтбокс лежит внутри окна услуг, а маска окна (< sm) создаёт
+  // stacking context — без портала fixed-слой оказывался бы под шапкой и обрезался маской.
   if (!mounted || typeof document === "undefined") return null;
 
   const onPointerDown = (e: React.PointerEvent) => {
-    // Без сумісних mouse-подій: фокус лишається на хрестику, виділення/drag картинки не стартують.
+    // Без совместимых mouse-событий: фокус остаётся на крестике, выделение/drag картинки не стартуют.
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const pts = Array.from(pointers.current.values());
     if (pts.length === 2) {
-      // Початок щипка: запамʼятовуємо відстань і центр.
+      // Начало щипка: запоминаем расстояние и центр.
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       gesture.current = {
         dist,
@@ -140,7 +140,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
     }
   };
 
-  /** Чи точка тапу в межах відмальованої картинки (object-contain з відступом 8px). */
+  /** Находится ли точка тапа в пределах отрисованной картинки (object-contain с отступом 8px). */
   const insideImage = (x: number, y: number): boolean => {
     const el = imgRef.current;
     const img = el?.querySelector("img");
@@ -168,7 +168,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
       const now = Date.now();
       const onImage = insideImage(e.clientX, e.clientY);
       if (onImage && now - lastTap.current < DOUBLE_TAP_MS) {
-        // Подвійний тап по картинці — перемикач масштабу (наближення до точки тапу).
+        // Двойной тап по картинке — переключатель масштаба (приближение к точке тапа).
         lastTap.current = 0;
         if (state.current.scale > 1) resetZoom();
         else {
@@ -182,7 +182,7 @@ export function ImageLightbox({ open, onClose, src, alt, returnFocusTo }: ImageL
       } else if (onImage) {
         lastTap.current = now;
       } else {
-        // Тап по фону (поза картинкою) — закрити.
+        // Тап по фону (вне картинки) — закрыть.
         onClose();
       }
     }
